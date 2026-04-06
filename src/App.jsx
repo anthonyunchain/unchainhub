@@ -44,7 +44,7 @@ const AuthenticatedApp = () => {
           const res = await base44.functions.invoke('checkFreelancer', {});
           setIsFreelancer(res.data?.isFreelancer === true);
         } catch {
-          setIsFreelancer(false);
+          setIsFreelancer(true); // en cas d'erreur, accès restreint par défaut
         }
         setRoleChecked(true);
       }).catch(() => setRoleChecked(true));

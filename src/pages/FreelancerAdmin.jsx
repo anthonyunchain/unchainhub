@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,11 +26,11 @@ function FreelancerProfiles() {
 
   const { data: freelancers = [] } = useQuery({ queryKey: ["freelancers"], queryFn: () => base44.entities.Freelancer.list() });
 
-  const createMut = useMutation({ mutationFn: (d) => base44.entities.Freelancer.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); } });
-  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); } });
-  const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Freelancer.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancers"] }) });
+  const createMut = useMutation({ mutationFn: (d) => base44.entities.Freelancer.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); }, onError: (e) => alert("Erreur création : " + (e?.message || e)) });
+  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); }, onError: (e) => alert("Erreur mise à jour : " + (e?.message || e)) });
+  const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Freelancer.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancers"] }), onError: (e) => alert("Erreur suppression : " + (e?.message || e)) });
 
-  const empty = { name: "", email: "", role: "", type: "Freelance", status: "Actif", notes: "", contract_url: "" };
+  const empty = { name: "", email: "", role: "", status: "Actif", notes: "", contract_url: "" };
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (f) => { setData({ ...f }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
@@ -46,8 +46,9 @@ function FreelancerProfiles() {
 
   const handleInvite = async (email, name) => {
     if (!email) return;
-    await base44.users.inviteUser(email, "user");
-    alert(`Invitation envoyée à ${name || email}`);
+    const { error } = await supabase.auth.admin.inviteUserByEmail(email);
+    if (error) alert("Erreur invitation : " + error.message);
+    else alert(`Invitation envoyée à ${name || email}`);
   };
 
   return (

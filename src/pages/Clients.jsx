@@ -53,9 +53,9 @@ export default function Clients() {
   const orderedClients = localClients || [...clients].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const displayClients = orderedClients.filter(c => c.company_name?.toLowerCase().includes(search.toLowerCase()));
 
-  const createMut = useMutation({ mutationFn: (d) => base44.entities.Client.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); } });
-  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Client.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); } });
-  const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Client.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); } });
+  const createMut = useMutation({ mutationFn: (d) => base44.entities.Client.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Erreur création : " + (e?.message || e)) });
+  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Client.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Erreur mise à jour : " + (e?.message || e)) });
+  const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Client.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Erreur suppression : " + (e?.message || e)) });
 
   const handleDelete = () => {
     if (editData?.id && confirm("Delete this client? This action is irreversible.")) {
@@ -203,7 +203,7 @@ export default function Clients() {
           <DialogHeader><DialogTitle>{editData?.id ? "Edit client" : "New client"}</DialogTitle></DialogHeader>
           {editData && (
             <div className="space-y-4 mt-2">
-              <div><Label>Company *</Label><Input value={editData.company_name} onChange={e => setEditData({ ...editData, company_name: e.target.value })} /></div>
+              <div><Label>Company *</Label><Input value={editData.company_name || ""} onChange={e => setEditData({ ...editData, company_name: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Sector</Label>
                   <Select value={editData.sector} onValueChange={v => setEditData({ ...editData, sector: v })}>
@@ -256,7 +256,7 @@ export default function Clients() {
                 ) : <div />}
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!editData.company_name}>Save</Button>
+                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!editData.id && !editData.company_name}>Save</Button>
                 </div>
               </div>
             </div>

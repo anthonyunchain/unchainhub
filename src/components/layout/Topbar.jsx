@@ -12,7 +12,6 @@ const NAV_LINKS = [
   { path: "/Editorial", label: "Calendars" },
   { path: "/FreelancerAdmin", label: "Freelancers" },
   { path: "/Clients", label: "Clients" },
-  { path: "/Finance", label: "Finance" },
   { path: "/Admin", label: "Admin" },
 ];
 
