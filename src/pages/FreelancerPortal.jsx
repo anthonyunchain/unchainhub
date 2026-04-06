@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { base44, supabase } from "@/api/base44Client";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import {
   FileText, CalendarDays, FileCheck, Wrench, Upload, ExternalLink,
   Clock, CheckCircle2, Square, AlertTriangle, FolderOpen, ClipboardList,
-  LayoutDashboard, User, Bell, Briefcase
+  LayoutDashboard, User, Bell, Briefcase, Plus, Trash2, ListTodo
 } from "lucide-react";
 
 import FreelancerSidebar from "@/components/freelancer/FreelancerSidebar";
@@ -26,9 +26,16 @@ const TASK_STATUS = {
 };
 
 // ─── DASHBOARD TAB ─────────────────────────────────────────────────────────
-function DashboardTab({ tasks, projects, freelancerName, onTabChange }) {
+function DashboardTab({ tasks, projects, freelancerName, onTabChange, userId }) {
   const [time, setTime] = useState("");
-  const today = format(new Date(), "EEEE, d MMMM yyyy", { locale: fr });
+  const [personalTasks, setPersonalTasks] = useState([]);
+  const today = format(new Date(), "EEEE, d MMMM yyyy", { locale: enUS });
+
+  useEffect(() => {
+    if (!userId) return;
+    supabase.from('personal_tasks').select('*').order('created_at', { ascending: false }).limit(6)
+      .then(({ data }) => setPersonalTasks(data || []));
+  }, [userId]);
 
   useEffect(() => {
     const updateTime = () => setTime(format(new Date(), "HH:mm"));
@@ -75,7 +82,7 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange }) {
           <div>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'rgba(255,255,255,0.55)', marginBottom: 8, display: 'block' }}>Total Projects This Month</span>
             <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '52px', fontWeight: 800, color: '#fff', letterSpacing: '-3px', lineHeight: 1.05 }}>
-              {myProjects.length}
+              {projects.length}
             </p>
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.60)', marginTop: 6 }}>
               assigned
@@ -83,9 +90,9 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange }) {
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
             {[
-              { label: 'Pending Projects', value: myProjects.filter(p => p.status === 'Pending acceptance').length },
+              { label: 'Pending Projects', value: projects.filter(p => p.status === 'Pending acceptance').length },
               { label: 'In Progress', value: ongoingProjects.length },
-              { label: 'Total Completed', value: myProjects.filter(p => p.status === 'Completed').length },
+              { label: 'Total Completed', value: projects.filter(p => p.status === 'Completed').length },
             ].map(s => (
               <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 12px' }}>
                 <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '18px', fontWeight: 700, color: '#fff' }}>{s.value}</p>
@@ -182,7 +189,7 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange }) {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.title}</p>
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>{task.priority} {task.due_date && `· ${format(new Date(task.due_date), "d MMM", { locale: fr })}`}</p>
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>{task.priority} {task.due_date && `· ${format(new Date(task.due_date), "d MMM", { locale: enUS })}`}</p>
                   </div>
                 </div>
               ))
@@ -220,7 +227,7 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange }) {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title || "Untitled"}</p>
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>{p.client_name} {p.scheduled_date && `· ${format(new Date(p.scheduled_date), "d MMM", { locale: fr })}`}</p>
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>{p.client_name} {p.scheduled_date && `· ${format(new Date(p.scheduled_date), "d MMM", { locale: enUS })}`}</p>
                   </div>
                 </div>
               ))
@@ -228,7 +235,7 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange }) {
           </div>
         </div>
 
-        {/* Performance Stats Card */}
+        {/* My To-Do Card */}
         <div style={{
           background: 'var(--card)',
           borderRadius: 'var(--card-radius)',
@@ -237,69 +244,362 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange }) {
           display: 'flex',
           flexDirection: 'column',
           height: 420,
-          justifyContent: 'space-between',
+          overflow: 'hidden',
           transition: 'box-shadow 200ms ease, transform 200ms ease',
         }}
         onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
-          <div>
-            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Performance</span>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
-              <div>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'var(--muted)', textTransform: 'uppercase' }}>Completion</p>
-                <div style={{ width: '100%', height: 6, background: 'var(--divider)', borderRadius: 3, marginTop: 8, overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%',
-                    background: 'var(--brand)',
-                    width: `${tasks.length > 0 ? (tasks.filter(t => t.status === "Terminé").length / tasks.length * 100) : 0}%`,
-                  }} />
-                </div>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '13px', fontWeight: 700, color: 'var(--ink)', marginTop: 8 }}>
-                  {tasks.length > 0 ? Math.round((tasks.filter(t => t.status === "Terminé").length / tasks.length * 100)) : 0}%
-                </p>
-              </div>
-              <div>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'var(--muted)', textTransform: 'uppercase' }}>On Track</p>
-                <div style={{ width: '100%', height: 6, background: 'var(--divider)', borderRadius: 3, marginTop: 8, overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%',
-                    background: 'var(--success)',
-                    width: `${projects.length > 0 ? (ongoingProjects.length / projects.length * 100) : 0}%`,
-                  }} />
-                </div>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '13px', fontWeight: 700, color: 'var(--ink)', marginTop: 8 }}>
-                  {projects.length > 0 ? Math.round((ongoingProjects.length / projects.length * 100)) : 0}%
-                </p>
-              </div>
-            </div>
+          <div className="flex items-center justify-between" style={{ marginBottom: 14, flexShrink: 0 }}>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>My To-Do</span>
+            <button onClick={() => onTabChange("todo")} style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--brand)', cursor: 'pointer', border: 'none', background: 'none', padding: 0 }}>View all →</button>
           </div>
-          <div style={{ paddingTop: 16, borderTop: '1px solid var(--divider)' }}>
-            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Summary</p>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'var(--muted)' }}>Done</p>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '18px', fontWeight: 700, color: 'var(--brand)', marginTop: 4 }}>{tasks.filter(t => t.status === "Terminé").length}</p>
-              </div>
-              <div>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'var(--muted)' }}>Active</p>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '18px', fontWeight: 700, color: 'var(--success)', marginTop: 4 }}>{ongoingProjects.length}</p>
-              </div>
-            </div>
+          <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {personalTasks.filter(t => t.status !== "Terminé").length === 0 ? (
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--subtle)' }}>No pending to-dos</p>
+            ) : (
+              personalTasks.filter(t => t.status !== "Terminé").slice(0, 6).map(task => (
+                <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--divider)' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: task.priority === "Urgente" ? '#ef4444' : task.priority === "Haute" ? '#f59e0b' : task.priority === "Normale" ? '#3b82f6' : '#94a3b8' }} />
+                  <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 500, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</p>
+                  {task.due_date && (
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'var(--muted)', flexShrink: 0 }}>
+                      {format(new Date(task.due_date), "d MMM", { locale: enUS })}
+                    </p>
+                  )}
+                </div>
+              ))
+            )}
           </div>
+          {personalTasks.filter(t => t.status !== "Terminé").length > 0 && (
+            <div style={{ paddingTop: 12, borderTop: '1px solid var(--divider)', flexShrink: 0 }}>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>
+                {personalTasks.filter(t => t.status === "Terminé").length} done · {personalTasks.filter(t => t.status !== "Terminé").length} pending
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
+// ─── PERSONAL TASKS TAB ───────────────────────────────────────────────────
+const PT_STATUS_CONFIG = {
+  "Non commencé": { color: "bg-slate-100 text-slate-600", dot: "bg-slate-400" },
+  "En cours":     { color: "bg-blue-100 text-blue-700",   dot: "bg-blue-500"  },
+  "Terminé":      { color: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
+  "Bloqué":       { color: "bg-red-100 text-red-700",     dot: "bg-red-500"   },
+};
+const PT_STATUSES = ["Non commencé", "En cours", "Terminé", "Bloqué"];
+const PT_STATUS_LABEL = { "Non commencé": "Not started", "En cours": "In progress", "Terminé": "Done", "Bloqué": "Blocked" };
+const PT_PRIORITY_DOT = { "Basse": "🔵", "Normale": "🟢", "Haute": "🟠", "Urgente": "🔴" };
+
+function PersonalTasksTab({ userId }) {
+  const [tasks, setTasks] = useState([]);
+  const [activeStatus, setActiveStatus] = useState("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editTask, setEditTask] = useState(null);
+  const emptyForm = { title: "", description: "", status: "Non commencé", priority: "Normale", due_date: "" };
+  const [form, setForm] = useState(emptyForm);
+
+  const fetchTasks = async () => {
+    const { data } = await supabase.from('personal_tasks').select('*').order('created_at', { ascending: false });
+    setTasks(data || []);
+  };
+
+  useEffect(() => { fetchTasks(); }, [userId]);
+
+  const openNew = () => { setEditTask(null); setForm(emptyForm); setDialogOpen(true); };
+  const openEdit = (t) => { setEditTask(t); setForm({ title: t.title, description: t.description || "", status: t.status, priority: t.priority || "Normale", due_date: t.due_date || "" }); setDialogOpen(true); };
+
+  const handleSave = async () => {
+    if (!form.title.trim()) return;
+    if (editTask) {
+      await supabase.from('personal_tasks').update(form).eq('id', editTask.id);
+    } else {
+      await supabase.from('personal_tasks').insert({ user_id: userId, ...form });
+    }
+    setDialogOpen(false);
+    await fetchTasks();
+  };
+
+  const handleDelete = async (id) => {
+    await supabase.from('personal_tasks').delete().eq('id', id);
+    setDialogOpen(false);
+    await fetchTasks();
+  };
+
+  const handleStatusToggle = async (t) => {
+    const next = t.status === "Terminé" ? "Non commencé" : "Terminé";
+    await supabase.from('personal_tasks').update({ status: next }).eq('id', t.id);
+    await fetchTasks();
+  };
+
+  const countByStatus = (s) => tasks.filter(t => t.status === s).length;
+  const filtered = activeStatus === "all" ? tasks : tasks.filter(t => t.status === activeStatus);
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">My To-Do</h2>
+          <p className="text-xs text-slate-400 uppercase tracking-wider mt-0.5">Personal task management</p>
+        </div>
+        <button onClick={openNew} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white" style={{ background: 'var(--brand)' }}>
+          <Plus className="w-4 h-4" /> New task
+        </button>
+      </div>
+
+      {/* Status filters */}
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
+        <button onClick={() => setActiveStatus("all")} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeStatus === "all" ? "bg-slate-800 text-white" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"}`}>
+          All <span className="ml-1 text-xs opacity-60">{tasks.length}</span>
+        </button>
+        {PT_STATUSES.map(s => {
+          const cfg = PT_STATUS_CONFIG[s];
+          return (
+            <button key={s} onClick={() => setActiveStatus(s)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${activeStatus === s ? cfg.color + " ring-1 ring-current" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"}`}>
+              <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+              {PT_STATUS_LABEL[s]}
+              <span className="text-xs opacity-60">{countByStatus(s)}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Task grid */}
+      {filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
+          <CheckCircle2 className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+          <p className="text-slate-400 text-sm">No tasks</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filtered.map(t => {
+            const cfg = PT_STATUS_CONFIG[t.status] || PT_STATUS_CONFIG["Non commencé"];
+            return (
+              <div key={t.id} onClick={() => openEdit(t)} className="bg-white p-4 rounded-xl border border-slate-100 hover:shadow-sm hover:border-slate-200 transition-all cursor-pointer group">
+                <div className="flex items-start gap-2">
+                  <button onClick={e => { e.stopPropagation(); handleStatusToggle(t); }} className="shrink-0 mt-0.5 text-slate-300 hover:text-emerald-500 transition-colors">
+                    {t.status === "Terminé" ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Square className="w-4 h-4" />}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className={`text-sm font-medium flex-1 truncate ${t.status === "Terminé" ? "line-through text-slate-400" : "text-slate-800"}`}>{t.title}</p>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${cfg.color}`}>{PT_STATUS_LABEL[t.status]}</span>
+                      <button onClick={e => { e.stopPropagation(); handleDelete(t.id); }} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all shrink-0">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {t.description && <p className="text-xs text-slate-400 mt-1 line-clamp-2">{t.description}</p>}
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      {t.priority && <span className="text-[10px]">{PT_PRIORITY_DOT[t.priority]} {t.priority}</span>}
+                      {t.due_date && <span className="text-[10px] text-slate-400">{format(new Date(t.due_date), "d MMM", { locale: enUS })}</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Dialog */}
+      {dialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDialogOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-slate-800 mb-4">{editTask ? "Edit task" : "New task"}</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Title *</label>
+                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Task title..." className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Description</label>
+                <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Details..." className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 resize-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600 mb-1 block">Status</label>
+                  <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400">
+                    {PT_STATUSES.map(s => <option key={s} value={s}>{PT_STATUS_LABEL[s]}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-600 mb-1 block">Priority</label>
+                  <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400">
+                    <option value="Basse">🔵 Low</option>
+                    <option value="Normale">🟢 Normal</option>
+                    <option value="Haute">🟠 High</option>
+                    <option value="Urgente">🔴 Urgent</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Due date</label>
+                <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400" />
+              </div>
+            </div>
+            <div className="flex justify-between mt-5">
+              {editTask ? (
+                <button onClick={() => handleDelete(editTask.id)} className="text-sm text-red-500 hover:text-red-600 flex items-center gap-1">
+                  <Trash2 className="w-3.5 h-3.5" /> Delete
+                </button>
+              ) : <div />}
+              <div className="flex gap-2">
+                <button onClick={() => setDialogOpen(false)} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
+                <button onClick={handleSave} disabled={!form.title.trim()} className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50" style={{ background: 'var(--brand)' }}>Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CALENDARS TAB ────────────────────────────────────────────────────────
+const TYPE_COLORS_CAL = {
+  Reel: "bg-pink-100 text-pink-700",
+  Story: "bg-amber-100 text-amber-700",
+  Carousel: "bg-violet-100 text-violet-700",
+};
+
+function CalendarsTab({ visibleCalendars: initialCalendars }) {
+  const [currentMonth, setCurrentMonth] = useState(format(new Date(), "yyyy-MM"));
+  const [editingItem, setEditingItem] = useState(null);
+  const [descValue, setDescValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [localItems, setLocalItems] = useState(initialCalendars || []);
+
+  const monthItems = localItems
+    .filter(c => c.scheduled_date?.startsWith(currentMonth))
+    .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
+
+  const byClient = {};
+  monthItems.forEach(item => {
+    const key = item.client_name || "Unknown";
+    if (!byClient[key]) byClient[key] = [];
+    byClient[key].push(item);
+  });
+
+  const openEdit = (item) => { setEditingItem(item); setDescValue(item.description || ""); };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { error } = await supabase.functions.invoke('updateContentDescription', {
+        body: { content_id: editingItem.id, description: descValue },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw error;
+      setLocalItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, description: descValue } : i));
+      setEditingItem(null);
+    } catch (e) {
+      alert("Error saving: " + (e?.message || e));
+    }
+    setSaving(false);
+  };
+
+  const shiftMonth = (delta) => {
+    const d = new Date(currentMonth + "-01");
+    d.setMonth(d.getMonth() + delta);
+    setCurrentMonth(format(d, "yyyy-MM"));
+  };
+
+  const monoStyle = { fontFamily: "'DM Mono', monospace" };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">Editorial Calendars</h2>
+          <p className="text-xs text-slate-400 uppercase tracking-wider mt-0.5" style={monoStyle}>Read-only · Descriptions editable</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => shiftMonth(-1)} className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 text-sm">‹</button>
+          <span className="text-sm font-medium text-slate-700 w-32 text-center" style={monoStyle}>{format(new Date(currentMonth + "-01"), "MMMM yyyy", { locale: enUS })}</span>
+          <button onClick={() => shiftMonth(1)} className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 text-sm">›</button>
+        </div>
+      </div>
+
+      {monthItems.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
+          <CalendarDays className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+          <p className="text-slate-400 text-sm">{localItems.length === 0 ? "No calendars shared with you" : "No content this month"}</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(byClient).map(([clientName, items]) => (
+            <div key={clientName}>
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2" style={monoStyle}>{clientName}</h3>
+              <div className="space-y-2">
+                {items.map(item => (
+                  <div key={item.id} className="bg-white rounded-xl border border-slate-100 p-4 hover:border-slate-200 transition-all">
+                    <div className="flex items-start gap-3">
+                      <div className="shrink-0 text-center w-10">
+                        <p className="text-lg font-bold text-slate-700 leading-none">{format(new Date(item.scheduled_date), "d")}</p>
+                        <p className="text-[9px] text-slate-400 uppercase" style={monoStyle}>{format(new Date(item.scheduled_date), "EEE", { locale: enUS })}</p>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {item.post_type && <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS_CAL[item.post_type] || "bg-slate-100 text-slate-600"}`}>{item.post_type}</span>}
+                          <p className="text-sm font-medium text-slate-800 truncate flex-1">{item.title || "Untitled"}</p>
+                        </div>
+                        {item.description ? (
+                          <p className="text-xs text-slate-500 mt-1.5 line-clamp-2">{item.description}</p>
+                        ) : (
+                          <p className="text-xs text-slate-300 mt-1.5 italic">No description yet</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => openEdit(item)}
+                        className="shrink-0 w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 flex items-center justify-center transition-colors"
+                        title="Edit description"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 hover:text-blue-500"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingItem(null)}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-slate-800 mb-1">Edit description</h3>
+            <p className="text-xs text-slate-400 mb-4" style={monoStyle}>{editingItem.client_name} · {editingItem.post_type} · {format(new Date(editingItem.scheduled_date), "d MMM yyyy", { locale: enUS })}</p>
+            <p className="text-sm font-medium text-slate-700 mb-3">{editingItem.title}</p>
+            <textarea
+              value={descValue}
+              onChange={e => setDescValue(e.target.value)}
+              rows={5}
+              placeholder="Write the description for this content..."
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 resize-none"
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setEditingItem(null)} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50" style={{ background: 'var(--brand)' }}>
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── TOOLS TAB ────────────────────────────────────────────────────────────
 function ToolsTab({ tools }) {
-  const defaultTools = [
-    { id: "_kapwing", name: "Kapwing", description: "Online video editing tool", url: "https://kapwing.com", logo_url: "https://www.kapwing.com/favicon.ico", category: "Vidéo" },
-    { id: "_figma", name: "Figma", description: "Collaborative design tool", url: "https://figma.com", logo_url: "https://www.figma.com/favicon.ico", category: "Design" },
-  ];
-  const allTools = [...defaultTools, ...tools].sort((a, b) => (a.order || 0) - (b.order || 0));
+  const allTools = [...tools].sort((a, b) => (a.order || 0) - (b.order || 0));
   const CATEGORY_COLORS = {
     "Design": "bg-violet-50 text-violet-700",
     "Vidéo": "bg-pink-50 text-pink-700",
@@ -342,7 +642,7 @@ function MeetingsTab({ meetings }) {
         <div>
           <p className="text-sm font-semibold text-slate-800">{m.title}</p>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
-            <span className="text-xs text-slate-500">{m.date ? format(new Date(m.date), "d MMMM yyyy", { locale: fr }) : "—"}{m.time && ` · ${m.time}`}</span>
+            <span className="text-xs text-slate-500">{m.date ? format(new Date(m.date), "d MMMM yyyy", { locale: enUS }) : "—"}{m.time && ` · ${m.time}`}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${m.format === "Remote" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{m.format}</span>
           </div>
           {m.notes && <p className="text-xs text-slate-400 mt-2 bg-slate-50 rounded-lg p-2">{m.notes}</p>}
@@ -434,7 +734,7 @@ function InvoicesTab({ payments, freelancerName, onPaymentAdded }) {
             {payments.map(p => (
               <tr key={p.id} className="border-b border-slate-50">
                 <td className="px-5 py-3 text-sm font-medium text-slate-800">{p.mission || "—"}</td>
-                <td className="px-5 py-3 text-sm text-slate-500">{p.date ? format(new Date(p.date), "d MMM yyyy", { locale: fr }) : "—"}</td>
+                <td className="px-5 py-3 text-sm text-slate-500">{p.date ? format(new Date(p.date), "d MMM yyyy", { locale: enUS }) : "—"}</td>
                 <td className="px-5 py-3"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}>{p.status}</span></td>
                 <td className="px-5 py-3 text-sm font-semibold text-right text-slate-800">{p.amount ? `${p.amount.toLocaleString("fr-FR")} €` : "—"}</td>
                 <td className="px-5 py-3">{p.invoice_url && <a href={p.invoice_url} target="_blank" rel="noopener noreferrer" className="text-[#2A69FF] hover:underline text-xs flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> View</a>}</td>
@@ -490,6 +790,7 @@ export default function FreelancerPortal() {
   const [user, setUser] = useState(null);
   const [freelancerData, setFreelancerData] = useState(null); // { profile, tasks, projects, meetings, payments, tools }
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [activeTab, setActiveTab] = useState("dashboard");
 
   useEffect(() => {
@@ -498,9 +799,11 @@ export default function FreelancerPortal() {
         const u = await base44.auth.me();
         setUser(u);
         const res = await base44.functions.invoke('getFreelancerData', {});
+        if (res.data?.error) throw new Error(res.data.error);
         setFreelancerData(res.data);
       } catch (e) {
         console.error(e);
+        setLoadError(e.message || "Loading error");
       } finally {
         setLoading(false);
       }
@@ -516,13 +819,25 @@ export default function FreelancerPortal() {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <p className="text-slate-700 font-medium mb-2">Unable to load the portal</p>
+          <p className="text-sm text-red-500">{loadError}</p>
+        </div>
+      </div>
+    );
+  }
+
   const profile = freelancerData?.profile || null;
   const tasks = freelancerData?.tasks || [];
-  const editorialProjects = freelancerData?.editorialProjects || [];
-  const myProjects = freelancerData?.projects || [];
+  const editorialProjects = freelancerData?.projects || [];
+  const myProjects = freelancerData?.assignedProjects || [];
   const meetings = freelancerData?.meetings || [];
   const payments = freelancerData?.payments || [];
   const tools = freelancerData?.tools || [];
+  const visibleCalendars = freelancerData?.visibleCalendars || [];
   const freelancerName = profile?.name || user?.full_name || user?.email;
   const unreadCount = myProjects.filter(p => p.status === "Pending acceptance").length;
 
@@ -546,10 +861,12 @@ export default function FreelancerPortal() {
 
   const renderTab = () => {
     switch (activeTab) {
-      case "dashboard": return <DashboardTab tasks={tasks} projects={editorialProjects} freelancerName={freelancerName} onTabChange={setActiveTab} />;
+      case "dashboard": return <DashboardTab tasks={tasks} projects={editorialProjects} freelancerName={freelancerName} onTabChange={setActiveTab} userId={user?.id} />;
+      case "todo": return <PersonalTasksTab userId={user?.id} />;
       case "tasks": return <TasksTabComponent tasks={tasks} onUpdateTask={handleUpdateTask} />;
       case "myprojects": return <FreelancerProjects projects={myProjects} onRefresh={handleProjectUpdate} freelancerName={freelancerName} />;
       case "projects": return <ProjectsTab projects={editorialProjects} onProjectUpdate={handleProjectUpdate} />;
+      case "calendar": return <CalendarsTab visibleCalendars={visibleCalendars} />;
       case "tools": return <ToolsTab tools={tools} />;
       case "meetings": return <MeetingsTab meetings={meetings} />;
       case "invoices": return <InvoicesTab payments={payments} freelancerName={freelancerName} onPaymentAdded={handlePaymentAdded} />;
@@ -602,8 +919,11 @@ export default function FreelancerPortal() {
             }}>
               {[
                 { id: 'dashboard', label: 'Dashboard' },
+                { id: 'todo', label: 'My To-Do' },
                 { id: 'tasks', label: 'Tasks' },
-                { id: 'projects', label: 'Projects' },
+                { id: 'myprojects', label: 'Projects' },
+                { id: 'projects', label: 'Editorial' },
+                { id: 'calendar', label: 'Captions' },
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
                 { id: 'invoices', label: 'Invoices' },
@@ -634,7 +954,7 @@ export default function FreelancerPortal() {
               })}
             </div>
 
-            {/* Right: date + avatar — desktop */}
+            {/* Right: date + avatar + logout — desktop */}
             <div className="hidden md:flex items-center gap-2 shrink-0">
               <div style={{
                 fontFamily: "'DM Mono', monospace",
@@ -655,9 +975,25 @@ export default function FreelancerPortal() {
               }}>
                 {freelancerName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'US'}
               </div>
+              <button
+                onClick={() => base44.auth.logout()}
+                style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: '11px',
+                  color: 'var(--muted)',
+                  background: 'var(--card)',
+                  boxShadow: 'var(--card-shadow)',
+                  borderRadius: 'var(--pill-radius)',
+                  padding: '7px 14px',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                Logout
+              </button>
             </div>
 
-            {/* Mobile: avatar only */}
+            {/* Mobile: avatar + logout */}
             <div className="flex md:hidden items-center gap-2">
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>16:25</div>
               <div style={{
@@ -668,6 +1004,22 @@ export default function FreelancerPortal() {
               }}>
                 {freelancerName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'US'}
               </div>
+              <button
+                onClick={() => base44.auth.logout()}
+                style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: '10px',
+                  color: 'var(--muted)',
+                  background: 'var(--card)',
+                  boxShadow: 'var(--card-shadow)',
+                  borderRadius: 'var(--pill-radius)',
+                  padding: '6px 12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                Logout
+              </button>
             </div>
           </div>
         </nav>
@@ -680,11 +1032,11 @@ export default function FreelancerPortal() {
       {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950 border-t border-slate-800 flex md:hidden">
         {[
-          { id: "dashboard",     label: "Home",     Icon: LayoutDashboard },
-          { id: "tasks",         label: "Tasks",    Icon: ClipboardList },
-          { id: "projects",      label: "Projects", Icon: Briefcase },
-          { id: "invoices",      label: "Invoices", Icon: FileText },
-          { id: "profile",       label: "Profile",  Icon: User },
+          { id: "dashboard",   label: "Home",      Icon: LayoutDashboard },
+          { id: "myprojects",  label: "Projects",  Icon: Briefcase },
+          { id: "projects",    label: "Editorial", Icon: FileText },
+          { id: "invoices",    label: "Invoices",  Icon: FileText },
+          { id: "profile",     label: "Profile",   Icon: User },
         ].map(({ id, label, Icon }) => {
           const isActive = activeTab === id;
           const badge = id === "notifications" && unreadCount > 0 ? unreadCount : null;

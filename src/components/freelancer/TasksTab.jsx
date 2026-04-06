@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, isPast, isToday, isTomorrow } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square, SlidersHorizontal } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -35,7 +35,7 @@ function DueBadge({ task }) {
   if (isToday(d)) return <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">Today</span>;
   if (isPast(d)) return <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">Overdue</span>;
   if (isTomorrow(d)) return <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">Tomorrow</span>;
-  return <span className="text-[10px] text-slate-400">{format(d, "d MMM", { locale: fr })}</span>;
+  return <span className="text-[10px] text-slate-400">{format(d, "d MMM", { locale: enUS })}</span>;
 }
 
 function TaskRow({ task, onUpdateTask }) {

@@ -40,8 +40,10 @@ function ProjectCard({ project, onAction, freelancerName }) {
   const [expanded, setExpanded] = useState(false);
   const [declineOpen, setDeclineOpen] = useState(false);
   const [clarifyOpen, setClarifyOpen] = useState(false);
+  const [deliverOpen, setDeliverOpen] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
   const [clarifyMsg, setClarifyMsg] = useState("");
+  const [deliveryUrl, setDeliveryUrl] = useState("");
   const [loading, setLoading] = useState(false);
 
   const cfg = STATUS_CONFIG[project.status] || STATUS_CONFIG["Unassigned"];
@@ -92,7 +94,7 @@ function ProjectCard({ project, onAction, freelancerName }) {
           )}
           {isActive && project.status !== "Delivered" && (
             <>
-              <Button size="sm" className="h-7 text-xs bg-violet-600 hover:bg-violet-700" disabled={loading} onClick={() => act('deliver')}>
+              <Button size="sm" className="h-7 text-xs bg-violet-600 hover:bg-violet-700" disabled={loading} onClick={() => setDeliverOpen(true)}>
                 <Truck className="w-3 h-3 mr-1" /> Mark as Delivered
               </Button>
               <Button size="sm" variant="outline" className="h-7 text-xs" disabled={loading} onClick={() => setClarifyOpen(true)}>
@@ -101,7 +103,7 @@ function ProjectCard({ project, onAction, freelancerName }) {
             </>
           )}
           {project.status === "Revision requested" && (
-            <Button size="sm" className="h-7 text-xs bg-indigo-600 hover:bg-indigo-700" disabled={loading} onClick={() => act('deliver')}>
+            <Button size="sm" className="h-7 text-xs bg-indigo-600 hover:bg-indigo-700" disabled={loading} onClick={() => setDeliverOpen(true)}>
               <Truck className="w-3 h-3 mr-1" /> Re-deliver
             </Button>
           )}
@@ -133,8 +135,36 @@ function ProjectCard({ project, onAction, freelancerName }) {
               <strong>Your question:</strong> {project.clarification_request}
             </div>
           )}
+          {project.delivery_url && (
+            <div className="bg-violet-50 rounded-lg p-2 text-xs text-violet-700 flex items-center gap-2">
+              <Truck className="w-3.5 h-3.5 shrink-0" />
+              <span className="font-medium">Delivery:</span>
+              <a href={project.delivery_url} target="_blank" rel="noopener noreferrer" className="underline truncate hover:text-violet-900">{project.delivery_url}</a>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Deliver dialog */}
+      <Dialog open={deliverOpen} onOpenChange={setDeliverOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Deliver project</DialogTitle></DialogHeader>
+          <p className="text-sm text-slate-500">Paste the link to your deliverable (Google Drive, Dropbox, etc.)</p>
+          <input
+            type="url"
+            value={deliveryUrl}
+            onChange={e => setDeliveryUrl(e.target.value)}
+            placeholder="https://drive.google.com/..."
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-violet-400"
+          />
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setDeliverOpen(false)}>Cancel</Button>
+            <Button className="bg-violet-600 hover:bg-violet-700" disabled={!deliveryUrl.trim() || loading} onClick={() => { act('deliver', { delivery_url: deliveryUrl }); setDeliverOpen(false); setDeliveryUrl(""); }}>
+              <Truck className="w-3.5 h-3.5 mr-1.5" /> Deliver
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Decline dialog */}
       <Dialog open={declineOpen} onOpenChange={setDeclineOpen}>

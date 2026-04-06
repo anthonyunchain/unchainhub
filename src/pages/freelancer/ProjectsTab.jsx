@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { format, startOfWeek, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, addDays, addWeeks, addMonths, subWeeks, subMonths, startOfMonth, endOfWeek } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { FolderOpen, ExternalLink, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,7 +34,7 @@ function ProjectCard({ p, onAction }) {
             <div className="flex flex-wrap items-center gap-2 mt-2">
               {p.post_type && <span className="text-[10px] px-2 py-0.5 bg-pink-50 text-pink-700 rounded-full">{p.post_type}</span>}
               {p.platform && <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">{p.platform}</span>}
-              {p.scheduled_date && <span className="text-[10px] text-slate-400">Due {format(new Date(p.scheduled_date), "d MMM yyyy", { locale: fr })}</span>}
+              {p.scheduled_date && <span className="text-[10px] text-slate-400">Due {format(new Date(p.scheduled_date), "d MMM yyyy", { locale: enUS })}</span>}
             </div>
           </div>
           <div className="flex flex-col gap-1.5 shrink-0 items-end">
@@ -191,7 +191,7 @@ export default function ProjectsTab({ projects = [], onProjectUpdate }) {
       const dayProjects = getProjectsForDay(currentDate);
       return (
         <div>
-          <p className="text-sm font-semibold text-slate-700 mb-4">{format(currentDate, "EEEE d MMMM yyyy", { locale: fr })}</p>
+          <p className="text-sm font-semibold text-slate-700 mb-4">{format(currentDate, "EEEE d MMMM yyyy", { locale: enUS })}</p>
           {dayProjects.length === 0
             ? <p className="text-sm text-slate-400 text-center py-10">No projects this day</p>
             : <div className="space-y-3">{dayProjects.map(p => <ProjectCard key={p.id} p={p} onAction={handleAction} />)}</div>
@@ -208,7 +208,7 @@ export default function ProjectsTab({ projects = [], onProjectUpdate }) {
             {days.map(day => (
               <div key={day.toISOString()} className="border-r border-slate-100 last:border-r-0">
                 <div className={`px-2 py-2 text-center text-xs font-medium ${isSameDay(day, new Date()) ? "bg-[#2A69FF]/10 text-[#2A69FF]" : "text-slate-500"}`}>
-                  {format(day, "EEE d", { locale: fr })}
+                  {format(day, "EEE d", { locale: enUS })}
                 </div>
                 {renderCalendarCell(day, getProjectsForDay(day))}
               </div>
@@ -243,9 +243,9 @@ export default function ProjectsTab({ projects = [], onProjectUpdate }) {
   };
 
   const viewLabel = {
-    day: format(currentDate, "d MMMM yyyy", { locale: fr }),
-    week: `Week of ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), "d MMM", { locale: fr })}`,
-    month: format(currentDate, "MMMM yyyy", { locale: fr }),
+    day: format(currentDate, "d MMMM yyyy", { locale: enUS }),
+    week: `Week of ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), "d MMM", { locale: enUS })}`,
+    month: format(currentDate, "MMMM yyyy", { locale: enUS }),
     list: "All projects",
   }[view];
 

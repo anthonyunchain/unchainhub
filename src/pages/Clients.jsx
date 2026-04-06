@@ -53,9 +53,9 @@ export default function Clients() {
   const orderedClients = localClients || [...clients].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const displayClients = orderedClients.filter(c => c.company_name?.toLowerCase().includes(search.toLowerCase()));
 
-  const createMut = useMutation({ mutationFn: (d) => base44.entities.Client.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Erreur création : " + (e?.message || e)) });
-  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Client.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Erreur mise à jour : " + (e?.message || e)) });
-  const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Client.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Erreur suppression : " + (e?.message || e)) });
+  const createMut = useMutation({ mutationFn: (d) => base44.entities.Client.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Creation error: " + (e?.message || e)) });
+  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Client.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Update error: " + (e?.message || e)) });
+  const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Client.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Deletion error: " + (e?.message || e)) });
 
   const handleDelete = () => {
     if (editData?.id && confirm("Delete this client? This action is irreversible.")) {
@@ -248,6 +248,19 @@ export default function Clients() {
               <div><Label>Address</Label><Input value={editData.address || ""} onChange={e => setEditData({ ...editData, address: e.target.value })} /></div>
               <div><Label>Start date</Label><Input type="date" value={editData.start_date || ""} onChange={e => setEditData({ ...editData, start_date: e.target.value })} /></div>
               <div><Label>Notes</Label><Textarea value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} rows={3} /></div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <input
+                  type="checkbox"
+                  id="editorial_visible"
+                  checked={editData.editorial_visible || false}
+                  onChange={e => setEditData({ ...editData, editorial_visible: e.target.checked })}
+                  className="w-4 h-4 accent-blue-600 cursor-pointer"
+                />
+                <div>
+                  <label htmlFor="editorial_visible" className="text-sm font-medium text-slate-700 cursor-pointer">Editorial calendar visible to freelancers</label>
+                  <p className="text-xs text-slate-400 mt-0.5">Freelancers will see this client's calendar (read-only) and can write descriptions.</p>
+                </div>
+              </div>
               <div className="flex justify-between items-center pt-2">
                 {editData.id ? (
                   <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleDelete}>

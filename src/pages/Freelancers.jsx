@@ -272,14 +272,14 @@ export default function Freelancers() {
       {/* Freelancer Dialog */}
       <Dialog open={fDialogOpen} onOpenChange={setFDialogOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editFreelancer?.id ? "Modifier" : "Nouveau freelancer"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editFreelancer?.id ? "Edit freelancer" : "New freelancer"}</DialogTitle></DialogHeader>
           {editFreelancer && (
             <div className="space-y-4 mt-2">
-              <div><Label>Nom *</Label><Input value={editFreelancer.name} onChange={e => setEditFreelancer({ ...editFreelancer, name: e.target.value })} /></div>
-              <div><Label>Rôle (description libre)</Label><Input value={editFreelancer.role || ""} onChange={e => setEditFreelancer({ ...editFreelancer, role: e.target.value })} placeholder="Ex: Monteur vidéo, Photographe..." /></div>
+              <div><Label>Name *</Label><Input value={editFreelancer.name} onChange={e => setEditFreelancer({ ...editFreelancer, name: e.target.value })} /></div>
+              <div><Label>Role (free text)</Label><Input value={editFreelancer.role || ""} onChange={e => setEditFreelancer({ ...editFreelancer, role: e.target.value })} placeholder="e.g. Video editor, Photographer..." /></div>
               <div>
-                <Label>Tags de compétence</Label>
-                <p className="text-[10px] text-slate-400 mb-1.5">Le tag <strong>Video editor</strong> donne accès à l'assignation Reel dans le calendrier éditorial.</p>
+                <Label>Skill tags</Label>
+                <p className="text-[10px] text-slate-400 mb-1.5">The <strong>Video editor</strong> tag enables Reel assignment in the editorial calendar.</p>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {(editFreelancer.tags || []).map((tag, i) => (
                     <span key={i} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
@@ -310,35 +310,35 @@ export default function Freelancers() {
                 <div><Label>Type</Label>
                   <Select value={editFreelancer.type} onValueChange={v => setEditFreelancer({ ...editFreelancer, type: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Partenaire">Partenaire</SelectItem><SelectItem value="Freelance">Freelance</SelectItem></SelectContent>
+                    <SelectContent><SelectItem value="Partenaire">Partner</SelectItem><SelectItem value="Freelance">Freelance</SelectItem></SelectContent>
                   </Select></div>
-                <div><Label>Statut</Label>
+                <div><Label>Status</Label>
                   <Select value={editFreelancer.status} onValueChange={v => setEditFreelancer({ ...editFreelancer, status: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Actif">Actif</SelectItem><SelectItem value="Indisponible">Indisponible</SelectItem></SelectContent>
+                    <SelectContent><SelectItem value="Actif">Active</SelectItem><SelectItem value="Indisponible">Unavailable</SelectItem></SelectContent>
                   </Select></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Email</Label><Input value={editFreelancer.email || ""} onChange={e => setEditFreelancer({ ...editFreelancer, email: e.target.value })} /></div>
-                <div><Label>Téléphone</Label><Input value={editFreelancer.phone || ""} onChange={e => setEditFreelancer({ ...editFreelancer, phone: e.target.value })} /></div>
+                <div><Label>Phone</Label><Input value={editFreelancer.phone || ""} onChange={e => setEditFreelancer({ ...editFreelancer, phone: e.target.value })} /></div>
               </div>
               <div><Label>Notes</Label><Textarea value={editFreelancer.notes || ""} onChange={e => setEditFreelancer({ ...editFreelancer, notes: e.target.value })} rows={3} /></div>
               <div className="flex justify-between items-center pt-2">
                 {editFreelancer.id && (
                   confirmDelete === "freelancer" ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-red-600">Confirmer ?</span>
-                      <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 h-7 text-xs" onClick={() => deleteFMut.mutate(editFreelancer.id)}>Oui, supprimer</Button>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setConfirmDelete(null)}>Annuler</Button>
+                      <span className="text-xs text-red-600">Confirm?</span>
+                      <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 h-7 text-xs" onClick={() => deleteFMut.mutate(editFreelancer.id)}>Yes, delete</Button>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setConfirmDelete(null)}>Cancel</Button>
                     </div>
                   ) : (
-                    <Button variant="ghost" className="text-red-500 hover:bg-red-50 h-8 text-xs" onClick={() => setConfirmDelete("freelancer")}>🗑 Supprimer</Button>
+                    <Button variant="ghost" className="text-red-500 hover:bg-red-50 h-8 text-xs" onClick={() => setConfirmDelete("freelancer")}>🗑 Delete</Button>
                   )
                 )}
                 {!editFreelancer.id && <div />}
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setFDialogOpen(false)}>Annuler</Button>
-                  <Button onClick={() => { if (editFreelancer.id) updateFMut.mutate({ id: editFreelancer.id, d: editFreelancer }); else createFMut.mutate(editFreelancer); }} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!editFreelancer.name}>Enregistrer</Button>
+                  <Button variant="outline" onClick={() => setFDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={() => { if (editFreelancer.id) updateFMut.mutate({ id: editFreelancer.id, d: editFreelancer }); else createFMut.mutate(editFreelancer); }} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!editFreelancer.name}>Save</Button>
                 </div>
               </div>
             </div>
@@ -349,24 +349,24 @@ export default function Freelancers() {
       {/* Payment Dialog */}
       <Dialog open={pDialogOpen} onOpenChange={setPDialogOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{paymentData?.id ? "Modifier le paiement" : "Nouveau paiement"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{paymentData?.id ? "Edit payment" : "New payment"}</DialogTitle></DialogHeader>
           {paymentData && (
             <div className="space-y-4 mt-2">
               <div><Label>Freelancer</Label>
                 <Select value={paymentData.freelancer_id || ""} onValueChange={v => { const f = freelancers.find(ff => ff.id === v); setPaymentData({ ...paymentData, freelancer_id: v, freelancer_name: f?.name || "" }); }}>
-                  <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent>{freelancers.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
                 </Select></div>
               <div><Label>Mission</Label><Input value={paymentData.mission || ""} onChange={e => setPaymentData({ ...paymentData, mission: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Client</Label><Input value={paymentData.client_name || ""} onChange={e => setPaymentData({ ...paymentData, client_name: e.target.value })} /></div>
-                <div><Label>Montant (€)</Label><Input type="number" value={paymentData.amount || 0} onChange={e => setPaymentData({ ...paymentData, amount: Number(e.target.value) })} /></div>
+                <div><Label>Amount (€)</Label><Input type="number" value={paymentData.amount || 0} onChange={e => setPaymentData({ ...paymentData, amount: Number(e.target.value) })} /></div>
               </div>
               <div><Label>Date</Label><Input type="date" value={paymentData.date || ""} onChange={e => setPaymentData({ ...paymentData, date: e.target.value })} /></div>
 
               {/* Facture PDF */}
               <div>
-                <Label>Facture (PDF)</Label>
+                <Label>Invoice (PDF)</Label>
                 <div className="mt-1.5">
                   {paymentData.invoice_url ? (
                     <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
@@ -381,7 +381,7 @@ export default function Freelancers() {
                   ) : (
                     <label className={`cursor-pointer inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#2A69FF] border border-dashed border-slate-200 rounded-lg px-4 py-2.5 w-full justify-center hover:border-[#2A69FF]/40 transition-colors ${uploadingInvoice ? "opacity-50 pointer-events-none" : ""}`}>
                       <Upload className="w-4 h-4" />
-                      {uploadingInvoice ? "Envoi en cours..." : "Joindre une facture PDF"}
+                      {uploadingInvoice ? "Uploading..." : "Attach invoice PDF"}
                       <input type="file" accept=".pdf" className="hidden" onChange={async (e) => {
                         const file = e.target.files?.[0]; if (!file) return;
                         setUploadingInvoice(true);
@@ -399,21 +399,21 @@ export default function Freelancers() {
                 {paymentData.id && (
                   confirmDelete === "payment" ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-red-600">Confirmer ?</span>
-                      <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 h-7 text-xs" onClick={() => deletePMut.mutate(paymentData.id)}>Oui, supprimer</Button>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setConfirmDelete(null)}>Annuler</Button>
+                      <span className="text-xs text-red-600">Confirm?</span>
+                      <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 h-7 text-xs" onClick={() => deletePMut.mutate(paymentData.id)}>Yes, delete</Button>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setConfirmDelete(null)}>Cancel</Button>
                     </div>
                   ) : (
-                    <Button variant="ghost" className="text-red-500 hover:bg-red-50 h-8 text-xs" onClick={() => setConfirmDelete("payment")}>🗑 Supprimer</Button>
+                    <Button variant="ghost" className="text-red-500 hover:bg-red-50 h-8 text-xs" onClick={() => setConfirmDelete("payment")}>🗑 Delete</Button>
                   )
                 )}
                 {!paymentData.id && <div />}
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setPDialogOpen(false)}>Annuler</Button>
+                  <Button variant="outline" onClick={() => setPDialogOpen(false)}>Cancel</Button>
                   <Button onClick={() => {
                     if (paymentData.id) updatePMut.mutate({ id: paymentData.id, d: paymentData }, { onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setPDialogOpen(false); } });
                     else createPMut.mutate(paymentData);
-                  }} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!paymentData.freelancer_id}>Enregistrer</Button>
+                  }} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!paymentData.freelancer_id}>Save</Button>
                 </div>
               </div>
             </div>

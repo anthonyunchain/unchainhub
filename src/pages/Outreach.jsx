@@ -103,22 +103,22 @@ export default function Outreach() {
 
   return (
     <div>
-      <PageHeader title="Prospection" subtitle="Suivi des contacts et modèles">
+      <PageHeader title="Outreach" subtitle="Contact tracking and templates">
         <label className={`cursor-pointer inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition-colors font-medium text-slate-700 ${csvImporting ? "opacity-50 pointer-events-none" : ""}`}>
           <Upload className="w-4 h-4" />
-          {csvImporting ? "Import en cours..." : "Importer CSV"}
+          {csvImporting ? "Importing..." : "Import CSV"}
           <input type="file" accept=".csv" className="hidden" onChange={handleCsvImport} />
         </label>
         <Button onClick={openNewLog} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
-          <Plus className="w-4 h-4 mr-1" /> Nouveau contact
+          <Plus className="w-4 h-4 mr-1" /> New contact
         </Button>
       </PageHeader>
 
       {csvResult && (
         <div className={`flex items-center gap-2 px-4 py-3 rounded-xl mb-4 text-sm font-medium ${csvResult.errors === 0 ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
           {csvResult.errors === 0 ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-          {csvResult.created} prospect{csvResult.created > 1 ? "s" : ""} importé{csvResult.created > 1 ? "s" : ""}
-          {csvResult.errors > 0 && ` · ${csvResult.errors} ligne${csvResult.errors > 1 ? "s" : ""} ignorée${csvResult.errors > 1 ? "s" : ""} (nom manquant)`}
+          {csvResult.created} prospect{csvResult.created > 1 ? "s" : ""} imported
+          {csvResult.errors > 0 && ` · ${csvResult.errors} line${csvResult.errors > 1 ? "s" : ""} skipped (missing name)`}
           <button onClick={() => setCsvResult(null)} className="ml-auto text-xs opacity-60 hover:opacity-100">×</button>
         </div>
       )}
@@ -128,7 +128,7 @@ export default function Outreach() {
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
           <div className="flex items-center gap-2 mb-2">
             <Bell className="w-4 h-4 text-amber-600" />
-            <span className="text-sm font-semibold text-amber-800">Relances à faire ({reminders.length})</span>
+            <span className="text-sm font-semibold text-amber-800">Follow-ups due ({reminders.length})</span>
           </div>
           <div className="space-y-1.5">
             {reminders.slice(0, 5).map(r => (
@@ -142,7 +142,7 @@ export default function Outreach() {
       )}
 
       <Tabs defaultValue="logs">
-        <TabsList className="mb-6"><TabsTrigger value="logs">Journal de contacts</TabsTrigger><TabsTrigger value="templates">Modèles</TabsTrigger></TabsList>
+        <TabsList className="mb-6"><TabsTrigger value="logs">Contact log</TabsTrigger><TabsTrigger value="templates">Templates</TabsTrigger></TabsList>
 
         <TabsContent value="logs">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -151,9 +151,9 @@ export default function Outreach() {
                 <thead><tr className="border-b border-slate-100 bg-slate-50/50">
                   <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Prospect</th>
                   <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Date</th>
-                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Canal</th>
-                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Résultat</th>
-                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Relance</th>
+                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Channel</th>
+                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Outcome</th>
+                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Follow-up</th>
                   <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Notes</th>
                 </tr></thead>
                 <tbody>
@@ -167,7 +167,7 @@ export default function Outreach() {
                       <td className="px-5 py-3 text-sm text-slate-400 max-w-[200px] truncate">{l.notes || "—"}</td>
                     </tr>
                   ))}
-                  {logs.length === 0 && <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-400">Aucun contact enregistré</td></tr>}
+                  {logs.length === 0 && <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-400">No contacts recorded</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -176,7 +176,7 @@ export default function Outreach() {
 
         <TabsContent value="templates">
           <div className="flex justify-end mb-4">
-            <Button onClick={openNewTemplate} variant="outline" className="h-9"><Plus className="w-4 h-4 mr-1" /> Nouveau modèle</Button>
+            <Button onClick={openNewTemplate} variant="outline" className="h-9"><Plus className="w-4 h-4 mr-1" /> New template</Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {messageTemplates.map(t => (
@@ -191,7 +191,7 @@ export default function Outreach() {
                     <button onClick={() => deleteTemplateMut.mutate(t.id)} className="text-red-400 hover:text-red-600 text-xs">×</button>
                   </div>
                 </div>
-                {t.subject && <p className="text-xs text-slate-500 mt-2">Objet: {t.subject}</p>}
+                {t.subject && <p className="text-xs text-slate-500 mt-2">Subject: {t.subject}</p>}
                 <p className="text-sm text-slate-600 mt-2 whitespace-pre-wrap">{t.body}</p>
               </div>
             ))}
@@ -202,34 +202,34 @@ export default function Outreach() {
       {/* New Contact Log Dialog */}
       <Dialog open={logDialogOpen} onOpenChange={setLogDialogOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Nouveau contact</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>New contact</DialogTitle></DialogHeader>
           {logData && (
             <div className="space-y-4 mt-2">
               <div><Label>Prospect</Label>
                 <Select value={logData.prospect_id} onValueChange={v => { const p = prospects.find(pp => pp.id === v); setLogData({ ...logData, prospect_id: v, prospect_name: p?.company_name || "" }); }}>
-                  <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent>{prospects.map(p => <SelectItem key={p.id} value={p.id}>{p.company_name}</SelectItem>)}</SelectContent>
                 </Select></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Date</Label><Input type="date" value={logData.date} onChange={e => setLogData({ ...logData, date: e.target.value })} /></div>
-                <div><Label>Canal</Label>
+                <div><Label>Channel</Label>
                   <Select value={logData.channel} onValueChange={v => setLogData({ ...logData, channel: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Email">Email</SelectItem><SelectItem value="Téléphone">Téléphone</SelectItem><SelectItem value="En personne">En personne</SelectItem><SelectItem value="LinkedIn">LinkedIn</SelectItem><SelectItem value="Instagram">Instagram</SelectItem></SelectContent>
+                    <SelectContent><SelectItem value="Email">Email</SelectItem><SelectItem value="Téléphone">Phone</SelectItem><SelectItem value="En personne">In person</SelectItem><SelectItem value="LinkedIn">LinkedIn</SelectItem><SelectItem value="Instagram">Instagram</SelectItem></SelectContent>
                   </Select></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Résultat</Label>
+                <div><Label>Outcome</Label>
                   <Select value={logData.outcome} onValueChange={v => setLogData({ ...logData, outcome: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Répondu">Répondu</SelectItem><SelectItem value="Pas de réponse">Pas de réponse</SelectItem><SelectItem value="Intéressé">Intéressé</SelectItem><SelectItem value="Refusé">Refusé</SelectItem><SelectItem value="Rendez-vous fixé">Rendez-vous fixé</SelectItem></SelectContent>
+                    <SelectContent><SelectItem value="Répondu">Replied</SelectItem><SelectItem value="Pas de réponse">No response</SelectItem><SelectItem value="Intéressé">Interested</SelectItem><SelectItem value="Refusé">Declined</SelectItem><SelectItem value="Rendez-vous fixé">Meeting booked</SelectItem></SelectContent>
                   </Select></div>
-                <div><Label>Date de relance</Label><Input type="date" value={logData.follow_up_date || ""} onChange={e => setLogData({ ...logData, follow_up_date: e.target.value })} /></div>
+                <div><Label>Follow-up date</Label><Input type="date" value={logData.follow_up_date || ""} onChange={e => setLogData({ ...logData, follow_up_date: e.target.value })} /></div>
               </div>
               <div><Label>Notes</Label><Textarea value={logData.notes || ""} onChange={e => setLogData({ ...logData, notes: e.target.value })} rows={3} /></div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setLogDialogOpen(false)}>Annuler</Button>
-                <Button onClick={() => createLogMut.mutate(logData)} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!logData.prospect_id}>Enregistrer</Button>
+                <Button variant="outline" onClick={() => setLogDialogOpen(false)}>Cancel</Button>
+                <Button onClick={() => createLogMut.mutate(logData)} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!logData.prospect_id}>Save</Button>
               </div>
             </div>
           )}
@@ -239,27 +239,27 @@ export default function Outreach() {
       {/* New Template Dialog */}
       <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Nouveau modèle</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>New template</DialogTitle></DialogHeader>
           {templateData && (
             <div className="space-y-4 mt-2">
-              <div><Label>Nom</Label><Input value={templateData.name} onChange={e => setTemplateData({ ...templateData, name: e.target.value })} /></div>
+              <div><Label>Name</Label><Input value={templateData.name} onChange={e => setTemplateData({ ...templateData, name: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Type</Label>
                   <Select value={templateData.type} onValueChange={v => setTemplateData({ ...templateData, type: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="Email">Email</SelectItem><SelectItem value="Message">Message</SelectItem></SelectContent>
                   </Select></div>
-                <div><Label>Secteur</Label>
+                <div><Label>Sector</Label>
                   <Select value={templateData.sector} onValueChange={v => setTemplateData({ ...templateData, sector: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Tous">Tous</SelectItem><SelectItem value="F&B">F&B</SelectItem><SelectItem value="Wellness">Wellness</SelectItem><SelectItem value="Tourism">Tourism</SelectItem><SelectItem value="Other">Autre</SelectItem></SelectContent>
+                    <SelectContent><SelectItem value="Tous">All</SelectItem><SelectItem value="F&B">F&B</SelectItem><SelectItem value="Wellness">Wellness</SelectItem><SelectItem value="Tourism">Tourism</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent>
                   </Select></div>
               </div>
-              <div><Label>Objet</Label><Input value={templateData.subject || ""} onChange={e => setTemplateData({ ...templateData, subject: e.target.value })} /></div>
-              <div><Label>Corps du message</Label><Textarea value={templateData.body || ""} onChange={e => setTemplateData({ ...templateData, body: e.target.value })} rows={6} /></div>
+              <div><Label>Subject</Label><Input value={templateData.subject || ""} onChange={e => setTemplateData({ ...templateData, subject: e.target.value })} /></div>
+              <div><Label>Message body</Label><Textarea value={templateData.body || ""} onChange={e => setTemplateData({ ...templateData, body: e.target.value })} rows={6} /></div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>Annuler</Button>
-                <Button onClick={() => createTemplateMut.mutate(templateData)} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!templateData.name}>Enregistrer</Button>
+                <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>Cancel</Button>
+                <Button onClick={() => createTemplateMut.mutate(templateData)} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!templateData.name}>Save</Button>
               </div>
             </div>
           )}

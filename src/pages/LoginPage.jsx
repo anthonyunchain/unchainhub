@@ -13,7 +13,7 @@ export default function LoginPage() {
     setError('');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setError('Email ou mot de passe incorrect.');
+      setError('Incorrect email or password.');
       setLoading(false);
     }
   };
@@ -56,7 +56,7 @@ export default function LoginPage() {
             letterSpacing: '-0.5px',
             margin: 0,
           }}>
-            Connexion
+            Sign in
           </h1>
         </div>
 
@@ -87,7 +87,7 @@ export default function LoginPage() {
 
           <div>
             <label style={{ fontSize: 12, fontWeight: 500, color: '#555', display: 'block', marginBottom: 6 }}>
-              Mot de passe
+              Password
             </label>
             <input
               type="password"
@@ -133,7 +133,7 @@ export default function LoginPage() {
               transition: 'opacity 0.2s',
             }}
           >
-            {loading ? 'Connexion...' : 'Se connecter'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
       </div>

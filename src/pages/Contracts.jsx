@@ -43,21 +43,21 @@ export default function Contracts() {
 
   return (
     <div>
-      <PageHeader title="Contrats" subtitle="Gestion des contrats clients">
+      <PageHeader title="Contracts" subtitle="Client contract management">
         <Button onClick={() => openEdit(null)} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
-          <Plus className="w-4 h-4 mr-1" /> Nouveau contrat
+          <Plus className="w-4 h-4 mr-1" /> New contract
         </Button>
       </PageHeader>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <table className="w-full">
           <thead><tr className="border-b border-slate-100 bg-slate-50/50">
-            <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Contrat</th>
+            <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Contract</th>
             <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Client</th>
-            <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Montant</th>
-            <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Période</th>
-            <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Statut</th>
-            <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Fichier</th>
+            <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Amount</th>
+            <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Period</th>
+            <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Status</th>
+            <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">File</th>
           </tr></thead>
           <tbody>
             {contracts.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map(c => (
@@ -76,50 +76,50 @@ export default function Contracts() {
                 </td>
                 <td className="px-5 py-3"><StatusBadge status={c.status} /></td>
                 <td className="px-5 py-3">
-                  {c.file_url ? <a href={c.file_url} target="_blank" rel="noopener noreferrer" className="text-brand text-xs hover:underline" onClick={e => e.stopPropagation()}>Voir</a> : <span className="text-xs text-slate-400">—</span>}
+                  {c.file_url ? <a href={c.file_url} target="_blank" rel="noopener noreferrer" className="text-brand text-xs hover:underline" onClick={e => e.stopPropagation()}>View</a> : <span className="text-xs text-slate-400">—</span>}
                 </td>
               </tr>
             ))}
-            {contracts.length === 0 && <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-400">Aucun contrat</td></tr>}
+            {contracts.length === 0 && <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-400">No contracts</td></tr>}
           </tbody>
         </table>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editData?.id ? "Modifier" : "Nouveau contrat"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editData?.id ? "Edit contract" : "New contract"}</DialogTitle></DialogHeader>
           {editData && (
             <div className="space-y-4 mt-2">
-              <div><Label>Titre *</Label><Input value={editData.title} onChange={e => setEditData({ ...editData, title: e.target.value })} /></div>
+              <div><Label>Title *</Label><Input value={editData.title} onChange={e => setEditData({ ...editData, title: e.target.value })} /></div>
               <div><Label>Client</Label>
                 <Select value={editData.client_id || ""} onValueChange={v => { const cl = clients.find(c => c.id === v); setEditData({ ...editData, client_id: v, client_name: cl?.company_name || "" }); }}>
-                  <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>)}</SelectContent>
                 </Select></div>
-              <div><Label>Statut</Label>
+              <div><Label>Status</Label>
                 <Select value={editData.status} onValueChange={v => setEditData({ ...editData, status: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="Brouillon">Brouillon</SelectItem><SelectItem value="Envoyé">Envoyé</SelectItem><SelectItem value="Signé">Signé</SelectItem><SelectItem value="Terminé">Terminé</SelectItem></SelectContent>
+                  <SelectContent><SelectItem value="Brouillon">Draft</SelectItem><SelectItem value="Envoyé">Sent</SelectItem><SelectItem value="Signé">Signed</SelectItem><SelectItem value="Terminé">Done</SelectItem></SelectContent>
                 </Select></div>
-              <div><Label>Montant mensuel (€)</Label><Input type="number" value={editData.monthly_amount || 0} onChange={e => setEditData({ ...editData, monthly_amount: Number(e.target.value) })} /></div>
+              <div><Label>Monthly amount (€)</Label><Input type="number" value={editData.monthly_amount || 0} onChange={e => setEditData({ ...editData, monthly_amount: Number(e.target.value) })} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Date début</Label><Input type="date" value={editData.start_date || ""} onChange={e => setEditData({ ...editData, start_date: e.target.value })} /></div>
-                <div><Label>Date fin</Label><Input type="date" value={editData.end_date || ""} onChange={e => setEditData({ ...editData, end_date: e.target.value })} /></div>
+                <div><Label>Start date</Label><Input type="date" value={editData.start_date || ""} onChange={e => setEditData({ ...editData, start_date: e.target.value })} /></div>
+                <div><Label>End date</Label><Input type="date" value={editData.end_date || ""} onChange={e => setEditData({ ...editData, end_date: e.target.value })} /></div>
               </div>
               <div>
-                <Label>Fichier contrat</Label>
+                <Label>Contract file</Label>
                 <div className="flex items-center gap-2 mt-1">
                   <label className="cursor-pointer flex items-center gap-2 px-3 py-2 border rounded-md text-sm text-slate-600 hover:bg-slate-50">
-                    <Upload className="w-4 h-4" /> Uploader
+                    <Upload className="w-4 h-4" /> Upload
                     <input type="file" className="hidden" onChange={handleFileUpload} />
                   </label>
-                  {editData.file_url && <a href={editData.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline">Fichier actuel</a>}
+                  {editData.file_url && <a href={editData.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline">Current file</a>}
                 </div>
               </div>
               <div><Label>Notes</Label><Textarea value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} rows={3} /></div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
-                <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!editData.title}>Enregistrer</Button>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!editData.title}>Save</Button>
               </div>
             </div>
           )}

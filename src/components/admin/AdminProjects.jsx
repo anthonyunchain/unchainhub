@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
-import { format } from "date-fns";
-import { Plus, ChevronDown, RotateCcw, CheckCircle2, RefreshCw, Trash2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { base44, supabase } from "@/api/base44Client";
+import { Plus, RotateCcw, CheckCircle2, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+// Real columns: id, title, status, client_name, description, notes,
+//               freelancer_id, freelancer_name, created_at, updated_at
 
 const STATUS_CONFIG = {
   "Unassigned":         { color: "bg-slate-100 text-slate-500", order: 0 },
@@ -22,42 +24,66 @@ const STATUS_CONFIG = {
 
 const PIPELINE_STATUSES = ["Unassigned", "Pending acceptance", "Accepted", "In progress", "Delivered", "Completed"];
 
-const CONTENT_TYPES = ["Video", "Photo", "Design", "Copywriting", "Website", "Other"];
+const emptyForm = { title: "", client_name: "", description: "", notes: "", freelancer_id: "", freelancer_name: "" };
 
 export default function AdminProjects() {
   const [view, setView] = useState("list");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterFreelancer, setFilterFreelancer] = useState("all");
   const [filterClient, setFilterClient] = useState("all");
-  const [filterType, setFilterType] = useState("all");
   const [createOpen, setCreateOpen] = useState(false);
-  const [editProject, setEditProject] = useState(null);
   const [revisionNotes, setRevisionNotes] = useState("");
   const [revisionOpen, setRevisionOpen] = useState(null);
   const [reassignOpen, setReassignOpen] = useState(null);
   const [editingProject, setEditingProject] = useState(null);
-  const [form, setForm] = useState({});
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [form, setForm] = useState({ ...emptyForm });
   const [loading, setLoading] = useState(false);
-  const qc = useQueryClient();
 
-  const adminQuery = useQuery({ queryKey: ["admin-data"], queryFn: async () => { const res = await base44.functions.invoke('getAdminData', {}); return res.data; } });
-  const projects = adminQuery.data?.projects || [];
-  const freelancers = adminQuery.data?.freelancers || [];
-  const availableClients = adminQuery.data?.clients || [];
-  const projectsQuery = { refetch: () => adminQuery.refetch() };
+  const { data: projects = [], refetch } = useQuery({
+    queryKey: ["projects"],
+    queryFn: () => base44.entities.Project.list(),
+  });
+  const { data: availableClients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: () => base44.entities.Client.list(),
+  });
+  const { data: allFreelancers = [] } = useQuery({
+    queryKey: ["freelancers"],
+    queryFn: () => base44.entities.Freelancer.list(),
+  });
 
-  const refresh = () => projectsQuery.refetch();
+  const filtered = projects
+    .filter(p => filterStatus === "all" || p.status === filterStatus)
+    .filter(p => filterFreelancer === "all" || p.freelancer_id === filterFreelancer)
+    .filter(p => filterClient === "all" || p.client_name === filterClient)
+    .sort((a, b) => (STATUS_CONFIG[a.status]?.order ?? 0) - (STATUS_CONFIG[b.status]?.order ?? 0));
+
+  const projectClientNames = [...new Set(projects.map(p => p.client_name).filter(Boolean))];
+
+  const workload = allFreelancers.map(f => ({
+    ...f,
+    active: projects.filter(p => p.freelancer_id === f.id && !["Completed", "Unassigned"].includes(p.status)).length,
+  }));
 
   const handleCreate = async () => {
     if (!form.title || !form.client_name) return;
     try {
       setLoading(true);
-      await base44.entities.Project.create({ ...form, status: 'Unassigned' });
-      await projectsQuery.refetch();
+      const payload = {
+        title: form.title,
+        client_name: form.client_name,
+        status: form.freelancer_id ? "Pending acceptance" : "Unassigned",
+        ...(form.description && { description: form.description }),
+        ...(form.notes && { notes: form.notes }),
+        ...(form.freelancer_id && { freelancer_id: form.freelancer_id, freelancer_name: form.freelancer_name }),
+      };
+      await base44.entities.Project.create(payload);
+      await refetch();
       setCreateOpen(false);
-      setForm({});
-    } catch (error) {
-      console.error('Error creating project:', error);
+      setForm({ ...emptyForm });
+    } catch (e) {
+      alert("Error creating project: " + (e?.message || e));
     } finally {
       setLoading(false);
     }
@@ -65,54 +91,64 @@ export default function AdminProjects() {
 
   const handleAssign = async (projectId, freelancerId, freelancerName) => {
     setLoading(true);
-    await base44.functions.invoke('projectAction', { action: 'assign', project_id: projectId, freelancer_id: freelancerId, freelancer_name: freelancerName });
-    refresh();
-    setReassignOpen(null);
-    setLoading(false);
+    try {
+      await base44.entities.Project.update(projectId, { freelancer_id: freelancerId, freelancer_name: freelancerName, status: "Pending acceptance" });
+      refetch();
+      setReassignOpen(null);
+    } catch (e) {
+      alert("Error assigning: " + (e?.message || e));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleComplete = async (projectId) => {
-    await base44.functions.invoke('projectAction', { action: 'complete', project_id: projectId });
-    refresh();
+    try {
+      await base44.entities.Project.update(projectId, { status: "Completed" });
+      refetch();
+    } catch (e) {
+      alert("Error: " + (e?.message || e));
+    }
   };
 
   const handleRevision = async (projectId) => {
-    await base44.functions.invoke('projectAction', { action: 'request_revision', project_id: projectId, notes: revisionNotes });
-    setRevisionOpen(null);
-    setRevisionNotes("");
-    refresh();
+    try {
+      await base44.entities.Project.update(projectId, { status: "Revision requested", notes: revisionNotes });
+      setRevisionOpen(null);
+      setRevisionNotes("");
+      refetch();
+    } catch (e) {
+      alert("Error: " + (e?.message || e));
+    }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Delete this project?")) return;
-    await base44.entities.Project.delete(id);
-    refresh();
+  const handleDelete = (id) => setDeleteConfirmId(id);
+
+  const doDelete = async () => {
+    const id = deleteConfirmId;
+    setDeleteConfirmId(null);
+    try {
+      await base44.functions.invoke('deleteProject', { projectId: id });
+      refetch();
+    } catch (e) {
+      alert("Error deleting: " + (e?.message || e));
+    }
   };
 
   const handleUpdateProject = async () => {
     if (!editingProject?.id) return;
     setLoading(true);
-    await base44.functions.invoke('projectAction', { action: 'update', project_id: editingProject.id, ...editingProject });
-    setEditingProject(null);
-    refresh();
-    setLoading(false);
+    try {
+      const { id, created_at, updated_at, status, ...payload } = editingProject;
+      await base44.entities.Project.update(id, payload);
+      setEditingProject(null);
+      refetch();
+    } catch (e) {
+      alert("Error updating: " + (e?.message || e));
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const projectClientNames = [...new Set(projects.map(p => p.client_name).filter(Boolean))];
-  const filtered = projects
-    .filter(p => filterStatus === "all" || p.status === filterStatus)
-    .filter(p => filterFreelancer === "all" || p.assigned_freelancer_id === filterFreelancer)
-    .filter(p => filterClient === "all" || p.client_name === filterClient)
-    .filter(p => filterType === "all" || p.content_type === filterType)
-    .sort((a, b) => (STATUS_CONFIG[a.status]?.order ?? 0) - (STATUS_CONFIG[b.status]?.order ?? 0));
-
-  // Workload per freelancer
-  const workload = freelancers.map(f => ({
-    ...f,
-    active: projects.filter(p => p.assigned_freelancer_id === f.id && !["Completed", "Unassigned"].includes(p.status)).length,
-  }));
-
-  const emptyForm = { title: "", client_name: "", content_type: "Video", brief: "", description: "", deadline: "", assigned_freelancer_id: "", assigned_freelancer_name: "" };
 
   return (
     <div>
@@ -121,9 +157,7 @@ export default function AdminProjects() {
         <div className="flex flex-wrap gap-2 mb-6">
           {workload.filter(f => f.active > 0).map(f => (
             <div key={f.id} className="flex items-center gap-2 bg-white border border-slate-100 rounded-lg px-3 py-2 text-xs shadow-sm">
-              <div className="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center text-brand font-bold text-[9px]">
-                {f.name?.charAt(0)}
-              </div>
+              <div className="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center text-brand font-bold text-[9px]">{f.name?.charAt(0)}</div>
               <span className="font-medium text-slate-700">{f.name}</span>
               <span className="text-slate-400">·</span>
               <span className="font-semibold text-brand">{f.active} active</span>
@@ -160,7 +194,7 @@ export default function AdminProjects() {
           <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder="Freelancer" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All freelancers</SelectItem>
-            {freelancers.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+            {allFreelancers.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterClient} onValueChange={setFilterClient}>
@@ -168,13 +202,6 @@ export default function AdminProjects() {
           <SelectContent>
             <SelectItem value="all">All clients</SelectItem>
             {projectClientNames.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="h-8 text-xs w-32"><SelectValue placeholder="Type" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
-            {CONTENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -195,8 +222,7 @@ export default function AdminProjects() {
                     <div key={p.id} className="bg-white rounded-lg border border-slate-100 p-3 shadow-sm text-xs">
                       <p className="font-semibold text-slate-800 mb-0.5">{p.title}</p>
                       <p className="text-slate-400">{p.client_name}</p>
-                      {p.assigned_freelancer_name && <p className="text-slate-500 mt-1">👤 {p.assigned_freelancer_name}</p>}
-                      {p.deadline && <p className="text-slate-400 mt-0.5">📅 {format(new Date(p.deadline), "d MMM")}</p>}
+                      {p.freelancer_name && <p className="text-slate-500 mt-1">👤 {p.freelancer_name}</p>}
                     </div>
                   ))}
                   {cols.length === 0 && <div className="text-xs text-slate-300 text-center py-4">Empty</div>}
@@ -216,29 +242,26 @@ export default function AdminProjects() {
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-3">Project</th>
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-3">Client</th>
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-3">Freelancer</th>
-                <th className="text-left text-xs font-medium text-slate-400 px-4 py-3">Deadline</th>
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-3">Status</th>
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-400">No projects found</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-400">No projects found</td></tr>}
               {filtered.map(p => {
                 const cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG["Unassigned"];
                 return (
                   <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50 cursor-pointer" onClick={() => setEditingProject({ ...p })}>
                     <td className="px-4 py-3">
                       <p className="text-sm font-medium text-slate-800">{p.title}</p>
-                      {p.content_type && <p className="text-xs text-slate-400">{p.content_type}</p>}
-                      {p.decline_reason && <p className="text-xs text-red-500 mt-0.5">Declined: {p.decline_reason}</p>}
+                      {p.description && <p className="text-xs text-slate-400 truncate max-w-[200px]">{p.description}</p>}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{p.client_name || "—"}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{p.assigned_freelancer_name || <span className="text-slate-300">Unassigned</span>}</td>
-                    <td className="px-4 py-3 text-sm text-slate-500">{p.deadline ? format(new Date(p.deadline), "d MMM yyyy") : "—"}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{p.freelancer_name || <span className="text-slate-300">Unassigned</span>}</td>
                     <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.color}`}>{p.status}</span></td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {(p.status === "Unassigned" || p.decline_reason) && (
+                      <div className="flex items-center gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
+                        {(p.status === "Unassigned" || p.status === "Pending acceptance") && (
                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setReassignOpen(p)}>
                             <RotateCcw className="w-3 h-3 mr-1" /> Assign
                           </Button>
@@ -272,46 +295,43 @@ export default function AdminProjects() {
           <DialogHeader><DialogTitle>New Project</DialogTitle></DialogHeader>
           <div className="space-y-3 mt-2">
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Title *</Label><Input value={form.title || ""} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
+              <div><Label>Title *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
               <div><Label>Client *</Label>
-                <Select value={form.client_name || ""} onValueChange={v => setForm(f => ({ ...f, client_name: v }))}>
+                <Select value={form.client_name || "_none"} onValueChange={v => setForm(f => ({ ...f, client_name: v === "_none" ? "" : v }))}>
                   <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
                   <SelectContent>
-                    {availableClients.filter(c => c.status === "Actif").map(c => <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>)}
+                    <SelectItem value="_none">— Select —</SelectItem>
+                    {availableClients.map(c => <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>Content type</Label>
-                <Select value={form.content_type || "Video"} onValueChange={v => setForm(f => ({ ...f, content_type: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{CONTENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div><Label>Deadline</Label><Input type="date" value={form.deadline || ""} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} /></div>
-            </div>
-            <div><Label>Brief</Label><Input value={form.brief || ""} onChange={e => setForm(f => ({ ...f, brief: e.target.value }))} placeholder="Short brief..." /></div>
-            <div><Label>Description</Label><Textarea value={form.description || ""} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>
             <div><Label>Assign to freelancer</Label>
-              <Select value={form.assigned_freelancer_id || ""} onValueChange={v => {
-                const f = freelancers.find(x => x.id === v);
-                setForm(prev => ({ ...prev, assigned_freelancer_id: v, assigned_freelancer_name: f?.name || "" }));
+              <Select value={form.freelancer_id || "_none"} onValueChange={v => {
+                if (v === "_none") {
+                  setForm(f => ({ ...f, freelancer_id: "", freelancer_name: "" }));
+                } else {
+                  const fl = allFreelancers.find(x => x.id === v);
+                  setForm(f => ({ ...f, freelancer_id: v, freelancer_name: fl?.name || "" }));
+                }
               }}>
-                <SelectTrigger><SelectValue placeholder="Select freelancer (optional)" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="None (assign later)" /></SelectTrigger>
                 <SelectContent>
-                  {freelancers.map(f => (
-                    <SelectItem key={f.id} value={f.id}>
-                      {f.name} {f.status === "Indisponible" ? "⚠️ Unavailable" : "✓"}
+                  <SelectItem value="_none">None (assign later)</SelectItem>
+                  {allFreelancers.map(fl => (
+                    <SelectItem key={fl.id} value={fl.id}>
+                      {fl.name} {fl.status === "Indisponible" ? "⚠️" : "✓"}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+            <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>
+            <div><Label>Notes</Label><Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Internal notes..." /></div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
               <Button onClick={handleCreate} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!form.title || !form.client_name || loading}>
-                Create project
+                {loading ? "Creating..." : "Create project"}
               </Button>
             </div>
           </div>
@@ -323,7 +343,7 @@ export default function AdminProjects() {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Assign: {reassignOpen?.title}</DialogTitle></DialogHeader>
           <div className="space-y-2 mt-2">
-            {freelancers.map(f => (
+            {allFreelancers.map(f => (
               <button key={f.id} onClick={() => handleAssign(reassignOpen.id, f.id, f.name)}
                 className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-100 hover:border-brand/30 hover:bg-brand/5 transition-all text-left">
                 <div>
@@ -347,35 +367,71 @@ export default function AdminProjects() {
             <div className="space-y-3 mt-2">
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Title</Label><Input value={editingProject.title || ""} onChange={e => setEditingProject(p => ({ ...p, title: e.target.value }))} /></div>
-                <div><Label>Client</Label><Input value={editingProject.client_name || ""} onChange={e => setEditingProject(p => ({ ...p, client_name: e.target.value }))} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Content type</Label>
-                  <Select value={editingProject.content_type || "Video"} onValueChange={v => setEditingProject(p => ({ ...p, content_type: v }))}>
+                <div><Label>Client</Label>
+                  <Select value={editingProject.client_name || "_none"} onValueChange={v => setEditingProject(p => ({ ...p, client_name: v === "_none" ? "" : v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{CONTENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                    <SelectContent>
+                      <SelectItem value="_none">— Select —</SelectItem>
+                      {availableClients.map(c => <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>)}
+                    </SelectContent>
                   </Select>
                 </div>
-                <div><Label>Deadline</Label><Input type="date" value={editingProject.deadline || ""} onChange={e => setEditingProject(p => ({ ...p, deadline: e.target.value }))} /></div>
               </div>
-              <div><Label>Brief</Label><Input value={editingProject.brief || ""} onChange={e => setEditingProject(p => ({ ...p, brief: e.target.value }))} /></div>
-              <div><Label>Description</Label><Textarea value={editingProject.description || ""} onChange={e => setEditingProject(p => ({ ...p, description: e.target.value }))} rows={3} /></div>
-              <div><Label>Status</Label>
-                <Select value={editingProject.status || "Unassigned"} onValueChange={v => setEditingProject(p => ({ ...p, status: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+              <div><Label>Freelancer</Label>
+                <Select value={editingProject.freelancer_id || "_none"} onValueChange={v => {
+                  if (v === "_none") {
+                    setEditingProject(p => ({ ...p, freelancer_id: "", freelancer_name: "" }));
+                  } else {
+                    const fl = allFreelancers.find(x => x.id === v);
+                    setEditingProject(p => ({ ...p, freelancer_id: v, freelancer_name: fl?.name || "" }));
+                  }
+                }}>
+                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>
-                    {Object.keys(STATUS_CONFIG).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    <SelectItem value="_none">None</SelectItem>
+                    {allFreelancers.map(fl => <SelectItem key={fl.id} value={fl.id}>{fl.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setEditingProject(null)}>Cancel</Button>
-                <Button onClick={handleUpdateProject} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={loading}>
-                  Save
+              <div><Label>Status</Label>
+                <div className="mt-1">
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_CONFIG[editingProject.status]?.color || "bg-slate-100 text-slate-600"}`}>
+                    {editingProject.status || "Unassigned"}
+                  </span>
+                  <p className="text-xs text-slate-400 mt-1">Use the action buttons on the project card to change status.</p>
+                </div>
+              </div>
+              <div><Label>Description</Label><Textarea value={editingProject.description || ""} onChange={e => setEditingProject(p => ({ ...p, description: e.target.value }))} rows={3} /></div>
+              <div><Label>Notes</Label><Input value={editingProject.notes || ""} onChange={e => setEditingProject(p => ({ ...p, notes: e.target.value }))} /></div>
+              {editingProject.delivery_url && (
+                <div className="p-3 bg-violet-50 rounded-lg border border-violet-100">
+                  <p className="text-xs font-medium text-violet-700 mb-1">Delivery link</p>
+                  <a href={editingProject.delivery_url} target="_blank" rel="noopener noreferrer" className="text-xs text-violet-600 underline break-all hover:text-violet-800">{editingProject.delivery_url}</a>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-2">
+                <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => { setEditingProject(null); handleDelete(editingProject.id); }}>
+                  <Trash2 className="w-4 h-4 mr-1" /> Delete
                 </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setEditingProject(null)}>Cancel</Button>
+                  <Button onClick={handleUpdateProject} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={loading}>Save</Button>
+                </div>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Delete this project?</DialogTitle></DialogHeader>
+          <p className="text-sm text-slate-500">This action is irreversible.</p>
+          <div className="flex gap-2 justify-end mt-3">
+            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+            <Button onClick={doDelete} className="bg-red-500 hover:bg-red-600 text-white">Delete</Button>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -384,9 +440,9 @@ export default function AdminProjects() {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Request revision: {revisionOpen?.title}</DialogTitle></DialogHeader>
           <Textarea value={revisionNotes} onChange={e => setRevisionNotes(e.target.value)} rows={3} placeholder="Revision notes..." />
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-2 justify-end mt-3">
             <Button variant="outline" onClick={() => setRevisionOpen(null)}>Cancel</Button>
-            <Button onClick={() => handleRevision(revisionOpen.id)} className="bg-amber-600 hover:bg-amber-700">Send revision request</Button>
+            <Button onClick={() => handleRevision(revisionOpen.id)} className="bg-amber-600 hover:bg-amber-700 text-white">Send revision request</Button>
           </div>
         </DialogContent>
       </Dialog>

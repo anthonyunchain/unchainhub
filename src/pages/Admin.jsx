@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Upload, X, ExternalLink, Trash2, GripVertical, Settings2, Check } from "lucide-react";
+import { Plus, Upload, X, ExternalLink, Trash2, GripVertical, Settings2, Check, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import Invoices from "./Invoices";
 import Finance from "./Finance";
@@ -648,6 +648,168 @@ function ShareholderSalaries() {
   );
 }
 
+// ─── USER MANAGEMENT ─────────────────────────────────────────────────────────
+function UserManagement() {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ email: "", full_name: "", role: "user", password: "" });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const qc = useQueryClient();
+
+  const { data: profiles = [], isLoading } = useQuery({
+    queryKey: ["profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const openNew = () => {
+    setForm({ email: "", full_name: "", role: "user", password: "" });
+    setError(null);
+    setSuccess(null);
+    setOpen(true);
+  };
+
+  const handleCreate = async () => {
+    setError(null);
+    setSuccess(null);
+    if (!form.email || !form.password) { setError("Email et mot de passe requis."); return; }
+    setSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error: fnError } = await supabase.functions.invoke("createUser", {
+        body: {
+          email: form.email,
+          password: form.password,
+          full_name: form.full_name,
+          role: form.role,
+        },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+      if (fnError) {
+        let msg = fnError.message || "Erreur lors de la création.";
+        try { const json = await fnError.context?.json(); if (json?.error) msg = json.error; } catch {}
+        throw new Error(msg);
+      }
+      if (data?.error) throw new Error(data.error);
+      setSuccess("Utilisateur créé avec succès.");
+      qc.invalidateQueries({ queryKey: ["profiles"] });
+      setForm({ email: "", full_name: "", role: "user", password: "" });
+    } catch (e) {
+      setError(e.message || "Erreur lors de la création.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const ROLE_COLORS = { admin: "bg-violet-50 text-violet-700", user: "bg-blue-50 text-blue-700", freelancer: "bg-amber-50 text-amber-700" };
+
+  return (
+    <div>
+      <PageHeader title="Users" subtitle="Governance & operations">
+        <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
+          <Plus className="w-4 h-4 mr-1" />New user
+        </Button>
+      </PageHeader>
+
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+        <table className="w-full min-w-[480px]">
+          <thead>
+            <tr className="border-b border-slate-100 bg-slate-50/50">
+              <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Name</th>
+              <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Role</th>
+              <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && (
+              <tr><td colSpan={3} className="px-5 py-10 text-center text-sm text-slate-400">Loading...</td></tr>
+            )}
+            {!isLoading && profiles.length === 0 && (
+              <tr><td colSpan={3} className="px-5 py-10 text-center text-sm text-slate-400">No users found</td></tr>
+            )}
+            {profiles.map(p => (
+              <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50">
+                <td className="px-5 py-3">
+                  <p className="text-sm font-medium text-slate-800">{p.full_name || "—"}</p>
+                </td>
+                <td className="px-5 py-3">
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${ROLE_COLORS[p.role] || "bg-slate-100 text-slate-600"}`}>
+                    {p.role || "user"}
+                  </span>
+                </td>
+                <td className="px-5 py-3 text-xs text-slate-400 font-mono">{p.id}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>New user</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <Label>Email *</Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+                placeholder="user@example.com"
+              />
+            </div>
+            <div>
+              <Label>Full name</Label>
+              <Input
+                value={form.full_name}
+                onChange={e => setForm({ ...form, full_name: e.target.value })}
+                placeholder="Jean Dupont"
+              />
+            </div>
+            <div>
+              <Label>Role</Label>
+              <Select value={form.role} onValueChange={v => setForm({ ...form, role: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="freelancer">Freelancer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Password *</Label>
+              <Input
+                type="password"
+                value={form.password}
+                onChange={e => setForm({ ...form, password: e.target.value })}
+                placeholder="Minimum 6 characters"
+              />
+            </div>
+            {error && <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+            {success && <p className="text-sm text-emerald-600 bg-emerald-50 rounded-lg px-3 py-2">{success}</p>}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button
+                onClick={handleCreate}
+                className="bg-brand hover:bg-brand/90 text-brand-foreground"
+                disabled={saving || !form.email || !form.password}
+              >
+                {saving ? "Creating..." : "Create user"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 const DEFAULT_NAV_ITEMS = [
   { id: 'tasks',        label: 'Admin Tasks' },
@@ -661,6 +823,7 @@ const DEFAULT_NAV_ITEMS = [
   { id: 'analytics',    label: 'Analytics' },
   { id: 'sales',        label: 'Pipeline' },
   { id: 'contracts',    label: 'Contracts' },
+  { id: 'users',        label: 'Users' },
 ];
 
 const ADMIN_NAV_KEY = "admin_nav_order_v2";
@@ -825,6 +988,7 @@ export default function Admin() {
           {section === 'analytics'    && <Reports />}
           {section === 'sales'        && <Pipeline />}
           {section === 'contracts'    && <Contracts />}
+          {section === 'users'        && <UserManagement />}
         </div>
 
       </div>

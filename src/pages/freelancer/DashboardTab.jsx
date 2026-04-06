@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { ClipboardList, FolderOpen, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 
 const TASK_STATUS_COLORS = {
@@ -48,7 +48,7 @@ export default function DashboardTab({ freelancerName, freelancerEmail, onTabCha
     isWithinInterval(new Date(p.scheduled_date), interval)
   ).length;
 
-  const monthLabel = format(now, "MMMM yyyy", { locale: fr });
+  const monthLabel = format(now, "MMMM yyyy", { locale: enUS });
 
   return (
     <div className="space-y-6">
@@ -99,7 +99,7 @@ export default function DashboardTab({ freelancerName, freelancerEmail, onTabCha
                     )}
                     {task.due_date && (
                       <span className="text-[10px] text-slate-400">
-                        Due {format(new Date(task.due_date), "d MMM", { locale: fr })}
+                        Due {format(new Date(task.due_date), "d MMM", { locale: enUS })}
                       </span>
                     )}
                   </div>
@@ -127,7 +127,7 @@ export default function DashboardTab({ freelancerName, freelancerEmail, onTabCha
               <div key={p.id} className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-slate-800">{p.title || "Untitled"}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{p.client_name} {p.scheduled_date && `· Due ${format(new Date(p.scheduled_date), "d MMM", { locale: fr })}`}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{p.client_name} {p.scheduled_date && `· Due ${format(new Date(p.scheduled_date), "d MMM", { locale: enUS })}`}</p>
                 </div>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${
                   p.editing_status === "En cours de montage" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"

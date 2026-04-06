@@ -173,7 +173,7 @@ export default function Editorial() {
         <div className="flex items-center gap-1 mb-0.5">
           <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
         </div>
-        <p className={`font-medium text-slate-700 line-clamp-2 ${compact ? "text-[10px]" : "text-[11px]"}`}>{c.title || c.description || "Sans titre"}</p>
+        <p className={`font-medium text-slate-700 line-clamp-2 ${compact ? "text-[10px]" : "text-[11px]"}`}>{c.title || c.description || "Untitled"}</p>
         {!compact && <p className="text-[9px] text-slate-400 mt-0.5">{c.client_name}</p>}
       </div>
       {!isReadOnly && (
@@ -194,10 +194,10 @@ export default function Editorial() {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-slate-800 capitalize">{format(currentDate, "EEEE d MMMM", { locale: fr })}</h3>
-          {!isReadOnly && <button onClick={() => openNew(currentDate)} className="text-emerald-600 hover:text-emerald-700 text-sm flex items-center gap-1"><Plus className="w-3.5 h-3.5" />Ajouter</button>}
+          {!isReadOnly && <button onClick={() => openNew(currentDate)} className="text-emerald-600 hover:text-emerald-700 text-sm flex items-center gap-1"><Plus className="w-3.5 h-3.5" />Add</button>}
         </div>
         {dayContent.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-12">Aucun contenu ce jour</p>
+          <p className="text-sm text-slate-400 text-center py-12">No content this day</p>
         ) : (
           <div className="space-y-3">
             {dayContent.map(c => (
@@ -207,7 +207,7 @@ export default function Editorial() {
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
                     <span className="text-xs text-slate-400">{c.client_name}</span>
                   </div>
-                  <p className="text-sm font-medium text-slate-800">{c.title || "Sans titre"}</p>
+                  <p className="text-sm font-medium text-slate-800">{c.title || "Untitled"}</p>
                   {c.description && <p className="text-xs text-slate-500 mt-1">{c.description}</p>}
                 </div>
                 {!isReadOnly && <button onClick={(e) => handleQuickDelete(e, c.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all shrink-0">
@@ -264,7 +264,7 @@ export default function Editorial() {
     const calEnd = startOfWeek(addDays(monthEnd, 6), { weekStartsOn: 1 });
     const allDays = eachDayOfInterval({ start: calStart, end: addDays(calEnd, 6) }).slice(0, 49);
     const allDaysNoWeekend = allDays.filter(d => d.getDay() !== 0 && d.getDay() !== 6);
-    const weekDays = ["Lun", "Mar", "Mer", "Jeu", "Ven"];
+    const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
     return (
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="grid grid-cols-5 border-b border-slate-100">
@@ -290,7 +290,7 @@ export default function Editorial() {
                 </div>
                 <div className="space-y-0.5">
                   {dayContent.slice(0, 2).map(c => <ContentCard key={c.id} c={c} compact />)}
-                  {dayContent.length > 2 && <p className="text-[9px] text-slate-400 pl-1">+{dayContent.length - 2} de plus</p>}
+                  {dayContent.length > 2 && <p className="text-[9px] text-slate-400 pl-1">+{dayContent.length - 2} more</p>}
                 </div>
               </div>
             );
@@ -310,16 +310,16 @@ export default function Editorial() {
             <tr className="border-b border-slate-100 bg-slate-50/50">
               <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Date</th>
               <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Client</th>
-              <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Titre</th>
+              <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Title</th>
               <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Type</th>
-              <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Statut</th>
-              <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Montage</th>
+              <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Status</th>
+              <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Editing</th>
               <th className="px-5 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {sorted.length === 0 && (
-              <tr><td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-400">Aucun contenu</td></tr>
+              <tr><td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-400">No content</td></tr>
             )}
             {sorted.map(c => (
               <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50/50 group">
@@ -327,7 +327,7 @@ export default function Editorial() {
                   {c.scheduled_date ? format(new Date(c.scheduled_date), "d MMM yyyy", { locale: fr }) : "—"}
                 </td>
                 <td className="px-5 py-3 text-sm font-medium text-slate-800">{c.client_name || "—"}</td>
-                <td className="px-5 py-3 text-sm text-slate-700 max-w-[200px] truncate">{c.title || c.description || "Sans titre"}</td>
+                <td className="px-5 py-3 text-sm text-slate-700 max-w-[200px] truncate">{c.title || c.description || "Untitled"}</td>
                 <td className="px-5 py-3">
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
                 </td>

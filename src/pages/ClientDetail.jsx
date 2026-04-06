@@ -57,11 +57,11 @@ function ServicesEditor({ value = [], onChange }) {
         <Input
           value={custom}
           onChange={e => setCustom(e.target.value)}
-          placeholder="Service personnalisé..."
+          placeholder="Custom service..."
           className="h-8 text-xs"
           onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addCustom())}
         />
-        <Button type="button" variant="outline" size="sm" onClick={addCustom} className="h-8 text-xs">Ajouter</Button>
+        <Button type="button" variant="outline" size="sm" onClick={addCustom} className="h-8 text-xs">Add</Button>
       </div>
     </div>
   );
@@ -74,11 +74,11 @@ function DocumentSection({ label, icon: Icon, docs = [], onUpload, onRemove, upl
         <p className="text-xs text-slate-400 flex items-center gap-1"><Icon className="w-3.5 h-3.5" />{label}</p>
         <label className={`cursor-pointer text-xs text-[#2A69FF] hover:underline flex items-center gap-1 ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
           <Upload className="w-3 h-3" />
-          {uploading ? "Envoi..." : "Joindre"}
+          {uploading ? "Uploading..." : "Attach"}
           <input type="file" className="hidden" onChange={onUpload} accept=".pdf,.doc,.docx,.xlsx,.png,.jpg,.jpeg" />
         </label>
       </div>
-      {docs.length === 0 && <p className="text-xs text-slate-300 italic">Aucun document</p>}
+      {docs.length === 0 && <p className="text-xs text-slate-300 italic">No documents</p>}
       <div className="space-y-1">
         {docs.map((url, i) => {
           const name = decodeURIComponent(url.split("/").pop().split("?")[0]);
@@ -123,7 +123,7 @@ export default function ClientDetail() {
     }
   });
 
-  if (!client) return <div className="flex items-center justify-center h-64 text-slate-400">Chargement...</div>;
+  if (!client) return <div className="flex items-center justify-center h-64 text-slate-400">Loading...</div>;
 
   const clientContracts = contracts.filter(c => c.client_id === id || c.client_name === client.company_name);
   const clientInvoices = invoices.filter(i => i.client_id === id || i.client_name === client.company_name);
@@ -161,7 +161,7 @@ export default function ClientDetail() {
   return (
     <div>
       <Link to="/Clients" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 mb-4">
-        <ArrowLeft className="w-4 h-4" /> Retour aux clients
+        <ArrowLeft className="w-4 h-4" /> Back to clients
       </Link>
 
       {/* Header card */}
@@ -172,13 +172,13 @@ export default function ClientDetail() {
             <div className="flex items-center gap-4 mt-2 text-sm text-slate-500">
               {client.city && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{client.city}</span>}
               {client.sector && <span className="bg-slate-100 px-2 py-0.5 rounded text-xs">{client.sector}</span>}
-              {client.start_date && <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />Depuis {format(new Date(client.start_date), "MMM yyyy", { locale: fr })}</span>}
+              {client.start_date && <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />Since {format(new Date(client.start_date), "MMM yyyy", { locale: fr })}</span>}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <StatusBadge status={client.status} />
             <Button variant="outline" size="sm" onClick={openEdit} className="h-8 gap-1">
-              <Pencil className="w-3.5 h-3.5" /> Modifier
+              <Pencil className="w-3.5 h-3.5" /> Edit
             </Button>
           </div>
         </div>
@@ -186,12 +186,12 @@ export default function ClientDetail() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-100">
           {client.contact_name && <div><p className="text-xs text-slate-400">Contact</p><p className="text-sm font-medium">{client.contact_name}</p></div>}
           {client.contact_email && <div><p className="text-xs text-slate-400">Email</p><p className="text-sm font-medium flex items-center gap-1"><Mail className="w-3 h-3" />{client.contact_email}</p></div>}
-          {client.contact_phone && <div><p className="text-xs text-slate-400">Téléphone</p><p className="text-sm font-medium flex items-center gap-1"><Phone className="w-3 h-3" />{client.contact_phone}</p></div>}
+          {client.contact_phone && <div><p className="text-xs text-slate-400">Phone</p><p className="text-sm font-medium flex items-center gap-1"><Phone className="w-3 h-3" />{client.contact_phone}</p></div>}
         </div>
 
         {client.active_services?.length > 0 && (
           <div className="mt-4 pt-4 border-t border-slate-100">
-            <p className="text-xs text-slate-400 mb-2 flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />Services actifs</p>
+            <p className="text-xs text-slate-400 mb-2 flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />Active services</p>
             <div className="flex flex-wrap gap-2">
               {client.active_services.map((s, i) => <span key={i} className="text-xs px-3 py-1 bg-[#2A69FF]/10 text-[#2A69FF] rounded-full">{s}</span>)}
             </div>
@@ -209,15 +209,15 @@ export default function ClientDetail() {
       {/* KPI row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-slate-100 p-5">
-          <p className="text-xs text-slate-400 uppercase tracking-wider">Revenus total</p>
+          <p className="text-xs text-slate-400 uppercase tracking-wider">Total revenue</p>
           <p className="text-2xl font-bold text-slate-900 mt-1">{totalRevenue.toLocaleString("fr-FR")} €</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-100 p-5">
-          <p className="text-xs text-slate-400 uppercase tracking-wider">Contrats</p>
+          <p className="text-xs text-slate-400 uppercase tracking-wider">Contracts</p>
           <p className="text-2xl font-bold text-slate-900 mt-1">{clientContracts.length}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-100 p-5">
-          <p className="text-xs text-slate-400 uppercase tracking-wider">Contenus publiés</p>
+          <p className="text-xs text-slate-400 uppercase tracking-wider">Published content</p>
           <p className="text-2xl font-bold text-slate-900 mt-1">{clientContent.filter(c => c.status === "Publié").length}</p>
         </div>
       </div>
@@ -227,9 +227,9 @@ export default function ClientDetail() {
       {/* Contrats liés */}
       <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><FileText className="w-4 h-4" />Contrats</h3>
+          <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><FileText className="w-4 h-4" />Contracts</h3>
           <label className={`cursor-pointer text-xs text-[#2A69FF] hover:underline flex items-center gap-1 ${uploadingContract ? "opacity-50 pointer-events-none" : ""}`}>
-            <Upload className="w-3 h-3" />{uploadingContract ? "Envoi..." : "Joindre un fichier"}
+            <Upload className="w-3 h-3" />{uploadingContract ? "Uploading..." : "Attach file"}
             <input type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={async (e) => {
               const file = e.target.files?.[0]; if (!file) return;
               setUploadingContract(true);
@@ -263,16 +263,16 @@ export default function ClientDetail() {
               </div>
             );
           })}
-          {clientContracts.length === 0 && (client.contract_documents || []).length === 0 && <p className="text-sm text-slate-400">Aucun contrat</p>}
+          {clientContracts.length === 0 && (client.contract_documents || []).length === 0 && <p className="text-sm text-slate-400">No contracts</p>}
         </div>
       </div>
 
       {/* Factures liées */}
       <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><Receipt className="w-4 h-4" />Factures</h3>
+          <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><Receipt className="w-4 h-4" />Invoices</h3>
           <label className={`cursor-pointer text-xs text-[#2A69FF] hover:underline flex items-center gap-1 ${uploadingInvoice ? "opacity-50 pointer-events-none" : ""}`}>
-            <Upload className="w-3 h-3" />{uploadingInvoice ? "Envoi..." : "Joindre un fichier"}
+            <Upload className="w-3 h-3" />{uploadingInvoice ? "Uploading..." : "Attach file"}
             <input type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={async (e) => {
               const file = e.target.files?.[0]; if (!file) return;
               setUploadingInvoice(true);
@@ -309,55 +309,55 @@ export default function ClientDetail() {
               </div>
             );
           })}
-          {clientInvoices.length === 0 && (client.invoice_documents || []).length === 0 && <p className="text-sm text-slate-400">Aucune facture</p>}
+          {clientInvoices.length === 0 && (client.invoice_documents || []).length === 0 && <p className="text-sm text-slate-400">No invoices</p>}
         </div>
       </div>
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Modifier le client</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit client</DialogTitle></DialogHeader>
           {editData && (
             <div className="space-y-4 mt-2">
-              <div><Label>Entreprise *</Label><Input value={editData.company_name} onChange={e => setEditData({ ...editData, company_name: e.target.value })} /></div>
+              <div><Label>Company *</Label><Input value={editData.company_name} onChange={e => setEditData({ ...editData, company_name: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Secteur</Label>
+                <div><Label>Sector</Label>
                   <Select value={editData.sector} onValueChange={v => setEditData({ ...editData, sector: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="F&B">F&B</SelectItem><SelectItem value="Wellness">Wellness</SelectItem><SelectItem value="Tourism">Tourism</SelectItem><SelectItem value="Other">Autre</SelectItem></SelectContent>
+                    <SelectContent><SelectItem value="F&B">F&B</SelectItem><SelectItem value="Wellness">Wellness</SelectItem><SelectItem value="Tourism">Tourism</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent>
                   </Select></div>
-                <div><Label>Ville</Label>
+                <div><Label>City</Label>
                   <Select value={editData.city} onValueChange={v => setEditData({ ...editData, city: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Tampere">Tampere</SelectItem><SelectItem value="Helsinki">Helsinki</SelectItem><SelectItem value="Lapland">Lapland</SelectItem><SelectItem value="Other">Autre</SelectItem></SelectContent>
+                    <SelectContent><SelectItem value="Tampere">Tampere</SelectItem><SelectItem value="Helsinki">Helsinki</SelectItem><SelectItem value="Lapland">Lapland</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent>
                   </Select></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Nom du contact</Label><Input value={editData.contact_name || ""} onChange={e => setEditData({ ...editData, contact_name: e.target.value })} /></div>
-                <div><Label>Statut</Label>
+                <div><Label>Contact name</Label><Input value={editData.contact_name || ""} onChange={e => setEditData({ ...editData, contact_name: e.target.value })} /></div>
+                <div><Label>Status</Label>
                   <Select value={editData.status} onValueChange={v => setEditData({ ...editData, status: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Actif">Actif</SelectItem><SelectItem value="Inactif">Inactif</SelectItem><SelectItem value="En pause">En pause</SelectItem></SelectContent>
+                    <SelectContent><SelectItem value="Actif">Active</SelectItem><SelectItem value="Inactif">Inactive</SelectItem><SelectItem value="En pause">On hold</SelectItem></SelectContent>
                   </Select></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Email</Label><Input value={editData.contact_email || ""} onChange={e => setEditData({ ...editData, contact_email: e.target.value })} /></div>
-                <div><Label>Téléphone</Label><Input value={editData.contact_phone || ""} onChange={e => setEditData({ ...editData, contact_phone: e.target.value })} /></div>
+                <div><Label>Phone</Label><Input value={editData.contact_phone || ""} onChange={e => setEditData({ ...editData, contact_phone: e.target.value })} /></div>
               </div>
-              <div><Label>Adresse</Label><Input value={editData.address || ""} onChange={e => setEditData({ ...editData, address: e.target.value })} /></div>
-              <div><Label>Date de début</Label><Input type="date" value={editData.start_date || ""} onChange={e => setEditData({ ...editData, start_date: e.target.value })} /></div>
+              <div><Label>Address</Label><Input value={editData.address || ""} onChange={e => setEditData({ ...editData, address: e.target.value })} /></div>
+              <div><Label>Start date</Label><Input type="date" value={editData.start_date || ""} onChange={e => setEditData({ ...editData, start_date: e.target.value })} /></div>
 
               {/* Services */}
               <div>
-                <Label className="mb-2 block">Services actifs</Label>
+                <Label className="mb-2 block">Active services</Label>
                 <ServicesEditor value={editData.active_services || []} onChange={v => setEditData({ ...editData, active_services: v })} />
               </div>
 
               <div><Label>Notes</Label><Textarea value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} rows={3} /></div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setEditOpen(false)}>Annuler</Button>
-                <Button onClick={() => updateMut.mutate({ id: editData.id, d: editData })} className="bg-emerald-600 hover:bg-emerald-700" disabled={!editData.company_name}>Enregistrer</Button>
+                <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                <Button onClick={() => updateMut.mutate({ id: editData.id, d: editData })} className="bg-emerald-600 hover:bg-emerald-700" disabled={!editData.company_name}>Save</Button>
               </div>
             </div>
           )}

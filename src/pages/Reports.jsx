@@ -250,10 +250,10 @@ export default function Reports() {
             <div className="bg-white rounded-xl border border-slate-100 p-5">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-xs text-slate-400 uppercase font-semibold">MRR</p>
-                <span className="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full">Mensuel</span>
+                <span className="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full">Monthly</span>
               </div>
               <p className="text-2xl font-bold text-slate-900 mt-1">{mrr.toLocaleString("fr-FR")} €</p>
-              <p className="text-[11px] text-slate-400 mt-1">Revenus encaissés TTC ce mois</p>
+              <p className="text-[11px] text-slate-400 mt-1">Revenue collected incl. VAT this month</p>
             </div>
             <div className="bg-white rounded-xl border border-slate-100 p-5">
               <div className="flex items-center justify-between mb-1">

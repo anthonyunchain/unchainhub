@@ -62,20 +62,20 @@ export default function VideoEditing() {
     <div>
       <PageHeader title="Video Editing" subtitle="Overview of video editing tasks">
         <Select value={filterEditor} onValueChange={setFilterEditor}>
-          <SelectTrigger className="w-44 h-9 text-sm"><SelectValue placeholder="Tous les monteurs" /></SelectTrigger>
+          <SelectTrigger className="w-44 h-9 text-sm"><SelectValue placeholder="All editors" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All editors</SelectItem>
             {freelancers.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-52 h-9 text-sm"><SelectValue placeholder="Tous les statuts" /></SelectTrigger>
+          <SelectTrigger className="w-52 h-9 text-sm"><SelectValue placeholder="All statuses" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="À faire">À faire</SelectItem>
-            <SelectItem value="En cours de montage">En cours de montage</SelectItem>
-            <SelectItem value="En attente de retour">En attente de retour</SelectItem>
-            <SelectItem value="Terminé">Terminé</SelectItem>
+            <SelectItem value="À faire">To do</SelectItem>
+            <SelectItem value="En cours de montage">In progress</SelectItem>
+            <SelectItem value="En attente de retour">Awaiting feedback</SelectItem>
+            <SelectItem value="Terminé">Done</SelectItem>
           </SelectContent>
         </Select>
         <Button
@@ -117,7 +117,8 @@ export default function VideoEditing() {
                     {["À faire", "En cours de montage", "En attente de retour", "Terminé"].map((s) => {
                       const count = tasks.filter((t) => t.editing_status === s).length;
                       if (!count) return null;
-                      return <span key={s} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${EDITING_STATUS_COLORS[s]}`}>{count} {s}</span>;
+                      const DISPLAY = { "À faire": "To do", "En cours de montage": "In progress", "En attente de retour": "Awaiting feedback", "Terminé": "Done" };
+                      return <span key={s} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${EDITING_STATUS_COLORS[s]}`}>{count} {DISPLAY[s]}</span>;
                     })}
                   </div>
                   {isOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
@@ -131,7 +132,7 @@ export default function VideoEditing() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <p className="text-sm font-medium text-slate-800 truncate">{task.title || "Sans titre"}</p>
+                          <p className="text-sm font-medium text-slate-800 truncate">{task.title || "Untitled"}</p>
                           <span className="text-xs text-slate-400 shrink-0">{task.client_name}</span>
                           {task.scheduled_date &&
                         <span className="text-xs text-slate-400 shrink-0">
@@ -141,7 +142,7 @@ export default function VideoEditing() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${EDITING_STATUS_COLORS[task.editing_status] || EDITING_STATUS_COLORS["Non assigné"]}`}>
-                            {task.editing_status || "Non assigné"}
+                            {{"Non assigné": "Unassigned", "À faire": "To do", "En cours de montage": "In progress", "En attente de retour": "Awaiting feedback", "Terminé": "Done"}[task.editing_status] || task.editing_status || "Unassigned"}
                           </span>
                           {task.post_type && <span className="text-[10px] text-slate-400">{task.post_type}</span>}
                         </div>
@@ -154,10 +155,10 @@ export default function VideoEditing() {
                         
                           <SelectTrigger className="h-7 text-xs w-44"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="À faire">À faire</SelectItem>
-                            <SelectItem value="En cours de montage">En cours de montage</SelectItem>
-                            <SelectItem value="En attente de retour">En attente de retour</SelectItem>
-                            <SelectItem value="Terminé">Terminé</SelectItem>
+                            <SelectItem value="À faire">To do</SelectItem>
+                            <SelectItem value="En cours de montage">In progress</SelectItem>
+                            <SelectItem value="En attente de retour">Awaiting feedback</SelectItem>
+                            <SelectItem value="Terminé">Done</SelectItem>
                           </SelectContent>
                         </Select>
                         {(task.editing_instructions || task.editing_files?.length > 0) &&
