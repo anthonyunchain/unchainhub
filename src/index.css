@@ -1,0 +1,168 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── UNCHAIN STUDIO — BENTO DESIGN SYSTEM ── */
+
+    /* App background */
+    --bg:              #EEF0F5;
+
+    /* Cards */
+    --card:            #FFFFFF;
+    --card-radius:     24px;
+    --inner-radius:    14px;
+    --pill-radius:     100px;
+    --card-shadow:     0 2px 12px rgba(13,27,42,0.06);
+    --card-shadow-hover: 0 6px 24px rgba(13,27,42,0.10);
+
+    /* Tinted card variants */
+    --card-blue:       #F0F7FF;
+    --card-purple:     #F8F4FF;
+    --card-green:      #F0FAF5;
+    --card-amber:      #FFFBF0;
+
+    /* Text */
+    --ink:             #0D1B2A;
+    --muted:           #8A9BAD;
+    --subtle:          #B0BEC8;
+    --divider:         #F0F2F5;
+
+    /* Brand blue */
+    --brand:           #2A69FF;
+    --brand-mid:       rgba(42,105,255,0.50);
+    --brand-soft:      rgba(42,105,255,0.12);
+    --brand-muted:     rgba(42,105,255,0.06);
+
+    /* Hero card gradient */
+    --brand-card-from: #1a3a8f;
+    --brand-card-to:   #5b8fff;
+
+    /* Semantic */
+    --success:         #2A6B4A;
+    --success-bg:      #E8F5EE;
+    --success-text:    #1A5C33;
+    --warning:         #E8AA1A;
+    --warning-bg:      #FFF8E6;
+    --warning-text:    #9A6700;
+    --urgent:          #E8421A;
+    --urgent-bg:       #FEF0ED;
+    --urgent-text:     #C0391A;
+    --purple:          #6B3FE7;
+    --purple-bg:       #EDE8FF;
+    --purple-text:     #4A1FB8;
+
+    /* shadcn compatibility */
+    --background: 225 20% 94%;
+    --foreground: 215 100% 8%;
+    --card-hsl: 0 0% 100%;
+    --card-foreground: 215 100% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 100% 8%;
+    --primary: 222 100% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 94%;
+    --secondary-foreground: 215 100% 8%;
+    --muted-hsl: 220 14% 92%;
+    --muted-foreground: 215 15% 54%;
+    --accent: 222 100% 97%;
+    --accent-foreground: 222 100% 40%;
+    --destructive: 14 84% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border-hsl: 220 14% 90%;
+    --input: 220 14% 90%;
+    --ring: 222 100% 58%;
+    --radius: 1.5rem;
+    --accent-brand: 222 100% 58%;
+    --accent-brand-foreground: 0 0% 100%;
+
+    /* ── Navy sidebar ── */
+    --navy:            #0F1C2E;
+    --navy-dark:       #0A1520;
+    --navy-border:     rgba(255,255,255,0.08);
+    --navy-text:       #FFFFFF;
+    --navy-muted:      rgba(255,255,255,0.45);
+  }
+}
+
+@layer base {
+  * {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    position: relative;
+    min-height: 100vh;
+  }
+
+  /* ── Grain texture overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px;
+  }
+
+  /* ── Smooth transitions globally ── */
+  button, a, input, select, textarea {
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ── Card border-radius global ── */
+  .card-radius { border-radius: var(--card-radius) !important; }
+  .inner-radius { border-radius: var(--inner-radius) !important; }
+  .pill-radius { border-radius: var(--pill-radius) !important; }
+
+  /* ── DM Mono utility ── */
+  .font-mono2, [data-mono] {
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── Mobile: horizontal scrollable tables ── */
+  .table-mobile-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-mobile-scroll table {
+    min-width: 600px;
+  }
+
+  /* ── iPhone safe area utilities ── */
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pl-safe { padding-left: env(safe-area-inset-left); }
+  .pr-safe { padding-right: env(safe-area-inset-right); }
+
+  /* ── Mobile dialogs: full-screen on small screens ── */
+  @media (max-width: 640px) {
+    [role="dialog"] > div[class*="DialogContent"],
+    .mobile-dialog-fullscreen {
+      width: 100% !important;
+      max-width: 100% !important;
+      max-height: 100dvh !important;
+      height: 100dvh !important;
+      border-radius: 0 !important;
+      top: 0 !important;
+      left: 0 !important;
+      transform: none !important;
+      margin: 0 !important;
+    }
+  }
+
+  /* ── Prevent horizontal overflow globally ── */
+  html, body, #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+}

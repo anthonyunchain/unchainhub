@@ -1,0 +1,56 @@
+{
+  "name": "ClientStats",
+  "type": "object",
+  "properties": {
+    "client_name": {
+      "type": "string"
+    },
+    "period": {
+      "type": "string",
+      "description": "ex: 2026-03"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "Instagram",
+        "TikTok",
+        "Facebook",
+        "LinkedIn",
+        "Other"
+      ]
+    },
+    "views": {
+      "type": "number",
+      "default": 0,
+      "description": "Impressions / vues sur 30j"
+    },
+    "reach": {
+      "type": "number",
+      "default": 0
+    },
+    "likes": {
+      "type": "number",
+      "default": 0
+    },
+    "comments": {
+      "type": "number",
+      "default": 0
+    },
+    "shares": {
+      "type": "number",
+      "default": 0
+    },
+    "followers_gained": {
+      "type": "number",
+      "default": 0
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "client_name",
+    "period",
+    "platform"
+  ]
+}
