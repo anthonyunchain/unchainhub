@@ -24,7 +24,7 @@ export default function LoginPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: '#ffffff',
+      background: '#EEF0F5',
     }}>
       <div style={{
         background: '#ffffff',
@@ -32,8 +32,10 @@ export default function LoginPage() {
         padding: '40px 36px',
         width: '100%',
         maxWidth: 380,
-        border: '1px solid #ebebeb',
-        boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
+        border: '1px solid #e0e0e0',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+        position: 'relative',
+        zIndex: 1,
       }}>
         <div style={{ marginBottom: 32, textAlign: 'center' }}>
           <p style={{
@@ -68,14 +70,14 @@ export default function LoginPage() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              placeholder="anthony@unchainstudio.fi"
+              placeholder="Email address"
               style={{
                 width: '100%',
                 padding: '10px 12px',
                 borderRadius: 8,
                 border: '1px solid #e0e0e0',
                 fontSize: 14,
-                background: '#fafafa',
+                background: '#ffffff',
                 color: '#0f0f0f',
                 outline: 'none',
                 boxSizing: 'border-box',
@@ -99,7 +101,7 @@ export default function LoginPage() {
                 borderRadius: 8,
                 border: '1px solid #e0e0e0',
                 fontSize: 14,
-                background: '#fafafa',
+                background: '#ffffff',
                 color: '#0f0f0f',
                 outline: 'none',
                 boxSizing: 'border-box',
