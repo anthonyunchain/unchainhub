@@ -687,17 +687,24 @@ function InvoicesTab({ payments, freelancerName, onPaymentAdded }) {
     mutationFn: (d) => base44.entities.FreelancerPayment.create(d),
     onSuccess: (newPayment) => onPaymentAdded(newPayment),
   });
+  const [uploadError, setUploadError] = useState(null);
   const handleUpload = async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    createMut.mutate({
-      freelancer_name: freelancerName, amount: 0, status: "En attente",
-      date: format(new Date(), "yyyy-MM-dd"), invoice_url: file_url,
-      mission: file.name.replace(/\.[^/.]+$/, ""),
-    });
-    setUploading(false);
-    e.target.value = "";
+    setUploadError(null);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file, bucket: 'invoices' });
+      createMut.mutate({
+        freelancer_name: freelancerName, amount: 0, status: "En attente",
+        date: format(new Date(), "yyyy-MM-dd"), invoice_url: file_url,
+        mission: file.name.replace(/\.[^/.]+$/, ""),
+      });
+    } catch (err) {
+      setUploadError(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
   };
   const STATUS_COLORS = {
     "En attente": "bg-amber-50 text-amber-700",
@@ -714,7 +721,8 @@ function InvoicesTab({ payments, freelancerName, onPaymentAdded }) {
         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Paid</p><p className="text-lg font-bold text-emerald-600 mt-1">{paid.toLocaleString("fr-FR")} €</p></div>
         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Pending</p><p className="text-lg font-bold text-amber-600 mt-1">{pending.toLocaleString("fr-FR")} €</p></div>
       </div>
-      <div className="flex justify-end mb-4">
+      <div className="flex flex-col items-end gap-2 mb-4">
+        {uploadError && <p className="text-xs text-red-500">{uploadError}</p>}
         <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
           <Upload className="w-4 h-4" />{uploading ? "Uploading..." : "Submit an invoice"}
           <input type="file" accept=".pdf" className="hidden" onChange={handleUpload} />
