@@ -16,8 +16,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
-const PLATFORMS = ["Instagram", "TikTok", "Facebook", "LinkedIn", "Other"];
-const EMPTY_STAT = { client_name: "", period: format(new Date(), "yyyy-MM"), platform: "Instagram", views: 0, reach: 0, likes: 0, comments: 0, shares: 0, followers_gained: 0, notes: "" };
+const PLATFORMS = ["All", "Instagram", "TikTok", "Facebook", "LinkedIn", "Other"];
+const EMPTY_STAT = { client_name: "", period: format(new Date(), "yyyy-MM"), platform: "All", views: 0, reach: 0, likes: 0, comments: 0, shares: 0, followers_gained: 0, notes: "" };
 
 export default function Reports() {
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
@@ -31,9 +31,9 @@ export default function Reports() {
   const { data: payments = [] } = useQuery({ queryKey: ["freelancer-payments"], queryFn: () => base44.entities.FreelancerPayment.list() });
   const { data: allStats = [] } = useQuery({ queryKey: ["client-stats"], queryFn: () => base44.entities.ClientStats.list("-period") });
 
-  const createStat = useMutation({ mutationFn: d => base44.entities.ClientStats.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); } });
-  const updateStat = useMutation({ mutationFn: ({ id, d }) => base44.entities.ClientStats.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); } });
-  const deleteStat = useMutation({ mutationFn: id => base44.entities.ClientStats.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); } });
+  const createStat = useMutation({ mutationFn: d => base44.entities.ClientStats.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); }, onError: (e) => alert("Error saving: " + (e?.message || e)) });
+  const updateStat = useMutation({ mutationFn: ({ id, d }) => base44.entities.ClientStats.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); }, onError: (e) => alert("Error saving: " + (e?.message || e)) });
+  const deleteStat = useMutation({ mutationFn: id => base44.entities.ClientStats.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); }, onError: (e) => alert("Error deleting: " + (e?.message || e)) });
 
   const openNew = () => { setEditStat({ ...EMPTY_STAT, period: selectedMonth }); setStatDialog(true); };
   const openEdit = s => { setEditStat({ ...s }); setStatDialog(true); };

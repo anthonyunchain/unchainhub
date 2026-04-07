@@ -44,7 +44,7 @@ export default function Finance() {
   // Cash position (cumulative margin)
   let cumul = 0;
   const cashData = monthlyData.map(m => {
-    cumul += m.marge;
+    cumul += m.margin;
     return { ...m, cashflow: cumul };
   });
 

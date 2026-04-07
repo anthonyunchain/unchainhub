@@ -367,11 +367,6 @@ export default function Editorial() {
             {clients.map(c => <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>)}
           </SelectContent>
         </Select>
-        <a href="https://app.base44.com/superagent/69b3bf56a9bacf218a659c5c" target="_blank" rel="noopener noreferrer">
-          <Button variant="outline" className="h-9">
-            <CalendarIcon className="w-4 h-4 mr-1" /> Create editorial calendar
-          </Button>
-        </a>
         <Link to="/ContentDescriptions">
           <Button variant="outline" className="h-9">
             <AlignLeft className="w-4 h-4 mr-1" /> Descriptions
