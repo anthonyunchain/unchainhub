@@ -26,9 +26,72 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
     }
 
+    // Check caller role
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const isAdmin = profile?.role === 'admin';
+
+    // Resolve freelancer identity if not admin
+    let freelancerProfile: { id: string; name: string } | null = null;
+    if (!isAdmin) {
+      const { data: freelancers } = await supabaseAdmin
+        .from('freelancers')
+        .select('id, name')
+        .eq('email', user.email)
+        .limit(1);
+
+      freelancerProfile = freelancers?.[0] || null;
+      if (!freelancerProfile) {
+        return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+      }
+    }
+
     const { content_id, description } = await req.json();
     if (!content_id) {
       return Response.json({ error: 'content_id required' }, { status: 400, headers: corsHeaders });
+    }
+
+    // Sanitize description length
+    if (typeof description !== 'string' || description.length > 5000) {
+      return Response.json({ error: 'Invalid description' }, { status: 400, headers: corsHeaders });
+    }
+
+    if (!isAdmin) {
+      // Freelancer: fetch the content item
+      const { data: content } = await supabaseAdmin
+        .from('editorial_content')
+        .select('client_name, assigned_editor_id, assigned_editor_name')
+        .eq('id', content_id)
+        .single();
+
+      if (!content) {
+        return Response.json({ error: 'Content not found' }, { status: 404, headers: corsHeaders });
+      }
+
+      // Verify the client has editorial_visible = true
+      const { data: visibleClient } = await supabaseAdmin
+        .from('clients')
+        .select('id')
+        .eq('company_name', content.client_name)
+        .eq('editorial_visible', true)
+        .maybeSingle();
+
+      if (!visibleClient) {
+        return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+      }
+
+      // Verify this freelancer is the assigned editor (by ID or by name fallback)
+      const assignedById = content.assigned_editor_id === freelancerProfile!.id;
+      const assignedByName = freelancerProfile!.name?.toLowerCase().trim() &&
+        content.assigned_editor_name?.toLowerCase().trim() === freelancerProfile!.name.toLowerCase().trim();
+
+      if (!assignedById && !assignedByName) {
+        return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+      }
     }
 
     const { error } = await supabaseAdmin

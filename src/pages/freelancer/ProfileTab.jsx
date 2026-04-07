@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase, base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +8,9 @@ import { Upload, Camera, Save, CheckCircle2, X } from "lucide-react";
 
 export default function ProfileTab({ user, freelancerProfile, onProfileUpdate }) {
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState(null);
 
   const [form, setForm] = useState({
     name: freelancerProfile?.name || user?.full_name || "",
@@ -23,28 +24,49 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
 
   const [newSpecialty, setNewSpecialty] = useState("");
 
-  const updateMut = useMutation({
-    mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d),
-    onSuccess: (data) => {
-      setSaved(true);
-      onProfileUpdate?.(data);
-      setTimeout(() => setSaved(false), 2500);
-    },
-  });
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      // Use edge function — freelancer ID is resolved server-side from JWT
+      // Never send the ID from client to prevent IDOR
+      const { data, error: fnError } = await supabase.functions.invoke('updateFreelancerProfile', {
+        body: {
+          name: form.name,
+          role: form.role,
+          status: form.status,
+          notes: form.notes,
+          phone: form.phone,
+          avatar_url: form.avatar_url,
+          specialties: form.specialties,
+        },
+      });
 
-  const handleSave = () => {
-    if (!freelancerProfile?.id) return;
-    updateMut.mutate({ id: freelancerProfile.id, d: { ...freelancerProfile, ...form } });
+      if (fnError || data?.error) {
+        throw new Error(data?.error || fnError?.message || 'Update failed');
+      }
+
+      onProfileUpdate?.(data.profile);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setForm(f => ({ ...f, avatar_url: file_url }));
-    setUploading(false);
-    e.target.value = "";
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setForm(f => ({ ...f, avatar_url: file_url }));
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
   };
 
   const addSpecialty = () => {
@@ -130,16 +152,16 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Display name</Label>
-            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} />
           </div>
           <div>
             <Label className="text-xs">Role / Title</Label>
-            <Input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Video Editor" />
+            <Input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Video Editor" maxLength={100} />
           </div>
         </div>
         <div>
           <Label className="text-xs">Phone</Label>
-          <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+358 ..." />
+          <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+358 ..." maxLength={30} />
         </div>
         <div>
           <Label className="text-xs">Bio</Label>
@@ -148,6 +170,7 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
             onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
             rows={3}
             placeholder="Short bio, specialties, tools you use..."
+            maxLength={2000}
           />
         </div>
       </div>
@@ -161,6 +184,7 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
             onChange={e => setNewSpecialty(e.target.value)}
             placeholder="e.g. Premiere Pro, Motion design..."
             onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addSpecialty())}
+            maxLength={50}
           />
           <Button type="button" variant="outline" size="sm" onClick={addSpecialty}>Add</Button>
         </div>
@@ -174,11 +198,15 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
         </div>
       </div>
 
+      {error && (
+        <p className="text-sm text-red-500 text-center">{error}</p>
+      )}
+
       {/* Save */}
-      <Button onClick={handleSave} disabled={updateMut.isPending || !freelancerProfile?.id} className="w-full bg-slate-800 hover:bg-slate-700">
+      <Button onClick={handleSave} disabled={saving} className="w-full bg-slate-800 hover:bg-slate-700">
         {saved ? (
           <><CheckCircle2 className="w-4 h-4 mr-2 text-emerald-400" /> Saved!</>
-        ) : updateMut.isPending ? (
+        ) : saving ? (
           "Saving..."
         ) : (
           <><Save className="w-4 h-4 mr-2" /> Save profile</>

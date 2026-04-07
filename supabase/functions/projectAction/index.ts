@@ -5,6 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const ALLOWED_ACTIONS = ['accept', 'decline', 'deliver', 'clarify'] as const;
+type Action = typeof ALLOWED_ACTIONS[number];
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -27,19 +30,32 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
     }
 
-    const { action, project_id, reason, message, delivery_url } = await req.json();
+    const body = await req.json();
+    const { action, project_id, reason, message, delivery_url } = body;
 
     if (!action || !project_id) {
       return Response.json({ error: 'Missing action or project_id' }, { status: 400, headers: corsHeaders });
     }
 
-    // Verify the project belongs to this freelancer
+    // Validate action is one of the allowed values
+    if (!ALLOWED_ACTIONS.includes(action as Action)) {
+      return Response.json({ error: 'Invalid action' }, { status: 400, headers: corsHeaders });
+    }
+
+    // Resolve freelancer identity — must exist in freelancers table
     const { data: freelancers } = await supabaseAdmin
       .from('freelancers')
       .select('id')
       .eq('email', user.email);
+
     const freelancerId = freelancers?.[0]?.id;
 
+    // Explicitly reject if not a known freelancer
+    if (!freelancerId) {
+      return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+    }
+
+    // Fetch the project
     const { data: project } = await supabaseAdmin
       .from('projects')
       .select('*')
@@ -50,13 +66,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Project not found' }, { status: 404, headers: corsHeaders });
     }
 
+    // Verify the project is assigned to this freelancer
     if (project.freelancer_id !== freelancerId) {
       return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
     }
 
     let updates: Record<string, unknown> = {};
 
-    switch (action) {
+    switch (action as Action) {
       case 'accept':
         updates = { status: 'Accepted' };
         break;
@@ -64,17 +81,21 @@ Deno.serve(async (req) => {
         updates = { status: 'Unassigned', freelancer_id: null, freelancer_name: null };
         break;
       case 'deliver':
-        updates = { status: 'Delivered', ...(delivery_url && { delivery_url }) };
+        if (!delivery_url || typeof delivery_url !== 'string') {
+          return Response.json({ error: 'delivery_url required for deliver action' }, { status: 400, headers: corsHeaders });
+        }
+        updates = { status: 'Delivered', delivery_url };
         break;
       case 'clarify':
-        updates = { notes: message ? `[Question freelancer]: ${message}` : project.notes };
+        if (!message || typeof message !== 'string') {
+          return Response.json({ error: 'message required for clarify action' }, { status: 400, headers: corsHeaders });
+        }
+        updates = { notes: `[Question freelancer]: ${message}` };
         break;
-      default:
-        return Response.json({ error: 'Unknown action' }, { status: 400, headers: corsHeaders });
     }
 
-    if (action === 'decline' && reason) {
-      updates.notes = `[Declined]: ${reason}`;
+    if (action === 'decline' && reason && typeof reason === 'string') {
+      updates.notes = `[Declined]: ${reason.slice(0, 500)}`;
     }
 
     const { error: updateError } = await supabaseAdmin

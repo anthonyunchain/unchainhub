@@ -46,8 +46,8 @@ function FreelancerProfiles() {
 
   const handleInvite = async (email, name) => {
     if (!email) return;
-    const { error } = await supabase.auth.admin.inviteUserByEmail(email);
-    if (error) alert("Erreur invitation : " + error.message);
+    const { data, error } = await supabase.functions.invoke('inviteFreelancer', { body: { email } });
+    if (error || data?.error) alert("Erreur invitation : " + (data?.error || error?.message));
     else alert(`Invitation envoyée à ${name || email}`);
   };
 

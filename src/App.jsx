@@ -6,8 +6,9 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import LoginPage from './pages/LoginPage';
 import { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/api/base44Client';
 import AppLayout from './components/layout/AppLayout.jsx';
+import AdminRoute from './components/layout/AdminRoute.jsx';
 import Dashboard from './pages/Dashboard';
 import Pipeline from './pages/Pipeline';
 import Clients from './pages/Clients';
@@ -34,24 +35,22 @@ const AuthenticatedApp = () => {
 
   useEffect(() => {
     if (!isLoadingAuth && isAuthenticated) {
-      base44.auth.me().then(async (u) => {
-        if (u?.role === 'admin') {
-          setIsFreelancer(false);
-          setRoleChecked(true);
-          return;
-        }
+      (async () => {
         try {
-          const res = await base44.functions.invoke('checkFreelancer', {});
-          setIsFreelancer(res.data?.isFreelancer === true);
+          const { data, error } = await supabase.functions.invoke('getFreelancerData');
+          if (!error && !data?.error && data?.profile) {
+            setIsFreelancer(true);
+          } else {
+            setIsFreelancer(false);
+          }
         } catch {
-          setIsFreelancer(true); // en cas d'erreur, accès restreint par défaut
+          setIsFreelancer(false);
         }
         setRoleChecked(true);
-      }).catch(() => setRoleChecked(true));
+      })();
     }
   }, [isLoadingAuth, isAuthenticated]);
 
-  // Chargement auth
   if (isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -60,12 +59,10 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Pas connecté → page de login
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
-  // Attendre la vérification du rôle
   if (!roleChecked) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -85,24 +82,24 @@ const AuthenticatedApp = () => {
       ) : (
         <>
           <Route path="/" element={<AppLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="Dashboard" element={<Dashboard />} />
-            <Route path="Pipeline" element={<Pipeline />} />
-            <Route path="Clients" element={<Clients />} />
-            <Route path="ClientDetail" element={<ClientDetail />} />
-            <Route path="Services" element={<Services />} />
-            <Route path="Outreach" element={<Outreach />} />
-            <Route path="Contracts" element={<Contracts />} />
-            <Route path="Invoices" element={<Invoices />} />
-            <Route path="Freelancers" element={<Freelancers />} />
-            <Route path="Finance" element={<Finance />} />
-            <Route path="Editorial" element={<Editorial />} />
-            <Route path="Reports" element={<Reports />} />
-            <Route path="VideoEditing" element={<VideoEditing />} />
-            <Route path="Tasks" element={<Tasks />} />
-            <Route path="Admin" element={<Admin />} />
-            <Route path="ContentDescriptions" element={<ContentDescriptions />} />
-            <Route path="FreelancerAdmin" element={<FreelancerAdmin />} />
+            <Route index element={<AdminRoute><Dashboard /></AdminRoute>} />
+            <Route path="Dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
+            <Route path="Pipeline" element={<AdminRoute><Pipeline /></AdminRoute>} />
+            <Route path="Clients" element={<AdminRoute><Clients /></AdminRoute>} />
+            <Route path="ClientDetail" element={<AdminRoute><ClientDetail /></AdminRoute>} />
+            <Route path="Services" element={<AdminRoute><Services /></AdminRoute>} />
+            <Route path="Outreach" element={<AdminRoute><Outreach /></AdminRoute>} />
+            <Route path="Contracts" element={<AdminRoute><Contracts /></AdminRoute>} />
+            <Route path="Invoices" element={<AdminRoute><Invoices /></AdminRoute>} />
+            <Route path="Freelancers" element={<AdminRoute><Freelancers /></AdminRoute>} />
+            <Route path="Finance" element={<AdminRoute><Finance /></AdminRoute>} />
+            <Route path="Editorial" element={<AdminRoute><Editorial /></AdminRoute>} />
+            <Route path="Reports" element={<AdminRoute><Reports /></AdminRoute>} />
+            <Route path="VideoEditing" element={<AdminRoute><VideoEditing /></AdminRoute>} />
+            <Route path="Tasks" element={<AdminRoute><Tasks /></AdminRoute>} />
+            <Route path="Admin" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="ContentDescriptions" element={<AdminRoute><ContentDescriptions /></AdminRoute>} />
+            <Route path="FreelancerAdmin" element={<AdminRoute><FreelancerAdmin /></AdminRoute>} />
             <Route path="*" element={<PageNotFound />} />
           </Route>
         </>

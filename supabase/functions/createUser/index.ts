@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     // Verify the caller is authenticated
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return Response.json({ error: 'Missing authorization header' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -28,11 +28,28 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
     }
 
+    // Verify the caller is an admin — only admins can create users
+    const { data: callerProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (callerProfile?.role !== 'admin') {
+      return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+    }
+
     const body = await req.json();
     const { email, password, full_name, role } = body;
 
     if (!email || !password) {
       return Response.json({ error: 'email and password are required' }, { status: 400, headers: corsHeaders });
+    }
+
+    // Prevent creating admin accounts unless caller is explicitly authorized
+    const allowedRoles = ['user', 'freelancer', 'admin'];
+    if (role && !allowedRoles.includes(role)) {
+      return Response.json({ error: 'Invalid role' }, { status: 400, headers: corsHeaders });
     }
 
     // Create the auth user

@@ -167,7 +167,7 @@ export default function ProjectsTab({ projects = [], onProjectUpdate }) {
       if (filteredProjects.length === 0) return (
         <div className="text-center py-16 text-slate-400">
           <FolderOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No projects assigned</p>
+          <p className="text-sm">No calendar assigned</p>
         </div>
       );
       const grouped = filteredProjects.reduce((acc, p) => {

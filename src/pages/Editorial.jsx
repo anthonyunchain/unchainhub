@@ -358,7 +358,7 @@ export default function Editorial() {
   };
 
   return (
-    <div>
+    <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Editorial Calendar" subtitle="Content planning">
         <Select value={filterClient} onValueChange={setFilterClient}>
           <SelectTrigger className="w-48 h-9 text-sm"><SelectValue /></SelectTrigger>

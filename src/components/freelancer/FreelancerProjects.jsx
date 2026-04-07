@@ -217,7 +217,7 @@ export default function FreelancerProjects({ projects, onRefresh, freelancerName
   );
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
       <Section title="Awaiting your response" items={pending} color="text-amber-600" />
       <Section title="In progress" items={active} color="text-blue-600" />
       <Section title="Delivered — awaiting review" items={delivered} color="text-violet-600" />

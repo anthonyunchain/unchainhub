@@ -878,7 +878,7 @@ export default function Admin() {
   };
 
   return (
-    <div>
+    <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Administration" subtitle="Governance & operations" />
       <div className="flex flex-col md:flex-row gap-4 md:gap-6" style={{ maxWidth: '100%' }}>
 

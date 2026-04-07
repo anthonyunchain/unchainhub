@@ -8,9 +8,9 @@ import UserMenu from "./UserMenu";
 
 const NAV_LINKS = [
   { path: "/Dashboard", label: "Dashboard" },
+  { path: "/FreelancerAdmin", label: "Freelancers" },
   { path: "/Tasks", label: "Tasks" },
   { path: "/Editorial", label: "Calendars" },
-  { path: "/FreelancerAdmin", label: "Freelancers" },
   { path: "/Clients", label: "Clients" },
   { path: "/Admin", label: "Admin" },
 ];

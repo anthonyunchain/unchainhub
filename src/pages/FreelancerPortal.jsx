@@ -872,7 +872,7 @@ export default function FreelancerPortal() {
       case "invoices": return <InvoicesTab payments={payments} freelancerName={freelancerName} onPaymentAdded={handlePaymentAdded} />;
       case "contract": return <ContractTab profile={profile} />;
       case "profile": return <ProfileTab user={user} freelancerProfile={profile} onProfileUpdate={(p) => setFreelancerData(d => ({ ...d, profile: p }))} />;
-      case "notifications": return <NotificationsPanel recipientId={profile?.id} />;
+      case "notifications": return <NotificationsPanel />;
       default: return null;
     }
   };
@@ -922,7 +922,7 @@ export default function FreelancerPortal() {
                 { id: 'todo', label: 'My To-Do' },
                 { id: 'tasks', label: 'Tasks' },
                 { id: 'myprojects', label: 'Projects' },
-                { id: 'projects', label: 'Editorial' },
+                { id: 'projects', label: 'Calendar' },
                 { id: 'calendar', label: 'Captions' },
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
@@ -1025,7 +1025,9 @@ export default function FreelancerPortal() {
         </nav>
 
         <main>
-          {renderTab()}
+          <div className={activeTab !== 'dashboard' ? 'max-w-2xl mx-auto' : ''}>
+            {renderTab()}
+          </div>
         </main>
       </div>
 

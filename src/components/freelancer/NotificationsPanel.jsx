@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/base44Client";
 import { format } from "date-fns";
-import { Bell, CheckCircle2, Check } from "lucide-react";
+import { Bell, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const TYPE_ICONS = {
@@ -16,27 +16,31 @@ const TYPE_ICONS = {
   availability_reminder: "📅",
 };
 
-export default function NotificationsPanel({ recipientId, onAccept, onDecline }) {
+// recipient_id is intentionally NOT passed to the server.
+// The edge function must resolve the recipient from the JWT token.
+export default function NotificationsPanel({ onAccept, onDecline }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    if (!recipientId) return;
     setLoading(true);
-    const res = await base44.functions.invoke('getNotifications', { recipient_id: recipientId });
-    setNotifications(res.data?.notifications || []);
+    // Do NOT send recipient_id — server resolves identity from JWT
+    const { data } = await supabase.functions.invoke('getNotifications');
+    setNotifications(data?.notifications || []);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [recipientId]);
+  useEffect(() => { load(); }, []);
 
   const markRead = async (id) => {
-    await base44.functions.invoke('projectAction', { action: 'mark_read', notification_id: id });
+    // Only send the notification ID — server verifies ownership via JWT
+    await supabase.functions.invoke('markNotificationRead', { body: { notification_id: id } });
     setNotifications(ns => ns.map(n => n.id === id ? { ...n, is_read: true } : n));
   };
 
   const markAllRead = async () => {
-    await base44.functions.invoke('projectAction', { action: 'mark_all_read', recipient_id: recipientId });
+    // Server resolves recipient from JWT — no recipient_id sent from client
+    await supabase.functions.invoke('markAllNotificationsRead');
     setNotifications(ns => ns.map(n => ({ ...n, is_read: true })));
   };
 
@@ -86,7 +90,6 @@ export default function NotificationsPanel({ recipientId, onAccept, onDecline })
                   <p className="text-[10px] text-slate-300 mt-2">{format(new Date(n.created_date), "d MMM yyyy · HH:mm")}</p>
                 )}
 
-                {/* CTA for project_assigned */}
                 {n.type === 'project_assigned' && n.action_required && !n.is_read && onAccept && onDecline && (
                   <div className="flex gap-2 mt-3">
                     <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={(e) => { e.stopPropagation(); onAccept(n.project_id); markRead(n.id); }}>

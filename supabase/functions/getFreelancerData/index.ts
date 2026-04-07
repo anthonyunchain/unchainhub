@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const freelancerProfile = freelancers?.[0] || null;
 
     if (!freelancerProfile) {
-      return Response.json({ error: 'Not a freelancer', email: user.email }, { status: 403, headers: corsHeaders });
+      return Response.json({ error: 'Not a freelancer' }, { status: 403, headers: corsHeaders });
     }
 
     const name = freelancerProfile.name?.toLowerCase().trim();
