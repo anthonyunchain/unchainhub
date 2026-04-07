@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Upload, X, ExternalLink, Users, CalendarDays, Wrench, Briefcase, Bell } from "lucide-react";
+import { Plus, Trash2, Upload, X, ExternalLink, Users, CalendarDays, Wrench, Briefcase, Bell, FileText, Check } from "lucide-react";
 import AdminProjects from "@/components/admin/AdminProjects";
 import AdminNotifications from "@/components/admin/AdminNotifications";
 import FreelancerProfileCard from "@/components/freelancer/FreelancerProfileCard";
@@ -335,6 +335,125 @@ function ToolsManagement() {
   );
 }
 
+// ─── INVOICES MANAGEMENT ───────────────────────────────────────────────────
+function InvoicesManagement() {
+  const qc = useQueryClient();
+  const [selectedFreelancer, setSelectedFreelancer] = useState("all");
+
+  const { data: payments = [], isLoading } = useQuery({
+    queryKey: ["freelancer-payments"],
+    queryFn: () => base44.entities.FreelancerPayment.list("-date"),
+  });
+  const { data: freelancers = [] } = useQuery({
+    queryKey: ["freelancers"],
+    queryFn: () => base44.entities.Freelancer.list(),
+  });
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, status }) => base44.entities.FreelancerPayment.update(id, { status }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancer-payments"] }),
+  });
+
+  const STATUS_COLORS = {
+    "En attente": "bg-amber-50 text-amber-700",
+    "Payé": "bg-emerald-50 text-emerald-700",
+    "En retard": "bg-red-50 text-red-700",
+  };
+
+  const filtered = selectedFreelancer === "all"
+    ? payments
+    : payments.filter(p => p.freelancer_id === selectedFreelancer || p.freelancer_name === selectedFreelancer);
+
+  const pending = filtered.filter(p => p.status === "En attente");
+  const paid = filtered.filter(p => p.status === "Payé");
+
+  if (isLoading) return <div className="text-center py-10 text-slate-400 text-sm">Loading...</div>;
+
+  return (
+    <div>
+      {/* Freelancer filter */}
+      <div className="flex gap-2 flex-wrap mb-6">
+        <button
+          onClick={() => setSelectedFreelancer("all")}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedFreelancer === "all" ? "bg-slate-800 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+        >
+          All freelancers
+        </button>
+        {freelancers.map(f => (
+          <button
+            key={f.id}
+            onClick={() => setSelectedFreelancer(f.id)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedFreelancer === f.id ? "bg-slate-800 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+          >
+            {f.name}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+          <p className="text-xs text-slate-400 uppercase">Total invoices</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{filtered.length}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+          <p className="text-xs text-slate-400 uppercase">Pending</p>
+          <p className="text-2xl font-bold text-amber-600 mt-1">{pending.length}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+          <p className="text-xs text-slate-400 uppercase">Paid</p>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">{paid.length}</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b border-slate-100">
+            <tr>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Freelancer</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Description</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Date</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Amount</th>
+              <th className="px-5 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-400">No invoices yet</td></tr>
+            )}
+            {filtered.map(p => (
+              <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50">
+                <td className="px-5 py-3 font-medium text-slate-800">{p.freelancer_name || "—"}</td>
+                <td className="px-5 py-3 text-slate-500">{p.description || "—"}</td>
+                <td className="px-5 py-3 text-slate-500">{p.date ? format(new Date(p.date), "d MMM yyyy") : "—"}</td>
+                <td className="px-5 py-3">
+                  <select
+                    value={p.status}
+                    onChange={e => updateMut.mutate({ id: p.id, status: e.target.value })}
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium border-0 cursor-pointer ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}
+                  >
+                    <option value="En attente">En attente</option>
+                    <option value="Payé">Payé</option>
+                    <option value="En retard">En retard</option>
+                  </select>
+                </td>
+                <td className="px-5 py-3 font-semibold text-slate-800">{p.amount ? `${p.amount.toLocaleString("fr-FR")} €` : "—"}</td>
+                <td className="px-5 py-3">
+                  {p.invoice_url && (
+                    <a href={p.invoice_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs flex items-center gap-1">
+                      <FileText className="w-3.5 h-3.5" /> View PDF
+                    </a>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ─────────────────────────────────────────────────────────────
 export default function FreelancerAdmin() {
   const [adminId, setAdminId] = useState(null);
@@ -375,6 +494,7 @@ export default function FreelancerAdmin() {
         {section === 'profiles' && <FreelancerProfiles />}
         {section === 'meetings' && <MeetingsManagement />}
         {section === 'tools' && <ToolsManagement />}
+        {section === 'invoices' && <InvoicesManagement />}
       </div>
     );
   }
@@ -472,6 +592,16 @@ export default function FreelancerAdmin() {
           <p style={LABEL}>Tools</p>
           <p style={{ ...VAL, color: 'var(--success)', marginTop: 8 }}>{tools.length}</p>
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginTop: 6 }}>shared resource{tools.length !== 1 ? 's' : ''}</p>
+        </div>
+
+        {/* Invoices card */}
+        <div
+          style={{ ...CARD, background: '#FFFBF0' }}
+          onClick={() => setSection('invoices')}
+          onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+        >
+          <p style={LABEL}>Freelancer Invoices</p>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '12px', color: 'var(--muted)', marginTop: 12 }}>View & manage invoices →</p>
         </div>
 
       </div>

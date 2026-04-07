@@ -681,12 +681,8 @@ function MeetingsTab({ meetings }) {
 }
 
 // ─── INVOICES TAB ─────────────────────────────────────────────────────────
-function InvoicesTab({ payments, freelancerName, onPaymentAdded }) {
+function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded }) {
   const [uploading, setUploading] = useState(false);
-  const createMut = useMutation({
-    mutationFn: (d) => base44.entities.FreelancerPayment.create(d),
-    onSuccess: (newPayment) => onPaymentAdded(newPayment),
-  });
   const [uploadError, setUploadError] = useState(null);
   const handleUpload = async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -694,11 +690,16 @@ function InvoicesTab({ payments, freelancerName, onPaymentAdded }) {
     setUploadError(null);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file, bucket: 'invoices' });
-      createMut.mutate({
-        freelancer_name: freelancerName, amount: 0, status: "En attente",
-        date: format(new Date(), "yyyy-MM-dd"), invoice_url: file_url,
-        mission: file.name.replace(/\.[^/.]+$/, ""),
+      const newPayment = await base44.entities.FreelancerPayment.create({
+        freelancer_id: freelancerId,
+        freelancer_name: freelancerName,
+        amount: 0,
+        status: "En attente",
+        date: format(new Date(), "yyyy-MM-dd"),
+        invoice_url: file_url,
+        description: file.name.replace(/\.[^/.]+$/, ""),
       });
+      onPaymentAdded(newPayment);
     } catch (err) {
       setUploadError(err.message || "Upload failed");
     } finally {
@@ -741,7 +742,7 @@ function InvoicesTab({ payments, freelancerName, onPaymentAdded }) {
             {payments.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">No invoices yet</td></tr>}
             {payments.map(p => (
               <tr key={p.id} className="border-b border-slate-50">
-                <td className="px-5 py-3 text-sm font-medium text-slate-800">{p.mission || "—"}</td>
+                <td className="px-5 py-3 text-sm font-medium text-slate-800">{p.description || "—"}</td>
                 <td className="px-5 py-3 text-sm text-slate-500">{p.date ? format(new Date(p.date), "d MMM yyyy", { locale: enUS }) : "—"}</td>
                 <td className="px-5 py-3"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}>{p.status}</span></td>
                 <td className="px-5 py-3 text-sm font-semibold text-right text-slate-800">{p.amount ? `${p.amount.toLocaleString("fr-FR")} €` : "—"}</td>
@@ -877,7 +878,7 @@ export default function FreelancerPortal() {
       case "calendar": return <CalendarsTab visibleCalendars={visibleCalendars} />;
       case "tools": return <ToolsTab tools={tools} />;
       case "meetings": return <MeetingsTab meetings={meetings} />;
-      case "invoices": return <InvoicesTab payments={payments} freelancerName={freelancerName} onPaymentAdded={handlePaymentAdded} />;
+      case "invoices": return <InvoicesTab payments={payments} freelancerName={freelancerName} freelancerId={profile?.id} onPaymentAdded={handlePaymentAdded} />;
       case "contract": return <ContractTab profile={profile} />;
       case "profile": return <ProfileTab user={user} freelancerProfile={profile} onProfileUpdate={(p) => setFreelancerData(d => ({ ...d, profile: p }))} />;
       case "notifications": return <NotificationsPanel />;
