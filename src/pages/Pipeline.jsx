@@ -82,7 +82,7 @@ export default function Pipeline() {
   const quickDelete = (e, id) => { e.stopPropagation(); if (confirm("Delete this prospect?")) deleteMut.mutate(id); };
 
   return (
-    <div>
+    <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Prospects" subtitle={`${filtered.length} prospect${filtered.length > 1 ? "s" : ""}`}>
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={filterStage} onValueChange={setFilterStage}>
@@ -116,8 +116,8 @@ export default function Pipeline() {
       </PageHeader>
 
       {/* List view */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+        <table className="w-full min-w-[700px]">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/50">
               <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Company</th>
@@ -187,7 +187,7 @@ export default function Pipeline() {
           {editData && (
             <div className="space-y-4 mt-2">
               <div><Label>Company *</Label><Input value={editData.company_name} onChange={e => setEditData({ ...editData, company_name: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Sector</Label>
                   <Select value={editData.sector} onValueChange={v => setEditData({ ...editData, sector: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -199,7 +199,7 @@ export default function Pipeline() {
                     <SelectContent>{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                   </Select></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Contact name</Label><Input value={editData.contact_name || ""} onChange={e => setEditData({ ...editData, contact_name: e.target.value })} /></div>
                 <div><Label>Method</Label>
                   <Select value={editData.contact_method} onValueChange={v => setEditData({ ...editData, contact_method: v })}>
@@ -207,7 +207,7 @@ export default function Pipeline() {
                     <SelectContent><SelectItem value="In-person">In-person</SelectItem><SelectItem value="Email">Email</SelectItem><SelectItem value="Phone">Phone</SelectItem></SelectContent>
                   </Select></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Email</Label><Input value={editData.contact_email || ""} onChange={e => setEditData({ ...editData, contact_email: e.target.value })} /></div>
                 <div><Label>Phone</Label><Input value={editData.contact_phone || ""} onChange={e => setEditData({ ...editData, contact_phone: e.target.value })} /></div>
               </div>
@@ -216,7 +216,7 @@ export default function Pipeline() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Probability (%)</Label><Input type="number" min={0} max={100} value={editData.closing_probability || 0} onChange={e => setEditData({ ...editData, closing_probability: Number(e.target.value) })} /></div>
                 <div><Label>Estimated value (€)</Label><Input type="number" value={editData.estimated_value || 0} onChange={e => setEditData({ ...editData, estimated_value: Number(e.target.value) })} /></div>
               </div>

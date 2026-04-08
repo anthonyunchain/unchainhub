@@ -7,7 +7,8 @@ import TodayTasksWidget from "../components/tasks/TodayTasksWidget";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { getGreeting } from "@/lib/greeting";
 
 const CARD = {
   background: 'var(--card)',
@@ -30,6 +31,7 @@ const LABEL = {
 
 export default function Dashboard() {
   const [userName, setUserName] = useState("");
+  const greeting = useMemo(() => getGreeting(userName.split(" ")[0] || ""), [userName]);
 
   useEffect(() => {
     base44.auth.me().then(u => setUserName(u?.full_name || u?.email || "")).catch(() => {});
@@ -62,11 +64,11 @@ export default function Dashboard() {
   const totalFollowers = thisMonthStats.reduce((s, r) => s + (r.followers_gained || 0), 0);
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto space-y-4" style={{ maxWidth: '1400px' }}>
       {/* Greeting */}
       <div>
         <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '28px', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.5px' }}>
-          Hello {userName.split(" ")[0]}
+          {greeting}
         </h2>
         <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginTop: 6, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
           {format(new Date(), "EEEE, d MMMM yyyy", { locale: enUS })}
@@ -131,7 +133,7 @@ export default function Dashboard() {
 
         {/* Editorial Calendars */}
         <div
-          style={{ ...CARD, display: 'flex', flexDirection: 'column', height: 420, overflow: 'hidden' }}
+          style={{ ...CARD, display: 'flex', flexDirection: 'column', height: 'clamp(320px, 50vw, 420px)', overflow: 'hidden' }}
           onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
           onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
@@ -168,7 +170,7 @@ export default function Dashboard() {
 
         {/* Upcoming Content */}
         <div
-          style={{ ...CARD, display: 'flex', flexDirection: 'column', height: 420, overflow: 'hidden' }}
+          style={{ ...CARD, display: 'flex', flexDirection: 'column', height: 'clamp(320px, 50vw, 420px)', overflow: 'hidden' }}
           onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
           onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
@@ -191,7 +193,7 @@ export default function Dashboard() {
         </div>
 
         {/* Today's Tasks */}
-        <div style={{ height: 420 }}>
+        <div style={{ height: 'clamp(320px, 50vw, 420px)' }}>
           <TodayTasksWidget />
         </div>
 

@@ -42,15 +42,15 @@ export default function Contracts() {
   };
 
   return (
-    <div>
+    <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Contracts" subtitle="Client contract management">
         <Button onClick={() => openEdit(null)} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
           <Plus className="w-4 h-4 mr-1" /> New contract
         </Button>
       </PageHeader>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+        <table className="w-full min-w-[600px]">
           <thead><tr className="border-b border-slate-100 bg-slate-50/50">
             <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Contract</th>
             <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Client</th>

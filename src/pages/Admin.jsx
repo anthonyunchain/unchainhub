@@ -810,6 +810,129 @@ function UserManagement() {
   );
 }
 
+// ─── SUBSCRIPTIONS ────────────────────────────────────────────────────────────
+const SUBSCRIPTION_CATEGORIES = ["Design", "Dev", "Marketing", "Productivity", "Finance", "Communication", "Storage", "Other"];
+const SUBSCRIPTION_STATUSES = ["Actif", "Pausé", "Annulé"];
+const STATUS_COLORS_SUB = { "Actif": "bg-emerald-50 text-emerald-700", "Pausé": "bg-amber-50 text-amber-700", "Annulé": "bg-slate-100 text-slate-500" };
+const EMPTY_SUB = { name: "", amount: 0, category: "Other", renewal_date: "", status: "Actif", notes: "" };
+
+function Subscriptions() {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState(null);
+  const qc = useQueryClient();
+
+  const { data: subs = [] } = useQuery({ queryKey: ["subscriptions"], queryFn: () => base44.entities.Subscription.list() });
+
+  const createMut = useMutation({ mutationFn: d => base44.entities.Subscription.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["subscriptions"] }); setOpen(false); }, onError: e => alert("Error: " + e.message) });
+  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Subscription.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["subscriptions"] }); setOpen(false); }, onError: e => alert("Error: " + e.message) });
+  const deleteMut = useMutation({ mutationFn: id => base44.entities.Subscription.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["subscriptions"] }); setOpen(false); } });
+
+  const openNew = () => { setData({ ...EMPTY_SUB }); setOpen(true); };
+  const openEdit = s => { setData({ ...s }); setOpen(true); };
+  const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
+
+  const activeSubs = subs.filter(s => s.status === "Actif");
+  const totalMonthly = activeSubs.reduce((sum, s) => sum + (s.amount || 0), 0);
+  const totalAnnual = totalMonthly * 12;
+
+  const byCategory = SUBSCRIPTION_CATEGORIES.filter(cat => activeSubs.some(s => s.category === cat));
+
+  return (
+    <div>
+      <PageHeader title="Subscriptions" subtitle="Recurring expenses & tools">
+        <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" />Add subscription</Button>
+      </PageHeader>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+          <p className="text-xs text-slate-400 uppercase">Monthly total</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{totalMonthly.toLocaleString("fr-FR")} €</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+          <p className="text-xs text-slate-400 uppercase">Annual total</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{totalAnnual.toLocaleString("fr-FR")} €</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+          <p className="text-xs text-slate-400 uppercase">Active subs</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{activeSubs.length}</p>
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b border-slate-100">
+            <tr>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Name</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Category</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Renewal</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
+              <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase">Monthly</th>
+            </tr>
+          </thead>
+          <tbody>
+            {subs.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">No subscriptions yet</td></tr>}
+            {subs.map(s => (
+              <tr key={s.id} onClick={() => openEdit(s)} className="border-b border-slate-50 hover:bg-slate-50/50 cursor-pointer">
+                <td className="px-5 py-3 font-medium text-slate-800">{s.name}</td>
+                <td className="px-5 py-3 text-slate-500">{s.category}</td>
+                <td className="px-5 py-3 text-slate-500">{s.renewal_date ? format(new Date(s.renewal_date), "d MMM yyyy", { locale: enUS }) : "—"}</td>
+                <td className="px-5 py-3"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS_SUB[s.status] || "bg-slate-100 text-slate-600"}`}>{s.status}</span></td>
+                <td className="px-5 py-3 text-right font-semibold text-slate-800">{(s.amount || 0).toLocaleString("fr-FR")} €</td>
+              </tr>
+            ))}
+            {activeSubs.length > 0 && (
+              <tr className="bg-slate-50 border-t-2 border-slate-200">
+                <td colSpan={4} className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Total actif</td>
+                <td className="px-5 py-3 text-right font-bold text-slate-900">{totalMonthly.toLocaleString("fr-FR")} € / mo</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Dialog */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{data?.id ? "Edit subscription" : "Add subscription"}</DialogTitle></DialogHeader>
+          {data && (
+            <div className="space-y-3 mt-2">
+              <div><Label>Name</Label><Input value={data.name} onChange={e => setData(d => ({ ...d, name: e.target.value }))} placeholder="Notion, Figma..." /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Monthly amount (€)</Label><Input type="number" value={data.amount || ""} onChange={e => setData(d => ({ ...d, amount: Number(e.target.value) }))} /></div>
+                <div><Label>Renewal date</Label><Input type="date" value={data.renewal_date || ""} onChange={e => setData(d => ({ ...d, renewal_date: e.target.value }))} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Category</Label>
+                  <Select value={data.category} onValueChange={v => setData(d => ({ ...d, category: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{SUBSCRIPTION_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Status</Label>
+                  <Select value={data.status} onValueChange={v => setData(d => ({ ...d, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{SUBSCRIPTION_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div><Label>Notes</Label><Textarea value={data.notes || ""} onChange={e => setData(d => ({ ...d, notes: e.target.value }))} rows={2} /></div>
+              <div className="flex justify-between pt-2">
+                {data.id ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={() => deleteMut.mutate(data.id)}><Trash2 className="w-4 h-4 mr-1" />Delete</Button> : <div />}
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!data.name}>Save</Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 const DEFAULT_NAV_ITEMS = [
   { id: 'tasks',        label: 'Admin Tasks' },
@@ -817,6 +940,7 @@ const DEFAULT_NAV_ITEMS = [
   { id: 'legal',        label: 'Legal Docs' },
   { id: 'shareholders', label: 'Shareholders' },
   { id: 'salaries',     label: 'Salaries' },
+  { id: 'subscriptions', label: 'Subscriptions' },
   { id: 'invoices',     label: 'Invoices' },
   { id: 'finance',      label: 'Finance' },
   { id: 'services',     label: 'Services' },
@@ -982,6 +1106,7 @@ export default function Admin() {
           {section === 'legal'        && <LegalDocuments />}
           {section === 'shareholders' && <Shareholders />}
           {section === 'salaries'     && <ShareholderSalaries />}
+          {section === 'subscriptions' && <Subscriptions />}
           {section === 'invoices'     && <Invoices />}
           {section === 'finance'      && <Finance />}
           {section === 'services'     && <Services />}

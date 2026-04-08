@@ -83,7 +83,7 @@ export default function Reports() {
   }
 
   return (
-    <div>
+    <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Reports" subtitle="Monthly reports">
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
           <SelectTrigger className="w-48 h-9 text-sm"><SelectValue /></SelectTrigger>
@@ -199,8 +199,8 @@ export default function Reports() {
           </div>
 
           {/* Stats table */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <table className="w-full">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+            <table className="w-full min-w-[600px]">
               <thead><tr className="border-b border-slate-100 bg-slate-50/50">
                 <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Client</th>
                 <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Platform</th>
@@ -323,7 +323,7 @@ export default function Reports() {
         <DialogHeader><DialogTitle>{editStat?.id ? "Edit stats" : "Add social stats"}</DialogTitle></DialogHeader>
         {editStat && (
           <div className="space-y-4 mt-2">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Client *</Label>
                 <Select value={editStat.client_name} onValueChange={v => setEditStat({ ...editStat, client_name: v })}>
                   <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
@@ -340,11 +340,11 @@ export default function Reports() {
                 <SelectContent>{PLATFORMS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Views / Impressions</Label><Input type="number" value={editStat.views || ""} onChange={e => setEditStat({ ...editStat, views: Number(e.target.value) })} /></div>
               <div><Label>Reach</Label><Input type="number" value={editStat.reach || ""} onChange={e => setEditStat({ ...editStat, reach: Number(e.target.value) })} /></div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div><Label>Likes</Label><Input type="number" value={editStat.likes || ""} onChange={e => setEditStat({ ...editStat, likes: Number(e.target.value) })} /></div>
               <div><Label>Comments</Label><Input type="number" value={editStat.comments || ""} onChange={e => setEditStat({ ...editStat, comments: Number(e.target.value) })} /></div>
               <div><Label>Shares</Label><Input type="number" value={editStat.shares || ""} onChange={e => setEditStat({ ...editStat, shares: Number(e.target.value) })} /></div>

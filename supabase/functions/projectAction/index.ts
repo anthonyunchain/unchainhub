@@ -5,111 +5,108 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const ALLOWED_ACTIONS = ['accept', 'decline', 'deliver', 'clarify'] as const;
-type Action = typeof ALLOWED_ACTIONS[number];
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const respond = (body) => Response.json(body, { headers: corsHeaders });
+
   try {
     const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      Deno.env.get('SUPABASE_URL'),
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
     );
 
-    // Verify JWT
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
-    }
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
-    }
+    if (!authHeader) return respond({ error: 'No auth header' });
 
+    const token = authHeader.replace('Bearer ', '');
+    const { data: authData, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !authData?.user) return respond({ error: 'Unauthorized: ' + (authErr?.message || 'no user') });
+
+    const user = authData.user;
     const body = await req.json();
     const { action, project_id, reason, message, delivery_url } = body;
 
-    if (!action || !project_id) {
-      return Response.json({ error: 'Missing action or project_id' }, { status: 400, headers: corsHeaders });
-    }
+    if (!action || !project_id) return respond({ error: 'Missing action or project_id' });
 
-    // Validate action is one of the allowed values
-    if (!ALLOWED_ACTIONS.includes(action as Action)) {
-      return Response.json({ error: 'Invalid action' }, { status: 400, headers: corsHeaders });
-    }
+    const allowed = ['accept', 'decline', 'deliver', 'clarify'];
+    if (!allowed.includes(action)) return respond({ error: 'Invalid action: ' + action });
 
-    // Resolve freelancer identity — must exist in freelancers table
+    // Resolve freelancer
     const { data: freelancers } = await supabaseAdmin
-      .from('freelancers')
-      .select('id')
-      .eq('email', user.email);
+      .from('freelancers').select('id, name').eq('email', user.email);
 
-    const freelancerId = freelancers?.[0]?.id;
+    const freelancer = freelancers?.[0];
+    if (!freelancer) return respond({ error: 'No freelancer found for: ' + user.email });
 
-    // Explicitly reject if not a known freelancer
-    if (!freelancerId) {
-      return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
-    }
-
-    // Fetch the project
+    // Fetch project (service role — bypasses RLS)
     const { data: project } = await supabaseAdmin
-      .from('projects')
-      .select('*')
-      .eq('id', project_id)
-      .single();
+      .from('projects').select('*').eq('id', project_id).single();
 
-    if (!project) {
-      return Response.json({ error: 'Project not found' }, { status: 404, headers: corsHeaders });
+    if (!project) return respond({ error: 'Project not found: ' + project_id });
+
+    // Security: verify this project belongs to this freelancer (by id or name)
+    const nameMatch = freelancer.name &&
+      project.freelancer_name?.toLowerCase().trim() === freelancer.name.toLowerCase().trim();
+    const idMatch = project.freelancer_id === freelancer.id;
+
+    if (!idMatch && !nameMatch) {
+      return respond({ error: 'This project is not assigned to you.' });
     }
 
-    // Verify the project is assigned to this freelancer
-    if (project.freelancer_id !== freelancerId) {
-      return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+    // Build updates
+    let updates = {};
+    if (action === 'accept') {
+      updates = { status: 'Accepted' };
+    } else if (action === 'decline') {
+      updates = { status: 'Unassigned', freelancer_id: null, freelancer_name: null };
+    } else if (action === 'deliver') {
+      if (!delivery_url) return respond({ error: 'delivery_url required' });
+      updates = { status: 'Delivered', delivery_url };
+    } else if (action === 'clarify') {
+      if (!message) return respond({ error: 'message required' });
+      updates = { notes: `[Question from freelancer]: ${message}` };
     }
 
-    let updates: Record<string, unknown> = {};
-
-    switch (action as Action) {
-      case 'accept':
-        updates = { status: 'Accepted' };
-        break;
-      case 'decline':
-        updates = { status: 'Unassigned', freelancer_id: null, freelancer_name: null };
-        break;
-      case 'deliver':
-        if (!delivery_url || typeof delivery_url !== 'string') {
-          return Response.json({ error: 'delivery_url required for deliver action' }, { status: 400, headers: corsHeaders });
-        }
-        updates = { status: 'Delivered', delivery_url };
-        break;
-      case 'clarify':
-        if (!message || typeof message !== 'string') {
-          return Response.json({ error: 'message required for clarify action' }, { status: 400, headers: corsHeaders });
-        }
-        updates = { notes: `[Question freelancer]: ${message}` };
-        break;
+    if (action === 'decline' && reason) {
+      updates.notes = `[Declined]: ${String(reason).slice(0, 500)}`;
     }
 
-    if (action === 'decline' && reason && typeof reason === 'string') {
-      updates.notes = `[Declined]: ${reason.slice(0, 500)}`;
-    }
-
+    // Update project (service role — bypasses RLS)
     const { error: updateError } = await supabaseAdmin
       .from('projects')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', project_id);
 
-    if (updateError) {
-      return Response.json({ error: updateError.message }, { status: 500, headers: corsHeaders });
+    if (updateError) return respond({ error: 'DB error: ' + updateError.message });
+
+    // Notify admins
+    const notifMap = {
+      deliver: { title: `📦 Delivery: ${project.title}`, message: `${freelancer.name} delivered "${project.title}".`, type: 'delivery', action_required: true },
+      accept:  { title: `✅ Accepted: ${project.title}`,  message: `${freelancer.name} accepted "${project.title}".`,  type: 'update', action_required: false },
+      decline: { title: `❌ Declined: ${project.title}`,  message: `${freelancer.name} declined "${project.title}".${reason ? ' Reason: ' + reason : ''}`, type: 'update', action_required: false },
+      clarify: { title: `💬 Question: ${project.title}`,  message: `${freelancer.name}: ${message}`, type: 'message', action_required: false },
+    };
+
+    const notif = notifMap[action];
+    if (notif) {
+      const { data: admins } = await supabaseAdmin.from('profiles').select('id').eq('role', 'admin');
+      if (admins?.length) {
+        await supabaseAdmin.from('notifications').insert(
+          admins.map(a => ({
+            recipient_id: a.id, title: notif.title, message: notif.message,
+            type: notif.type, is_read: false, action_required: notif.action_required,
+            created_at: new Date().toISOString(),
+          }))
+        );
+      }
     }
 
-    return Response.json({ success: true }, { headers: corsHeaders });
+    return respond({ success: true });
 
-  } catch (error) {
-    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
+  } catch (err) {
+    return respond({ error: 'Exception: ' + (err?.message || String(err)) });
   }
 });

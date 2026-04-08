@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { Menu, X } from "lucide-react";
 import UserMenu from "./UserMenu";
+import NotificationBell from "./NotificationBell";
 
 const NAV_LINKS = [
   { path: "/Dashboard", label: "Dashboard" },
@@ -19,6 +20,7 @@ export default function Topbar() {
   const location = useLocation();
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [userId, setUserId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [time, setTime] = useState("");
 
@@ -35,6 +37,7 @@ export default function Topbar() {
     base44.auth.me().then(u => {
       setUserName(u?.full_name || u?.email || "");
       setUserEmail(u?.email || "");
+      setUserId(u?.id || null);
     }).catch(() => {});
   }, []);
 
@@ -89,7 +92,7 @@ export default function Topbar() {
           })}
         </div>
 
-        {/* Right: date + avatar — desktop */}
+        {/* Right: date + bell + avatar — desktop */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
           <div style={{
             fontFamily: "'DM Mono', monospace",
@@ -102,12 +105,14 @@ export default function Topbar() {
           }}>
             {today} · {time}
           </div>
+          <NotificationBell recipientId={userId}  />
           <UserMenu userName={userName} userEmail={userEmail} initials={initials} />
         </div>
 
-        {/* Mobile: avatar only (nav handled by bottom bar) */}
+        {/* Mobile: time + bell + avatar */}
         <div className="flex md:hidden items-center gap-2">
           <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>{time}</div>
+          <NotificationBell recipientId={userId}  />
           <UserMenu userName={userName} userEmail={userEmail} initials={initials} />
         </div>
       </div>

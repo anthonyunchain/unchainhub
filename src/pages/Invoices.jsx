@@ -107,7 +107,7 @@ export default function Invoices() {
   };
 
   return (
-    <div>
+    <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Invoices" subtitle="Invoice management">
         <Select value={filterYear} onValueChange={v => { setFilterYear(v); setPage(1); }}>
           <SelectTrigger className="w-28 h-9 text-sm"><SelectValue placeholder="Year" /></SelectTrigger>
@@ -244,7 +244,7 @@ export default function Invoices() {
           <DialogHeader><DialogTitle>{editData?.id ? "Edit invoice" : "New invoice"}</DialogTitle></DialogHeader>
           {editData && (
             <div className="space-y-4 mt-2">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Invoice No.</Label><Input value={editData.invoice_number || ""} onChange={e => setEditData({ ...editData, invoice_number: e.target.value })} /></div>
                 <div><Label>Client</Label>
                   <Select value={editData.client_id || ""} onValueChange={v => { const cl = clients.find(c => c.id === v); setEditData({ ...editData, client_id: v, client_name: cl?.company_name || "" }); }}>
@@ -258,7 +258,7 @@ export default function Invoices() {
                 <Input value={editData.description || ""} onChange={e => setEditData({ ...editData, description: e.target.value })} placeholder="e.g. Social media management — March 2026" />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div><Label>Issue date</Label><Input type="date" value={editData.issue_date || ""} onChange={e => setEditData({ ...editData, issue_date: e.target.value })} /></div>
                 <div><Label>Due date</Label><Input type="date" value={editData.due_date || ""} onChange={e => setEditData({ ...editData, due_date: e.target.value })} /></div>
                 <div><Label>Statut</Label>

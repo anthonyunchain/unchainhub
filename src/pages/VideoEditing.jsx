@@ -59,7 +59,7 @@ export default function VideoEditing() {
   const toggleEditor = (name) => setExpandedEditors((e) => ({ ...e, [name]: !e[name] }));
 
   return (
-    <div>
+    <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Video Editing" subtitle="Overview of video editing tasks">
         <Select value={filterEditor} onValueChange={setFilterEditor}>
           <SelectTrigger className="w-44 h-9 text-sm"><SelectValue placeholder="All editors" /></SelectTrigger>

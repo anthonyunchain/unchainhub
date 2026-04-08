@@ -29,6 +29,7 @@ const TABLE_MAP = {
   LegalDocument:      'legal_documents',
   Shareholder:        'shareholders',
   ShareholderSalary:  'shareholder_salaries',
+  Subscription:       'subscriptions',
 };
 
 

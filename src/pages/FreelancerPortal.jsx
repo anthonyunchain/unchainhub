@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
+import { getGreeting } from "@/lib/greeting";
 import {
   FileText, CalendarDays, FileCheck, Wrench, Upload, ExternalLink,
   Clock, CheckCircle2, Square, AlertTriangle, FolderOpen, ClipboardList,
@@ -10,6 +11,8 @@ import {
 } from "lucide-react";
 
 import FreelancerSidebar from "@/components/freelancer/FreelancerSidebar";
+import UserMenu from "@/components/layout/UserMenu";
+import NotificationBell from "@/components/layout/NotificationBell";
 import ProfileTab from "./freelancer/ProfileTab";
 import ProjectsTab from "./freelancer/ProjectsTab";
 import TasksTabComponent from "@/components/freelancer/TasksTab";
@@ -30,6 +33,7 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange, userId }) 
   const [time, setTime] = useState("");
   const [personalTasks, setPersonalTasks] = useState([]);
   const today = format(new Date(), "EEEE, d MMMM yyyy", { locale: enUS });
+  const greeting = useMemo(() => getGreeting(freelancerName?.split(" ")[0] || ""), [freelancerName]);
 
   useEffect(() => {
     if (!userId) return;
@@ -61,7 +65,7 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange, userId }) 
       {/* Greeting & Time */}
       <div>
         <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '28px', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.5px' }}>
-          Hello {freelancerName.split(" ")[0]}
+          {greeting}
         </h2>
         <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginTop: 6, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
           {today}
@@ -295,7 +299,7 @@ const PT_STATUSES = ["Non commencé", "En cours", "Terminé", "Bloqué"];
 const PT_STATUS_LABEL = { "Non commencé": "Not started", "En cours": "In progress", "Terminé": "Done", "Bloqué": "Blocked" };
 const PT_PRIORITY_DOT = { "Basse": "🔵", "Normale": "🟢", "Haute": "🟠", "Urgente": "🔴" };
 
-function PersonalTasksTab({ userId }) {
+function PersonalTasksTab({ userId, newTrigger }) {
   const [tasks, setTasks] = useState([]);
   const [activeStatus, setActiveStatus] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -309,6 +313,10 @@ function PersonalTasksTab({ userId }) {
   };
 
   useEffect(() => { fetchTasks(); }, [userId]);
+
+  useEffect(() => {
+    if (newTrigger > 0) { setEditTask(null); setForm(emptyForm); setDialogOpen(true); }
+  }, [newTrigger]);
 
   const openNew = () => { setEditTask(null); setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (t) => { setEditTask(t); setForm({ title: t.title, description: t.description || "", status: t.status, priority: t.priority || "Normale", due_date: t.due_date || "" }); setDialogOpen(true); };
@@ -341,16 +349,6 @@ function PersonalTasksTab({ userId }) {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-xl font-bold text-slate-800">My To-Do</h2>
-          <p className="text-xs text-slate-400 uppercase tracking-wider mt-0.5">Personal task management</p>
-        </div>
-        <button onClick={openNew} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white" style={{ background: 'var(--brand)' }}>
-          <Plus className="w-4 h-4" /> New task
-        </button>
-      </div>
 
       {/* Status filters */}
       <div className="flex items-center gap-2 mb-6 flex-wrap">
@@ -514,11 +512,7 @@ function CalendarsTab({ visibleCalendars: initialCalendars }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-xl font-bold text-slate-800">Editorial Calendars</h2>
-          <p className="text-xs text-slate-400 uppercase tracking-wider mt-0.5" style={monoStyle}>Read-only · Descriptions editable</p>
-        </div>
+      <div className="flex items-center justify-end mb-5">
         <div className="flex items-center gap-2">
           <button onClick={() => shiftMonth(-1)} className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 text-sm">‹</button>
           <span className="text-sm font-medium text-slate-700 w-32 text-center" style={monoStyle}>{format(new Date(currentMonth + "-01"), "MMMM yyyy", { locale: enUS })}</span>
@@ -573,15 +567,23 @@ function CalendarsTab({ visibleCalendars: initialCalendars }) {
 
       {editingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingItem(null)}>
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-slate-800 mb-1">Edit description</h3>
-            <p className="text-xs text-slate-400 mb-4" style={monoStyle}>{editingItem.client_name} · {editingItem.post_type} · {format(new Date(editingItem.scheduled_date), "d MMM yyyy", { locale: enUS })}</p>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-1">
+              <h3 className="text-base font-semibold text-slate-800">
+                {descValue ? "Edit caption" : "Write caption"}
+              </h3>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${descValue ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-500"}`} style={monoStyle}>
+                {descValue ? "Editing draft" : "From scratch"}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mb-1" style={monoStyle}>{editingItem.client_name} · {editingItem.post_type} · {format(new Date(editingItem.scheduled_date), "d MMM yyyy", { locale: enUS })}</p>
             <p className="text-sm font-medium text-slate-700 mb-3">{editingItem.title}</p>
             <textarea
               value={descValue}
               onChange={e => setDescValue(e.target.value)}
-              rows={5}
-              placeholder="Write the description for this content..."
+              rows={7}
+              autoFocus
+              placeholder="Write your caption here — start from scratch or build on the draft above..."
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 resize-none"
             />
             <div className="flex justify-end gap-2 mt-4">
@@ -645,6 +647,12 @@ function MeetingsTab({ meetings }) {
             <span className="text-xs text-slate-500">{m.date ? format(new Date(m.date), "d MMMM yyyy", { locale: enUS }) : "—"}{m.time && ` · ${m.time}`}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${m.format === "Remote" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{m.format}</span>
           </div>
+          {m.link && (
+            <a href={m.link} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 mt-2 text-xs text-[#2A69FF] hover:underline break-all">
+              <ExternalLink className="w-3 h-3 shrink-0" />{m.link}
+            </a>
+          )}
           {m.notes && <p className="text-xs text-slate-400 mt-2 bg-slate-50 rounded-lg p-2">{m.notes}</p>}
         </div>
         {m.link && (
@@ -801,6 +809,17 @@ export default function FreelancerPortal() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [todoNewTrigger, setTodoNewTrigger] = useState(0);
+  const [time, setTime] = useState("");
+
+  useEffect(() => {
+    const updateTime = () => {
+      setTime(new Date().toLocaleTimeString("fi-FI", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/Helsinki" }));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -871,7 +890,7 @@ export default function FreelancerPortal() {
   const renderTab = () => {
     switch (activeTab) {
       case "dashboard": return <DashboardTab tasks={tasks} projects={editorialProjects} freelancerName={freelancerName} onTabChange={setActiveTab} userId={user?.id} />;
-      case "todo": return <PersonalTasksTab userId={user?.id} />;
+      case "todo": return <PersonalTasksTab userId={user?.id} newTrigger={todoNewTrigger} />;
       case "tasks": return <TasksTabComponent tasks={tasks} onUpdateTask={handleUpdateTask} />;
       case "myprojects": return <FreelancerProjects projects={myProjects} onRefresh={handleProjectUpdate} freelancerName={freelancerName} />;
       case "projects": return <ProjectsTab projects={editorialProjects} onProjectUpdate={handleProjectUpdate} />;
@@ -881,7 +900,7 @@ export default function FreelancerPortal() {
       case "invoices": return <InvoicesTab payments={payments} freelancerName={freelancerName} freelancerId={profile?.id} onPaymentAdded={handlePaymentAdded} />;
       case "contract": return <ContractTab profile={profile} />;
       case "profile": return <ProfileTab user={user} freelancerProfile={profile} onProfileUpdate={(p) => setFreelancerData(d => ({ ...d, profile: p }))} />;
-      case "notifications": return <NotificationsPanel />;
+      case "notifications": return <NotificationsPanel freelancerId={profile?.id} onAccept={(pid) => handleProjectUpdate()} onDecline={(pid) => handleProjectUpdate()} />;
       default: return null;
     }
   };
@@ -963,7 +982,7 @@ export default function FreelancerPortal() {
               })}
             </div>
 
-            {/* Right: date + avatar + logout — desktop */}
+            {/* Right: date + bell + avatar menu — desktop */}
             <div className="hidden md:flex items-center gap-2 shrink-0">
               <div style={{
                 fontFamily: "'DM Mono', monospace",
@@ -974,67 +993,68 @@ export default function FreelancerPortal() {
                 borderRadius: 'var(--pill-radius)',
                 padding: '7px 14px',
               }}>
-                Sun, Apr 5 · 16:25
+                {format(new Date(), "EEE, MMM d", { locale: enUS })} · {time}
               </div>
-              <div style={{
-                width: 32, height: 32, borderRadius: '50%',
-                background: 'var(--brand)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontWeight: 700, fontSize: '12px',
-              }}>
-                {freelancerName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'US'}
-              </div>
-              <button
-                onClick={() => base44.auth.logout()}
-                style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: '11px',
-                  color: 'var(--muted)',
-                  background: 'var(--card)',
-                  boxShadow: 'var(--card-shadow)',
-                  borderRadius: 'var(--pill-radius)',
-                  padding: '7px 14px',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                Logout
-              </button>
+              <NotificationBell recipientId={profile?.id} />
+              <UserMenu
+                userName={freelancerName}
+                userEmail={user?.email}
+                initials={freelancerName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'US'}
+              />
             </div>
 
-            {/* Mobile: avatar + logout */}
+            {/* Mobile: time + bell + avatar menu */}
             <div className="flex md:hidden items-center gap-2">
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>16:25</div>
-              <div style={{
-                width: 32, height: 32, borderRadius: '50%',
-                background: 'var(--brand)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontWeight: 700, fontSize: '12px',
-              }}>
-                {freelancerName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'US'}
-              </div>
-              <button
-                onClick={() => base44.auth.logout()}
-                style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: '10px',
-                  color: 'var(--muted)',
-                  background: 'var(--card)',
-                  boxShadow: 'var(--card-shadow)',
-                  borderRadius: 'var(--pill-radius)',
-                  padding: '6px 12px',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                Logout
-              </button>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>{time}</div>
+              <NotificationBell recipientId={profile?.id} />
+              <UserMenu
+                userName={freelancerName}
+                userEmail={user?.email}
+                initials={freelancerName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'US'}
+              />
             </div>
           </div>
         </nav>
 
         <main>
-          <div className={activeTab !== 'dashboard' ? 'max-w-2xl mx-auto' : ''}>
+          <div className="mx-auto" style={{ maxWidth: '1400px' }}>
+            {activeTab !== 'dashboard' && (() => {
+              const TAB_TITLES = {
+                todo:        { title: 'My To-Do',       subtitle: 'Your personal task list' },
+                tasks:       { title: 'Tasks',           subtitle: 'Tasks assigned to you' },
+                myprojects:  { title: 'Projects',        subtitle: 'Projects assigned to you' },
+                projects:    { title: 'Editorial Calendar', subtitle: 'Content schedule & captions' },
+                calendar:    { title: 'Captions',        subtitle: 'Write & edit captions for your assigned calendars' },
+                tools:       { title: 'Tools',           subtitle: 'Your tools & resources' },
+                meetings:    { title: 'Meetings',        subtitle: 'Upcoming & past meetings' },
+                invoices:    { title: 'Invoices',        subtitle: 'Your payment history' },
+                contract:    { title: 'Contract',        subtitle: 'Your contract details' },
+                profile:     { title: 'Profile',         subtitle: 'Your information & settings' },
+                notifications: { title: 'Notifications', subtitle: 'Your latest updates' },
+              };
+              const meta = TAB_TITLES[activeTab];
+              if (!meta) return null;
+              return (
+                <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                  <div>
+                    <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px', margin: 0 }}>
+                      {meta.title}
+                    </h1>
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      {meta.subtitle}
+                    </p>
+                  </div>
+                  {activeTab === 'todo' && (
+                    <button
+                      onClick={() => setTodoNewTrigger(n => n + 1)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--brand)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                    >
+                      <Plus style={{ width: 15, height: 15 }} /> New task
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
             {renderTab()}
           </div>
         </main>

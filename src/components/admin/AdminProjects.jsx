@@ -66,6 +66,23 @@ export default function AdminProjects() {
     active: projects.filter(p => p.freelancer_id === f.id && !["Completed", "Unassigned"].includes(p.status)).length,
   }));
 
+  const sendFreelancerNotif = async (freelancerId, title, message, type = 'message') => {
+    if (!freelancerId) return;
+    try {
+      await supabase.from('notifications').insert({
+        recipient_id: freelancerId,
+        title,
+        message,
+        type,
+        is_read: false,
+        action_required: false,
+        created_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error('Failed to send freelancer notification:', e);
+    }
+  };
+
   const handleCreate = async () => {
     if (!form.title || !form.client_name) return;
     try {
@@ -79,6 +96,14 @@ export default function AdminProjects() {
         ...(form.freelancer_id && { freelancer_id: form.freelancer_id, freelancer_name: form.freelancer_name }),
       };
       await base44.entities.Project.create(payload);
+      if (form.freelancer_id) {
+        await sendFreelancerNotif(
+          form.freelancer_id,
+          `📋 New project: ${form.title}`,
+          `You have been assigned the project "${form.title}"${form.client_name ? ` for ${form.client_name}` : ""}. Please review and accept or decline.`,
+          'project_assigned'
+        );
+      }
       await refetch();
       setCreateOpen(false);
       setForm({ ...emptyForm });
@@ -92,7 +117,14 @@ export default function AdminProjects() {
   const handleAssign = async (projectId, freelancerId, freelancerName) => {
     setLoading(true);
     try {
+      const project = projects.find(p => p.id === projectId);
       await base44.entities.Project.update(projectId, { freelancer_id: freelancerId, freelancer_name: freelancerName, status: "Pending acceptance" });
+      await sendFreelancerNotif(
+        freelancerId,
+        `📋 New project: ${project?.title || ""}`,
+        `You have been assigned the project "${project?.title || ""}"${project?.client_name ? ` for ${project.client_name}` : ""}. Please review and accept or decline.`,
+        'project_assigned'
+      );
       refetch();
       setReassignOpen(null);
     } catch (e) {
@@ -104,7 +136,16 @@ export default function AdminProjects() {
 
   const handleComplete = async (projectId) => {
     try {
+      const project = projects.find(p => p.id === projectId);
       await base44.entities.Project.update(projectId, { status: "Completed" });
+      if (project?.freelancer_id) {
+        await sendFreelancerNotif(
+          project.freelancer_id,
+          `🏆 Project completed: ${project.title}`,
+          `Your project "${project.title}" has been marked as completed. Great work!`,
+          'project_completed'
+        );
+      }
       refetch();
     } catch (e) {
       alert("Error: " + (e?.message || e));
@@ -113,7 +154,16 @@ export default function AdminProjects() {
 
   const handleRevision = async (projectId) => {
     try {
+      const project = projects.find(p => p.id === projectId);
       await base44.entities.Project.update(projectId, { status: "Revision requested", notes: revisionNotes });
+      if (project?.freelancer_id) {
+        await sendFreelancerNotif(
+          project.freelancer_id,
+          `🔄 Revision requested: ${project.title}`,
+          `A revision has been requested on "${project.title}".${revisionNotes ? ` Notes: ${revisionNotes}` : ""}`,
+          'revision_requested'
+        );
+      }
       setRevisionOpen(null);
       setRevisionNotes("");
       refetch();
@@ -151,7 +201,7 @@ export default function AdminProjects() {
   };
 
   return (
-    <div>
+    <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       {/* Workload summary */}
       {workload.some(f => f.active > 0) && (
         <div className="flex flex-wrap gap-2 mb-6">
@@ -235,8 +285,8 @@ export default function AdminProjects() {
 
       {/* LIST VIEW */}
       {view === "list" && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+          <table className="w-full min-w-[560px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-3">Project</th>

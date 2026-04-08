@@ -197,21 +197,21 @@ export default function TasksTab({ tasks, onUpdateTask }) {
       </div>
 
       {showFilters && (
-        <div className="bg-white rounded-xl border border-slate-100 p-3 shadow-sm flex flex-wrap gap-3">
-          <div className="flex-1 min-w-[120px]">
+        <div className="bg-white rounded-xl border border-slate-100 p-3 shadow-sm inline-flex flex-wrap gap-3">
+          <div>
             <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Sort by</p>
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           {clients.length > 0 && (
-            <div className="flex-1 min-w-[120px]">
+            <div>
               <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Client</p>
               <Select value={filterClient} onValueChange={setFilterClient}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-8 text-xs w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All clients</SelectItem>
                   {clients.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -219,10 +219,10 @@ export default function TasksTab({ tasks, onUpdateTask }) {
               </Select>
             </div>
           )}
-          <div className="flex-1 min-w-[120px]">
+          <div>
             <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Status</p>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
                 {Object.keys(STATUS_CONFIG).map(s => <SelectItem key={s} value={s}>{STATUS_LABEL[s] || s}</SelectItem>)}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/api/base44Client";
 import { format } from "date-fns";
 import { Bell, Check } from "lucide-react";
@@ -14,37 +14,75 @@ const TYPE_ICONS = {
   clarification_requested: "💬",
   deadline_warning: "⏰",
   availability_reminder: "📅",
+  message: "💬",
 };
 
 // recipient_id is intentionally NOT passed to the server.
-// The edge function must resolve the recipient from the JWT token.
-export default function NotificationsPanel({ onAccept, onDecline }) {
+// The edge function resolves the recipient from the JWT token.
+export default function NotificationsPanel({ freelancerId, onAccept, onDecline }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const channelRef = useRef(null);
 
   const load = async () => {
     setLoading(true);
-    // Do NOT send recipient_id — server resolves identity from JWT
-    const { data } = await supabase.functions.invoke('getNotifications');
-    setNotifications(data?.notifications || []);
+    try {
+      const { data } = await supabase.functions.invoke('getNotifications');
+      const mapped = (data?.notifications || []).map((n) => ({
+        ...n,
+        created_date: n.created_date || n.created_at,
+      }));
+      setNotifications(mapped);
+    } catch (e) {
+      console.error('Failed to load notifications', e);
+    }
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
+  // Real-time subscription (only if freelancerId is known)
+  useEffect(() => {
+    if (!freelancerId) return;
+
+    const channel = supabase
+      .channel(`freelancer-notif-${freelancerId}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${freelancerId}` },
+        (payload) => {
+          const n = { ...payload.new, created_date: payload.new.created_at };
+          setNotifications((prev) => [n, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${freelancerId}` },
+        (payload) => {
+          setNotifications((prev) =>
+            prev.map((n) => n.id === payload.new.id ? { ...payload.new, created_date: payload.new.created_at } : n)
+          );
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [freelancerId]);
+
   const markRead = async (id) => {
-    // Only send the notification ID — server verifies ownership via JWT
     await supabase.functions.invoke('markNotificationRead', { body: { notification_id: id } });
-    setNotifications(ns => ns.map(n => n.id === id ? { ...n, is_read: true } : n));
+    setNotifications((ns) => ns.map((n) => n.id === id ? { ...n, is_read: true } : n));
   };
 
   const markAllRead = async () => {
-    // Server resolves recipient from JWT — no recipient_id sent from client
     await supabase.functions.invoke('markAllNotificationsRead');
-    setNotifications(ns => ns.map(n => ({ ...n, is_read: true })));
+    setNotifications((ns) => ns.map((n) => ({ ...n, is_read: true })));
   };
 
-  const unread = notifications.filter(n => !n.is_read).length;
+  const unread = notifications.filter((n) => !n.is_read).length;
 
   if (loading) return <div className="text-center py-10 text-slate-400 text-sm">Loading...</div>;
 
@@ -72,7 +110,7 @@ export default function NotificationsPanel({ onAccept, onDecline }) {
       )}
 
       <div className="space-y-2">
-        {notifications.map(n => (
+        {notifications.map((n) => (
           <div
             key={n.id}
             onClick={() => !n.is_read && markRead(n.id)}

@@ -55,7 +55,7 @@ function FreelancerProfiles() {
     <div>
       <div className="flex justify-end mb-4">
         <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
-          <Plus className="w-4 h-4 mr-1" /> Ajouter un freelancer
+          <Plus className="w-4 h-4 mr-1" /> Add freelancer
         </Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -167,28 +167,28 @@ function MeetingsManagement() {
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (m) => { setData({ ...m }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
-  const handleDelete = () => { if (data?.id && confirm("Supprimer cette réunion ?")) { deleteMut.mutate(data.id); setOpen(false); } };
+  const handleDelete = () => { if (data?.id && confirm("Delete this meeting?")) { deleteMut.mutate(data.id); setOpen(false); } };
 
   return (
-    <div>
+    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
       <div className="flex justify-end mb-4">
         <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
-          <Plus className="w-4 h-4 mr-1" /> Nouvelle réunion
+          <Plus className="w-4 h-4 mr-1" /> New meeting
         </Button>
       </div>
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+        <table className="w-full min-w-[500px]">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50">
-              <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Titre</th>
+              <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Title</th>
               <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Freelancer</th>
               <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Date</th>
               <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Format</th>
-              <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Statut</th>
+              <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Status</th>
             </tr>
           </thead>
           <tbody>
-            {meetings.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">Aucune réunion</td></tr>}
+            {meetings.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">No meetings yet</td></tr>}
             {meetings.map(m => (
               <tr key={m.id} className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer" onClick={() => openEdit(m)}>
                 <td className="px-5 py-3 text-sm font-medium text-slate-800">{m.title}</td>
@@ -204,19 +204,19 @@ function MeetingsManagement() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{data?.id ? "Modifier la réunion" : "Nouvelle réunion"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{data?.id ? "Edit meeting" : "New meeting"}</DialogTitle></DialogHeader>
           {data && (
             <div className="space-y-4 mt-2">
-              <div><Label>Titre *</Label><Input value={data.title || ""} onChange={e => setData({ ...data, title: e.target.value })} /></div>
+              <div><Label>Title *</Label><Input value={data.title || ""} onChange={e => setData({ ...data, title: e.target.value })} /></div>
               <div><Label>Freelancer</Label>
                 <Select value={data.freelancer_id || ""} onValueChange={v => { const f = freelancers.find(x => x.id === v); setData({ ...data, freelancer_id: v, freelancer_name: f?.name || "" }); }}>
-                  <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent>{freelancers.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Date</Label><Input type="date" value={data.date || ""} onChange={e => setData({ ...data, date: e.target.value })} /></div>
-                <div><Label>Heure</Label><Input value={data.time || ""} onChange={e => setData({ ...data, time: e.target.value })} placeholder="14:00" /></div>
+                <div><Label>Time</Label><Input value={data.time || ""} onChange={e => setData({ ...data, time: e.target.value })} placeholder="14:00" /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Format</Label>
@@ -225,24 +225,24 @@ function MeetingsManagement() {
                     <SelectContent><SelectItem value="Remote">Remote</SelectItem><SelectItem value="On-site">On-site</SelectItem></SelectContent>
                   </Select>
                 </div>
-                <div><Label>Statut</Label>
+                <div><Label>Status</Label>
                   <Select value={data.status} onValueChange={v => setData({ ...data, status: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="À venir">À venir</SelectItem>
-                      <SelectItem value="Terminée">Terminée</SelectItem>
-                      <SelectItem value="Annulée">Annulée</SelectItem>
+                      <SelectItem value="À venir">Upcoming</SelectItem>
+                      <SelectItem value="Terminée">Done</SelectItem>
+                      <SelectItem value="Annulée">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              <div><Label>Lien (Meet / Zoom)</Label><Input value={data.link || ""} onChange={e => setData({ ...data, link: e.target.value })} placeholder="https://meet.google.com/..." /></div>
+              <div><Label>Link (Meet / Zoom)</Label><Input value={data.link || ""} onChange={e => setData({ ...data, link: e.target.value })} placeholder="https://meet.google.com/..." /></div>
               <div><Label>Notes</Label><Textarea value={data.notes || ""} onChange={e => setData({ ...data, notes: e.target.value })} rows={2} /></div>
               <div className="flex justify-between pt-2">
-                {data.id ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={handleDelete}><Trash2 className="w-4 h-4 mr-1" />Supprimer</Button> : <div />}
+                {data.id ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={handleDelete}><Trash2 className="w-4 h-4 mr-1" />Delete</Button> : <div />}
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
-                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!data.title}>Enregistrer</Button>
+                  <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!data.title}>Save</Button>
                 </div>
               </div>
             </div>
@@ -269,15 +269,15 @@ function ToolsManagement() {
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (t) => { setData({ ...t }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
-  const handleDelete = () => { if (data?.id && confirm("Supprimer cet outil ?")) { deleteMut.mutate(data.id); setOpen(false); } };
+  const handleDelete = () => { if (data?.id && confirm("Delete this tool?")) { deleteMut.mutate(data.id); setOpen(false); } };
 
   return (
-    <div>
-      <div className="flex justify-end mb-4">
+    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+      <PageHeader title="Tools" subtitle="Shared resources for freelancers">
         <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
-          <Plus className="w-4 h-4 mr-1" /> Ajouter un outil
+          <Plus className="w-4 h-4 mr-1" /> Add tool
         </Button>
-      </div>
+      </PageHeader>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {tools.map(t => (
           <div key={t.id} onClick={() => openEdit(t)} className="bg-white rounded-xl border border-slate-100 p-4 cursor-pointer hover:shadow-sm transition-all">
@@ -296,35 +296,35 @@ function ToolsManagement() {
           </div>
         ))}
         {tools.length === 0 && (
-          <p className="col-span-3 text-center text-slate-400 text-sm py-10">Aucun outil ajouté (Kapwing & Figma sont inclus par défaut)</p>
+          <p className="col-span-3 text-center text-slate-400 text-sm py-10">No tools added yet</p>
         )}
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{data?.id ? "Modifier l'outil" : "Nouvel outil"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{data?.id ? "Edit tool" : "New tool"}</DialogTitle></DialogHeader>
           {data && (
             <div className="space-y-4 mt-2">
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Nom *</Label><Input value={data.name || ""} onChange={e => setData({ ...data, name: e.target.value })} /></div>
-                <div><Label>Catégorie</Label>
+                <div><Label>Name *</Label><Input value={data.name || ""} onChange={e => setData({ ...data, name: e.target.value })} /></div>
+                <div><Label>Category</Label>
                   <Select value={data.category} onValueChange={v => setData({ ...data, category: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {["Design", "Vidéo", "Communication", "Documents", "Autre"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {["Design", "Video", "Communication", "Documents", "Other"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div><Label>URL *</Label><Input value={data.url || ""} onChange={e => setData({ ...data, url: e.target.value })} placeholder="https://..." /></div>
-              <div><Label>URL du logo</Label><Input value={data.logo_url || ""} onChange={e => setData({ ...data, logo_url: e.target.value })} placeholder="https://...favicon.ico" /></div>
+              <div><Label>Logo URL</Label><Input value={data.logo_url || ""} onChange={e => setData({ ...data, logo_url: e.target.value })} placeholder="https://...favicon.ico" /></div>
               <div><Label>Description</Label><Textarea value={data.description || ""} onChange={e => setData({ ...data, description: e.target.value })} rows={2} /></div>
-              <div><Label>Ordre d'affichage</Label><Input type="number" value={data.order || 0} onChange={e => setData({ ...data, order: Number(e.target.value) })} /></div>
+              <div><Label>Display order</Label><Input type="number" value={data.order || 0} onChange={e => setData({ ...data, order: Number(e.target.value) })} /></div>
               <div className="flex justify-between pt-2">
-                {data.id ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={handleDelete}><Trash2 className="w-4 h-4 mr-1" />Supprimer</Button> : <div />}
+                {data.id ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={handleDelete}><Trash2 className="w-4 h-4 mr-1" />Delete</Button> : <div />}
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
-                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!data.name || !data.url}>Enregistrer</Button>
+                  <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!data.name || !data.url}>Save</Button>
                 </div>
               </div>
             </div>
@@ -405,8 +405,8 @@ function InvoicesManagement() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-x-auto">
+        <table className="w-full text-sm min-w-[500px]">
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr>
               <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Freelancer</th>
@@ -480,7 +480,7 @@ export default function FreelancerAdmin() {
 
   if (section) {
     return (
-      <div>
+      <div className="mx-auto" style={{ maxWidth: '1400px' }}>
         <PageHeader title="Freelancer Hub" subtitle="Projects, profiles, meetings and tools">
           <button
             onClick={() => setSection(null)}
@@ -490,7 +490,7 @@ export default function FreelancerAdmin() {
           </button>
         </PageHeader>
         {section === 'projects' && <AdminProjects />}
-        {section === 'notifications' && <AdminNotifications adminId={adminId} />}
+        {section === 'notifications' && <div className="mx-auto" style={{ maxWidth: '1400px' }}><AdminNotifications adminId={adminId} /></div>}
         {section === 'profiles' && <FreelancerProfiles />}
         {section === 'meetings' && <MeetingsManagement />}
         {section === 'tools' && <ToolsManagement />}
@@ -500,7 +500,7 @@ export default function FreelancerAdmin() {
   }
 
   return (
-    <div>
+    <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Freelancer Hub" subtitle="Projects, profiles, meetings and tools" />
 
       {/* Bento Grid */}

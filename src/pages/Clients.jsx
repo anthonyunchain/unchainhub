@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import StatusBadge from "../components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, MapPin, Building2, ChevronRight, Trash2, Pencil, GripVertical, ArrowUpDown } from "lucide-react";
+import { Plus, Search, MapPin, Building2, ChevronRight, Trash2, Pencil, GripVertical, ArrowUpDown, UserPlus, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -46,6 +46,11 @@ export default function Clients() {
   const [editData, setEditData] = useState(null);
   const [reordering, setReordering] = useState(false);
   const [localClients, setLocalClients] = useState(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteClient, setInviteClient] = useState(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState("");
   const qc = useQueryClient();
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
@@ -76,6 +81,33 @@ export default function Clients() {
     const [moved] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, moved);
     setLocalClients(items);
+  };
+
+  const openInvite = (c) => {
+    setInviteClient(c);
+    setInviteEmail(c.contact_email || "");
+    setInviteMsg("");
+    setInviteOpen(true);
+  };
+
+  const sendInvite = async () => {
+    if (!inviteEmail) return;
+    setInviting(true);
+    setInviteMsg("");
+    try {
+      const { data, error } = await supabase.functions.invoke('inviteClient', {
+        body: { email: inviteEmail, company_name: inviteClient?.company_name },
+      });
+      if (error || data?.error) {
+        setInviteMsg("Error: " + (data?.error || error?.message));
+      } else {
+        setInviteMsg("Invitation sent successfully!");
+      }
+    } catch (e) {
+      setInviteMsg("Error: " + (e?.message || "Unknown error"));
+    } finally {
+      setInviting(false);
+    }
   };
 
   const saveOrder = async () => {
@@ -180,13 +212,24 @@ export default function Clients() {
                         </div>
                       )}
                       {!reordering && (
-                        <button
-                          onClick={() => openEdit(c)}
-                          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-slate-200 rounded-lg p-1.5 hover:bg-slate-50 shadow-sm z-10"
-                          title="Edit / Delete"
-                        >
-                          <Pencil className="w-3.5 h-3.5 text-slate-500" />
-                        </button>
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+                          {c.status === 'Actif' && (
+                            <button
+                              onClick={(e) => { e.preventDefault(); openInvite(c); }}
+                              className="bg-white border border-slate-200 rounded-lg p-1.5 hover:bg-blue-50 hover:border-blue-200 shadow-sm"
+                              title="Invite to Client Portal"
+                            >
+                              <UserPlus className="w-3.5 h-3.5 text-blue-500" />
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => { e.preventDefault(); openEdit(c); }}
+                            className="bg-white border border-slate-200 rounded-lg p-1.5 hover:bg-slate-50 shadow-sm"
+                            title="Edit / Delete"
+                          >
+                            <Pencil className="w-3.5 h-3.5 text-slate-500" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
@@ -198,13 +241,55 @@ export default function Clients() {
         </Droppable>
       </DragDropContext>
 
+      {/* Invite to Client Portal dialog */}
+      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteMsg(""); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-blue-500" /> Invite to Client Portal
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-slate-500">
+              Send a portal invitation to <strong>{inviteClient?.company_name}</strong>. They'll receive an email to set their password and access their reports, calendar, and contracts.
+            </p>
+            <div>
+              <Label>Email address</Label>
+              <Input
+                type="email"
+                value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                placeholder="client@company.com"
+                className="mt-1"
+              />
+            </div>
+            {inviteMsg && (
+              <p className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith('Error') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                {inviteMsg}
+              </p>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+              <Button
+                onClick={sendInvite}
+                disabled={inviting || !inviteEmail || inviteMsg.startsWith('Invitation sent')}
+                className="bg-brand hover:bg-brand/90 text-white"
+              >
+                <Send className="w-4 h-4 mr-1.5" />
+                {inviting ? "Sending..." : "Send invitation"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editData?.id ? "Edit client" : "New client"}</DialogTitle></DialogHeader>
           {editData && (
             <div className="space-y-4 mt-2">
               <div><Label>Company *</Label><Input value={editData.company_name || ""} onChange={e => setEditData({ ...editData, company_name: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Sector</Label>
                   <Select value={editData.sector} onValueChange={v => setEditData({ ...editData, sector: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -228,7 +313,7 @@ export default function Clients() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Contact name</Label><Input value={editData.contact_name || ""} onChange={e => setEditData({ ...editData, contact_name: e.target.value })} /></div>
                 <div><Label>Status</Label>
                   <Select value={editData.status} onValueChange={v => setEditData({ ...editData, status: v })}>
@@ -241,7 +326,7 @@ export default function Clients() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Email</Label><Input value={editData.contact_email || ""} onChange={e => setEditData({ ...editData, contact_email: e.target.value })} /></div>
                 <div><Label>Phone</Label><Input value={editData.contact_phone || ""} onChange={e => setEditData({ ...editData, contact_phone: e.target.value })} /></div>
               </div>

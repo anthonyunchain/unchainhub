@@ -56,7 +56,7 @@ export default function Services() {
   };
 
   return (
-    <div>
+    <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Services" subtitle="Service catalog">
         <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
           <Plus className="w-4 h-4 mr-1" /> New Service
@@ -106,7 +106,7 @@ export default function Services() {
             <div className="space-y-4 mt-2">
               <div><Label>Name *</Label><Input value={data.name} onChange={e => setData({ ...data, name: e.target.value })} /></div>
               <div><Label>Description</Label><Textarea value={data.description || ""} onChange={e => setData({ ...data, description: e.target.value })} rows={2} /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Price (€)</Label><Input type="number" value={data.price || ""} onChange={e => setData({ ...data, price: parseFloat(e.target.value) || 0 })} /></div>
                 <div><Label>Type</Label>
                   <Select value={data.price_type} onValueChange={v => setData({ ...data, price_type: v })}>

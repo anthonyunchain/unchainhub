@@ -194,11 +194,11 @@ export default function Freelancers() {
   }
 
   return (
-    <div>
+    <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Freelancers & Partners" subtitle="External team management" />
 
       {/* Bento Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[14px]">
 
         {/* Team hero card */}
         <div

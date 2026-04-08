@@ -226,7 +226,8 @@ export default function Editorial() {
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
     const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
     return (
-      <div className="grid grid-cols-5 gap-3">
+      <div className="overflow-x-auto -mx-1 px-1">
+      <div className="grid grid-cols-5 gap-3 min-w-[560px]">
         {days.map(day => {
           const dayContent = filtered.filter(c => c.scheduled_date && isSameDay(new Date(c.scheduled_date), day));
           const isToday = isSameDay(day, new Date());
@@ -253,6 +254,7 @@ export default function Editorial() {
           );
         })}
       </div>
+      </div>
     );
   };
 
@@ -266,7 +268,8 @@ export default function Editorial() {
     const allDaysNoWeekend = allDays.filter(d => d.getDay() !== 0 && d.getDay() !== 6);
     const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
     return (
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+      <div className="min-w-[560px]">
         <div className="grid grid-cols-5 border-b border-slate-100">
           {weekDays.map(d => <div key={d} className="text-center text-xs font-medium text-slate-400 py-2">{d}</div>)}
         </div>
@@ -296,6 +299,7 @@ export default function Editorial() {
             );
           })}
         </div>
+      </div>
       </div>
     );
   };

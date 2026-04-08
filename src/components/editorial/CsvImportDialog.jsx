@@ -22,6 +22,7 @@ function parseCsv(text) {
 }
 
 const STATUS_OPTIONS = ["Planifié", "En cours", "Publié", "Annulé"];
+const STATUS_EN_TO_FR = { "planned": "Planifié", "in progress": "En cours", "published": "Publié", "cancelled": "Annulé" };
 const TYPE_OPTIONS = ["Reel", "Story", "Carousel"];
 
 export default function CsvImportDialog({ open, onOpenChange }) {
@@ -41,7 +42,7 @@ export default function CsvImportDialog({ open, onOpenChange }) {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const parsed = parseCsv(ev.target.result);
-      if (parsed.length === 0) { setError("Fichier vide ou format invalide."); return; }
+      if (parsed.length === 0) { setError("Empty file or invalid format."); return; }
       setRows(parsed);
     };
     reader.readAsText(file, "UTF-8");
@@ -58,7 +59,9 @@ export default function CsvImportDialog({ open, onOpenChange }) {
 
   const normalizeStatus = (v) => {
     if (!v) return "Planifié";
-    const match = STATUS_OPTIONS.find(s => s.toLowerCase() === v.toLowerCase());
+    const lower = v.toLowerCase();
+    if (STATUS_EN_TO_FR[lower]) return STATUS_EN_TO_FR[lower];
+    const match = STATUS_OPTIONS.find(s => s.toLowerCase() === lower);
     return match || "Planifié";
   };
 
@@ -93,10 +96,10 @@ export default function CsvImportDialog({ open, onOpenChange }) {
   };
 
   const downloadTemplate = () => {
-    const csv = "client_name;title;post_type;scheduled_date;platform;status;description;notes;drive_link\nNom Client;Mon titre;Reel;2026-05-01;Instagram;Planifié;Description du post;;";
+    const csv = "client_name;title;post_type;scheduled_date;platform;status;description;notes;drive_link\nClient Name;My title;Reel;2026-05-01;Instagram;Planned;Post description;;";
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "template_editorial.csv"; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = "editorial_template.csv"; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -109,21 +112,21 @@ export default function CsvImportDialog({ open, onOpenChange }) {
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Importer un calendrier éditorial (CSV)</DialogTitle>
+          <DialogTitle>Import editorial calendar (CSV)</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
           {/* Template download */}
           <button onClick={downloadTemplate} className="flex items-center gap-1.5 text-xs text-brand hover:underline">
-            <Download className="w-3.5 h-3.5" /> Télécharger le modèle CSV
+            <Download className="w-3.5 h-3.5" /> Download CSV template
           </button>
 
           {/* Client override */}
           <div>
-            <p className="text-xs font-medium text-slate-600 mb-1">Assigner à un client (optionnel — écrase la colonne client_name du CSV)</p>
+            <p className="text-xs font-medium text-slate-600 mb-1">Assign to a client (optional — overrides client_name column in CSV)</p>
             <Select value={clientOverride} onValueChange={setClientOverride}>
-              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Client du fichier CSV" /></SelectTrigger>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Use CSV client" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={null}>Utiliser le CSV</SelectItem>
+                <SelectItem value={null}>Use CSV</SelectItem>
                 {clients.map(c => <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -132,20 +135,20 @@ export default function CsvImportDialog({ open, onOpenChange }) {
           {/* File input */}
           <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-lg p-8 cursor-pointer hover:border-brand/40 hover:bg-slate-50 transition-colors">
             <Upload className="w-6 h-6 text-slate-400 mb-2" />
-            <p className="text-sm text-slate-600 font-medium">Choisir un fichier CSV</p>
-            <p className="text-xs text-slate-400 mt-1">Séparateur : virgule ou point-virgule</p>
+            <p className="text-sm text-slate-600 font-medium">Choose a CSV file</p>
+            <p className="text-xs text-slate-400 mt-1">Separator: comma or semicolon</p>
             <input type="file" accept=".csv" className="hidden" onChange={handleFile} />
           </label>
 
           {/* Preview */}
           {rows.length > 0 && (
             <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-              <p className="text-xs font-medium text-slate-700 mb-1">{rows.length} ligne{rows.length > 1 ? "s" : ""} détectée{rows.length > 1 ? "s" : ""} — aperçu :</p>
+              <p className="text-xs font-medium text-slate-700 mb-1">{rows.length} row{rows.length > 1 ? "s" : ""} detected — preview:</p>
               <div className="overflow-x-auto max-h-32 text-[10px] text-slate-500 space-y-0.5">
                 {rows.slice(0, 5).map((r, i) => (
                   <p key={i} className="truncate">{clientOverride || r.client_name} · {r.title || r.titre} · {r.post_type || r.type} · {r.scheduled_date || r.date}</p>
                 ))}
-                {rows.length > 5 && <p className="text-slate-400">…et {rows.length - 5} de plus</p>}
+                {rows.length > 5 && <p className="text-slate-400">…and {rows.length - 5} more</p>}
               </div>
             </div>
           )}
@@ -159,18 +162,18 @@ export default function CsvImportDialog({ open, onOpenChange }) {
           {result && (
             <div className="flex items-center gap-2 text-emerald-700 text-sm bg-emerald-50 rounded-lg p-3">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
-              {result.success} importé{result.success > 1 ? "s" : ""} avec succès{result.failed > 0 ? ` · ${result.failed} échec${result.failed > 1 ? "s" : ""}` : ""}.
+              {result.success} imported successfully{result.failed > 0 ? ` · ${result.failed} failed` : ""}.
             </div>
           )}
 
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="outline" onClick={handleClose}>Fermer</Button>
+            <Button variant="outline" onClick={handleClose}>Close</Button>
             <Button
               onClick={handleImport}
               disabled={rows.length === 0 || importing}
               className="bg-brand hover:bg-brand/90 text-brand-foreground"
             >
-              {importing ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Import en cours…</> : <><Upload className="w-4 h-4 mr-1" />Importer {rows.length > 0 ? `(${rows.length})` : ""}</>}
+              {importing ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Importing…</> : <><Upload className="w-4 h-4 mr-1" />Import {rows.length > 0 ? `(${rows.length})` : ""}</>}
             </Button>
           </div>
         </div>
