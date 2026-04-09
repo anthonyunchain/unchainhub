@@ -19,34 +19,40 @@ Deno.serve(async (req) => {
     // Verify caller via JWT
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('[getFreelancerData] No auth header');
       return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
     }
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) {
+      console.error('[getFreelancerData] Auth error:', authErr?.message);
       return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
     }
+    console.log('[getFreelancerData] User:', user.email);
 
     // Get profile
-    const { data: profile } = await supabaseAdmin
+    const { data: profile, error: profileErr } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
+    console.log('[getFreelancerData] Profile role:', profile?.role, 'err:', profileErr?.message);
 
     if (profile?.role === 'admin') {
       return Response.json({ error: 'Admins cannot access this endpoint' }, { status: 403, headers: corsHeaders });
     }
 
     // Get freelancer record by email
-    const { data: freelancers } = await supabaseAdmin
+    const { data: freelancers, error: flErr } = await supabaseAdmin
       .from('freelancers')
       .select('*')
       .eq('email', user.email);
+    console.log('[getFreelancerData] Freelancers found:', freelancers?.length, 'err:', flErr?.message);
 
     const freelancerProfile = freelancers?.[0] || null;
 
     if (!freelancerProfile) {
+      console.error('[getFreelancerData] Not a freelancer for email:', user.email);
       return Response.json({ error: 'Not a freelancer' }, { status: 403, headers: corsHeaders });
     }
 
@@ -127,6 +133,7 @@ Deno.serve(async (req) => {
     }, { headers: corsHeaders });
 
   } catch (error) {
+    console.error('[getFreelancerData] CATCH:', error?.message, error);
     return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
   }
 });

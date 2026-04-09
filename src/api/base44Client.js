@@ -156,7 +156,16 @@ const functions = {
     const { data, error } = await supabase.functions.invoke(name, {
       body: payload,
     });
-    if (error) throw error;
+    if (error) {
+      // Extract real error message from the function response body
+      try {
+        const body = await error.context?.json?.();
+        if (body?.error) throw new Error(body.error);
+      } catch (inner) {
+        if (inner.message && inner.message !== error.message) throw inner;
+      }
+      throw error;
+    }
     // Base44 retournait { data: ... }, on reproduit le même shape
     return { data };
   },
