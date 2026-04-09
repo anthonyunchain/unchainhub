@@ -966,6 +966,7 @@ export default function FreelancerPortal() {
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
                 { id: 'invoices', label: 'Invoices' },
+                { id: 'profile', label: 'Profile' },
               ].map(item => {
                 const isActive = activeTab === item.id;
                 return (
