@@ -81,6 +81,11 @@ export default function NotificationBell({ recipientId }) {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
+  const deleteAll = async () => {
+    await supabase.from('notifications').delete().eq('recipient_id', recipientId);
+    setNotifications([]);
+  };
+
   const unread = notifications.filter(n => !n.is_read).length;
 
   return (
@@ -160,19 +165,34 @@ export default function NotificationBell({ recipientId }) {
                 </span>
               )}
             </div>
-            {unread > 0 && (
-              <button
-                onClick={markAllRead}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  fontSize: 11, color: 'var(--muted)',
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                }}
-              >
-                <Check style={{ width: 11, height: 11 }} /> Mark all read
-              </button>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {unread > 0 && (
+                <button
+                  onClick={markAllRead}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    fontSize: 11, color: 'var(--muted)',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  }}
+                >
+                  <Check style={{ width: 11, height: 11 }} /> Mark all read
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={deleteAll}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    fontSize: 11, color: '#ef4444',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  }}
+                >
+                  <Trash2 style={{ width: 11, height: 11 }} /> Remove all
+                </button>
+              )}
+            </div>
           </div>
 
           {/* List */}
