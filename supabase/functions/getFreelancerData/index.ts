@@ -102,18 +102,14 @@ Deno.serve(async (req) => {
     );
     const assignedProjects = [...(projectsByID || []), ...projectsByName];
 
-    // Fetch editorial calendars visible to freelancers
-    const { data: visibleClients } = await supabaseAdmin
-      .from('clients')
-      .select('id, company_name')
-      .eq('editorial_visible', true);
-    const visibleClientNames = (visibleClients || []).map(c => c.company_name);
+    // Fetch editorial calendars visible to this specific freelancer
+    const editorialClientNames: string[] = freelancerProfile.editorial_client_names || [];
     let visibleCalendars = [];
-    if (visibleClientNames.length > 0) {
+    if (editorialClientNames.length > 0) {
       const { data: visCalData } = await supabaseAdmin
         .from('editorial_content')
         .select('*')
-        .in('client_name', visibleClientNames)
+        .in('client_name', editorialClientNames)
         .order('scheduled_date', { ascending: true })
         .limit(300);
       visibleCalendars = visCalData || [];
