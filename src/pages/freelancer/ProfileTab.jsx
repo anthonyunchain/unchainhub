@@ -19,11 +19,22 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
     phone: freelancerProfile?.phone || "",
   });
 
+  // Email change
+  const [newEmail, setNewEmail] = useState("");
+  const [emailMsg, setEmailMsg] = useState(null);
+  const [emailLoading, setEmailLoading] = useState(false);
+
+  // Password change
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordMsg, setPasswordMsg] = useState(null);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
     try {
-      const { error: updateError, count } = await supabase
+      const { error: updateError } = await supabase
         .from('freelancers')
         .update({
           name: form.name,
@@ -45,6 +56,40 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEmailChange = async () => {
+    if (!newEmail) return;
+    setEmailLoading(true);
+    setEmailMsg(null);
+    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    setEmailMsg(error
+      ? { type: 'error', text: error.message }
+      : { type: 'success', text: 'Confirmation sent — check your inbox.' }
+    );
+    setEmailLoading(false);
+    if (!error) setNewEmail("");
+  };
+
+  const handlePasswordChange = async () => {
+    if (!newPassword) return;
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ type: 'error', text: "Passwords don't match." });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordMsg({ type: 'error', text: "Password must be at least 6 characters." });
+      return;
+    }
+    setPasswordLoading(true);
+    setPasswordMsg(null);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setPasswordMsg(error
+      ? { type: 'error', text: error.message }
+      : { type: 'success', text: 'Password updated successfully.' }
+    );
+    setPasswordLoading(false);
+    if (!error) { setNewPassword(""); setConfirmPassword(""); }
   };
 
   if (!freelancerProfile) {
@@ -134,19 +179,58 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
         </div>
       </div>
 
-      {error && (
-        <p className="text-sm text-red-500 text-center">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
       <Button onClick={handleSave} disabled={saving} className="w-full bg-slate-800 hover:bg-slate-700">
         {saved ? (
           <><CheckCircle2 className="w-4 h-4 mr-2 text-emerald-400" /> Saved!</>
-        ) : saving ? (
-          "Saving..."
-        ) : (
+        ) : saving ? "Saving..." : (
           <><Save className="w-4 h-4 mr-2" /> Save profile</>
         )}
       </Button>
+
+      {/* Change email */}
+      <div className="bg-white rounded-xl border border-slate-100 p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-slate-700">Change email address</h3>
+        <div>
+          <Label className="text-xs">New email</Label>
+          <Input
+            type="email"
+            value={newEmail}
+            onChange={e => setNewEmail(e.target.value)}
+            placeholder="new@email.com"
+          />
+        </div>
+        {emailMsg && (
+          <p className={`text-xs px-3 py-2 rounded-lg ${emailMsg.type === 'success' ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
+            {emailMsg.text}
+          </p>
+        )}
+        <Button onClick={handleEmailChange} disabled={!newEmail || emailLoading} variant="outline" className="w-full">
+          {emailLoading ? "Sending…" : "Update email"}
+        </Button>
+      </div>
+
+      {/* Change password */}
+      <div className="bg-white rounded-xl border border-slate-100 p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-slate-700">Change password</h3>
+        <div>
+          <Label className="text-xs">New password</Label>
+          <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" />
+        </div>
+        <div>
+          <Label className="text-xs">Confirm password</Label>
+          <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" />
+        </div>
+        {passwordMsg && (
+          <p className={`text-xs px-3 py-2 rounded-lg ${passwordMsg.type === 'success' ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
+            {passwordMsg.text}
+          </p>
+        )}
+        <Button onClick={handlePasswordChange} disabled={!newPassword || !confirmPassword || passwordLoading} variant="outline" className="w-full">
+          {passwordLoading ? "Updating…" : "Update password"}
+        </Button>
+      </div>
     </div>
   );
 }
