@@ -511,7 +511,7 @@ function CalendarsTab({ visibleCalendars: initialCalendars }) {
   const monoStyle = { fontFamily: "'DM Mono', monospace" };
 
   return (
-    <div>
+    <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-end mb-5">
         <div className="flex items-center gap-2">
           <button onClick={() => shiftMonth(-1)} className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 text-sm">‹</button>

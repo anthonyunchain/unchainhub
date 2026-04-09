@@ -55,7 +55,7 @@ export default function ContentDescriptions() {
     .sort((a, b) => new Date(a.scheduled_date || 0) - new Date(b.scheduled_date || 0));
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-2xl mx-auto">
       <PageHeader title="Content Descriptions" subtitle={`${filtered.length} content${filtered.length > 1 ? 's' : ''}`}>
         <Link to="/Editorial">
           <Button variant="outline" className="h-9">
