@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import StatusBadge from "../components/shared/StatusBadge";
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt, Pencil, Upload, X, ExternalLink, Briefcase } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt, Pencil, Upload, X, ExternalLink, Briefcase, Trash2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -99,6 +99,7 @@ function DocumentSection({ label, icon: Icon, docs = [], onUpload, onRemove, upl
 export default function ClientDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const id = urlParams.get("id");
+  const navigate = useNavigate();
   const [editOpen, setEditOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [uploadingContract, setUploadingContract] = useState(false);
@@ -122,6 +123,18 @@ export default function ClientDetail() {
       setEditOpen(false);
     }
   });
+
+  const deleteMut = useMutation({
+    mutationFn: (clientId) => base44.entities.Client.delete(clientId),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); navigate("/Clients"); },
+    onError: (e) => alert("Deletion error: " + (e?.message || e)),
+  });
+
+  const handleDelete = () => {
+    if (confirm("Delete this client? This action is irreversible.")) {
+      deleteMut.mutate(id);
+    }
+  };
 
   if (!client) return <div className="flex items-center justify-center h-64 text-slate-400">Loading...</div>;
 
@@ -344,8 +357,10 @@ export default function ClientDetail() {
                 <div><Label>Email</Label><Input value={editData.contact_email || ""} onChange={e => setEditData({ ...editData, contact_email: e.target.value })} /></div>
                 <div><Label>Phone</Label><Input value={editData.contact_phone || ""} onChange={e => setEditData({ ...editData, contact_phone: e.target.value })} /></div>
               </div>
-              <div><Label>Address</Label><Input value={editData.address || ""} onChange={e => setEditData({ ...editData, address: e.target.value })} /></div>
-              <div><Label>Start date</Label><Input type="date" value={editData.start_date || ""} onChange={e => setEditData({ ...editData, start_date: e.target.value })} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Address</Label><Input value={editData.address || ""} onChange={e => setEditData({ ...editData, address: e.target.value })} /></div>
+                <div><Label>Start date</Label><Input type="date" value={editData.start_date || ""} onChange={e => setEditData({ ...editData, start_date: e.target.value })} /></div>
+              </div>
 
               {/* Services */}
               <div>
@@ -353,11 +368,16 @@ export default function ClientDetail() {
                 <ServicesEditor value={editData.active_services || []} onChange={v => setEditData({ ...editData, active_services: v })} />
               </div>
 
-              <div><Label>Notes</Label><Textarea value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} rows={3} /></div>
+              <div><Label>Notes</Label><Textarea value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} rows={2} /></div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-                <Button onClick={() => updateMut.mutate({ id: editData.id, d: editData })} className="bg-emerald-600 hover:bg-emerald-700" disabled={!editData.company_name}>Save</Button>
+              <div className="flex justify-between items-center pt-2">
+                <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleDelete} disabled={deleteMut.isPending}>
+                  <Trash2 className="w-4 h-4 mr-1" /> Delete
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                  <Button onClick={() => updateMut.mutate({ id: editData.id, d: editData })} className="bg-emerald-600 hover:bg-emerald-700" disabled={!editData.company_name}>Save</Button>
+                </div>
               </div>
             </div>
           )}
