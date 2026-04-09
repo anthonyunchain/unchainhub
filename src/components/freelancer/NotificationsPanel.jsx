@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/api/base44Client";
 import { format } from "date-fns";
-import { Bell, Check } from "lucide-react";
+import { Bell, Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const TYPE_ICONS = {
@@ -82,6 +82,11 @@ export default function NotificationsPanel({ freelancerId, onAccept, onDecline }
     setNotifications((ns) => ns.map((n) => ({ ...n, is_read: true })));
   };
 
+  const deleteNotification = async (id) => {
+    await supabase.from('notifications').delete().eq('id', id);
+    setNotifications((ns) => ns.filter((n) => n.id !== id));
+  };
+
   const unread = notifications.filter((n) => !n.is_read).length;
 
   if (loading) return <div className="text-center py-10 text-slate-400 text-sm">Loading...</div>;
@@ -114,14 +119,19 @@ export default function NotificationsPanel({ freelancerId, onAccept, onDecline }
           <div
             key={n.id}
             onClick={() => !n.is_read && markRead(n.id)}
-            className={`rounded-xl border p-4 cursor-pointer transition-all ${n.is_read ? "bg-white border-slate-100 opacity-70" : "bg-blue-50 border-blue-100"}`}
+            className={`rounded-xl border p-4 cursor-pointer transition-all group ${n.is_read ? "bg-white border-slate-100 opacity-70" : "bg-blue-50 border-blue-100"}`}
           >
             <div className="flex items-start gap-3">
               <span className="text-lg shrink-0">{TYPE_ICONS[n.type] || "🔔"}</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <p className={`text-sm font-semibold ${n.is_read ? "text-slate-600" : "text-slate-900"}`}>{n.title}</p>
-                  {!n.is_read && <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0 mt-1" />}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {!n.is_read && <span className="w-2 h-2 bg-blue-500 rounded-full mt-1" />}
+                    <button onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">{n.message}</p>
                 {n.created_date && (
