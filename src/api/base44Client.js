@@ -170,6 +170,8 @@ const functions = {
       accessToken = session?.access_token || null;
     }
 
+    console.log(`[invoke:${name}] cachedToken=${_cachedAccessToken ? 'YES' : 'NO'} finalToken=${accessToken ? 'YES' : 'NO'} url=${supabaseUrl ? 'OK' : 'MISSING'} key=${supabaseKey ? 'OK' : 'MISSING'}`);
+
     const url = `${supabaseUrl}/functions/v1/${name}`;
     const res = await fetch(url, {
       method: 'POST',
