@@ -23,7 +23,7 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
     setSaving(true);
     setError(null);
     try {
-      const { data: updated, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('freelancers')
         .update({
           name: form.name,
@@ -32,13 +32,11 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
           notes: form.notes,
           phone: form.phone,
         })
-        .eq('id', freelancerProfile.id)
-        .select()
-        .single();
+        .eq('id', freelancerProfile.id);
 
       if (updateError) throw new Error(updateError.message);
 
-      onProfileUpdate?.(updated);
+      onProfileUpdate?.({ ...freelancerProfile, ...form });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
