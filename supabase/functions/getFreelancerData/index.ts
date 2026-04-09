@@ -26,13 +26,18 @@ Deno.serve(async (req) => {
     let userEmail: string;
     try {
       const parts = token.split('.');
-      if (parts.length !== 3) throw new Error('Invalid JWT');
-      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+      if (parts.length !== 3) throw new Error('Invalid JWT structure');
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
+      const payload = JSON.parse(atob(padded));
+      console.log('[getFreelancerData] JWT claims - sub:', payload.sub, 'email:', payload.email, 'role:', payload.role);
       userId = payload.sub;
       userEmail = payload.email;
-      if (!userId || !userEmail) throw new Error('Missing claims');
+      if (!userId) throw new Error('Missing sub claim');
+      if (!userEmail) throw new Error('Missing email claim');
     } catch (e) {
-      return Response.json({ error: 'Invalid token' }, { status: 401, headers: corsHeaders });
+      console.error('[getFreelancerData] JWT decode error:', e?.message);
+      return Response.json({ error: `Invalid token: ${e?.message}` }, { status: 401, headers: corsHeaders });
     }
 
     // Build a fake user object for compatibility
