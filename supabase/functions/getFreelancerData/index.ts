@@ -35,13 +35,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Invalid token' }, { status: 401, headers: corsHeaders });
     }
 
-    // Validate user exists in profiles
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .single();
-
     // Build a fake user object for compatibility
     const user = { id: userId, email: userEmail };
 
