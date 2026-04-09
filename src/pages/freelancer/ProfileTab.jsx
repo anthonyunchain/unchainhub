@@ -73,7 +73,7 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
               ? "bg-amber-100 text-amber-700 border-amber-200"
               : "bg-red-100 text-red-700 border-red-200"
           }`}>
-            {form.status === "Actif" ? "Available" : form.status === "En pause" ? "On pause" : "Unavailable"}
+            {form.status === "Actif" ? "Available" : form.status === "En pause" ? "On hold" : "Inactive"}
           </span>
         </div>
       </div>
@@ -100,7 +100,7 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
                 : "border-slate-100 text-slate-400 hover:border-slate-200"
             }`}
           >
-            Unavailable
+            Inactive
           </button>
         </div>
       </div>

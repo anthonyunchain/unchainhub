@@ -728,6 +728,7 @@ function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded })
     "Payé": "bg-emerald-50 text-emerald-700",
     "En retard": "bg-red-50 text-red-700",
   };
+  const STATUS_LABELS = { "En attente": "Pending", "Payé": "Paid", "En retard": "Overdue" };
   const total = payments.reduce((s, p) => s + (p.amount || 0), 0);
   const paid = payments.filter(p => p.status === "Payé").reduce((s, p) => s + (p.amount || 0), 0);
   const pending = payments.filter(p => p.status === "En attente").reduce((s, p) => s + (p.amount || 0), 0);
@@ -760,7 +761,7 @@ function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded })
               <tr key={p.id} className="border-b border-slate-50">
                 <td className="px-5 py-3 text-sm font-medium text-slate-800">{p.description || "—"}</td>
                 <td className="px-5 py-3 text-sm text-slate-500">{p.date ? format(new Date(p.date), "d MMM yyyy", { locale: enUS }) : "—"}</td>
-                <td className="px-5 py-3"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}>{p.status}</span></td>
+                <td className="px-5 py-3"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}>{STATUS_LABELS[p.status] || p.status}</span></td>
                 <td className="px-5 py-3 text-sm font-semibold text-right text-slate-800">{p.amount ? `${p.amount.toLocaleString("fr-FR")} €` : "—"}</td>
                 <td className="px-5 py-3">{p.invoice_url && <a href={p.invoice_url} target="_blank" rel="noopener noreferrer" className="text-[#2A69FF] hover:underline text-xs flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> View</a>}</td>
               </tr>
