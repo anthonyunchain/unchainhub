@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Upload, X, ExternalLink, Trash2, GripVertical, Settings2, Check, Users, UserPlus, Send } from "lucide-react";
+import { Plus, Upload, X, ExternalLink, Trash2, GripVertical, Settings2, Check, Users, UserPlus, Send, Eye, EyeOff, CalendarDays, Shield, User as UserIcon, Building2 } from "lucide-react";
 import { motion } from "framer-motion";
 import Invoices from "./Invoices";
 import Finance from "./Finance";
@@ -1004,6 +1004,184 @@ function Subscriptions() {
   );
 }
 
+// ─── PERMISSIONS ─────────────────────────────────────────────────────────────
+const FREELANCER_PERMISSIONS = [
+  { key: 'calendar', label: 'Calendar', icon: CalendarDays, description: 'Access to editorial calendar & captions' },
+];
+
+const CLIENT_PERMISSIONS = [
+  { key: 'editorial_visible', label: 'Calendar visible to freelancers', icon: CalendarDays, description: 'Freelancers can view this client\'s editorial calendar' },
+];
+
+function PermissionToggle({ enabled, onClick, label, icon: Icon, description }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left w-full ${
+        enabled
+          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+          : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300'
+      }`}
+    >
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${enabled ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+        <Icon className="w-4 h-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`text-xs font-semibold ${enabled ? 'text-emerald-700' : 'text-slate-500'}`}>{label}</p>
+        <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{description}</p>
+      </div>
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${enabled ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+        {enabled ? <Eye className="w-4 h-4 text-emerald-600" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
+      </div>
+    </button>
+  );
+}
+
+function Permissions() {
+  const qc = useQueryClient();
+  const { data: freelancers = [], isLoading: loadingFL } = useQuery({ queryKey: ["freelancers-perm"], queryFn: () => base44.entities.Freelancer.list() });
+  const { data: clients = [], isLoading: loadingCL } = useQuery({ queryKey: ["clients-perm"], queryFn: () => base44.entities.Client.list() });
+
+  const activeClients = [...clients].filter(c => c.status === 'Actif').sort((a, b) => (a.company_name || '').localeCompare(b.company_name || ''));
+
+  const updateFreelancer = useMutation({
+    mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancers-perm"] }),
+  });
+
+  const updateClient = useMutation({
+    mutationFn: ({ id, d }) => base44.entities.Client.update(id, d),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["clients-perm"] }),
+  });
+
+  const toggleClientAccess = (freelancer, clientName) => {
+    const current = freelancer.editorial_client_names || [];
+    const updated = current.includes(clientName)
+      ? current.filter(n => n !== clientName)
+      : [...current, clientName];
+    updateFreelancer.mutate({ id: freelancer.id, d: { ...freelancer, editorial_client_names: updated } });
+  };
+
+  const toggleClientPerm = (client, key) => {
+    updateClient.mutate({ id: client.id, d: { ...client, [key]: !client[key] } });
+  };
+
+  if (loadingFL || loadingCL) return <div className="text-center py-16 text-slate-400 text-sm">Loading...</div>;
+
+  return (
+    <div className="space-y-8">
+      {/* Freelancers */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center">
+            <UserIcon className="w-4 h-4 text-amber-600" />
+          </div>
+          <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Freelancers</h2>
+          <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{freelancers.length}</span>
+        </div>
+
+        {freelancers.length === 0 && <p className="text-sm text-slate-400">No freelancers found.</p>}
+
+        <div className="space-y-3">
+          {freelancers.map(fl => {
+            const calendarClients = fl.editorial_client_names || [];
+            return (
+              <div key={fl.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-50">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+                    <UserIcon className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">{fl.name || '—'}</p>
+                    <p className="text-xs text-slate-400">{fl.email}</p>
+                  </div>
+                  <div className="ml-auto flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-slate-300" />
+                    <span className="text-xs text-slate-400">{calendarClients.length} calendar{calendarClients.length !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+
+                {/* Calendar access per client */}
+                <div className="px-5 py-4">
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <CalendarDays className="w-3 h-3" /> Calendar access per client
+                  </p>
+                  {activeClients.length === 0 && <p className="text-xs text-slate-300 italic">No active clients</p>}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {activeClients.map(client => {
+                      const hasAccess = calendarClients.includes(client.company_name);
+                      return (
+                        <button
+                          key={client.id}
+                          onClick={() => toggleClientAccess(fl, client.company_name)}
+                          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all text-left ${
+                            hasAccess
+                              ? 'bg-emerald-50 border-emerald-200'
+                              : 'bg-slate-50 border-slate-100 hover:border-slate-200'
+                          }`}
+                        >
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${hasAccess ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+                            <Building2 className={`w-3.5 h-3.5 ${hasAccess ? 'text-emerald-600' : 'text-slate-400'}`} />
+                          </div>
+                          <span className={`text-xs font-medium flex-1 truncate ${hasAccess ? 'text-emerald-700' : 'text-slate-500'}`}>{client.company_name}</span>
+                          {hasAccess
+                            ? <Eye className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            : <EyeOff className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                          }
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Clients */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+            <Building2 className="w-4 h-4 text-blue-600" />
+          </div>
+          <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Clients</h2>
+          <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{activeClients.length}</span>
+        </div>
+
+        {activeClients.length === 0 && <p className="text-sm text-slate-400">No active clients.</p>}
+
+        <div className="space-y-2">
+          {activeClients.map(client => (
+            <div key={client.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                  <Building2 className="w-4 h-4 text-blue-600" />
+                </div>
+                <p className="text-sm font-semibold text-slate-800">{client.company_name}</p>
+                <span className="text-[10px] text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-full ml-auto">{client.sector}</span>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                {CLIENT_PERMISSIONS.map(perm => (
+                  <PermissionToggle
+                    key={perm.key}
+                    enabled={!!client[perm.key]}
+                    onClick={() => toggleClientPerm(client, perm.key)}
+                    label={perm.label}
+                    icon={perm.icon}
+                    description={perm.description}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 const DEFAULT_NAV_ITEMS = [
   { id: 'tasks',        label: 'Admin Tasks' },
@@ -1019,6 +1197,7 @@ const DEFAULT_NAV_ITEMS = [
   { id: 'sales',        label: 'Pipeline' },
   { id: 'contracts',    label: 'Contracts' },
   { id: 'users',        label: 'Users' },
+  { id: 'permissions',  label: 'Permissions' },
 ];
 
 const ADMIN_NAV_KEY = "admin_nav_order_v2";
@@ -1185,6 +1364,7 @@ export default function Admin() {
           {section === 'sales'        && <Pipeline />}
           {section === 'contracts'    && <Contracts />}
           {section === 'users'        && <UserManagement />}
+          {section === 'permissions'  && <Permissions />}
         </div>
 
       </div>
