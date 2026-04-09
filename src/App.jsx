@@ -25,6 +25,7 @@ class ErrorBoundary extends Component {
   }
 }
 
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import AdminRoute from './components/layout/AdminRoute.jsx';
 import Dashboard from './pages/Dashboard';
@@ -56,7 +57,9 @@ const Spinner = () => (
 );
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isAuthenticated } = useAuth();
+  const { isLoadingAuth, isAuthenticated, isPasswordRecovery } = useAuth();
+
+  if (isPasswordRecovery) return <ResetPasswordPage />;
 
   const cached = localStorage.getItem(ROLE_CACHE_KEY);
   const [role, setRole] = useState(cached || null); // 'admin' | 'freelancer' | 'client' | null
