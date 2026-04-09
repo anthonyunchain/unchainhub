@@ -951,7 +951,6 @@ export default function FreelancerPortal() {
                 { id: 'tasks', label: 'Tasks' },
                 { id: 'myprojects', label: 'Projects' },
                 { id: 'projects', label: 'Calendar' },
-                { id: 'calendar', label: 'Captions' },
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
                 { id: 'invoices', label: 'Invoices' },
@@ -1050,6 +1049,22 @@ export default function FreelancerPortal() {
                       style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--brand)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                     >
                       <Plus style={{ width: 15, height: 15 }} /> New task
+                    </button>
+                  )}
+                  {activeTab === 'projects' && (
+                    <button
+                      onClick={() => setActiveTab('calendar')}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--card)', color: 'var(--brand)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: "'DM Mono', monospace" }}
+                    >
+                      Captions →
+                    </button>
+                  )}
+                  {activeTab === 'calendar' && (
+                    <button
+                      onClick={() => setActiveTab('projects')}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--card)', color: 'var(--muted)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: "'DM Mono', monospace" }}
+                    >
+                      ← Calendar
                     </button>
                   )}
                 </div>
