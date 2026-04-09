@@ -23,7 +23,7 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
     setSaving(true);
     setError(null);
     try {
-      const { error: updateError } = await supabase
+      const { error: updateError, count } = await supabase
         .from('freelancers')
         .update({
           name: form.name,
@@ -32,7 +32,8 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
           notes: form.notes,
           phone: form.phone,
         })
-        .eq('id', freelancerProfile.id);
+        .eq('id', freelancerProfile.id)
+        .select('id');
 
       if (updateError) throw new Error(updateError.message);
 
