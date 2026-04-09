@@ -4,10 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Camera, Save, CheckCircle2, X } from "lucide-react";
+import { Save, CheckCircle2 } from "lucide-react";
 
 export default function ProfileTab({ user, freelancerProfile, onProfileUpdate }) {
-  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
@@ -18,11 +17,7 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
     status: freelancerProfile?.status || "Actif",
     notes: freelancerProfile?.notes || "",
     phone: freelancerProfile?.phone || "",
-    avatar_url: freelancerProfile?.avatar_url || "",
-    specialties: freelancerProfile?.specialties || [],
   });
-
-  const [newSpecialty, setNewSpecialty] = useState("");
 
   const handleSave = async () => {
     setSaving(true);
@@ -36,8 +31,6 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
           status: form.status,
           notes: form.notes,
           phone: form.phone,
-          avatar_url: form.avatar_url,
-          specialties: form.specialties,
         })
         .eq('id', freelancerProfile.id)
         .select()
@@ -55,30 +48,6 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
     }
   };
 
-  const handleAvatarUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setForm(f => ({ ...f, avatar_url: file_url }));
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  };
-
-  const addSpecialty = () => {
-    if (newSpecialty.trim()) {
-      setForm(f => ({ ...f, specialties: [...(f.specialties || []), newSpecialty.trim()] }));
-      setNewSpecialty("");
-    }
-  };
-
-  const removeSpecialty = (idx) => {
-    setForm(f => ({ ...f, specialties: f.specialties.filter((_, i) => i !== idx) }));
-  };
-
   if (!freelancerProfile) {
     return (
       <div className="text-center py-16 text-slate-400">
@@ -90,20 +59,10 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      {/* Avatar */}
+      {/* Header */}
       <div className="flex items-center gap-5">
-        <div className="relative group">
-          {form.avatar_url ? (
-            <img src={form.avatar_url} alt="avatar" className="w-20 h-20 rounded-2xl object-cover border-2 border-slate-100" />
-          ) : (
-            <div className="w-20 h-20 rounded-2xl bg-slate-800 flex items-center justify-center text-white text-2xl font-bold">
-              {(form.name || "?").charAt(0).toUpperCase()}
-            </div>
-          )}
-          <label className={`absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ${uploading ? "opacity-100" : ""}`}>
-            {uploading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
-            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-          </label>
+        <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-white text-2xl font-bold shrink-0">
+          {(form.name || "?").charAt(0).toUpperCase()}
         </div>
         <div>
           <p className="font-semibold text-slate-800">{form.name || user?.full_name}</p>
@@ -145,7 +104,7 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
         </div>
       </div>
 
-      {/* Info */}
+      {/* Personal Info */}
       <div className="bg-white rounded-xl border border-slate-100 p-4 space-y-4">
         <h3 className="text-sm font-semibold text-slate-700">Personal Information</h3>
         <div className="grid grid-cols-2 gap-3">
@@ -174,34 +133,10 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
         </div>
       </div>
 
-      {/* Skills */}
-      <div className="bg-white rounded-xl border border-slate-100 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-slate-700">Skills</h3>
-        <div className="flex gap-2">
-          <Input
-            value={newSpecialty}
-            onChange={e => setNewSpecialty(e.target.value)}
-            placeholder="e.g. Premiere Pro, Motion design..."
-            onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addSpecialty())}
-            maxLength={50}
-          />
-          <Button type="button" variant="outline" size="sm" onClick={addSpecialty}>Add</Button>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {(form.specialties || []).map((s, i) => (
-            <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">
-              {s}
-              <button onClick={() => removeSpecialty(i)} className="hover:text-red-500"><X className="w-3 h-3" /></button>
-            </span>
-          ))}
-        </div>
-      </div>
-
       {error && (
         <p className="text-sm text-red-500 text-center">{error}</p>
       )}
 
-      {/* Save */}
       <Button onClick={handleSave} disabled={saving} className="w-full bg-slate-800 hover:bg-slate-700">
         {saved ? (
           <><CheckCircle2 className="w-4 h-4 mr-2 text-emerald-400" /> Saved!</>
