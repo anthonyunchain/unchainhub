@@ -90,7 +90,13 @@ export default function CsvImportDialog({ open, onOpenChange }) {
         success++;
       } catch (e) {
         failed++;
-        if (!firstError) firstError = e?.message || JSON.stringify(e);
+        console.error("[CSV Import] Failed row:", record, e);
+        if (!firstError) {
+          firstError = e?.message || e?.details || e?.error_description
+            || (typeof e === "string" ? e : null)
+            || JSON.stringify(e, null, 2)
+            || "Unknown error";
+        }
       }
     }
     qc.invalidateQueries({ queryKey: ["editorial"] });
