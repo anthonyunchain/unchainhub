@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase, base44 } from "@/api/base44Client";
+import { supabase } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,10 +28,9 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
     setSaving(true);
     setError(null);
     try {
-      // Use edge function — freelancer ID is resolved server-side from JWT
-      // Never send the ID from client to prevent IDOR
-      const { data, error: fnError } = await supabase.functions.invoke('updateFreelancerProfile', {
-        body: {
+      const { data: updated, error: updateError } = await supabase
+        .from('freelancers')
+        .update({
           name: form.name,
           role: form.role,
           status: form.status,
@@ -39,14 +38,14 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
           phone: form.phone,
           avatar_url: form.avatar_url,
           specialties: form.specialties,
-        },
-      });
+        })
+        .eq('id', freelancerProfile.id)
+        .select()
+        .single();
 
-      if (fnError || data?.error) {
-        throw new Error(data?.error || fnError?.message || 'Update failed');
-      }
+      if (updateError) throw new Error(updateError.message);
 
-      onProfileUpdate?.(data.profile);
+      onProfileUpdate?.(updated);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
