@@ -153,27 +153,40 @@ const auth = {
 
 const functions = {
   async invoke(name, payload = {}) {
-    // Explicitly get the session token to ensure it's sent with the request
-    const { data: { session } } = await supabase.auth.getSession();
-    const authHeaders = session?.access_token
-      ? { Authorization: `Bearer ${session.access_token}` }
-      : {};
+    // Get access token — try getSession, fallback to localStorage scan
+    let accessToken = null;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      accessToken = session?.access_token || null;
+    } catch (_) {}
 
-    const { data, error } = await supabase.functions.invoke(name, {
-      body: payload,
-      headers: authHeaders,
-    });
-    if (error) {
-      // Extract real error message from the function response body
+    if (!accessToken) {
+      // Fallback: scan localStorage for Supabase session token
       try {
-        const body = await error.context?.json?.();
-        if (body?.error) throw new Error(body.error);
-      } catch (inner) {
-        if (inner.message && inner.message !== error.message) throw inner;
-      }
-      throw error;
+        for (const key of Object.keys(localStorage)) {
+          if (key.includes('auth-token') || key.includes('supabase')) {
+            const val = JSON.parse(localStorage.getItem(key) || '{}');
+            accessToken = val?.access_token || val?.session?.access_token || null;
+            if (accessToken) break;
+          }
+        }
+      } catch (_) {}
     }
-    // Base44 retournait { data: ... }, on reproduit le même shape
+
+    // Direct fetch to bypass any Supabase client session issues
+    const url = `${supabaseUrl}/functions/v1/${name}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || `Function error ${res.status}`);
     return { data };
   },
 };
