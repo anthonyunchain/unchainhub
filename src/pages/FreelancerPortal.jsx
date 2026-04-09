@@ -926,10 +926,11 @@ export default function FreelancerPortal() {
           position: 'relative',
           zIndex: 1,
           maxWidth: '100%',
-          padding: '20px',
+          paddingLeft: '20px',
+          paddingRight: '20px',
           paddingTop: 'max(28px, env(safe-area-inset-top))',
         }}
-        className="pb-24 md:pb-5"
+        className="pb-20 md:pb-5"
       >
         {/* Topbar */}
         <nav style={{ padding: '0 0 20px 0', position: 'relative', zIndex: 10 }}>
@@ -1025,7 +1026,7 @@ export default function FreelancerPortal() {
           </div>
         </nav>
 
-        <main className="pb-20 md:pb-0">
+        <main>
           <div className="mx-auto" style={{ maxWidth: '1400px' }}>
             {activeTab !== 'dashboard' && (() => {
               const TAB_TITLES = {
