@@ -1025,7 +1025,7 @@ export default function FreelancerPortal() {
           </div>
         </nav>
 
-        <main>
+        <main className="pb-20 md:pb-0">
           <div className="mx-auto" style={{ maxWidth: '1400px' }}>
             {activeTab !== 'dashboard' && (() => {
               const TAB_TITLES = {
