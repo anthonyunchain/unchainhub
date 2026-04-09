@@ -27,10 +27,9 @@ function clientColor(name) {
 
 export default function Ideas({ currentUserId, currentUserName, isFreelancer = false }) {
   const [title, setTitle] = useState("");
-  const [notes, setNotes] = useState("");
   const [selectedClient, setSelectedClient] = useState("");
   const [filterClient, setFilterClient] = useState("all");
-  const [showNotes, setShowNotes] = useState(false);
+  const [showClient, setShowClient] = useState(false);
   const qc = useQueryClient();
 
   const { data: clients = [] } = useQuery({
@@ -69,7 +68,6 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
     setSaveError(null);
     const { error } = await supabase.from("ideas").insert({
       title: title.trim(),
-      notes: notes.trim() || null,
       client_name: selectedClient || null,
       likes: [],
       created_by_id: currentUserId || null,
@@ -78,9 +76,8 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
     setSaving(false);
     if (error) { setSaveError(error.message); return; }
     setTitle("");
-    setNotes("");
     setSelectedClient("");
-    setShowNotes(false);
+    setShowClient(false);
     qc.invalidateQueries({ queryKey: ["ideas"] });
   };
 
@@ -88,8 +85,8 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
     if (e.key !== "Enter") return;
     e.preventDefault();
     if (!title.trim()) return;
-    if (!showNotes) {
-      setShowNotes(true);
+    if (!showClient) {
+      setShowClient(true);
     } else {
       submitIdea();
     }
@@ -139,32 +136,22 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
           )}
         </div>
 
-        {showNotes && (
-          <div className="mt-3 pt-3 border-t border-slate-50 space-y-2">
-            <Input
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submitIdea(); } }}
-              placeholder="Add a note (optional)..."
-              className="border-0 shadow-none text-xs focus-visible:ring-0 px-0 text-slate-500 placeholder:text-slate-300"
-              autoFocus
-            />
-            <div className="flex items-center justify-between">
-              <Select value={selectedClient || "none"} onValueChange={v => setSelectedClient(v === "none" ? "" : v)}>
-                <SelectTrigger className="h-7 text-xs w-44 border-slate-100">
-                  <SelectValue placeholder="No client" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No client</SelectItem>
-                  {activeClients.map(c => (
-                    <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <button type="button" onClick={() => { setShowNotes(false); setNotes(""); setSelectedClient(""); }} className="text-slate-300 hover:text-slate-400">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+        {showClient && (
+          <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
+            <Select value={selectedClient || "none"} onValueChange={v => setSelectedClient(v === "none" ? "" : v)}>
+              <SelectTrigger className="h-7 text-xs w-44 border-slate-100">
+                <SelectValue placeholder="No client" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No client</SelectItem>
+                {activeClients.map(c => (
+                  <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button type="button" onClick={() => { setShowClient(false); setSelectedClient(""); }} className="text-slate-300 hover:text-slate-400">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
         {saveError && <p className="text-xs text-red-500 mt-2">{saveError}</p>}
@@ -222,9 +209,6 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
                 </span>
               )}
               <p className="text-sm font-medium text-slate-800 leading-snug">{idea.title}</p>
-              {idea.notes && (
-                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{idea.notes}</p>
-              )}
               <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-50">
                 <div className="flex items-center gap-2">
                   <button
