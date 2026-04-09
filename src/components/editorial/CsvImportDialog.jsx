@@ -79,11 +79,9 @@ export default function CsvImportDialog({ open, onOpenChange }) {
         title: row.title || row.titre || "",
         post_type: normalizeType(row.post_type || row.type || ""),
         scheduled_date: row.scheduled_date || row.date || null,
-        platform: row.platform || row.plateforme || "Instagram",
         status: normalizeStatus(row.status || row.statut || ""),
         description: row.description || "",
         notes: row.notes || "",
-        drive_link: row.drive_link || row.lien_drive || "",
       };
       try {
         await base44.entities.EditorialContent.create(record);
