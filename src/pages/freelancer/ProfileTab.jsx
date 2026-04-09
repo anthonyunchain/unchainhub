@@ -69,9 +69,11 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
           <span className={`inline-block mt-1.5 text-xs px-2.5 py-0.5 rounded-full border font-medium ${
             form.status === "Actif"
               ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+              : form.status === "En pause"
+              ? "bg-amber-100 text-amber-700 border-amber-200"
               : "bg-red-100 text-red-700 border-red-200"
           }`}>
-            {form.status === "Actif" ? "Available" : "Unavailable"}
+            {form.status === "Actif" ? "Available" : form.status === "En pause" ? "On pause" : "Unavailable"}
           </span>
         </div>
       </div>
@@ -91,9 +93,9 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
             Available
           </button>
           <button
-            onClick={() => setForm(f => ({ ...f, status: "Indisponible" }))}
+            onClick={() => setForm(f => ({ ...f, status: "Inactif" }))}
             className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-              form.status === "Indisponible"
+              form.status === "Inactif"
                 ? "bg-red-100 text-red-700 border-red-200"
                 : "border-slate-100 text-slate-400 hover:border-slate-200"
             }`}
