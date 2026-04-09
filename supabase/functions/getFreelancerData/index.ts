@@ -16,19 +16,22 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Verify caller via JWT
+    // Verify caller via JWT — use user-scoped client (recommended Supabase pattern)
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('[getFreelancerData] No auth header');
       return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
     }
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+
+    const supabaseUser = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: { user }, error: authErr } = await supabaseUser.auth.getUser();
     if (authErr || !user) {
       console.error('[getFreelancerData] Auth error:', authErr?.message);
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized', detail: authErr?.message }, { status: 401, headers: corsHeaders });
     }
-    console.log('[getFreelancerData] User:', user.email);
 
     // Get profile
     const { data: profile, error: profileErr } = await supabaseAdmin
