@@ -153,8 +153,15 @@ const auth = {
 
 const functions = {
   async invoke(name, payload = {}) {
+    // Explicitly get the session token to ensure it's sent with the request
+    const { data: { session } } = await supabase.auth.getSession();
+    const authHeaders = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : {};
+
     const { data, error } = await supabase.functions.invoke(name, {
       body: payload,
+      headers: authHeaders,
     });
     if (error) {
       // Extract real error message from the function response body
