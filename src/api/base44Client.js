@@ -6,6 +6,16 @@ const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// ─── SESSION CACHE ─────────────────────────────────────────────────────────
+// Cache the session at module level so it's always available for edge function calls
+let _cachedAccessToken = null;
+supabase.auth.getSession().then(({ data: { session } }) => {
+  if (session?.access_token) _cachedAccessToken = session.access_token;
+});
+supabase.auth.onAuthStateChange((_event, session) => {
+  _cachedAccessToken = session?.access_token || null;
+});
+
 
 // ─── MAPPING : nom d'entité Base44 → nom de table Supabase ────────────────
 const TABLE_MAP = {
@@ -153,27 +163,13 @@ const auth = {
 
 const functions = {
   async invoke(name, payload = {}) {
-    // Get access token — try getSession, fallback to localStorage scan
-    let accessToken = null;
-    try {
+    // Use cached token (set by onAuthStateChange), fallback to getSession
+    let accessToken = _cachedAccessToken;
+    if (!accessToken) {
       const { data: { session } } = await supabase.auth.getSession();
       accessToken = session?.access_token || null;
-    } catch (_) {}
-
-    if (!accessToken) {
-      // Fallback: scan localStorage for Supabase session token
-      try {
-        for (const key of Object.keys(localStorage)) {
-          if (key.includes('auth-token') || key.includes('supabase')) {
-            const val = JSON.parse(localStorage.getItem(key) || '{}');
-            accessToken = val?.access_token || val?.session?.access_token || null;
-            if (accessToken) break;
-          }
-        }
-      } catch (_) {}
     }
 
-    // Direct fetch to bypass any Supabase client session issues
     const url = `${supabaseUrl}/functions/v1/${name}`;
     const res = await fetch(url, {
       method: 'POST',
