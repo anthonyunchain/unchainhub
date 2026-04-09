@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
     const assignedProjects = [...(projectsByID || []), ...projectsByName];
 
     // Fetch editorial calendars visible to this specific freelancer
-    const editorialClientNames: string[] = freelancerProfile.editorial_client_names || [];
+    const editorialClientNames = (freelancerProfile.editorial_client_names || []) as string[];
     let visibleCalendars = [];
     if (editorialClientNames.length > 0) {
       const { data: visCalData } = await supabaseAdmin
