@@ -115,7 +115,7 @@ function SettingsDialog({ open, onOpenChange }) {
   );
 }
 
-export default function UserMenu({ userName, userEmail, initials }) {
+export default function UserMenu({ userName, userEmail, initials, onSettingsClick }) {
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const menuRef = useRef(null);
@@ -217,7 +217,7 @@ export default function UserMenu({ userName, userEmail, initials }) {
               </button>
 
               <button
-                onClick={() => { setOpen(false); setSettingsOpen(true); }}
+                onClick={() => { setOpen(false); onSettingsClick ? onSettingsClick() : setSettingsOpen(true); }}
                 style={{
                   width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 10,
                   background: "transparent", border: "none", cursor: "pointer", fontSize: "13px",

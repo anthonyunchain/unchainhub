@@ -966,7 +966,6 @@ export default function FreelancerPortal() {
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
                 { id: 'invoices', label: 'Invoices' },
-                { id: 'profile', label: 'Profile' },
               ].map(item => {
                 const isActive = activeTab === item.id;
                 return (
@@ -1012,6 +1011,7 @@ export default function FreelancerPortal() {
                 userName={freelancerName}
                 userEmail={user?.email}
                 initials={freelancerName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'US'}
+                onSettingsClick={() => setActiveTab('profile')}
               />
             </div>
 
@@ -1023,6 +1023,7 @@ export default function FreelancerPortal() {
                 userName={freelancerName}
                 userEmail={user?.email}
                 initials={freelancerName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'US'}
+                onSettingsClick={() => setActiveTab('profile')}
               />
             </div>
           </div>
