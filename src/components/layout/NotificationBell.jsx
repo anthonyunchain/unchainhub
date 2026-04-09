@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/api/base44Client";
-import { Bell, Check } from "lucide-react";
+import { Bell, Check, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 const TYPE_ICONS = {
@@ -74,6 +74,11 @@ export default function NotificationBell({ recipientId }) {
   const markAllRead = async () => {
     await supabase.from('notifications').update({ is_read: true }).eq('recipient_id', recipientId).eq('is_read', false);
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+  };
+
+  const deleteNotification = async (id) => {
+    await supabase.from('notifications').delete().eq('id', id);
+    setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
   const unread = notifications.filter(n => !n.is_read).length;
@@ -191,7 +196,6 @@ export default function NotificationBell({ recipientId }) {
                     transition: 'background 150ms',
                   }}
                 >
-                  <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{TYPE_ICONS[n.type] || '🔔'}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                       <p style={{
@@ -200,9 +204,19 @@ export default function NotificationBell({ recipientId }) {
                         fontFamily: "'Plus Jakarta Sans', sans-serif",
                         margin: 0, lineHeight: 1.3,
                       }}>{n.title}</p>
-                      {!n.is_read && (
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--brand)', flexShrink: 0 }} />
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                        {!n.is_read && (
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--brand)' }} />
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--muted)', opacity: 0.4, display: 'flex' }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                          onMouseLeave={e => e.currentTarget.style.opacity = '0.4'}
+                        >
+                          <Trash2 style={{ width: 12, height: 12, color: '#ef4444' }} />
+                        </button>
+                      </div>
                     </div>
                     <p style={{
                       fontSize: 11, color: 'var(--muted)',
