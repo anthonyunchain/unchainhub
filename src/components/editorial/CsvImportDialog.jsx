@@ -69,15 +69,16 @@ export default function CsvImportDialog({ open, onOpenChange }) {
     if (!rows.length) return;
     setImporting(true);
     setResult(null);
-    let success = 0; let failed = 0;
+    setError("");
+    let success = 0; let failed = 0; let firstError = "";
     for (const row of rows) {
       const clientName = clientOverride || row.client_name || "";
-      if (!clientName) { failed++; continue; }
+      if (!clientName) { failed++; if (!firstError) firstError = "Missing client_name in one or more rows."; continue; }
       const record = {
         client_name: clientName,
         title: row.title || row.titre || "",
         post_type: normalizeType(row.post_type || row.type || ""),
-        scheduled_date: row.scheduled_date || row.date || "",
+        scheduled_date: row.scheduled_date || row.date || null,
         platform: row.platform || row.plateforme || "Instagram",
         status: normalizeStatus(row.status || row.statut || ""),
         description: row.description || "",
@@ -87,10 +88,14 @@ export default function CsvImportDialog({ open, onOpenChange }) {
       try {
         await base44.entities.EditorialContent.create(record);
         success++;
-      } catch { failed++; }
+      } catch (e) {
+        failed++;
+        if (!firstError) firstError = e?.message || JSON.stringify(e);
+      }
     }
     qc.invalidateQueries({ queryKey: ["editorial"] });
     setResult({ success, failed });
+    if (firstError && failed > 0) setError(`Error: ${firstError}`);
     setImporting(false);
     setRows([]);
   };
