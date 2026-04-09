@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Upload, X, ExternalLink, Trash2, GripVertical, Settings2, Check, Users } from "lucide-react";
+import { Plus, Upload, X, ExternalLink, Trash2, GripVertical, Settings2, Check, Users, UserPlus, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import Invoices from "./Invoices";
 import Finance from "./Finance";
@@ -655,7 +655,44 @@ function UserManagement() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ email: "", client_id: "" });
+  const [inviting, setInviting] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState("");
   const qc = useQueryClient();
+
+  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
+  const activeClients = clients.filter(c => c.status === "Actif").sort((a, b) => a.company_name?.localeCompare(b.company_name));
+
+  const openInvite = () => {
+    setInviteForm({ email: "", client_id: "" });
+    setInviteMsg("");
+    setInviteOpen(true);
+  };
+
+  const handleInvite = async () => {
+    if (!inviteForm.email || !inviteForm.client_id) return;
+    const client = clients.find(c => c.id === inviteForm.client_id);
+    setInviting(true);
+    setInviteMsg("");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('inviteClient', {
+        body: { email: inviteForm.email, company_name: client?.company_name },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error || data?.error) {
+        setInviteMsg("Error: " + (data?.error || error?.message));
+      } else {
+        setInviteMsg("Invitation sent successfully!");
+        qc.invalidateQueries({ queryKey: ["profiles"] });
+      }
+    } catch (e) {
+      setInviteMsg("Error: " + (e?.message || "Unknown error"));
+    } finally {
+      setInviting(false);
+    }
+  };
 
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: ["profiles"],
@@ -712,6 +749,9 @@ function UserManagement() {
   return (
     <div>
       <PageHeader title="Users" subtitle="Governance & operations">
+        <Button variant="outline" onClick={openInvite} className="h-9">
+          <UserPlus className="w-4 h-4 mr-1" />New client profile
+        </Button>
         <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
           <Plus className="w-4 h-4 mr-1" />New user
         </Button>
@@ -749,6 +789,37 @@ function UserManagement() {
           </tbody>
         </table>
       </div>
+
+      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteMsg(""); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><UserPlus className="w-5 h-5 text-blue-500" />New client profile</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-slate-500">Select a client and enter their email. They'll receive an invitation to set their password and access their portal.</p>
+            <div>
+              <Label>Client *</Label>
+              <Select value={inviteForm.client_id} onValueChange={v => setInviteForm({ ...inviteForm, client_id: v, email: clients.find(c => c.id === v)?.contact_email || inviteForm.email })}>
+                <SelectTrigger><SelectValue placeholder="Select a client..." /></SelectTrigger>
+                <SelectContent>
+                  {activeClients.map(c => <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Email *</Label>
+              <Input type="email" value={inviteForm.email} onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })} placeholder="client@company.com" />
+            </div>
+            {inviteMsg && (
+              <p className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith('Error') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>{inviteMsg}</p>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+              <Button onClick={handleInvite} disabled={inviting || !inviteForm.email || !inviteForm.client_id || inviteMsg.startsWith('Invitation')} className="bg-brand hover:bg-brand/90 text-brand-foreground">
+                <Send className="w-4 h-4 mr-1.5" />{inviting ? "Sending..." : "Send invitation"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
