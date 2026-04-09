@@ -65,10 +65,10 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange, userId }) 
     <div className="space-y-4">
       {/* Greeting & Time */}
       <div>
-        <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '28px', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.5px' }}>
+        <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 'clamp(22px, 6.5vw, 28px)', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.5px', lineHeight: 1.2 }}>
           {greeting}
         </h2>
-        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginTop: 6, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginTop: 6, letterSpacing: '0.12em', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {today}
         </p>
       </div>
@@ -93,15 +93,15 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange, userId }) 
               assigned
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
             {[
-              { label: 'Pending Projects', value: projects.filter(p => p.status === 'Pending acceptance').length },
+              { label: 'Pending', value: projects.filter(p => p.status === 'Pending acceptance').length },
               { label: 'In Progress', value: ongoingProjects.length },
-              { label: 'Total Completed', value: projects.filter(p => p.status === 'Completed').length },
+              { label: 'Completed', value: projects.filter(p => p.status === 'Completed').length },
             ].map(s => (
-              <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 12px' }}>
+              <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 8px', minWidth: 0 }}>
                 <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '18px', fontWeight: 700, color: '#fff' }}>{s.value}</p>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{s.label}</p>
+                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.55)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</p>
               </div>
             ))}
           </div>
@@ -169,10 +169,10 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange, userId }) 
           background: 'var(--card)',
           borderRadius: 'var(--card-radius)',
           boxShadow: 'var(--card-shadow)',
-          padding: '24px',
+          padding: '20px',
           display: 'flex',
           flexDirection: 'column',
-          height: 420,
+          height: 'clamp(280px, 55vw, 420px)',
           overflow: 'hidden',
           transition: 'box-shadow 200ms ease, transform 200ms ease',
         }}
@@ -207,10 +207,10 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange, userId }) 
           background: 'var(--card)',
           borderRadius: 'var(--card-radius)',
           boxShadow: 'var(--card-shadow)',
-          padding: '24px',
+          padding: '20px',
           display: 'flex',
           flexDirection: 'column',
-          height: 420,
+          height: 'clamp(280px, 55vw, 420px)',
           overflow: 'hidden',
           transition: 'box-shadow 200ms ease, transform 200ms ease',
         }}
@@ -245,10 +245,10 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange, userId }) 
           background: 'var(--card)',
           borderRadius: 'var(--card-radius)',
           boxShadow: 'var(--card-shadow)',
-          padding: '24px',
+          padding: '20px',
           display: 'flex',
           flexDirection: 'column',
-          height: 420,
+          height: 'clamp(280px, 55vw, 420px)',
           overflow: 'hidden',
           transition: 'box-shadow 200ms ease, transform 200ms ease',
         }}
@@ -916,7 +916,7 @@ export default function FreelancerPortal() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', overflowX: 'hidden' }}>
       {/* Background blobs — hidden on mobile for perf */}
       <div className="hidden md:block" style={{ position: 'fixed', top: '-80px', right: '-80px', width: 400, height: 400, borderRadius: '50%', background: 'rgba(42,105,255,0.12)', filter: 'blur(80px)', pointerEvents: 'none', zIndex: 0 }} />
       <div className="hidden md:block" style={{ position: 'fixed', bottom: '-60px', left: '-60px', width: 350, height: 350, borderRadius: '50%', background: 'rgba(168,130,255,0.10)', filter: 'blur(80px)', pointerEvents: 'none', zIndex: 0 }} />
@@ -927,11 +927,12 @@ export default function FreelancerPortal() {
           position: 'relative',
           zIndex: 1,
           maxWidth: '100%',
-          paddingLeft: '20px',
-          paddingRight: '20px',
+          paddingLeft: 'max(16px, env(safe-area-inset-left))',
+          paddingRight: 'max(16px, env(safe-area-inset-right))',
           paddingTop: 'max(28px, env(safe-area-inset-top))',
+          paddingBottom: 'max(96px, calc(env(safe-area-inset-bottom) + 64px))',
         }}
-        className="pb-20 md:pb-5"
+        className="md:pb-5"
       >
         {/* Topbar */}
         <nav style={{ padding: '0 0 20px 0', position: 'relative', zIndex: 10 }}>
@@ -1091,7 +1092,7 @@ export default function FreelancerPortal() {
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950 border-t border-slate-800 flex md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950 border-t border-slate-800 flex md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {[
           { id: "dashboard",   label: "Home",      Icon: LayoutDashboard },
           { id: "myprojects",  label: "Projects",  Icon: Briefcase },
