@@ -473,7 +473,7 @@ function CalendarsTab({ visibleCalendars: initialCalendars }) {
   const [localItems, setLocalItems] = useState(initialCalendars || []);
 
   const monthItems = localItems
-    .filter(c => c.scheduled_date?.startsWith(currentMonth))
+    .filter(c => c.scheduled_date?.startsWith(currentMonth) && c.status !== 'Publié')
     .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
 
   const byClient = {};
