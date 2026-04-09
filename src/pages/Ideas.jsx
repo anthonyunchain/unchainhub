@@ -60,9 +60,13 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
       ? ideas.filter(i => !i.client_name)
       : ideas.filter(i => i.client_name === filterClient);
 
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    if (!title.trim()) return;
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
+  const submitIdea = async () => {
+    if (!title.trim() || saving) return;
+    setSaving(true);
+    setSaveError(null);
     const { error } = await supabase.from("ideas").insert({
       title: title.trim(),
       notes: notes.trim() || null,
@@ -71,12 +75,23 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
       created_by_id: currentUserId || null,
       created_by_name: currentUserName || null,
     });
-    if (!error) {
-      setTitle("");
-      setNotes("");
-      setSelectedClient("");
-      setShowNotes(false);
-      qc.invalidateQueries({ queryKey: ["ideas"] });
+    setSaving(false);
+    if (error) { setSaveError(error.message); return; }
+    setTitle("");
+    setNotes("");
+    setSelectedClient("");
+    setShowNotes(false);
+    qc.invalidateQueries({ queryKey: ["ideas"] });
+  };
+
+  const handleTitleKeyDown = (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (!title.trim()) return;
+    if (!showNotes) {
+      setShowNotes(true);
+    } else {
+      submitIdea();
     }
   };
 
@@ -101,19 +116,22 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
       )}
 
       {/* Quick add */}
-      <form onSubmit={handleAdd} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-6">
-        <div className="flex gap-2">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-6">
+        <div className="flex gap-2 items-center">
           <Input
             value={title}
             onChange={e => setTitle(e.target.value)}
-            placeholder="Drop an idea... press Enter to save"
+            onKeyDown={handleTitleKeyDown}
+            placeholder="Drop an idea… Enter to expand, Enter again to save"
             className="flex-1 border-0 shadow-none text-sm focus-visible:ring-0 px-0 placeholder:text-slate-300"
-            onFocus={() => setShowNotes(true)}
+            autoFocus
           />
           {title.trim() && (
             <button
-              type="submit"
-              className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-white"
+              type="button"
+              onClick={submitIdea}
+              disabled={saving}
+              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white disabled:opacity-50"
               style={{ background: "var(--brand)" }}
             >
               <Plus className="w-4 h-4" />
@@ -126,8 +144,10 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
             <Input
               value={notes}
               onChange={e => setNotes(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submitIdea(); } }}
               placeholder="Add a note (optional)..."
               className="border-0 shadow-none text-xs focus-visible:ring-0 px-0 text-slate-500 placeholder:text-slate-300"
+              autoFocus
             />
             <div className="flex items-center justify-between">
               <Select value={selectedClient || "none"} onValueChange={v => setSelectedClient(v === "none" ? "" : v)}>
@@ -147,7 +167,8 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
             </div>
           </div>
         )}
-      </form>
+        {saveError && <p className="text-xs text-red-500 mt-2">{saveError}</p>}
+      </div>
 
       {/* Filters */}
       {ideas.length > 0 && (
@@ -194,7 +215,7 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
           const canDelete = !isFreelancer || idea.created_by_id === currentUserId;
 
           return (
-            <div key={idea.id} className="break-inside-avoid bg-white rounded-xl border border-slate-100 shadow-sm p-4 group">
+            <div key={idea.id} className="break-inside-avoid bg-white rounded-xl border border-slate-100 shadow-sm p-4">
               {idea.client_name && (
                 <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mb-2 ${clientColor(idea.client_name)}`}>
                   {idea.client_name}
@@ -226,9 +247,9 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
                   {canDelete && (
                     <button
                       onClick={() => handleDelete(idea.id)}
-                      className="opacity-0 group-hover:opacity-100 text-slate-200 hover:text-red-400 transition-all"
+                      className="text-slate-200 hover:text-red-400 transition-colors"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
