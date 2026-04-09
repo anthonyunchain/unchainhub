@@ -183,7 +183,6 @@ export default function AdminNotifications({ adminId }) {
             className={`rounded-xl border p-4 cursor-pointer transition-all group ${n.is_read ? "bg-white border-slate-100 opacity-70" : "bg-blue-50 border-blue-100"} ${n.action_required && !n.is_read ? "border-l-4 border-l-amber-400" : ""}`}
           >
             <div className="flex items-start gap-3">
-              <span className="text-lg shrink-0">{TYPE_ICONS[n.type] || "🔔"}</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <p className={`text-sm font-semibold ${n.is_read ? "text-slate-600" : "text-slate-900"}`}>{n.title}</p>
