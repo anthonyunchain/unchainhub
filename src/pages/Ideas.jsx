@@ -130,12 +130,12 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
               className="border-0 shadow-none text-xs focus-visible:ring-0 px-0 text-slate-500 placeholder:text-slate-300"
             />
             <div className="flex items-center justify-between">
-              <Select value={selectedClient} onValueChange={setSelectedClient}>
+              <Select value={selectedClient || "none"} onValueChange={v => setSelectedClient(v === "none" ? "" : v)}>
                 <SelectTrigger className="h-7 text-xs w-44 border-slate-100">
                   <SelectValue placeholder="No client" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No client</SelectItem>
+                  <SelectItem value="none">No client</SelectItem>
                   {activeClients.map(c => (
                     <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>
                   ))}
