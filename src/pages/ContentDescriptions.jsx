@@ -25,6 +25,8 @@ export default function ContentDescriptions() {
   const [filterType, setFilterType] = useState("all");
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState("");
+  const [expandedIds, setExpandedIds] = useState(new Set());
+  const toggleExpand = (id) => setExpandedIds(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
   const qc = useQueryClient();
 
   const { data: content = [] } = useQuery({ queryKey: ["editorial"], queryFn: () => base44.entities.EditorialContent.list() });
@@ -125,9 +127,20 @@ export default function ContentDescriptions() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">
-                    {c.description || <span className="text-slate-300 italic">No description</span>}
-                  </p>
+                  <div className="mt-1">
+                    {c.description ? (
+                      <>
+                        <p className={`text-sm text-slate-600 whitespace-pre-wrap ${expandedIds.has(c.id) ? '' : 'line-clamp-3'}`}>
+                          {c.description}
+                        </p>
+                        <button onClick={() => toggleExpand(c.id)} className="text-xs text-slate-400 hover:text-slate-600 mt-1">
+                          {expandedIds.has(c.id) ? '↑ Show less' : '↓ Show more'}
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-slate-300 italic text-sm">No description</span>
+                    )}
+                  </div>
                 )}
               </div>
 

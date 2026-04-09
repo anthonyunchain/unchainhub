@@ -471,6 +471,8 @@ function CalendarsTab({ visibleCalendars: initialCalendars }) {
   const [descValue, setDescValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [localItems, setLocalItems] = useState(initialCalendars || []);
+  const [expandedIds, setExpandedIds] = useState(new Set());
+  const toggleExpand = (id) => setExpandedIds(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
   const monthItems = localItems
     .filter(c => c.scheduled_date?.startsWith(currentMonth) && c.status !== 'Publié')
@@ -544,7 +546,12 @@ function CalendarsTab({ visibleCalendars: initialCalendars }) {
                           <p className="text-sm font-medium text-slate-800 truncate flex-1">{item.title || "Untitled"}</p>
                         </div>
                         {item.description ? (
-                          <p className="text-xs text-slate-500 mt-1.5 line-clamp-2">{item.description}</p>
+                          <div className="mt-1.5">
+                            <p className={`text-xs text-slate-500 whitespace-pre-wrap ${expandedIds.has(item.id) ? '' : 'line-clamp-2'}`}>{item.description}</p>
+                            <button onClick={() => toggleExpand(item.id)} className="text-[10px] text-slate-300 hover:text-slate-500 mt-0.5">
+                              {expandedIds.has(item.id) ? '↑ less' : '↓ more'}
+                            </button>
+                          </div>
                         ) : (
                           <p className="text-xs text-slate-300 mt-1.5 italic">No description yet</p>
                         )}
