@@ -17,8 +17,10 @@ import Services from "./Services";
 import Reports from "./Reports";
 import Pipeline from "./Pipeline";
 import Contracts from "./Contracts";
+import Ideas from "./Ideas";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
+import { useAuth } from "@/lib/AuthContext";
 
 
 // ─── BOARD MEETINGS ─────────────────────────────────────────────────────────
@@ -1006,7 +1008,7 @@ function Subscriptions() {
 
 // ─── PERMISSIONS ─────────────────────────────────────────────────────────────
 const FREELANCER_PERMISSIONS = [
-  { key: 'calendar', label: 'Calendar', icon: CalendarDays, description: 'Access to editorial calendar & captions' },
+  { key: 'ideas_access', label: 'Ideas', icon: Shield, description: 'Access to the brainstorm ideas board' },
 ];
 
 const CLIENT_PERMISSIONS = [
@@ -1133,6 +1135,23 @@ function Permissions() {
                       );
                     })}
                   </div>
+
+                  {/* Feature permissions */}
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-4 mb-2 flex items-center gap-1.5">
+                    <Shield className="w-3 h-3" /> Feature access
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {FREELANCER_PERMISSIONS.map(perm => (
+                      <PermissionToggle
+                        key={perm.key}
+                        enabled={!!fl[perm.key]}
+                        onClick={() => updateFreelancer.mutate({ id: fl.id, d: { ...fl, [perm.key]: !fl[perm.key] } })}
+                        label={perm.label}
+                        icon={perm.icon}
+                        description={perm.description}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             );
@@ -1198,6 +1217,7 @@ const DEFAULT_NAV_ITEMS = [
   { id: 'contracts',    label: 'Contracts' },
   { id: 'users',        label: 'Users' },
   { id: 'permissions',  label: 'Permissions' },
+  { id: 'ideas',        label: 'Ideas' },
 ];
 
 const ADMIN_NAV_KEY = "admin_nav_order_v2";
@@ -1217,6 +1237,7 @@ function loadAdminNav() {
 }
 
 export default function Admin() {
+  const { user } = useAuth();
   const [section, setSection] = useState('tasks');
   const [navItems, setNavItems] = useState(loadAdminNav);
   const [editingNav, setEditingNav] = useState(false);
@@ -1365,6 +1386,7 @@ export default function Admin() {
           {section === 'contracts'    && <Contracts />}
           {section === 'users'        && <UserManagement />}
           {section === 'permissions'  && <Permissions />}
+          {section === 'ideas'        && <Ideas currentUserId={user?.id} currentUserName={user?.full_name || user?.email} />}
         </div>
 
       </div>

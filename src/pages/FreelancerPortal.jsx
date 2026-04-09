@@ -7,8 +7,9 @@ import { getGreeting } from "@/lib/greeting";
 import {
   FileText, CalendarDays, FileCheck, Wrench, Upload, ExternalLink,
   Clock, CheckCircle2, Square, AlertTriangle, FolderOpen, ClipboardList,
-  LayoutDashboard, User, Bell, Briefcase, Plus, Trash2, ListTodo
+  LayoutDashboard, User, Bell, Briefcase, Plus, Trash2, ListTodo, Lightbulb
 } from "lucide-react";
+import Ideas from "./Ideas";
 
 import FreelancerSidebar from "@/components/freelancer/FreelancerSidebar";
 import UserMenu from "@/components/layout/UserMenu";
@@ -902,6 +903,7 @@ export default function FreelancerPortal() {
       case "myprojects": return <FreelancerProjects projects={myProjects} onRefresh={handleProjectUpdate} freelancerName={freelancerName} />;
       case "projects": return <ProjectsTab projects={editorialProjects} onProjectUpdate={handleProjectUpdate} />;
       case "calendar": return <CalendarsTab visibleCalendars={visibleCalendars} />;
+      case "ideas": return <Ideas currentUserId={user?.id} currentUserName={profile?.name || user?.email} isFreelancer={true} />;
       case "tools": return <ToolsTab tools={tools} />;
       case "meetings": return <MeetingsTab meetings={meetings} />;
       case "invoices": return <InvoicesTab payments={payments} freelancerName={freelancerName} freelancerId={profile?.id} onPaymentAdded={handlePaymentAdded} />;
@@ -958,6 +960,7 @@ export default function FreelancerPortal() {
                 { id: 'tasks', label: 'Tasks' },
                 { id: 'myprojects', label: 'Projects' },
                 { id: 'projects', label: 'Calendar' },
+                ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas' }] : []),
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
                 { id: 'invoices', label: 'Invoices' },
@@ -1031,6 +1034,7 @@ export default function FreelancerPortal() {
                 myprojects:  { title: 'Projects',        subtitle: 'Projects assigned to you' },
                 projects:    { title: 'Editorial Calendar', subtitle: 'Content schedule & captions' },
                 calendar:    { title: 'Captions',        subtitle: 'Write & edit captions for your assigned calendars' },
+                ideas:       { title: 'Ideas',           subtitle: 'Brainstorm content ideas' },
                 tools:       { title: 'Tools',           subtitle: 'Your tools & resources' },
                 meetings:    { title: 'Meetings',        subtitle: 'Upcoming & past meetings' },
                 invoices:    { title: 'Invoices',        subtitle: 'Your payment history' },
