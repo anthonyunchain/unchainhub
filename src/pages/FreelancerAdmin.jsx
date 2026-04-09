@@ -25,12 +25,21 @@ function FreelancerProfiles() {
   const qc = useQueryClient();
 
   const { data: freelancers = [] } = useQuery({ queryKey: ["freelancers"], queryFn: () => base44.entities.Freelancer.list() });
+  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.filter({ status: "Actif" }) });
 
   const createMut = useMutation({ mutationFn: (d) => base44.entities.Freelancer.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); }, onError: (e) => alert("Erreur création : " + (e?.message || e)) });
   const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); }, onError: (e) => alert("Erreur mise à jour : " + (e?.message || e)) });
   const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Freelancer.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancers"] }), onError: (e) => alert("Erreur suppression : " + (e?.message || e)) });
 
-  const empty = { name: "", email: "", role: "", status: "Actif", notes: "", contract_url: "" };
+  const empty = { name: "", email: "", role: "", status: "Actif", notes: "", contract_url: "", editorial_client_names: [] };
+
+  const toggleEditorialClient = (clientName) => {
+    const current = data.editorial_client_names || [];
+    const updated = current.includes(clientName)
+      ? current.filter(n => n !== clientName)
+      : [...current, clientName];
+    setData(d => ({ ...d, editorial_client_names: updated }));
+  };
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (f) => { setData({ ...f }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
@@ -109,6 +118,43 @@ function FreelancerProfiles() {
                 </div>
               </div>
               <div><Label>Notes</Label><Textarea value={data.notes || ""} onChange={e => setData({ ...data, notes: e.target.value })} rows={2} /></div>
+
+              {/* Editorial calendar visibility */}
+              <div>
+                <Label className="flex items-center gap-2 mb-2">
+                  <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+                  Calendriers édito visibles
+                </Label>
+                {clients.length === 0 ? (
+                  <p className="text-xs text-slate-400">Aucun client actif</p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-1.5 max-h-36 overflow-y-auto pr-1">
+                    {clients.map(c => {
+                      const isVisible = (data.editorial_client_names || []).includes(c.company_name);
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => toggleEditorialClient(c.company_name)}
+                          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
+                            isVisible
+                              ? 'border-blue-300 bg-blue-50 text-blue-800'
+                              : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${isVisible ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
+                            {isVisible && <Check className="w-2.5 h-2.5 text-white" />}
+                          </div>
+                          <span className="truncate">{c.company_name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-[10px] text-slate-400 mt-1.5">
+                  Le freelancer ne verra que les calendriers sélectionnés.
+                </p>
+              </div>
 
               {data.email && !data.id && (
                 <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700">
