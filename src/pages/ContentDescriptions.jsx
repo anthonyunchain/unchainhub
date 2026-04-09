@@ -49,6 +49,7 @@ export default function ContentDescriptions() {
   const currentMonth = format(new Date(), "yyyy-MM");
   const filtered = content
     .filter(c => c.scheduled_date?.startsWith(currentMonth))
+    .filter(c => c.status !== "Publié")
     .filter(c => filterClient === "all" || c.client_name === filterClient)
     .filter(c => filterType === "all" || c.post_type === filterType)
     .sort((a, b) => new Date(a.scheduled_date || 0) - new Date(b.scheduled_date || 0));
