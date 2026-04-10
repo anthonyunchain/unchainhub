@@ -86,141 +86,134 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
   ];
   const currentStatus = statusOptions.find(o => o.val === form.status) || statusOptions[0];
 
+  const cardHeader = (Icon, title) => (
+    <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-50">
+      <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+        <Icon className="w-3 h-3 text-slate-500" />
+      </div>
+      <span className="text-[11px] font-bold text-slate-600 uppercase tracking-widest">{title}</span>
+    </div>
+  );
+
+  const fieldLabel = (text) => (
+    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{text}</label>
+  );
+
   return (
-    <div className="h-full flex items-start justify-center py-4 px-4">
-      <div className="w-full max-w-4xl grid grid-cols-2 gap-4 h-full" style={{ maxHeight: 'calc(100vh - 140px)' }}>
+    <div className="h-full flex items-center justify-center py-5 px-8">
+      {/* 2×2 symmetric grid */}
+      <div className="w-full grid grid-cols-2 grid-rows-2 gap-4"
+           style={{ maxWidth: 1100, height: 'calc(100vh - 160px)' }}>
 
-        {/* ── LEFT COLUMN ─────────────────────────────────── */}
-        <div className="flex flex-col gap-4 min-h-0">
-
-          {/* Identity card */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3 shrink-0">
-            <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center text-white text-lg font-bold shrink-0">
-              {initial}
-            </div>
-            <div className="min-w-0">
-              <p className="font-bold text-slate-800 truncate">{form.name || "—"}</p>
-              <p className="text-xs text-slate-400 truncate">{user?.email}</p>
-            </div>
-            <span className={`ml-auto shrink-0 text-[10px] font-semibold px-2.5 py-1 rounded-full ${currentStatus.active}`}>
-              {currentStatus.label}
-            </span>
-          </div>
-
-          {/* Availability */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden shrink-0">
-            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-50">
-              <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center">
-                <User className="w-3 h-3 text-slate-500" />
+        {/* ── TOP-LEFT : Identity + Availability ── */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
+          {cardHeader(User, "Identity")}
+          <div className="flex-1 p-5 flex flex-col justify-between">
+            {/* Avatar row */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-white text-xl font-bold shrink-0">
+                {initial}
               </div>
-              <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Availability</span>
+              <div className="min-w-0">
+                <p className="font-bold text-slate-800 text-base truncate">{form.name || "—"}</p>
+                <p className="text-xs text-slate-400 truncate mt-0.5">{user?.email}</p>
+                <span className={`inline-block mt-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full ${currentStatus.active}`}>
+                  {currentStatus.label}
+                </span>
+              </div>
             </div>
-            <div className="p-3 flex gap-2">
-              {statusOptions.map(({ val, label, active }) => (
-                <button key={val} onClick={() => setForm(f => ({ ...f, status: val }))}
-                  className={`flex-1 py-2 rounded-xl border-2 text-xs font-semibold transition-all ${
-                    form.status === val ? active : "border-slate-100 text-slate-400 hover:border-slate-200 bg-white"
-                  }`}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Profile form */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-0 flex-1">
-            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-50 shrink-0">
-              <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center">
-                <Briefcase className="w-3 h-3 text-slate-500" />
+            {/* Availability toggle */}
+            <div className="space-y-2">
+              {fieldLabel("Availability")}
+              <div className="flex gap-2">
+                {statusOptions.map(({ val, label, active }) => (
+                  <button key={val} onClick={() => setForm(f => ({ ...f, status: val }))}
+                    className={`flex-1 py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
+                      form.status === val ? active : "border-slate-100 text-slate-400 hover:border-slate-200 bg-white"
+                    }`}>
+                    {label}
+                  </button>
+                ))}
               </div>
-              <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Profile</span>
-            </div>
-            <div className="p-4 flex flex-col gap-3 flex-1 min-h-0">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Display name</label>
-                  <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="h-8 text-sm" maxLength={100} />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Role / Title</label>
-                  <Input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="Video Editor…" className="h-8 text-sm" maxLength={100} />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Phone</label>
-                <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+1 …" className="h-8 text-sm" maxLength={30} />
-              </div>
-              <div className="space-y-1 flex-1 flex flex-col min-h-0">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Bio</label>
-                <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="Specialties, tools, experience…" maxLength={2000}
-                  className="text-sm resize-none flex-1 min-h-0" style={{ minHeight: 0 }} />
-              </div>
-
-              {error && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
-
-              <button onClick={handleSave} disabled={saving}
-                className={`h-9 w-full rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all shrink-0 ${
-                  saved ? "bg-emerald-500 text-white" : "bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-60"
-                }`}>
-                {saved ? <><CheckCircle2 className="w-4 h-4" /> Saved!</>
-                  : saving ? "Saving…"
-                  : <><Save className="w-4 h-4" /> Save profile</>}
-              </button>
             </div>
           </div>
         </div>
 
-        {/* ── RIGHT COLUMN ────────────────────────────────── */}
-        <div className="flex flex-col gap-4">
-
-          {/* Email */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-50">
-              <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center">
-                <Mail className="w-3 h-3 text-slate-500" />
-              </div>
-              <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Email address</span>
-            </div>
-            <div className="p-4 space-y-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Email</label>
-                <Input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} className="h-8 text-sm" />
+        {/* ── TOP-RIGHT : Email ── */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
+          {cardHeader(Mail, "Email address")}
+          <div className="flex-1 p-5 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                {fieldLabel("Email")}
+                <Input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} className="h-9 text-sm" />
               </div>
               <Msg msg={emailMsg} />
-              <button onClick={handleEmailChange} disabled={!newEmail || newEmail === user?.email || emailLoading}
-                className="w-full h-9 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-colors">
-                {emailLoading ? "Sending…" : "Update email"}
-              </button>
             </div>
+            <button onClick={handleEmailChange} disabled={!newEmail || newEmail === user?.email || emailLoading}
+              className="w-full h-10 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-colors">
+              {emailLoading ? "Sending…" : "Update email"}
+            </button>
           </div>
+        </div>
 
-          {/* Password */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-50">
-              <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center">
-                <Lock className="w-3 h-3 text-slate-500" />
+        {/* ── BOTTOM-LEFT : Profile form ── */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
+          {cardHeader(Briefcase, "Profile")}
+          <div className="flex-1 p-5 flex flex-col gap-3 min-h-0">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                {fieldLabel("Display name")}
+                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="h-9 text-sm" maxLength={100} />
               </div>
-              <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Password</span>
+              <div className="space-y-1.5">
+                {fieldLabel("Role / Title")}
+                <Input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="Video Editor…" className="h-9 text-sm" maxLength={100} />
+              </div>
             </div>
-            <div className="p-4 space-y-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">New password</label>
-                <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" className="h-8 text-sm" />
+            <div className="space-y-1.5">
+              {fieldLabel("Phone")}
+              <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+1 …" className="h-9 text-sm" maxLength={30} />
+            </div>
+            <div className="space-y-1.5 flex-1 flex flex-col min-h-0">
+              {fieldLabel("Bio")}
+              <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Specialties, tools, experience…" maxLength={2000}
+                className="text-sm resize-none flex-1 min-h-0" style={{ minHeight: 0 }} />
+            </div>
+            {error && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-xl shrink-0">{error}</p>}
+            <button onClick={handleSave} disabled={saving}
+              className={`h-10 w-full rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all shrink-0 ${
+                saved ? "bg-emerald-500 text-white" : "bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-60"
+              }`}>
+              {saved ? <><CheckCircle2 className="w-4 h-4" /> Saved!</> : saving ? "Saving…" : <><Save className="w-4 h-4" /> Save profile</>}
+            </button>
+          </div>
+        </div>
+
+        {/* ── BOTTOM-RIGHT : Password ── */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
+          {cardHeader(Lock, "Password")}
+          <div className="flex-1 p-5 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                {fieldLabel("New password")}
+                <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" className="h-9 text-sm" />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Confirm password</label>
-                <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" className="h-8 text-sm" />
+              <div className="space-y-1.5">
+                {fieldLabel("Confirm password")}
+                <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" className="h-9 text-sm" />
               </div>
               <Msg msg={passwordMsg} />
-              <button onClick={handlePasswordChange} disabled={!newPassword || !confirmPassword || passwordLoading}
-                className="w-full h-9 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-colors">
-                {passwordLoading ? "Updating…" : "Update password"}
-              </button>
             </div>
+            <button onClick={handlePasswordChange} disabled={!newPassword || !confirmPassword || passwordLoading}
+              className="w-full h-10 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-colors">
+              {passwordLoading ? "Updating…" : "Update password"}
+            </button>
           </div>
-
         </div>
+
       </div>
     </div>
   );
