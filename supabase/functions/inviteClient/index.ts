@@ -41,17 +41,47 @@ Deno.serve(async (req) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return Response.json({ error: 'Invalid email address' }, { headers: corsHeaders });
 
-    // Invite the user via Supabase Auth
+    // Try to invite the user
     const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       data: { company_name, role: 'client' },
     });
 
-    if (inviteError) return Response.json({ error: inviteError.message }, { headers: corsHeaders });
+    let userId: string | null = null;
+
+    if (inviteError) {
+      // If user already exists in auth, look them up and reuse their account
+      if (inviteError.message.toLowerCase().includes('already been registered') ||
+          inviteError.message.toLowerCase().includes('already registered')) {
+
+        // Look up existing auth user by email via admin REST API
+        const adminUrl = `${Deno.env.get('SUPABASE_URL')}/auth/v1/admin/users?email=${encodeURIComponent(email)}&page=1&per_page=1`;
+        const adminResp = await fetch(adminUrl, {
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            'apikey': Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+          }
+        });
+        const adminData = await adminResp.json();
+        userId = adminData?.users?.[0]?.id || null;
+
+        if (!userId) {
+          return Response.json({ error: inviteError.message }, { headers: corsHeaders });
+        }
+
+        // Send them a password reset so they can set/reset their password
+        await supabaseAdmin.auth.admin.generateLink({ type: 'recovery', email });
+
+      } else {
+        return Response.json({ error: inviteError.message }, { headers: corsHeaders });
+      }
+    } else {
+      userId = inviteData?.user?.id || null;
+    }
 
     // Set profile role to client
-    if (inviteData?.user?.id) {
+    if (userId) {
       await supabaseAdmin.from('profiles').upsert({
-        id: inviteData.user.id,
+        id: userId,
         full_name: company_name || email,
         role: 'client',
       }, { onConflict: 'id' });
@@ -59,7 +89,7 @@ Deno.serve(async (req) => {
       // Link to client record if client_id provided
       if (client_id) {
         await supabaseAdmin.from('clients').update({
-          portal_user_id: inviteData.user.id,
+          portal_user_id: userId,
         }).eq('id', client_id);
       }
     }
