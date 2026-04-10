@@ -684,7 +684,15 @@ function UserManagement() {
         client_id: inviteForm.client_id,
       });
       if (data?.error) {
-        setInviteMsg("Error: " + data.error);
+        const msg = data.error;
+        if (msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('email')) {
+          // Account was linked successfully, email just couldn't be sent due to rate limit
+          setInviteMsg("✓ Account linked. Email rate limit reached — ask the client to use 'Forgot password' to log in.");
+          qc.invalidateQueries({ queryKey: ["profiles"] });
+          setTimeout(() => { setInviteOpen(false); setInviteMsg(""); }, 4000);
+        } else {
+          setInviteMsg("Error: " + msg);
+        }
       } else {
         setInviteMsg("✓ Invitation sent to " + inviteForm.email);
         qc.invalidateQueries({ queryKey: ["profiles"] });

@@ -69,7 +69,8 @@ Deno.serve(async (req) => {
         }
 
         // Send them a password reset email so they can access the portal
-        await supabaseAdmin.auth.resetPasswordForEmail(email);
+        // (ignore rate limit errors — account linking still succeeded)
+        await supabaseAdmin.auth.resetPasswordForEmail(email).catch(() => {});
 
       } else {
         return Response.json({ error: inviteError.message }, { headers: corsHeaders });
