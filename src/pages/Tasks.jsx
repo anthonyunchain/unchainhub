@@ -122,6 +122,7 @@ export default function Tasks() {
   const [editTask, setEditTask] = useState(null);
   const [activeStatus, setActiveStatus] = useState("all");
   const [activeClient, setActiveClient] = useState("all");
+  const [mutError, setMutError] = useState(null);
   const qc = useQueryClient();
 
   const { data: tasks = [] } = useQuery({
@@ -139,7 +140,8 @@ export default function Tasks() {
       const { error } = await supabase.from('tasks').insert(toTaskPayload(d));
       if (error) throw error;
     },
-    onSuccess: () => {qc.invalidateQueries({ queryKey: ["tasks"] });setDialogOpen(false);setEditTask(null);}
+    onSuccess: () => { setMutError(null); qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); setEditTask(null); },
+    onError: (e) => setMutError(e.message),
   });
 
   const updateMut = useMutation({
@@ -147,7 +149,8 @@ export default function Tasks() {
       const { error } = await supabase.from('tasks').update(toTaskPayload(d)).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {qc.invalidateQueries({ queryKey: ["tasks"] });setDialogOpen(false);setEditTask(null);}
+    onSuccess: () => { setMutError(null); qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); setEditTask(null); },
+    onError: (e) => setMutError(e.message),
   });
 
   const deleteMut = useMutation({
@@ -243,9 +246,15 @@ export default function Tasks() {
         </div>
       }
 
+      {mutError && (
+        <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl shadow-lg z-50 max-w-sm">
+          <strong>Error:</strong> {mutError}
+        </div>
+      )}
+
       <TaskFormDialog
         open={dialogOpen}
-        onOpenChange={(v) => {setDialogOpen(v);if (!v) setEditTask(null);}}
+        onOpenChange={(v) => {setDialogOpen(v);if (!v) { setEditTask(null); setMutError(null); }}}
         task={editTask}
         onSave={handleSave} />
       
