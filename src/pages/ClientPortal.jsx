@@ -55,7 +55,7 @@ function DashboardTab({ client, stats, content, contracts, invoices }) {
   const totalViews = monthStats.reduce((s, r) => s + (r.views || 0), 0);
   const totalFollowers = monthStats.reduce((s, r) => s + (r.followers_gained || 0), 0);
   const monthContent = content.filter(c => c.scheduled_date?.startsWith(currentMonth));
-  const published = monthContent.filter(c => c.status === "Publié").length;
+  const published = monthContent.length; // content is already filtered to Publié
 
   // Chart: last 6 months
   const chartData = [];
@@ -73,10 +73,12 @@ function DashboardTab({ client, stats, content, contracts, invoices }) {
 
   // Recent unpaid invoices
   const unpaidInvoices = invoices.filter(i => i.status !== "Payée").slice(0, 3);
+  // Active contract
+  const activeContract = contracts.find(c => c.status === "Actif" || c.status === "Signé");
 
   return (
     <div className="space-y-4">
-      {/* KPIs */}
+      {/* KPIs — only content/social metrics relevant to the client */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <KpiCard label="Views this month" value={totalViews.toLocaleString()} icon={Eye} color="#2A69FF" />
         <KpiCard label="Followers gained" value={`+${totalFollowers}`} icon={Users} color="#8B5CF6" />
