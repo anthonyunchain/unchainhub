@@ -112,7 +112,7 @@ export default function Tasks() {
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks"],
-    queryFn: () => base44.entities.Task.list("-created_date")
+    queryFn: () => base44.entities.Task.list("-created_at")
   });
 
   const { data: clients = [] } = useQuery({
