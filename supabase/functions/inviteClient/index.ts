@@ -68,8 +68,8 @@ Deno.serve(async (req) => {
           return Response.json({ error: inviteError.message }, { headers: corsHeaders });
         }
 
-        // Send them a password reset so they can set/reset their password
-        await supabaseAdmin.auth.admin.generateLink({ type: 'recovery', email });
+        // Send them a password reset email so they can access the portal
+        await supabaseAdmin.auth.resetPasswordForEmail(email);
 
       } else {
         return Response.json({ error: inviteError.message }, { headers: corsHeaders });
