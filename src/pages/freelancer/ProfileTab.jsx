@@ -87,7 +87,7 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
   const currentStatus = statusOptions.find(o => o.val === form.status) || statusOptions[0];
 
   const cardHeader = (Icon, title) => (
-    <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-50">
+    <div className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-50">
       <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
         <Icon className="w-3 h-3 text-slate-500" />
       </div>
@@ -100,15 +100,21 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
   );
 
   return (
-    <div className="h-full flex items-center justify-center py-5 px-8">
+    <div style={{ height: 'calc(100vh - 140px)' }} className="flex flex-col gap-3">
+      {/* Page title */}
+      <div className="shrink-0">
+        <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px', margin: 0 }}>Profile</h1>
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Your information & settings</p>
+      </div>
+
       {/* 2×2 symmetric grid */}
-      <div className="w-full grid grid-cols-2 grid-rows-2 gap-4"
-           style={{ maxWidth: 1100, height: 'calc(100vh - 160px)' }}>
+      <div className="w-full grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0"
+           style={{ maxWidth: '100%' }}>
 
         {/* ── TOP-LEFT : Identity + Availability ── */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
           {cardHeader(User, "Identity")}
-          <div className="flex-1 p-5 flex flex-col justify-between">
+          <div className="flex-1 p-4 flex flex-col justify-between">
             {/* Avatar row */}
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-white text-xl font-bold shrink-0">
@@ -143,7 +149,7 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
         {/* ── TOP-RIGHT : Email ── */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
           {cardHeader(Mail, "Email address")}
-          <div className="flex-1 p-5 flex flex-col justify-between">
+          <div className="flex-1 p-4 flex flex-col justify-between">
             <div className="space-y-3">
               <div className="space-y-1.5">
                 {fieldLabel("Email")}
@@ -161,7 +167,7 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
         {/* ── BOTTOM-LEFT : Profile form ── */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
           {cardHeader(Briefcase, "Profile")}
-          <div className="flex-1 p-5 flex flex-col gap-3 min-h-0">
+          <div className="flex-1 p-4 flex flex-col gap-3 min-h-0">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 {fieldLabel("Display name")}
@@ -195,7 +201,7 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
         {/* ── BOTTOM-RIGHT : Password ── */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
           {cardHeader(Lock, "Password")}
-          <div className="flex-1 p-5 flex flex-col justify-between">
+          <div className="flex-1 p-4 flex flex-col justify-between">
             <div className="space-y-3">
               <div className="space-y-1.5">
                 {fieldLabel("New password")}
@@ -214,7 +220,7 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
           </div>
         </div>
 
-      </div>
+      </div>{/* end grid */}
     </div>
   );
 }

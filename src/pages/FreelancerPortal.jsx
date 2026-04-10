@@ -1048,6 +1048,8 @@ export default function FreelancerPortal() {
               };
               const meta = TAB_TITLES[activeTab];
               if (!meta) return null;
+              // Profile tab manages its own header inside the grid layout
+              if (activeTab === 'profile') return null;
               return (
                 <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                   <div>
