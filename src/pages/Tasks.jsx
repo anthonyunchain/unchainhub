@@ -1,6 +1,20 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { base44, supabase } from "@/api/base44Client";
+
+// Only columns that exist in the tasks table
+const toTaskPayload = (d) => ({
+  title: d.title,
+  description: d.description || null,
+  status: d.status || "Non commencé",
+  priority: d.priority || "Normale",
+  category: d.category || "Autre",
+  client_name: d.client_name || null,
+  assigned_to: d.assigned_to || null,
+  due_date: d.due_date || null,
+  checklist: d.checklist || [],
+  notes: d.notes || null,
+});
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Plus, CheckSquare, Square, Trash2, AlertTriangle, Clock, CheckCircle2, Circle } from "lucide-react";
@@ -121,12 +135,18 @@ export default function Tasks() {
   });
 
   const createMut = useMutation({
-    mutationFn: (d) => base44.entities.Task.create(d),
+    mutationFn: async (d) => {
+      const { error } = await supabase.from('tasks').insert(toTaskPayload(d));
+      if (error) throw error;
+    },
     onSuccess: () => {qc.invalidateQueries({ queryKey: ["tasks"] });setDialogOpen(false);setEditTask(null);}
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, d }) => base44.entities.Task.update(id, d),
+    mutationFn: async ({ id, d }) => {
+      const { error } = await supabase.from('tasks').update(toTaskPayload(d)).eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {qc.invalidateQueries({ queryKey: ["tasks"] });setDialogOpen(false);setEditTask(null);}
   });
 

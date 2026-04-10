@@ -678,16 +678,17 @@ function UserManagement() {
     setInviting(true);
     setInviteMsg("");
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const { data, error } = await supabase.functions.invoke('inviteClient', {
-        body: { email: inviteForm.email, company_name: client?.company_name },
-        headers: { Authorization: `Bearer ${session?.access_token}` },
+      const { data } = await base44.functions.invoke('inviteClient', {
+        email: inviteForm.email,
+        company_name: client?.company_name,
+        client_id: inviteForm.client_id,
       });
-      if (error || data?.error) {
-        setInviteMsg("Error: " + (data?.error || error?.message));
+      if (data?.error) {
+        setInviteMsg("Error: " + data.error);
       } else {
-        setInviteMsg("Invitation sent successfully!");
+        setInviteMsg("✓ Invitation sent to " + inviteForm.email);
         qc.invalidateQueries({ queryKey: ["profiles"] });
+        setTimeout(() => { setInviteOpen(false); setInviteMsg(""); }, 2000);
       }
     } catch (e) {
       setInviteMsg("Error: " + (e?.message || "Unknown error"));
