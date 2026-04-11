@@ -122,6 +122,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                   <SelectItem value="Contenu">Content</SelectItem>
                   <SelectItem value="Administratif">Administrative</SelectItem>
                   <SelectItem value="Montage">Editing</SelectItem>
+                  <SelectItem value="Vie perso">Personal</SelectItem>
                   <SelectItem value="Autre">Other</SelectItem>
                 </SelectContent>
               </Select>

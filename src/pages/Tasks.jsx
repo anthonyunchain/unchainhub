@@ -44,7 +44,11 @@ const PRIORITY_LABEL = {
 
 const CATEGORY_LABEL = {
   "Commercial": "Commercial", "Contenu": "Content", "Administratif": "Admin",
-  "Montage": "Editing", "Autre": "Other"
+  "Montage": "Editing", "Vie perso": "Personal", "Autre": "Other"
+};
+
+const CATEGORY_STYLE = {
+  "Vie perso": "bg-purple-50 text-purple-600"
 };
 
 const STATUSES = ["Non commencé", "En cours", "Terminé", "Bloqué"];
@@ -93,7 +97,7 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
           }
           <div className="flex flex-wrap items-center gap-1.5">
             {task.priority && <span className="text-[10px]">{PRIORITY_DOT[task.priority]} {PRIORITY_LABEL[task.priority] || task.priority}</span>}
-            {task.category && <span className="text-[10px] text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">{CATEGORY_LABEL[task.category] || task.category}</span>}
+            {task.category && <span className={`text-[10px] px-1.5 py-0.5 rounded ${CATEGORY_STYLE[task.category] || "text-slate-400 bg-slate-50"}`}>{CATEGORY_LABEL[task.category] || task.category}</span>}
             {task.client_name &&
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">{task.client_name}</span>
             }
@@ -122,6 +126,7 @@ export default function Tasks() {
   const [editTask, setEditTask] = useState(null);
   const [activeStatus, setActiveStatus] = useState("all");
   const [activeClient, setActiveClient] = useState("all");
+  const [activeCategory, setActiveCategory] = useState("all");
   const [mutError, setMutError] = useState(null);
   const qc = useQueryClient();
 
@@ -170,9 +175,10 @@ export default function Tasks() {
     updateMut.mutate({ id: task.id, d: { ...task, status: newStatus } });
   };
 
-  const filtered = tasks.
-  filter((t) => activeStatus === "all" || t.status === activeStatus).
-  filter((t) => activeClient === "all" || t.client_name === activeClient);
+  const filtered = tasks
+    .filter((t) => activeStatus === "all" || t.status === activeStatus)
+    .filter((t) => activeClient === "all" || t.client_name === activeClient)
+    .filter((t) => activeCategory === "all" || t.category === activeCategory);
 
   const countByStatus = (s) => tasks.filter((t) => t.status === s).length;
   const taskClients = [...new Set(tasks.map((t) => t.client_name).filter(Boolean))];
@@ -206,25 +212,48 @@ export default function Tasks() {
         })}
       </div>
 
-      {/* Filtres client */}
-      {taskClients.length > 0 &&
+      {/* Filtres client + catégorie */}
       <div className="flex items-center gap-2 mb-6 flex-wrap">
-        <span className="text-xs text-slate-400 font-medium">Client:</span>
+        {taskClients.length > 0 && <>
+          <span className="text-xs text-slate-400 font-medium">Client:</span>
+          <button
+            onClick={() => setActiveClient("all")}
+            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeClient === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+            All
+          </button>
+          {taskClients.map((c) =>
+            <button
+              key={c}
+              onClick={() => setActiveClient(activeClient === c ? "all" : c)}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeClient === c ? "bg-[#2A69FF] text-white" : "bg-blue-50 text-blue-700 hover:bg-blue-100"}`}>
+              {c}
+            </button>
+          )}
+          <span className="w-px h-4 bg-slate-200 mx-1" />
+        </>}
+        <span className="text-xs text-slate-400 font-medium">Category:</span>
         <button
-          onClick={() => setActiveClient("all")}
-          className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeClient === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+          onClick={() => setActiveCategory("all")}
+          className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeCategory === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
           All
         </button>
-        {taskClients.map((c) =>
+        <button
+          onClick={() => setActiveCategory(activeCategory === "Vie perso" ? "all" : "Vie perso")}
+          className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeCategory === "Vie perso" ? "bg-purple-600 text-white" : "bg-purple-50 text-purple-700 hover:bg-purple-100"}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${activeCategory === "Vie perso" ? "bg-white" : "bg-purple-400"}`} />
+          Personal
+          <span className="text-[10px] opacity-70">{tasks.filter(t => t.category === "Vie perso").length}</span>
+        </button>
+        {Object.entries(CATEGORY_LABEL).filter(([k]) => k !== "Vie perso" && tasks.some(t => t.category === k)).map(([k, label]) =>
           <button
-            key={c}
-            onClick={() => setActiveClient(activeClient === c ? "all" : c)}
-            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeClient === c ? "bg-[#2A69FF] text-white" : "bg-blue-50 text-blue-700 hover:bg-blue-100"}`}>
-            {c}
+            key={k}
+            onClick={() => setActiveCategory(activeCategory === k ? "all" : k)}
+            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeCategory === k ? "bg-slate-700 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+            {label}
+            <span className="ml-1 text-[10px] opacity-60">{tasks.filter(t => t.category === k).length}</span>
           </button>
         )}
       </div>
-      }
 
       {/* Liste */}
       {filtered.length === 0 ?
