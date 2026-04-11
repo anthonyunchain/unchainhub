@@ -406,6 +406,7 @@ function AdminTasks() {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(null);
   const [activeStatus, setActiveStatus] = useState("all");
+  const [activeCategory, setActiveCategory] = useState("all");
   const qc = useQueryClient();
 
   const { data: tasks = [] } = useQuery({ queryKey: ["admin-tasks"], queryFn: () => base44.entities.AdminTask.list("-created_date") });
@@ -430,8 +431,13 @@ function AdminTasks() {
   const PRIORITY_LABEL = { "Basse": "Low", "Normale": "Normal", "Haute": "High", "Urgente": "Urgent" };
   const STATUS_LABEL = { "À faire": "To do", "En cours": "In progress", "Terminé": "Done", "Bloqué": "Blocked" };
   const STATUSES = ["À faire", "En cours", "Terminé", "Bloqué"];
+  const CATEGORIES = ["Juridique", "Comptabilité", "RH", "Réglementation", "Stratégie", "Vie perso", "Autre"];
+  const CATEGORY_COLORS = { "Vie perso": "bg-purple-50 text-purple-700 ring-purple-300", default: "bg-slate-100 text-slate-600 ring-slate-300" };
   const countByStatus = (s) => tasks.filter((t) => t.status === s).length;
-  const filtered = activeStatus === "all" ? tasks : tasks.filter(t => t.status === activeStatus);
+  const countByCategory = (c) => tasks.filter((t) => t.category === c).length;
+  const filtered = tasks
+    .filter(t => activeStatus === "all" || t.status === activeStatus)
+    .filter(t => activeCategory === "all" || t.category === activeCategory);
   const pending = filtered.filter(t => t.status !== "Terminé");
   const done = filtered.filter(t => t.status === "Terminé");
   return (
@@ -441,7 +447,7 @@ function AdminTasks() {
           <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" />New task</Button>
         </PageHeader>
       </div>
-      <div className="flex items-center gap-2 mb-6 flex-wrap max-w-2xl mx-auto">
+      <div className="flex items-center gap-2 mb-3 flex-wrap max-w-2xl mx-auto">
         <button
           onClick={() => setActiveStatus("all")}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeStatus === "all" ? "bg-slate-800 text-white" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"}`}>
@@ -458,6 +464,27 @@ function AdminTasks() {
           </button>
         ))}
       </div>
+      <div className="flex items-center gap-2 mb-6 flex-wrap max-w-2xl mx-auto">
+        <button
+          onClick={() => setActiveCategory("all")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === "all" ? "bg-slate-700 text-white" : "bg-white text-slate-400 border border-slate-200 hover:border-slate-300"}`}>
+          Toutes catégories
+        </button>
+        {CATEGORIES.filter(c => countByCategory(c) > 0 || c === "Vie perso").map((c) => (
+          <button
+            key={c}
+            onClick={() => setActiveCategory(c)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+              activeCategory === c
+                ? c === "Vie perso" ? "bg-purple-100 text-purple-700 ring-1 ring-purple-300" : "bg-slate-100 text-slate-700 ring-1 ring-slate-300"
+                : "bg-white text-slate-400 border border-slate-200 hover:border-slate-300"
+            }`}>
+            {c === "Vie perso" && <span className="w-2 h-2 rounded-full bg-purple-400" />}
+            {c}
+            <span className="text-[10px] opacity-60">{countByCategory(c)}</span>
+          </button>
+        ))}
+      </div>
       <div className="space-y-2 max-w-2xl mx-auto">
         {pending.length === 0 && done.length === 0 && <p className="text-center text-slate-400 py-10 text-sm">No admin tasks</p>}
         {[...pending, ...done].map((t) => (
@@ -470,7 +497,7 @@ function AdminTasks() {
               <div className="flex items-center gap-2 mt-0.5">
                 <span className={`text-[10px] px-2 py-0.5 rounded-full ${STATUS_COLORS[t.status]}`}>{STATUS_LABEL[t.status] || t.status}</span>
                 <span className="text-[10px] text-slate-400">{PRIORITY_LABEL[t.priority] || t.priority}</span>
-                {t.category && <span className="text-[10px] text-slate-400">{t.category}</span>}
+                {t.category && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${t.category === "Vie perso" ? "bg-purple-50 text-purple-500" : "text-slate-400"}`}>{t.category}</span>}
                 {t.due_date && <span className="text-[10px] text-slate-400">· {format(new Date(t.due_date), "d MMM", { locale: enUS })}</span>}
               </div>
             </div>
@@ -488,7 +515,7 @@ function AdminTasks() {
                 <div><Label>Category</Label>
                   <Select value={data.category} onValueChange={v => setData({ ...data, category: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{["Juridique", "Comptabilité", "RH", "Réglementation", "Stratégie", "Autre"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    <SelectContent>{["Juridique", "Comptabilité", "RH", "Réglementation", "Stratégie", "Vie perso", "Autre"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div><Label>Priority</Label>
