@@ -31,7 +31,7 @@ function FreelancerProfiles() {
   const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); }, onError: (e) => alert("Erreur mise à jour : " + (e?.message || e)) });
   const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Freelancer.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancers"] }), onError: (e) => alert("Erreur suppression : " + (e?.message || e)) });
 
-  const empty = { first_name: "", last_name: "", name: "", email: "", role: "", status: "Actif", notes: "", contract_url: "", editorial_client_names: [] };
+  const empty = { first_name: "", last_name: "", name: "", email: "", phone: "", role: "", status: "Actif", notes: "", contract_url: "", editorial_client_names: [] };
 
   const toggleEditorialClient = (clientName) => {
     const current = data.editorial_client_names || [];
@@ -96,9 +96,10 @@ function FreelancerProfiles() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Email</Label><Input value={data.email || ""} onChange={e => setData({ ...data, email: e.target.value })} /></div>
-                <div><Label>Role</Label><Input value={data.role || ""} onChange={e => setData({ ...data, role: e.target.value })} placeholder="e.g. Video editor" /></div>
+                <div><Label>Phone</Label><Input value={data.phone || ""} onChange={e => setData({ ...data, phone: e.target.value })} placeholder="e.g. +33 6 12 34 56 78" /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
+                <div><Label>Role</Label><Input value={data.role || ""} onChange={e => setData({ ...data, role: e.target.value })} placeholder="e.g. Video editor" /></div>
                 <div><Label>Status</Label>
                   <Select value={data.status} onValueChange={v => setData({ ...data, status: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
