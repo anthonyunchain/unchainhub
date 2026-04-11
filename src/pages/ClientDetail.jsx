@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import StatusBadge from "../components/shared/StatusBadge";
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt, Pencil, Upload, X, ExternalLink, Briefcase, Trash2, UserPlus } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt, Pencil, Upload, X, ExternalLink, Briefcase, Trash2, UserPlus, Send } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -349,13 +349,25 @@ export default function ClientDetail() {
       {/* Invite Dialog */}
       <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteMsg(""); }}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-blue-500" />Invite to Client Portal</DialogTitle></DialogHeader>
-          <div className="space-y-3 mt-2">
-            <div><Label>Email</Label><Input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="client@example.com" /></div>
-            {inviteMsg && <p className={`text-sm ${inviteMsg.startsWith("Error") ? "text-red-500" : "text-emerald-600"}`}>{inviteMsg}</p>}
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-blue-500" /> Invite to Client Portal
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-slate-500">
+              Send a portal invitation to <strong>{client?.company_name}</strong>. They'll receive an email to set their password and access their reports, calendar, and contracts.
+            </p>
+            <div>
+              <Label>Email address</Label>
+              <Input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="client@company.com" className="mt-1" />
+            </div>
+            {inviteMsg && <p className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith("Error") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>{inviteMsg}</p>}
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
-              <Button onClick={sendInvite} disabled={inviting || !inviteEmail} className="bg-brand hover:bg-brand/90 text-brand-foreground">{inviting ? "Sending..." : "Send invite"}</Button>
+              <Button onClick={sendInvite} disabled={inviting || !inviteEmail} className="bg-brand hover:bg-brand/90 text-brand-foreground">
+                <Send className="w-4 h-4 mr-1.5" />{inviting ? "Sending..." : "Send invitation"}
+              </Button>
             </div>
           </div>
         </DialogContent>
