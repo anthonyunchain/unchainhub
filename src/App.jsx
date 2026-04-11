@@ -25,6 +25,7 @@ class ErrorBoundary extends Component {
   }
 }
 
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import AdminRoute from './components/layout/AdminRoute.jsx';
 import Dashboard from './pages/Dashboard';
@@ -47,7 +48,8 @@ import FreelancerPortal from './pages/FreelancerPortal';
 import FreelancerAdmin from './pages/FreelancerAdmin';
 import ClientPortal from './pages/ClientPortal';
 
-const ROLE_CACHE_KEY = 'uc_role_v2'; // v2: now stores 'admin' | 'freelancer' | 'client'
+// Role cache is keyed per user ID so switching accounts always gets the right role
+const getRoleCacheKey = (uid) => `uc_role_v3_${uid}`;
 
 const Spinner = () => (
   <div className="fixed inset-0 flex items-center justify-center">
@@ -56,11 +58,12 @@ const Spinner = () => (
 );
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isAuthenticated } = useAuth();
+  const { isLoadingAuth, isAuthenticated, isPasswordRecovery } = useAuth();
 
-  const cached = localStorage.getItem(ROLE_CACHE_KEY);
-  const [role, setRole] = useState(cached || null); // 'admin' | 'freelancer' | 'client' | null
-  const [roleChecked, setRoleChecked] = useState(cached !== null);
+  if (isPasswordRecovery) return <ResetPasswordPage />;
+
+  const [role, setRole] = useState(null);
+  const [roleChecked, setRoleChecked] = useState(false);
 
   useEffect(() => {
     if (!isLoadingAuth && isAuthenticated) {
@@ -68,6 +71,15 @@ const AuthenticatedApp = () => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) throw new Error('no user');
+
+          // Check per-user cache
+          const cacheKey = getRoleCacheKey(user.id);
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            setRole(cached);
+            setRoleChecked(true);
+            return;
+          }
 
           const { data: profile } = await supabase
             .from('profiles')
@@ -87,24 +99,24 @@ const AuthenticatedApp = () => {
               const isFreelancer = !error && !data?.error && data?.profile;
               const finalRole = isFreelancer ? 'freelancer' : 'admin';
               setRole(finalRole);
-              localStorage.setItem(ROLE_CACHE_KEY, finalRole);
+              localStorage.setItem(cacheKey, finalRole);
             } catch {
               setRole('admin');
-              localStorage.setItem(ROLE_CACHE_KEY, 'admin');
+              localStorage.setItem(cacheKey, 'admin');
             }
           } else {
             setRole(detectedRole);
-            localStorage.setItem(ROLE_CACHE_KEY, detectedRole);
+            localStorage.setItem(cacheKey, detectedRole);
           }
         } catch {
           setRole('admin');
-          localStorage.setItem(ROLE_CACHE_KEY, 'admin');
         }
         setRoleChecked(true);
       })();
     }
     if (!isLoadingAuth && !isAuthenticated) {
-      localStorage.removeItem(ROLE_CACHE_KEY);
+      // Clear all role caches on logout
+      Object.keys(localStorage).filter(k => k.startsWith('uc_role_')).forEach(k => localStorage.removeItem(k));
       setRole(null);
       setRoleChecked(false);
     }

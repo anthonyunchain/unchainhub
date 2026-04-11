@@ -69,28 +69,37 @@ export default function CsvImportDialog({ open, onOpenChange }) {
     if (!rows.length) return;
     setImporting(true);
     setResult(null);
-    let success = 0; let failed = 0;
+    setError("");
+    let success = 0; let failed = 0; let firstError = "";
     for (const row of rows) {
       const clientName = clientOverride || row.client_name || "";
-      if (!clientName) { failed++; continue; }
+      if (!clientName) { failed++; if (!firstError) firstError = "Missing client_name in one or more rows."; continue; }
       const record = {
         client_name: clientName,
         title: row.title || row.titre || "",
         post_type: normalizeType(row.post_type || row.type || ""),
-        scheduled_date: row.scheduled_date || row.date || "",
-        platform: row.platform || row.plateforme || "Instagram",
+        scheduled_date: row.scheduled_date || row.date || null,
         status: normalizeStatus(row.status || row.statut || ""),
         description: row.description || "",
         notes: row.notes || "",
-        drive_link: row.drive_link || row.lien_drive || "",
       };
       try {
         await base44.entities.EditorialContent.create(record);
         success++;
-      } catch { failed++; }
+      } catch (e) {
+        failed++;
+        console.error("[CSV Import] Failed row:", record, e);
+        if (!firstError) {
+          firstError = e?.message || e?.details || e?.error_description
+            || (typeof e === "string" ? e : null)
+            || JSON.stringify(e, null, 2)
+            || "Unknown error";
+        }
+      }
     }
     qc.invalidateQueries({ queryKey: ["editorial"] });
     setResult({ success, failed });
+    if (firstError && failed > 0) setError(`Error: ${firstError}`);
     setImporting(false);
     setRows([]);
   };

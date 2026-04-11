@@ -1,217 +1,226 @@
 import { useState } from "react";
-import { supabase, base44 } from "@/api/base44Client";
-import { Button } from "@/components/ui/button";
+import { supabase } from "@/api/base44Client";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Camera, Save, CheckCircle2, X } from "lucide-react";
+import { Save, CheckCircle2, User, Mail, Lock, Briefcase } from "lucide-react";
+
+function Msg({ msg }) {
+  if (!msg) return null;
+  return (
+    <p className={`text-xs px-3 py-2 rounded-xl ${msg.type === 'success' ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
+      {msg.text}
+    </p>
+  );
+}
 
 export default function ProfileTab({ user, freelancerProfile, onProfileUpdate }) {
-  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
 
   const [form, setForm] = useState({
-    name: freelancerProfile?.name || user?.full_name || "",
-    role: freelancerProfile?.role || "",
+    name:   freelancerProfile?.name   || user?.full_name || "",
+    role:   freelancerProfile?.role   || "",
     status: freelancerProfile?.status || "Actif",
-    notes: freelancerProfile?.notes || "",
-    phone: freelancerProfile?.phone || "",
-    avatar_url: freelancerProfile?.avatar_url || "",
-    specialties: freelancerProfile?.specialties || [],
+    notes:  freelancerProfile?.notes  || "",
+    phone:  freelancerProfile?.phone  || "",
   });
 
-  const [newSpecialty, setNewSpecialty] = useState("");
+  const [newEmail, setNewEmail]           = useState(user?.email || "");
+  const [emailMsg, setEmailMsg]           = useState(null);
+  const [emailLoading, setEmailLoading]   = useState(false);
+
+  const [newPassword, setNewPassword]         = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordMsg, setPasswordMsg]         = useState(null);
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   const handleSave = async () => {
-    setSaving(true);
-    setError(null);
+    setSaving(true); setError(null);
     try {
-      // Use edge function — freelancer ID is resolved server-side from JWT
-      // Never send the ID from client to prevent IDOR
-      const { data, error: fnError } = await supabase.functions.invoke('updateFreelancerProfile', {
-        body: {
-          name: form.name,
-          role: form.role,
-          status: form.status,
-          notes: form.notes,
-          phone: form.phone,
-          avatar_url: form.avatar_url,
-          specialties: form.specialties,
-        },
-      });
-
-      if (fnError || data?.error) {
-        throw new Error(data?.error || fnError?.message || 'Update failed');
-      }
-
-      onProfileUpdate?.(data.profile);
+      const { error: e } = await supabase.from('freelancers')
+        .update({ name: form.name, role: form.role, status: form.status, notes: form.notes, phone: form.phone })
+        .eq('id', freelancerProfile.id).select('id');
+      if (e) throw new Error(e.message);
+      onProfileUpdate?.({ ...freelancerProfile, ...form });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setSaving(false);
-    }
+    } catch (e) { setError(e.message); }
+    finally { setSaving(false); }
   };
 
-  const handleAvatarUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setForm(f => ({ ...f, avatar_url: file_url }));
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
+  const handleEmailChange = async () => {
+    if (!newEmail || newEmail === user?.email) return;
+    setEmailLoading(true); setEmailMsg(null);
+    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    setEmailMsg(error
+      ? { type: 'error',   text: error.message }
+      : { type: 'success', text: 'Confirmation sent — check your inbox.' });
+    setEmailLoading(false);
   };
 
-  const addSpecialty = () => {
-    if (newSpecialty.trim()) {
-      setForm(f => ({ ...f, specialties: [...(f.specialties || []), newSpecialty.trim()] }));
-      setNewSpecialty("");
-    }
+  const handlePasswordChange = async () => {
+    if (!newPassword) return;
+    if (newPassword !== confirmPassword) { setPasswordMsg({ type: 'error', text: "Passwords don't match." }); return; }
+    if (newPassword.length < 6)          { setPasswordMsg({ type: 'error', text: "Minimum 6 characters." }); return; }
+    setPasswordLoading(true); setPasswordMsg(null);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setPasswordMsg(error
+      ? { type: 'error',   text: error.message }
+      : { type: 'success', text: 'Password updated successfully.' });
+    setPasswordLoading(false);
+    if (!error) { setNewPassword(""); setConfirmPassword(""); }
   };
 
-  const removeSpecialty = (idx) => {
-    setForm(f => ({ ...f, specialties: f.specialties.filter((_, i) => i !== idx) }));
-  };
+  if (!freelancerProfile) return (
+    <div className="flex items-center justify-center h-full text-slate-400">
+      <p className="text-sm">Freelancer profile not set up yet. Contact the Unchain Studio team.</p>
+    </div>
+  );
 
-  if (!freelancerProfile) {
-    return (
-      <div className="text-center py-16 text-slate-400">
-        <p className="text-sm">Freelancer profile not set up yet.</p>
-        <p className="text-xs mt-1">Contact the Unchain Studio team.</p>
+  const initial = (form.name || "?").charAt(0).toUpperCase();
+  const statusOptions = [
+    { val: "Actif",    label: "Available", active: "bg-emerald-500 text-white border-emerald-500" },
+    { val: "En pause", label: "On hold",   active: "bg-amber-400  text-white border-amber-400"   },
+    { val: "Inactif",  label: "Inactive",  active: "bg-slate-700  text-white border-slate-700"   },
+  ];
+  const currentStatus = statusOptions.find(o => o.val === form.status) || statusOptions[0];
+
+  const cardHeader = (Icon, title) => (
+    <div className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-50">
+      <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+        <Icon className="w-3 h-3 text-slate-500" />
       </div>
-    );
-  }
+      <span className="text-[11px] font-bold text-slate-600 uppercase tracking-widest">{title}</span>
+    </div>
+  );
+
+  const fieldLabel = (text) => (
+    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{text}</label>
+  );
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
-      {/* Avatar */}
-      <div className="flex items-center gap-5">
-        <div className="relative group">
-          {form.avatar_url ? (
-            <img src={form.avatar_url} alt="avatar" className="w-20 h-20 rounded-2xl object-cover border-2 border-slate-100" />
-          ) : (
-            <div className="w-20 h-20 rounded-2xl bg-slate-800 flex items-center justify-center text-white text-2xl font-bold">
-              {(form.name || "?").charAt(0).toUpperCase()}
+    <div style={{ height: 'calc(100vh - 140px)' }} className="flex flex-col gap-3">
+      {/* Page title */}
+      <div className="shrink-0">
+        <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px', margin: 0 }}>Profile</h1>
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Your information & settings</p>
+      </div>
+
+      {/* 2×2 symmetric grid */}
+      <div className="w-full grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0"
+           style={{ maxWidth: '100%' }}>
+
+        {/* ── TOP-LEFT : Identity + Availability ── */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
+          {cardHeader(User, "Identity")}
+          <div className="flex-1 p-4 flex flex-col justify-between">
+            {/* Avatar row */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-white text-xl font-bold shrink-0">
+                {initial}
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-slate-800 text-base truncate">{form.name || "—"}</p>
+                <p className="text-xs text-slate-400 truncate mt-0.5">{user?.email}</p>
+                <span className={`inline-block mt-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full ${currentStatus.active}`}>
+                  {currentStatus.label}
+                </span>
+              </div>
             </div>
-          )}
-          <label className={`absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ${uploading ? "opacity-100" : ""}`}>
-            {uploading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
-            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-          </label>
-        </div>
-        <div>
-          <p className="font-semibold text-slate-800">{form.name || user?.full_name}</p>
-          <p className="text-sm text-slate-500">{user?.email}</p>
-          <span className={`inline-block mt-1.5 text-xs px-2.5 py-0.5 rounded-full border font-medium ${
-            form.status === "Actif"
-              ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-              : "bg-red-100 text-red-700 border-red-200"
-          }`}>
-            {form.status === "Actif" ? "Available" : "Unavailable"}
-          </span>
-        </div>
-      </div>
 
-      {/* Availability */}
-      <div className="bg-white rounded-xl border border-slate-100 p-4 space-y-4">
-        <h3 className="text-sm font-semibold text-slate-700">Availability</h3>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setForm(f => ({ ...f, status: "Actif" }))}
-            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-              form.status === "Actif"
-                ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                : "border-slate-100 text-slate-400 hover:border-slate-200"
-            }`}
-          >
-            Available
-          </button>
-          <button
-            onClick={() => setForm(f => ({ ...f, status: "Indisponible" }))}
-            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-              form.status === "Indisponible"
-                ? "bg-red-100 text-red-700 border-red-200"
-                : "border-slate-100 text-slate-400 hover:border-slate-200"
-            }`}
-          >
-            Unavailable
-          </button>
-        </div>
-      </div>
-
-      {/* Info */}
-      <div className="bg-white rounded-xl border border-slate-100 p-4 space-y-4">
-        <h3 className="text-sm font-semibold text-slate-700">Personal Information</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-xs">Display name</Label>
-            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} />
-          </div>
-          <div>
-            <Label className="text-xs">Role / Title</Label>
-            <Input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g. Video Editor" maxLength={100} />
+            {/* Availability toggle */}
+            <div className="space-y-2">
+              {fieldLabel("Availability")}
+              <div className="flex gap-2">
+                {statusOptions.map(({ val, label, active }) => (
+                  <button key={val} onClick={() => setForm(f => ({ ...f, status: val }))}
+                    className={`flex-1 py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
+                      form.status === val ? active : "border-slate-100 text-slate-400 hover:border-slate-200 bg-white"
+                    }`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
-        <div>
-          <Label className="text-xs">Phone</Label>
-          <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+358 ..." maxLength={30} />
-        </div>
-        <div>
-          <Label className="text-xs">Bio</Label>
-          <Textarea
-            value={form.notes}
-            onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-            rows={3}
-            placeholder="Short bio, specialties, tools you use..."
-            maxLength={2000}
-          />
-        </div>
-      </div>
 
-      {/* Skills */}
-      <div className="bg-white rounded-xl border border-slate-100 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-slate-700">Skills</h3>
-        <div className="flex gap-2">
-          <Input
-            value={newSpecialty}
-            onChange={e => setNewSpecialty(e.target.value)}
-            placeholder="e.g. Premiere Pro, Motion design..."
-            onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addSpecialty())}
-            maxLength={50}
-          />
-          <Button type="button" variant="outline" size="sm" onClick={addSpecialty}>Add</Button>
+        {/* ── TOP-RIGHT : Email ── */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
+          {cardHeader(Mail, "Email address")}
+          <div className="flex-1 p-4 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                {fieldLabel("Email")}
+                <Input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} className="h-9 text-sm" />
+              </div>
+              <Msg msg={emailMsg} />
+            </div>
+            <button onClick={handleEmailChange} disabled={!newEmail || newEmail === user?.email || emailLoading}
+              className="w-full h-10 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-colors">
+              {emailLoading ? "Sending…" : "Update email"}
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {(form.specialties || []).map((s, i) => (
-            <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">
-              {s}
-              <button onClick={() => removeSpecialty(i)} className="hover:text-red-500"><X className="w-3 h-3" /></button>
-            </span>
-          ))}
+
+        {/* ── BOTTOM-LEFT : Profile form ── */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
+          {cardHeader(Briefcase, "Profile")}
+          <div className="flex-1 p-4 flex flex-col gap-3 min-h-0">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                {fieldLabel("Display name")}
+                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="h-9 text-sm" maxLength={100} />
+              </div>
+              <div className="space-y-1.5">
+                {fieldLabel("Role / Title")}
+                <Input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="Video Editor…" className="h-9 text-sm" maxLength={100} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              {fieldLabel("Phone")}
+              <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+1 …" className="h-9 text-sm" maxLength={30} />
+            </div>
+            <div className="space-y-1.5 flex-1 flex flex-col min-h-0">
+              {fieldLabel("Bio")}
+              <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Specialties, tools, experience…" maxLength={2000}
+                className="text-sm resize-none flex-1 min-h-0" style={{ minHeight: 0 }} />
+            </div>
+            {error && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-xl shrink-0">{error}</p>}
+            <button onClick={handleSave} disabled={saving}
+              className={`h-10 w-full rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all shrink-0 ${
+                saved ? "bg-emerald-500 text-white" : "bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-60"
+              }`}>
+              {saved ? <><CheckCircle2 className="w-4 h-4" /> Saved!</> : saving ? "Saving…" : <><Save className="w-4 h-4" /> Save profile</>}
+            </button>
+          </div>
         </div>
-      </div>
 
-      {error && (
-        <p className="text-sm text-red-500 text-center">{error}</p>
-      )}
+        {/* ── BOTTOM-RIGHT : Password ── */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
+          {cardHeader(Lock, "Password")}
+          <div className="flex-1 p-4 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                {fieldLabel("New password")}
+                <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                {fieldLabel("Confirm password")}
+                <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" className="h-9 text-sm" />
+              </div>
+              <Msg msg={passwordMsg} />
+            </div>
+            <button onClick={handlePasswordChange} disabled={!newPassword || !confirmPassword || passwordLoading}
+              className="w-full h-10 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-colors">
+              {passwordLoading ? "Updating…" : "Update password"}
+            </button>
+          </div>
+        </div>
 
-      {/* Save */}
-      <Button onClick={handleSave} disabled={saving} className="w-full bg-slate-800 hover:bg-slate-700">
-        {saved ? (
-          <><CheckCircle2 className="w-4 h-4 mr-2 text-emerald-400" /> Saved!</>
-        ) : saving ? (
-          "Saving..."
-        ) : (
-          <><Save className="w-4 h-4 mr-2" /> Save profile</>
-        )}
-      </Button>
+      </div>{/* end grid */}
     </div>
   );
 }

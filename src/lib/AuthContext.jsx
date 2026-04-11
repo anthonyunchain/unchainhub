@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoadingAuth, setIsLoadingAuth]         = useState(true);
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
   const [authError, setAuthError]                 = useState(null);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
     // Vérifier la session existante au démarrage
@@ -21,7 +22,12 @@ export const AuthProvider = ({ children }) => {
     });
 
     // Écouter les changements d'auth (login, logout, refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+        setIsLoadingAuth(false);
+        return;
+      }
       if (session) {
         setUser(session.user);
         setIsAuthenticated(true);
@@ -30,6 +36,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setIsAuthenticated(false);
       }
+      setIsPasswordRecovery(false);
       setIsLoadingAuth(false);
     });
 
@@ -55,6 +62,8 @@ export const AuthProvider = ({ children }) => {
       isLoadingPublicSettings,
       authError,
       appPublicSettings: null,
+      isPasswordRecovery,
+      setIsPasswordRecovery,
       logout,
       navigateToLogin,
     }}>

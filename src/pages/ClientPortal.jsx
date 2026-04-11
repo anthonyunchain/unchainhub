@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Calendar, BarChart2, FileText, LogOut,
   Settings, ChevronLeft, ChevronRight, Eye, Users, TrendingUp,
   Bell, Moon, Sun, ExternalLink, Instagram, Youtube, Facebook,
-  Linkedin, Globe, Download
+  Linkedin, Globe, Download, Receipt
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -49,13 +49,13 @@ function KpiCard({ label, value, icon: Icon, color = "#2A69FF" }) {
 }
 
 // ── Dashboard tab ──────────────────────────────────────────────────────────
-function DashboardTab({ client, stats, content }) {
+function DashboardTab({ client, stats, content, contracts, invoices }) {
   const currentMonth = format(new Date(), "yyyy-MM");
   const monthStats = stats.filter(s => s.period === currentMonth);
   const totalViews = monthStats.reduce((s, r) => s + (r.views || 0), 0);
   const totalFollowers = monthStats.reduce((s, r) => s + (r.followers_gained || 0), 0);
   const monthContent = content.filter(c => c.scheduled_date?.startsWith(currentMonth));
-  const published = monthContent.filter(c => c.status === "Publié").length;
+  const published = monthContent.length; // content is already filtered to Publié
 
   // Chart: last 6 months
   const chartData = [];
@@ -71,9 +71,14 @@ function DashboardTab({ client, stats, content }) {
     });
   }
 
+  // Recent unpaid invoices
+  const unpaidInvoices = invoices.filter(i => i.status !== "Payée").slice(0, 3);
+  // Active contract
+  const activeContract = contracts.find(c => c.status === "Actif" || c.status === "Signé");
+
   return (
     <div className="space-y-4">
-      {/* KPIs */}
+      {/* KPIs — only content/social metrics relevant to the client */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <KpiCard label="Views this month" value={totalViews.toLocaleString()} icon={Eye} color="#2A69FF" />
         <KpiCard label="Followers gained" value={`+${totalFollowers}`} icon={Users} color="#8B5CF6" />
@@ -107,6 +112,27 @@ function DashboardTab({ client, stats, content }) {
                 <span className="text-sm font-medium text-slate-700 flex-1 truncate">{c.title || c.post_type}</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${TYPE_COLOR[c.post_type] || "bg-slate-100 text-slate-500"}`}>{c.post_type}</span>
                 {c.scheduled_date && <span className="text-[10px] text-slate-400 shrink-0">{format(new Date(c.scheduled_date), "d MMM", { locale: enUS })}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pending invoices */}
+      {unpaidInvoices.length > 0 && (
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+          <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">Pending invoices</p>
+          <div className="space-y-2">
+            {unpaidInvoices.map(inv => (
+              <div key={inv.id} className="flex items-center justify-between py-1.5 border-b border-slate-50 last:border-0">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">{inv.invoice_number || "Invoice"}</p>
+                  {inv.due_date && <p className="text-[10px] text-slate-400">Due {format(new Date(inv.due_date), "d MMM yyyy", { locale: enUS })}</p>}
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-slate-800">{(inv.total_with_tax || inv.total_amount || 0).toLocaleString("fr-FR")} €</p>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">{inv.status}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -196,7 +222,7 @@ function CalendarTab({ content }) {
                 <div className="space-y-0.5">
                   {items.slice(0, 3).map(c => (
                     <div key={c.id} className={`text-[9px] font-semibold px-1.5 py-0.5 rounded truncate ${TYPE_COLOR[c.post_type] || "bg-slate-100 text-slate-500"}`}>
-                      {c.post_type}
+                      {c.title || c.post_type}
                     </div>
                   ))}
                   {items.length > 3 && <div className="text-[9px] text-slate-400 px-1">+{items.length - 3}</div>}
@@ -337,6 +363,11 @@ function ContractsTab({ contracts }) {
     "Résilié": "bg-red-100 text-red-600",
   };
 
+  const STATUS_LABEL = {
+    "Actif": "Active", "Signé": "Signed", "Brouillon": "Draft",
+    "Terminé": "Completed", "Résilié": "Terminated",
+  };
+
   if (!contracts.length) return (
     <div className="text-center py-20 text-slate-400">
       <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
@@ -352,7 +383,7 @@ function ContractsTab({ contracts }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${STATUS_COLOR[c.status] || "bg-slate-100 text-slate-500"}`}>
-                  {c.status}
+                  {STATUS_LABEL[c.status] || c.status}
                 </span>
               </div>
               <p className="text-base font-bold text-slate-800">{c.title || "Contract"}</p>
@@ -367,12 +398,59 @@ function ContractsTab({ contracts }) {
               )}
               {c.notes && <p className="text-xs text-slate-500 mt-2 leading-relaxed">{c.notes}</p>}
             </div>
-            {c.file_url && (
-              <a href={c.file_url} target="_blank" rel="noopener noreferrer"
-                className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#2A69FF] bg-blue-50 px-3 py-2 rounded-xl hover:bg-blue-100 transition-colors">
-                <Download className="w-3.5 h-3.5" /> PDF
-              </a>
-            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Invoices tab ───────────────────────────────────────────────────────────
+function InvoicesTab({ invoices }) {
+  const STATUS_COLOR = {
+    "Payée": "bg-emerald-100 text-emerald-700",
+    "En attente": "bg-amber-100 text-amber-700",
+    "En retard": "bg-red-100 text-red-600",
+    "Brouillon": "bg-slate-100 text-slate-500",
+    "Annulée": "bg-slate-100 text-slate-400",
+  };
+
+  const STATUS_LABEL = {
+    "Payée": "Paid", "En attente": "Pending",
+    "En retard": "Overdue", "Brouillon": "Draft", "Annulée": "Cancelled",
+  };
+
+  if (!invoices.length) return (
+    <div className="text-center py-20 text-slate-400">
+      <Receipt className="w-12 h-12 mx-auto mb-3 opacity-20" />
+      <p className="text-sm">No invoices found</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      {invoices.map(inv => (
+        <div key={inv.id} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${STATUS_COLOR[inv.status] || "bg-slate-100 text-slate-500"}`}>
+                  {STATUS_LABEL[inv.status] || inv.status}
+                </span>
+                {inv.invoice_number && (
+                  <span className="text-[10px] font-mono text-slate-400">{inv.invoice_number}</span>
+                )}
+              </div>
+              <p className="text-base font-bold text-slate-800">
+                {(inv.total_with_tax || inv.total_amount || 0).toLocaleString("fr-FR")} €
+              </p>
+              {inv.description && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{inv.description}</p>}
+              <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-400">
+                {inv.issue_date && <span>Issued {format(new Date(inv.issue_date), "d MMM yyyy", { locale: enUS })}</span>}
+                {inv.due_date && <span>· Due {format(new Date(inv.due_date), "d MMM yyyy", { locale: enUS })}</span>}
+                {inv.paid_date && <span>· Paid {format(new Date(inv.paid_date), "d MMM yyyy", { locale: enUS })}</span>}
+              </div>
+            </div>
           </div>
         </div>
       ))}
@@ -437,11 +515,16 @@ const TABS = [
   { key: "calendar",  label: "Calendar",  icon: Calendar },
   { key: "reports",   label: "Reports",   icon: BarChart2 },
   { key: "contracts", label: "Contracts", icon: FileText },
+  { key: "invoices",  label: "Invoices",  icon: Receipt },
 ];
 
 export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [clientData, setClientData] = useState(null);
+  const [clientRecord, setClientRecord] = useState(null);
+  const [content, setContent] = useState([]);
+  const [stats, setStats] = useState([]);
+  const [contracts, setContracts] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -449,17 +532,73 @@ export default function ClientPortal() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { dark, toggle } = useTheme();
 
-  const clientName = clientData?.client?.company_name || user?.full_name || "";
+  const clientName = clientRecord?.company_name || user?.user_metadata?.company_name || user?.email?.split("@")[0] || "";
   const greeting = useMemo(() => getGreeting(clientName.split(" ")[0] || ""), [clientName]);
 
   useEffect(() => {
     (async () => {
       try {
-        const u = await base44.auth.me();
-        setUser(u);
-        const { data, error: err } = await supabase.functions.invoke('getClientData');
-        if (err || data?.error) throw new Error(data?.error || err?.message);
-        setClientData(data);
+        // Get current user
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (!authUser) throw new Error("Not authenticated");
+        setUser(authUser);
+
+        // Find client record linked to this user (try portal_user_id first, fall back to email)
+        let { data: clientRows } = await supabase
+          .from("clients")
+          .select("id, company_name, portal_user_id, contact_email")
+          .eq("portal_user_id", authUser.id)
+          .limit(1);
+
+        if (!clientRows?.length) {
+          const { data: emailRows } = await supabase
+            .from("clients")
+            .select("id, company_name, portal_user_id, contact_email")
+            .eq("contact_email", authUser.email)
+            .limit(1);
+          clientRows = emailRows;
+        }
+
+        const client = clientRows?.[0] || null;
+        setClientRecord(client);
+
+        if (!client?.company_name) {
+          // No client record linked — show empty portal
+          setLoading(false);
+          return;
+        }
+
+        const cName = client.company_name;
+
+        // Fetch all data in parallel, filtered by client_name
+        const [contentRes, contractsRes, invoicesRes, statsRes] = await Promise.all([
+          supabase
+            .from("editorial_content")
+            .select("id, title, post_type, scheduled_date, status, platform, client_name")
+            .eq("client_name", cName)
+            .eq("status", "Publié")
+            .order("scheduled_date", { ascending: false }),
+          supabase
+            .from("contracts")
+            .select("id, title, status, monthly_amount, start_date, end_date, notes, client_name")
+            .eq("client_name", cName)
+            .order("start_date", { ascending: false }),
+          supabase
+            .from("invoices")
+            .select("id, invoice_number, description, total_amount, total_with_tax, status, issue_date, due_date, paid_date, client_name")
+            .eq("client_name", cName)
+            .order("issue_date", { ascending: false }),
+          supabase
+            .from("client_stats")
+            .select("id, period, platform, views, reach, likes, comments, shares, followers_gained, notes")
+            .eq("client_name", cName)
+            .order("period", { ascending: false }),
+        ]);
+
+        setContent(contentRes.data || []);
+        setContracts(contractsRes.data || []);
+        setInvoices(invoicesRes.data || []);
+        setStats(statsRes.data || []);
       } catch (e) {
         setError(e.message);
       } finally {
@@ -483,7 +622,6 @@ export default function ClientPortal() {
     </div>
   );
 
-  const { client, content = [], stats = [], contracts = [] } = clientData || {};
   const initials = clientName?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "CL";
 
   return (
@@ -581,10 +719,11 @@ export default function ClientPortal() {
           </div>
         )}
 
-        {activeTab === "dashboard"  && <DashboardTab client={client} stats={stats} content={content} />}
+        {activeTab === "dashboard"  && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} />}
         {activeTab === "calendar"   && <CalendarTab content={content} />}
         {activeTab === "reports"    && <ReportsTab stats={stats} content={content} />}
         {activeTab === "contracts"  && <ContractsTab contracts={contracts} />}
+        {activeTab === "invoices"   && <InvoicesTab invoices={invoices} />}
       </div>
 
       {/* Mobile bottom nav */}

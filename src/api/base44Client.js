@@ -6,6 +6,16 @@ const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// ─── SESSION CACHE ─────────────────────────────────────────────────────────
+// Cache the session at module level so it's always available for edge function calls
+let _cachedAccessToken = null;
+supabase.auth.getSession().then(({ data: { session } }) => {
+  if (session?.access_token) _cachedAccessToken = session.access_token;
+});
+supabase.auth.onAuthStateChange((_event, session) => {
+  _cachedAccessToken = session?.access_token || null;
+});
+
 
 // ─── MAPPING : nom d'entité Base44 → nom de table Supabase ────────────────
 const TABLE_MAP = {
@@ -153,11 +163,28 @@ const auth = {
 
 const functions = {
   async invoke(name, payload = {}) {
-    const { data, error } = await supabase.functions.invoke(name, {
-      body: payload,
+    // Use cached token (set by onAuthStateChange), fallback to getSession
+    let accessToken = _cachedAccessToken;
+    if (!accessToken) {
+      const { data: { session } } = await supabase.auth.getSession();
+      accessToken = session?.access_token || null;
+    }
+
+    console.log(`[invoke:${name}] cachedToken=${_cachedAccessToken ? 'YES' : 'NO'} finalToken=${accessToken ? 'YES' : 'NO'} url=${supabaseUrl ? 'OK' : 'MISSING'} key=${supabaseKey ? 'OK' : 'MISSING'}`);
+
+    const url = `${supabaseUrl}/functions/v1/${name}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(payload),
     });
-    if (error) throw error;
-    // Base44 retournait { data: ... }, on reproduit le même shape
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || `Function error ${res.status}`);
     return { data };
   },
 };

@@ -16,37 +16,56 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Verify caller via JWT
+    // Verify caller — decode JWT payload to extract user info
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
     }
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+    let userId: string;
+    let userEmail: string;
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) throw new Error('Invalid JWT structure');
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
+      const payload = JSON.parse(atob(padded));
+      console.log('[getFreelancerData] JWT claims - sub:', payload.sub, 'email:', payload.email, 'role:', payload.role);
+      userId = payload.sub;
+      userEmail = payload.email;
+      if (!userId) throw new Error('Missing sub claim');
+      if (!userEmail) throw new Error('Missing email claim');
+    } catch (e) {
+      console.error('[getFreelancerData] JWT decode error:', e?.message);
+      return Response.json({ error: `Invalid token: ${e?.message}` }, { status: 401, headers: corsHeaders });
     }
 
+    // Build a fake user object for compatibility
+    const user = { id: userId, email: userEmail };
+
     // Get profile
-    const { data: profile } = await supabaseAdmin
+    const { data: profile, error: profileErr } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
+    console.log('[getFreelancerData] Profile role:', profile?.role, 'err:', profileErr?.message);
 
     if (profile?.role === 'admin') {
       return Response.json({ error: 'Admins cannot access this endpoint' }, { status: 403, headers: corsHeaders });
     }
 
     // Get freelancer record by email
-    const { data: freelancers } = await supabaseAdmin
+    const { data: freelancers, error: flErr } = await supabaseAdmin
       .from('freelancers')
       .select('*')
       .eq('email', user.email);
+    console.log('[getFreelancerData] Freelancers found:', freelancers?.length, 'err:', flErr?.message);
 
     const freelancerProfile = freelancers?.[0] || null;
 
     if (!freelancerProfile) {
+      console.error('[getFreelancerData] Not a freelancer for email:', user.email);
       return Response.json({ error: 'Not a freelancer' }, { status: 403, headers: corsHeaders });
     }
 
@@ -102,18 +121,14 @@ Deno.serve(async (req) => {
     );
     const assignedProjects = [...(projectsByID || []), ...projectsByName];
 
-    // Fetch editorial calendars visible to freelancers
-    const { data: visibleClients } = await supabaseAdmin
-      .from('clients')
-      .select('id, company_name')
-      .eq('editorial_visible', true);
-    const visibleClientNames = (visibleClients || []).map(c => c.company_name);
+    // Fetch editorial calendars visible to this specific freelancer
+    const editorialClientNames = (freelancerProfile.editorial_client_names || []) as string[];
     let visibleCalendars = [];
-    if (visibleClientNames.length > 0) {
+    if (editorialClientNames.length > 0) {
       const { data: visCalData } = await supabaseAdmin
         .from('editorial_content')
         .select('*')
-        .in('client_name', visibleClientNames)
+        .in('client_name', editorialClientNames)
         .order('scheduled_date', { ascending: true })
         .limit(300);
       visibleCalendars = visCalData || [];
@@ -131,6 +146,7 @@ Deno.serve(async (req) => {
     }, { headers: corsHeaders });
 
   } catch (error) {
+    console.error('[getFreelancerData] CATCH:', error?.message, error);
     return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
   }
 });

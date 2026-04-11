@@ -1,6 +1,20 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { base44, supabase } from "@/api/base44Client";
+
+// Only columns that exist in the tasks table
+const toTaskPayload = (d) => ({
+  title: d.title,
+  description: d.description || null,
+  status: d.status || "Non commencé",
+  priority: d.priority || "Normale",
+  category: d.category || "Autre",
+  client_name: d.client_name || null,
+  assigned_to: d.assigned_to || null,
+  due_date: d.due_date || null,
+  checklist: d.checklist || [],
+  notes: d.notes || null,
+});
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Plus, CheckSquare, Square, Trash2, AlertTriangle, Clock, CheckCircle2, Circle } from "lucide-react";
@@ -108,11 +122,12 @@ export default function Tasks() {
   const [editTask, setEditTask] = useState(null);
   const [activeStatus, setActiveStatus] = useState("all");
   const [activeClient, setActiveClient] = useState("all");
+  const [mutError, setMutError] = useState(null);
   const qc = useQueryClient();
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks"],
-    queryFn: () => base44.entities.Task.list("-created_date")
+    queryFn: () => base44.entities.Task.list("-created_at")
   });
 
   const { data: clients = [] } = useQuery({
@@ -121,13 +136,21 @@ export default function Tasks() {
   });
 
   const createMut = useMutation({
-    mutationFn: (d) => base44.entities.Task.create(d),
-    onSuccess: () => {qc.invalidateQueries({ queryKey: ["tasks"] });setDialogOpen(false);setEditTask(null);}
+    mutationFn: async (d) => {
+      const { error } = await supabase.from('tasks').insert(toTaskPayload(d));
+      if (error) throw error;
+    },
+    onSuccess: () => { setMutError(null); qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); setEditTask(null); },
+    onError: (e) => setMutError(e.message),
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, d }) => base44.entities.Task.update(id, d),
-    onSuccess: () => {qc.invalidateQueries({ queryKey: ["tasks"] });setDialogOpen(false);setEditTask(null);}
+    mutationFn: async ({ id, d }) => {
+      const { error } = await supabase.from('tasks').update(toTaskPayload(d)).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { setMutError(null); qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); setEditTask(null); },
+    onError: (e) => setMutError(e.message),
   });
 
   const deleteMut = useMutation({
@@ -223,9 +246,15 @@ export default function Tasks() {
         </div>
       }
 
+      {mutError && (
+        <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl shadow-lg z-50 max-w-sm">
+          <strong>Error:</strong> {mutError}
+        </div>
+      )}
+
       <TaskFormDialog
         open={dialogOpen}
-        onOpenChange={(v) => {setDialogOpen(v);if (!v) setEditTask(null);}}
+        onOpenChange={(v) => {setDialogOpen(v);if (!v) { setEditTask(null); setMutError(null); }}}
         task={editTask}
         onSave={handleSave} />
       

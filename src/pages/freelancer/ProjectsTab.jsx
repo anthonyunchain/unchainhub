@@ -16,6 +16,14 @@ const STATUS_COLORS = {
   "Terminé": "bg-emerald-100 text-emerald-700",
 };
 
+const STATUS_LABELS = {
+  "Non assigné": "Unassigned",
+  "À faire": "To do",
+  "En cours de montage": "Editing",
+  "En attente de retour": "Awaiting feedback",
+  "Terminé": "Done",
+};
+
 const EDITING_STATUSES = ["À faire", "En cours de montage", "En attente de retour", "Terminé"];
 
 function ProjectCard({ p, onAction }) {
@@ -62,7 +70,7 @@ function ProjectCard({ p, onAction }) {
             </SelectTrigger>
             <SelectContent>
               {EDITING_STATUSES.map(s => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
+                <SelectItem key={s} value={s}>{STATUS_LABELS[s] || s}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -266,7 +274,7 @@ export default function ProjectsTab({ projects = [], onProjectUpdate }) {
           <SelectTrigger className="h-8 text-xs w-44"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
-            {Object.keys(STATUS_COLORS).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            {Object.keys(STATUS_COLORS).map(s => <SelectItem key={s} value={s}>{STATUS_LABELS[s] || s}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>

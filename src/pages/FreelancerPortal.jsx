@@ -7,8 +7,9 @@ import { getGreeting } from "@/lib/greeting";
 import {
   FileText, CalendarDays, FileCheck, Wrench, Upload, ExternalLink,
   Clock, CheckCircle2, Square, AlertTriangle, FolderOpen, ClipboardList,
-  LayoutDashboard, User, Bell, Briefcase, Plus, Trash2, ListTodo
+  LayoutDashboard, User, Bell, Briefcase, Plus, Trash2, ListTodo, Lightbulb
 } from "lucide-react";
+import Ideas from "./Ideas";
 
 import FreelancerSidebar from "@/components/freelancer/FreelancerSidebar";
 import UserMenu from "@/components/layout/UserMenu";
@@ -471,9 +472,11 @@ function CalendarsTab({ visibleCalendars: initialCalendars }) {
   const [descValue, setDescValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [localItems, setLocalItems] = useState(initialCalendars || []);
+  const [expandedIds, setExpandedIds] = useState(new Set());
+  const toggleExpand = (id) => setExpandedIds(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
   const monthItems = localItems
-    .filter(c => c.scheduled_date?.startsWith(currentMonth))
+    .filter(c => c.scheduled_date?.startsWith(currentMonth) && c.status !== 'Publié')
     .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
 
   const byClient = {};
@@ -511,7 +514,7 @@ function CalendarsTab({ visibleCalendars: initialCalendars }) {
   const monoStyle = { fontFamily: "'DM Mono', monospace" };
 
   return (
-    <div>
+    <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-end mb-5">
         <div className="flex items-center gap-2">
           <button onClick={() => shiftMonth(-1)} className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 text-sm">‹</button>
@@ -544,7 +547,12 @@ function CalendarsTab({ visibleCalendars: initialCalendars }) {
                           <p className="text-sm font-medium text-slate-800 truncate flex-1">{item.title || "Untitled"}</p>
                         </div>
                         {item.description ? (
-                          <p className="text-xs text-slate-500 mt-1.5 line-clamp-2">{item.description}</p>
+                          <div className="mt-1.5">
+                            <p className={`text-xs text-slate-500 whitespace-pre-wrap ${expandedIds.has(item.id) ? '' : 'line-clamp-2'}`}>{item.description}</p>
+                            <button onClick={() => toggleExpand(item.id)} className="text-[10px] text-slate-300 hover:text-slate-500 mt-0.5">
+                              {expandedIds.has(item.id) ? '↑ less' : '↓ more'}
+                            </button>
+                          </div>
                         ) : (
                           <p className="text-xs text-slate-300 mt-1.5 italic">No description yet</p>
                         )}
@@ -720,6 +728,7 @@ function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded })
     "Payé": "bg-emerald-50 text-emerald-700",
     "En retard": "bg-red-50 text-red-700",
   };
+  const STATUS_LABELS = { "En attente": "Pending", "Payé": "Paid", "En retard": "Overdue" };
   const total = payments.reduce((s, p) => s + (p.amount || 0), 0);
   const paid = payments.filter(p => p.status === "Payé").reduce((s, p) => s + (p.amount || 0), 0);
   const pending = payments.filter(p => p.status === "En attente").reduce((s, p) => s + (p.amount || 0), 0);
@@ -752,7 +761,7 @@ function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded })
               <tr key={p.id} className="border-b border-slate-50">
                 <td className="px-5 py-3 text-sm font-medium text-slate-800">{p.description || "—"}</td>
                 <td className="px-5 py-3 text-sm text-slate-500">{p.date ? format(new Date(p.date), "d MMM yyyy", { locale: enUS }) : "—"}</td>
-                <td className="px-5 py-3"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}>{p.status}</span></td>
+                <td className="px-5 py-3"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}>{STATUS_LABELS[p.status] || p.status}</span></td>
                 <td className="px-5 py-3 text-sm font-semibold text-right text-slate-800">{p.amount ? `${p.amount.toLocaleString("fr-FR")} €` : "—"}</td>
                 <td className="px-5 py-3">{p.invoice_url && <a href={p.invoice_url} target="_blank" rel="noopener noreferrer" className="text-[#2A69FF] hover:underline text-xs flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> View</a>}</td>
               </tr>
@@ -896,6 +905,7 @@ export default function FreelancerPortal() {
       case "myprojects": return <FreelancerProjects projects={myProjects} onRefresh={handleProjectUpdate} freelancerName={freelancerName} />;
       case "projects": return <ProjectsTab projects={editorialProjects} onProjectUpdate={handleProjectUpdate} />;
       case "calendar": return <CalendarsTab visibleCalendars={visibleCalendars} />;
+      case "ideas": return <Ideas currentUserId={user?.id} currentUserName={profile?.name || user?.email} isFreelancer={true} />;
       case "tools": return <ToolsTab tools={tools} />;
       case "meetings": return <MeetingsTab meetings={meetings} />;
       case "invoices": return <InvoicesTab payments={payments} freelancerName={freelancerName} freelancerId={profile?.id} onPaymentAdded={handlePaymentAdded} />;
@@ -918,10 +928,11 @@ export default function FreelancerPortal() {
           position: 'relative',
           zIndex: 1,
           maxWidth: '100%',
-          padding: '20px',
+          paddingLeft: '20px',
+          paddingRight: '20px',
           paddingTop: 'max(28px, env(safe-area-inset-top))',
         }}
-        className="pb-24 md:pb-5"
+        className="pb-20 md:pb-5"
       >
         {/* Topbar */}
         <nav style={{ padding: '0 0 20px 0', position: 'relative', zIndex: 10 }}>
@@ -952,7 +963,7 @@ export default function FreelancerPortal() {
                 { id: 'tasks', label: 'Tasks' },
                 { id: 'myprojects', label: 'Projects' },
                 { id: 'projects', label: 'Calendar' },
-                { id: 'calendar', label: 'Captions' },
+                ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas' }] : []),
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
                 { id: 'invoices', label: 'Invoices' },
@@ -1001,6 +1012,7 @@ export default function FreelancerPortal() {
                 userName={freelancerName}
                 userEmail={user?.email}
                 initials={freelancerName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'US'}
+                onSettingsClick={() => setActiveTab('profile')}
               />
             </div>
 
@@ -1012,6 +1024,7 @@ export default function FreelancerPortal() {
                 userName={freelancerName}
                 userEmail={user?.email}
                 initials={freelancerName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'US'}
+                onSettingsClick={() => setActiveTab('profile')}
               />
             </div>
           </div>
@@ -1026,6 +1039,7 @@ export default function FreelancerPortal() {
                 myprojects:  { title: 'Projects',        subtitle: 'Projects assigned to you' },
                 projects:    { title: 'Editorial Calendar', subtitle: 'Content schedule & captions' },
                 calendar:    { title: 'Captions',        subtitle: 'Write & edit captions for your assigned calendars' },
+                ideas:       { title: 'Ideas',           subtitle: 'Brainstorm content ideas' },
                 tools:       { title: 'Tools',           subtitle: 'Your tools & resources' },
                 meetings:    { title: 'Meetings',        subtitle: 'Upcoming & past meetings' },
                 invoices:    { title: 'Invoices',        subtitle: 'Your payment history' },
@@ -1035,6 +1049,8 @@ export default function FreelancerPortal() {
               };
               const meta = TAB_TITLES[activeTab];
               if (!meta) return null;
+              // Profile tab manages its own header inside the grid layout
+              if (activeTab === 'profile') return null;
               return (
                 <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                   <div>
@@ -1051,6 +1067,22 @@ export default function FreelancerPortal() {
                       style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--brand)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                     >
                       <Plus style={{ width: 15, height: 15 }} /> New task
+                    </button>
+                  )}
+                  {activeTab === 'projects' && (
+                    <button
+                      onClick={() => setActiveTab('calendar')}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--card)', color: 'var(--brand)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: "'DM Mono', monospace" }}
+                    >
+                      Captions →
+                    </button>
+                  )}
+                  {activeTab === 'calendar' && (
+                    <button
+                      onClick={() => setActiveTab('projects')}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--card)', color: 'var(--muted)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: "'DM Mono', monospace" }}
+                    >
+                      ← Calendar
                     </button>
                   )}
                 </div>
