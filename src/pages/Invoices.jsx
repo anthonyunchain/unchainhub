@@ -61,7 +61,7 @@ export default function Invoices() {
 
   const openNew = () => {
     const num = `INV-${String(invoices.length + 1).padStart(4, "0")}`;
-    setEditData(calc({ invoice_number: num, client_id: "", client_name: "", description: "", total_amount: 0, tax_rate: 25.5, tax_amount: 0, total_with_tax: 0, status: "Sent", issue_date: format(new Date(), "yyyy-MM-dd"), due_date: "", notes: "" }));
+    setEditData(calc({ invoice_number: num, client_id: "", client_name: "", description: "", total_amount: 0, tax_rate: 25.5, tax_amount: 0, total_with_tax: 0, status: "Envoyée", issue_date: format(new Date(), "yyyy-MM-dd"), due_date: "", notes: "" }));
     setDialogOpen(true);
   };
 
