@@ -266,6 +266,10 @@ export default function Editorial() {
     const calEnd = startOfWeek(addDays(monthEnd, 6), { weekStartsOn: 1 });
     const allDays = eachDayOfInterval({ start: calStart, end: addDays(calEnd, 6) }).slice(0, 49);
     const allDaysNoWeekend = allDays.filter(d => d.getDay() !== 0 && d.getDay() !== 6);
+    // Group into rows of 5 and keep only weeks that have at least one day in the current month
+    const weeks = [];
+    for (let i = 0; i < allDaysNoWeekend.length; i += 5) weeks.push(allDaysNoWeekend.slice(i, i + 5));
+    const visibleDays = weeks.filter(week => week.some(d => isSameMonth(d, currentDate))).flat();
     const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
     return (
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
@@ -274,7 +278,7 @@ export default function Editorial() {
           {weekDays.map(d => <div key={d} className="text-center text-xs font-medium text-slate-400 py-2">{d}</div>)}
         </div>
         <div className="grid grid-cols-5">
-          {allDaysNoWeekend.map(day => {
+          {visibleDays.map(day => {
             const dayContent = filtered.filter(c => c.scheduled_date && isSameDay(new Date(c.scheduled_date), day));
             const isToday = isSameDay(day, new Date());
             const inMonth = isSameMonth(day, currentDate);
