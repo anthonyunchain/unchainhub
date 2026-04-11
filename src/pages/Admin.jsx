@@ -468,7 +468,7 @@ function AdminTasks() {
         <button
           onClick={() => setActiveCategory("all")}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeCategory === "all" ? "bg-slate-700 text-white" : "bg-white text-slate-400 border border-slate-200 hover:border-slate-300"}`}>
-          Toutes catégories
+          All categories
         </button>
         {CATEGORIES.filter(c => countByCategory(c) > 0 || c === "Vie perso").map((c) => (
           <button
