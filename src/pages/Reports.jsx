@@ -21,6 +21,7 @@ const EMPTY_STAT = { client_name: "", period: format(new Date(), "yyyy-MM"), pla
 
 export default function Reports() {
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
+  const [activeTab, setActiveTab] = useState("client");
   const [statDialog, setStatDialog] = useState(false);
   const [editStat, setEditStat] = useState(null);
   const qc = useQueryClient();
@@ -93,12 +94,17 @@ export default function Reports() {
         </Select>
       </PageHeader>
 
-      <Tabs defaultValue="client">
-        <TabsList className="mb-6">
-          <TabsTrigger value="client">Client report</TabsTrigger>
-          <TabsTrigger value="social">Social stats</TabsTrigger>
-          <TabsTrigger value="financial">Financial report</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="flex items-center justify-between mb-6">
+          <TabsList>
+            <TabsTrigger value="client">Client report</TabsTrigger>
+            <TabsTrigger value="social">Social stats</TabsTrigger>
+            <TabsTrigger value="financial">Financial report</TabsTrigger>
+          </TabsList>
+          {activeTab === "social" && (
+            <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" />Add stats</Button>
+          )}
+        </div>
 
         <TabsContent value="client">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -174,10 +180,6 @@ export default function Reports() {
         </TabsContent>
 
         <TabsContent value="social">
-          <div className="flex justify-end mb-4">
-            <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" />Add stats</Button>
-          </div>
-
           {/* KPIs */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-xl border border-slate-100 p-5">
