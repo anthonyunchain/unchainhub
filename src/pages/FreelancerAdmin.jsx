@@ -30,10 +30,19 @@ function FreelancerProfiles() {
   const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); }, onError: (e) => alert("Erreur mise à jour : " + (e?.message || e)) });
   const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Freelancer.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancers"] }), onError: (e) => alert("Erreur suppression : " + (e?.message || e)) });
 
-  const empty = { name: "", email: "", role: "", status: "Actif", notes: "", contract_url: "" };
+  const empty = { first_name: "", last_name: "", name: "", email: "", role: "", status: "Actif", notes: "", contract_url: "" };
   const openNew = () => { setData({ ...empty }); setOpen(true); };
-  const openEdit = (f) => { setData({ ...f }); setOpen(true); };
-  const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
+  const openEdit = (f) => { setData({ ...f, first_name: f.first_name || "", last_name: f.last_name || "" }); setOpen(true); };
+  const buildPayload = (d) => {
+    const first = (d.first_name || "").trim();
+    const last = (d.last_name || "").trim();
+    const fullName = [first, last].filter(Boolean).join(" ");
+    return { ...d, first_name: first, last_name: last, name: fullName || d.name };
+  };
+  const handleSave = () => {
+    const payload = buildPayload(data);
+    return data.id ? updateMut.mutate({ id: data.id, d: payload }) : createMut.mutate(payload);
+  };
   const handleDelete = () => { if (data?.id) { deleteMut.mutate(data.id); setOpen(false); setConfirmDelete(false); } };
 
   const handleContractUpload = async (e) => {
@@ -69,32 +78,35 @@ function FreelancerProfiles() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{data?.id ? "Modifier le freelancer" : "Nouveau freelancer"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{data?.id ? "Edit freelancer" : "New freelancer"}</DialogTitle></DialogHeader>
           {data && (
             <div className="space-y-4 mt-2">
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Nom *</Label><Input value={data.name || ""} onChange={e => setData({ ...data, name: e.target.value })} /></div>
-                <div><Label>Email</Label><Input value={data.email || ""} onChange={e => setData({ ...data, email: e.target.value })} /></div>
+                <div><Label>First name *</Label><Input value={data.first_name || ""} onChange={e => setData({ ...data, first_name: e.target.value })} /></div>
+                <div><Label>Last name</Label><Input value={data.last_name || ""} onChange={e => setData({ ...data, last_name: e.target.value })} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Rôle</Label><Input value={data.role || ""} onChange={e => setData({ ...data, role: e.target.value })} placeholder="Ex: Monteur vidéo" /></div>
-                <div><Label>Statut</Label>
+                <div><Label>Email</Label><Input value={data.email || ""} onChange={e => setData({ ...data, email: e.target.value })} /></div>
+                <div><Label>Role</Label><Input value={data.role || ""} onChange={e => setData({ ...data, role: e.target.value })} placeholder="e.g. Video editor" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Status</Label>
                   <Select value={data.status} onValueChange={v => setData({ ...data, status: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Actif">Actif</SelectItem>
-                      <SelectItem value="Indisponible">Indisponible</SelectItem>
+                      <SelectItem value="Actif">Active</SelectItem>
+                      <SelectItem value="Indisponible">Unavailable</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div>
-                <Label>Contrat PDF</Label>
+                <Label>Contract PDF</Label>
                 <div className="mt-1">
                   {data.contract_url ? (
                     <div className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg border border-slate-100 text-xs">
                       <a href={data.contract_url} target="_blank" rel="noopener noreferrer" className="text-[#2A69FF] hover:underline flex items-center gap-1">
-                        <ExternalLink className="w-3 h-3" /> Voir le contrat
+                        <ExternalLink className="w-3 h-3" /> View contract
                       </a>
                       <button onClick={() => setData(d => ({ ...d, contract_url: "" }))} className="text-slate-300 hover:text-red-400">
                         <X className="w-3.5 h-3.5" />
@@ -102,7 +114,7 @@ function FreelancerProfiles() {
                     </div>
                   ) : (
                     <label className={`cursor-pointer inline-flex items-center gap-1.5 text-xs text-[#2A69FF] hover:underline ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
-                      <Upload className="w-3 h-3" />{uploading ? "Envoi..." : "Uploader le contrat"}
+                      <Upload className="w-3 h-3" />{uploading ? "Uploading..." : "Upload contract"}
                       <input type="file" accept=".pdf" className="hidden" onChange={handleContractUpload} />
                     </label>
                   )}
@@ -112,7 +124,7 @@ function FreelancerProfiles() {
 
               {data.email && !data.id && (
                 <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700">
-                  💡 Après la création, envoie une invitation à <strong>{data.email}</strong> pour qu'il accède au portail.
+                  💡 After saving, send an invitation to <strong>{data.email}</strong> so they can access the portal.
                 </div>
               )}
 
@@ -121,25 +133,25 @@ function FreelancerProfiles() {
                   <div className="flex gap-2">
                     {confirmDelete ? (
                       <>
-                        <span className="text-xs text-red-600 self-center">Confirmer ?</span>
-                        <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 h-7 text-xs" onClick={handleDelete}>Oui</Button>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setConfirmDelete(false)}>Non</Button>
+                        <span className="text-xs text-red-600 self-center">Confirm?</span>
+                        <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 h-7 text-xs" onClick={handleDelete}>Yes</Button>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setConfirmDelete(false)}>No</Button>
                       </>
                     ) : (
                       <Button variant="ghost" className="text-red-500 hover:bg-red-50 h-8 text-xs" onClick={() => setConfirmDelete(true)}>
-                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Supprimer
+                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
                       </Button>
                     )}
                     {data.email && !confirmDelete && (
                       <Button variant="outline" className="h-8 text-xs" onClick={() => handleInvite(data.email, data.name)}>
-                        📧 Inviter
+                        📧 Invite
                       </Button>
                     )}
                   </div>
                 ) : <div />}
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
-                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!data.name}>Enregistrer</Button>
+                  <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!data.first_name && !data.name}>Save</Button>
                 </div>
               </div>
             </div>

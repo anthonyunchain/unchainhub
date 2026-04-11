@@ -33,7 +33,7 @@ function DashboardTab({ tasks, projects, freelancerName, onTabChange, userId }) 
   const [time, setTime] = useState("");
   const [personalTasks, setPersonalTasks] = useState([]);
   const today = format(new Date(), "EEEE, d MMMM yyyy", { locale: enUS });
-  const greeting = useMemo(() => getGreeting(freelancerName?.split(" ")[0] || ""), [freelancerName]);
+  const greeting = useMemo(() => getGreeting(freelancerFirstName), [freelancerFirstName]);
 
   useEffect(() => {
     if (!userId) return;
@@ -867,6 +867,7 @@ export default function FreelancerPortal() {
   const tools = freelancerData?.tools || [];
   const visibleCalendars = freelancerData?.visibleCalendars || [];
   const freelancerName = profile?.name || user?.full_name || user?.email;
+  const freelancerFirstName = profile?.first_name || freelancerName?.split(" ")[0] || "";
   const unreadCount = myProjects.filter(p => p.status === "Pending acceptance").length;
 
   const handleUpdateTask = async (task, updates) => {
