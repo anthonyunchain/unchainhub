@@ -83,7 +83,7 @@ export default function NotificationsPanel({ freelancerId, onAccept, onDecline }
   };
 
   const deleteNotification = async (id) => {
-    await supabase.from('notifications').delete().eq('id', id);
+    await supabase.functions.invoke('deleteNotification', { body: { notification_id: id } });
     setNotifications((ns) => ns.filter((n) => n.id !== id));
   };
 
