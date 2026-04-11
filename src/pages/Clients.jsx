@@ -177,8 +177,26 @@ export default function Clients() {
                                   <p className="text-xs text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" />{c.city} · {c.sector}</p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5">
                                 <StatusBadge status={translateStatus(c.status)} />
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {c.status === 'Actif' && (
+                                    <button
+                                      onClick={(e) => { e.preventDefault(); openInvite(c); }}
+                                      className="p-1 rounded-md hover:bg-blue-50 transition-colors"
+                                      title="Invite to Client Portal"
+                                    >
+                                      <UserPlus className="w-3.5 h-3.5 text-blue-500" />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={(e) => { e.preventDefault(); openEdit(c); }}
+                                    className="p-1 rounded-md hover:bg-slate-100 transition-colors"
+                                    title="Edit"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5 text-slate-400" />
+                                  </button>
+                                </div>
                                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
                               </div>
                             </div>
@@ -209,26 +227,6 @@ export default function Clients() {
                             </div>
                             <StatusBadge status={translateStatus(c.status)} />
                           </div>
-                        </div>
-                      )}
-                      {!reordering && (
-                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
-                          {c.status === 'Actif' && (
-                            <button
-                              onClick={(e) => { e.preventDefault(); openInvite(c); }}
-                              className="bg-white border border-slate-200 rounded-lg p-1.5 hover:bg-blue-50 hover:border-blue-200 shadow-sm"
-                              title="Invite to Client Portal"
-                            >
-                              <UserPlus className="w-3.5 h-3.5 text-blue-500" />
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => { e.preventDefault(); openEdit(c); }}
-                            className="bg-white border border-slate-200 rounded-lg p-1.5 hover:bg-slate-50 shadow-sm"
-                            title="Edit / Delete"
-                          >
-                            <Pencil className="w-3.5 h-3.5 text-slate-500" />
-                          </button>
                         </div>
                       )}
                     </div>

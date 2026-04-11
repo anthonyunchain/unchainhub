@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import StatusBadge from "../components/shared/StatusBadge";
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt, Pencil, Upload, X, ExternalLink, Briefcase, Trash2 } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt, Pencil, Upload, X, ExternalLink, Briefcase, Trash2, UserPlus } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,6 +104,10 @@ export default function ClientDetail() {
   const [editData, setEditData] = useState(null);
   const [uploadingContract, setUploadingContract] = useState(false);
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState("");
   const qc = useQueryClient();
 
   const { data: client } = useQuery({
@@ -142,6 +146,17 @@ export default function ClientDetail() {
   const clientInvoices = invoices.filter(i => i.client_id === id || i.client_name === client.company_name);
   const clientContent = content.filter(c => c.client_id === id || c.client_name === client.company_name);
   const totalRevenue = clientInvoices.filter(i => i.status === "Payée").reduce((s, i) => s + (i.total_with_tax || i.total_amount || 0), 0);
+
+  const openInvite = () => { setInviteEmail(client.contact_email || ""); setInviteMsg(""); setInviteOpen(true); };
+  const sendInvite = async () => {
+    if (!inviteEmail) return;
+    setInviting(true); setInviteMsg("");
+    try {
+      const { data, error } = await supabase.functions.invoke('inviteClient', { body: { email: inviteEmail, company_name: client.company_name } });
+      setInviteMsg(error || data?.error ? "Error: " + (data?.error || error?.message) : "Invitation sent!");
+    } catch (e) { setInviteMsg("Error: " + (e?.message || "Unknown error")); }
+    finally { setInviting(false); }
+  };
 
   const openEdit = () => {
     setEditData({
@@ -190,6 +205,11 @@ export default function ClientDetail() {
           </div>
           <div className="flex items-center gap-2">
             <StatusBadge status={client.status} />
+            {client.status === "Actif" && (
+              <Button variant="outline" size="sm" onClick={openInvite} className="h-8 gap-1">
+                <UserPlus className="w-3.5 h-3.5 text-blue-500" /> Invite
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={openEdit} className="h-8 gap-1">
               <Pencil className="w-3.5 h-3.5" /> Edit
             </Button>
@@ -325,6 +345,21 @@ export default function ClientDetail() {
           {clientInvoices.length === 0 && (client.invoice_documents || []).length === 0 && <p className="text-sm text-slate-400">No invoices</p>}
         </div>
       </div>
+
+      {/* Invite Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteMsg(""); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-blue-500" />Invite to Client Portal</DialogTitle></DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div><Label>Email</Label><Input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="client@example.com" /></div>
+            {inviteMsg && <p className={`text-sm ${inviteMsg.startsWith("Error") ? "text-red-500" : "text-emerald-600"}`}>{inviteMsg}</p>}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+              <Button onClick={sendInvite} disabled={inviting || !inviteEmail} className="bg-brand hover:bg-brand/90 text-brand-foreground">{inviting ? "Sending..." : "Send invite"}</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
