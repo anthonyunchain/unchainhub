@@ -172,7 +172,7 @@ export default function ClientDetail() {
   };
 
   return (
-    <div>
+    <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <Link to="/Clients" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 mb-4">
         <ArrowLeft className="w-4 h-4" /> Back to clients
       </Link>
