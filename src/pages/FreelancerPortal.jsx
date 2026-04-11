@@ -30,11 +30,11 @@ const TASK_STATUS = {
 };
 
 // ─── DASHBOARD TAB ─────────────────────────────────────────────────────────
-function DashboardTab({ tasks, projects, freelancerName, onTabChange, userId }) {
+function DashboardTab({ tasks, projects, freelancerName, freelancerFirstName, onTabChange, userId }) {
   const [time, setTime] = useState("");
   const [personalTasks, setPersonalTasks] = useState([]);
   const today = format(new Date(), "EEEE, d MMMM yyyy", { locale: enUS });
-  const greeting = useMemo(() => getGreeting(freelancerFirstName), [freelancerFirstName]);
+  const greeting = useMemo(() => getGreeting(freelancerFirstName || freelancerName?.split(" ")[0] || ""), [freelancerFirstName, freelancerName]);
 
   useEffect(() => {
     if (!userId) return;
@@ -899,7 +899,7 @@ export default function FreelancerPortal() {
 
   const renderTab = () => {
     switch (activeTab) {
-      case "dashboard": return <DashboardTab tasks={tasks} projects={editorialProjects} freelancerName={freelancerName} onTabChange={setActiveTab} userId={user?.id} />;
+      case "dashboard": return <DashboardTab tasks={tasks} projects={editorialProjects} freelancerName={freelancerName} freelancerFirstName={freelancerFirstName} onTabChange={setActiveTab} userId={user?.id} />;
       case "todo": return <PersonalTasksTab userId={user?.id} newTrigger={todoNewTrigger} />;
       case "tasks": return <TasksTabComponent tasks={tasks} onUpdateTask={handleUpdateTask} />;
       case "myprojects": return <FreelancerProjects projects={myProjects} onRefresh={handleProjectUpdate} freelancerName={freelancerName} />;
