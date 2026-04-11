@@ -64,7 +64,7 @@ export default function Dashboard() {
   const totalFollowers = thisMonthStats.reduce((s, r) => s + (r.followers_gained || 0), 0);
 
   return (
-    <div className="mx-auto space-y-4" style={{ maxWidth: '1400px' }}>
+    <div className="mx-auto space-y-4" style={{ maxWidth: '1100px' }}>
       {/* Greeting */}
       <div>
         <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '28px', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.5px' }}>
