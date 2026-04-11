@@ -94,17 +94,18 @@ export default function Reports() {
         </Select>
       </PageHeader>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex items-center justify-between mb-6">
-          <TabsList>
+      <div style={{ position: 'relative' }}>
+        {activeTab === "social" && (
+          <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 1 }}>
+            <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" />Add stats</Button>
+          </div>
+        )}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
             <TabsTrigger value="client">Client report</TabsTrigger>
             <TabsTrigger value="social">Social stats</TabsTrigger>
             <TabsTrigger value="financial">Financial report</TabsTrigger>
           </TabsList>
-          {activeTab === "social" && (
-            <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" />Add stats</Button>
-          )}
-        </div>
 
         <TabsContent value="client">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -318,6 +319,7 @@ export default function Reports() {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
 
       {/* Stat dialog */}
       <Dialog open={statDialog} onOpenChange={setStatDialog}>
