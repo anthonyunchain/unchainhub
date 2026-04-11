@@ -35,8 +35,7 @@ export default function Invoices() {
 
   const uniqueClients = [...new Set(invoices.map(i => i.client_name).filter(Boolean))];
   const uniqueYears = [...new Set(invoices.map(i => {
-    const d = i.issue_date || i.created_date;
-    return d ? new Date(d).getFullYear().toString() : null;
+    return i.issue_date ? new Date(i.issue_date).getFullYear().toString() : null;
   }).filter(Boolean))].sort((a, b) => b - a);
 
   const filtered = invoices
@@ -44,10 +43,9 @@ export default function Invoices() {
     .filter(i => filterClient === "all" || i.client_name === filterClient)
     .filter(i => {
       if (filterYear === "all") return true;
-      const d = i.issue_date || i.created_date;
-      return d && new Date(d).getFullYear().toString() === filterYear;
+      return i.issue_date && new Date(i.issue_date).getFullYear().toString() === filterYear;
     })
-    .sort((a, b) => new Date(b.issue_date || b.created_date) - new Date(a.issue_date || a.created_date));
+    .sort((a, b) => new Date(b.issue_date) - new Date(a.issue_date));
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -66,13 +64,7 @@ export default function Invoices() {
   };
 
   const openEdit = (inv) => {
-    // Normalise file_url → file_urls pour la rétrocompatibilité
-    const normalized = { ...inv };
-    const existingUrls = normalized.file_urls?.length ? normalized.file_urls : [];
-    const legacyUrl = normalized.file_url && !existingUrls.includes(normalized.file_url) ? [normalized.file_url] : [];
-    normalized.file_urls = [...existingUrls, ...legacyUrl];
-    normalized.file_url = "";
-    setEditData(normalized);
+    setEditData({ ...inv, file_urls: inv.file_urls || [] });
     setDialogOpen(true);
   };
 
@@ -93,8 +85,7 @@ export default function Invoices() {
   };
 
   const kpiBase = filterYear === "all" ? invoices : invoices.filter(i => {
-    const d = i.issue_date || i.created_date;
-    return d && new Date(d).getFullYear().toString() === filterYear;
+    return i.issue_date && new Date(i.issue_date).getFullYear().toString() === filterYear;
   });
   const totalPaid = kpiBase.filter(i => i.status === "Payée").reduce((s, i) => s + (i.total_with_tax || i.total_amount || 0), 0);
   const totalPending = kpiBase.filter(i => i.status === "Envoyée").reduce((s, i) => s + (i.total_with_tax || i.total_amount || 0), 0);
@@ -195,7 +186,7 @@ export default function Invoices() {
                 </td>
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-1.5">
-                    {[...(inv.file_urls?.length ? inv.file_urls : []), ...(inv.file_url && !inv.file_urls?.includes(inv.file_url) ? [inv.file_url] : [])].map((url, i) => (
+                    {(inv.file_urls || []).map((url, i) => (
                       <a key={i} href={url} target="_blank" rel="noopener noreferrer" title={decodeURIComponent(url.split("/").pop().split("?")[0])} className="text-brand hover:text-brand/80">
                         <FileText className="w-4 h-4" />
                       </a>
@@ -309,27 +300,24 @@ export default function Invoices() {
               <div>
                 <Label className="flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5" />Attached files (PDF)</Label>
                 <div className="mt-1.5 space-y-1.5">
-                  {(editData.file_urls || (editData.file_url ? [editData.file_url] : [])).map((url, i) => (
+                  {(editData.file_urls || []).map((url, i) => (
                     <div key={i} className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
                       <FileText className="w-4 h-4 text-brand shrink-0" />
                       <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline flex-1 truncate">
                         {decodeURIComponent(url.split("/").pop().split("?")[0])}
                       </a>
-                      <button onClick={() => setEditData(d => ({ ...d, file_urls: (d.file_urls || [d.file_url]).filter((_, idx) => idx !== i), file_url: "" }))} className="text-slate-300 hover:text-red-400 shrink-0">
+                      <button onClick={() => setEditData(d => ({ ...d, file_urls: (d.file_urls || []).filter((_, idx) => idx !== i) }))} className="text-slate-300 hover:text-red-400 shrink-0">
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
-                  {(editData.file_urls || (editData.file_url ? [editData.file_url] : [])).length < 2 && (
+                  {(editData.file_urls || []).length < 2 && (
                     <label className="cursor-pointer inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand border border-dashed border-slate-200 rounded-lg px-4 py-2.5 w-full justify-center hover:border-brand/40 transition-colors">
                       <Upload className="w-4 h-4" /> Attach a PDF file
                       <input type="file" accept=".pdf" className="hidden" onChange={async (e) => {
                         const file = e.target.files?.[0]; if (!file) return;
                         const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                        setEditData(d => {
-                          const existing = d.file_urls || (d.file_url ? [d.file_url] : []);
-                          return { ...d, file_urls: [...existing, file_url], file_url: "" };
-                        });
+                        setEditData(d => ({ ...d, file_urls: [...(d.file_urls || []), file_url] }));
                         e.target.value = "";
                       }} />
                     </label>
