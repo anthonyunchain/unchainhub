@@ -15,9 +15,9 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 const ALL_SERVICES = [
-  "Community Management", "Création de contenu", "Photographie", "Vidéo",
-  "Stratégie digitale", "Publicité Meta", "Influenceurs", "Email marketing",
-  "SEO", "Site web", "Branding", "Conseil"
+  "Community Management", "Content Creation", "Photography", "Video",
+  "Digital Strategy", "Meta Ads", "Influencers", "Email Marketing",
+  "SEO", "Website", "Branding", "Consulting"
 ];
 
 function ServicesEditor({ value = [], onChange }) {
