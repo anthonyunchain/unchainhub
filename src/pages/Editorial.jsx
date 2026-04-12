@@ -440,7 +440,7 @@ export default function Editorial() {
               <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}><ChevronLeft className="w-4 h-4" /></Button>
               <h3 className="text-sm font-semibold text-slate-700 capitalize min-w-[220px] text-center">{navLabel()}</h3>
               <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate(1)}><ChevronRight className="w-4 h-4" /></Button>
-              <Button variant="ghost" className="text-xs h-7 text-slate-500" onClick={goToday}>Today</Button>
+              <Button variant="ghost" className="hidden sm:inline-flex text-xs h-7 text-slate-500" onClick={goToday}>Today</Button>
             </>
           )}
           {view === "list" && <h3 className="text-sm font-semibold text-slate-700">{filtered.length} content{filtered.length > 1 ? "s" : ""}</h3>}
