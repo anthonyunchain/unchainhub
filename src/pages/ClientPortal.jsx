@@ -565,7 +565,7 @@ export default function ClientPortal() {
         // Find client record linked to this user (try portal_user_id first, fall back to email)
         let { data: clientRows } = await supabase
           .from("clients")
-          .select("id, company_name, portal_user_id, contact_email")
+          .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs")
           .eq("portal_user_id", authUser.id)
           .limit(1);
 
