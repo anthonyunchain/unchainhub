@@ -49,7 +49,7 @@ function KpiCard({ label, value, icon: Icon, color = "#2A69FF" }) {
 }
 
 // ── Dashboard tab ──────────────────────────────────────────────────────────
-function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf }) {
+function DashboardTab({ client, stats, content, contracts, invoices, calendarPdfs }) {
   const currentMonth = format(new Date(), "yyyy-MM");
   const monthStats = stats.filter(s => s.period === currentMonth);
   const totalViews = monthStats.reduce((s, r) => s + (r.views || 0), 0);
@@ -82,9 +82,9 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <KpiCard label="Views this month" value={totalViews.toLocaleString()} icon={Eye} color="#2A69FF" />
         <KpiCard label="Posts published" value={published} icon={TrendingUp} color="#10B981" />
-        {calendarPdf ? (
+        {calendarPdfs.length > 0 ? (
           <a
-            href={calendarPdf}
+            href={calendarPdfs[0]}
             target="_blank"
             rel="noopener noreferrer"
             className="col-span-2 lg:col-span-1 flex items-center justify-between px-5 py-4 rounded-2xl transition-all hover:opacity-90"
@@ -96,7 +96,7 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
               </div>
               <div className="text-left">
                 <p className="text-sm font-semibold text-white">Editorial Calendar</p>
-                <p className="text-[11px] text-white/70">Download PDF</p>
+                <p className="text-[11px] text-white/70">Download latest PDF</p>
               </div>
             </div>
             <Download className="w-4 h-4 text-white/80" />
@@ -158,6 +158,24 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
 
       {/* Editorial calendar */}
       <CalendarTab content={content} />
+
+      {/* PDF history */}
+      {calendarPdfs.length > 1 && (
+        <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
+          <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">Previous calendars</p>
+          <div className="space-y-1.5">
+            {calendarPdfs.slice(1).map((url, i) => (
+              <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2.5 py-2 px-3 rounded-xl hover:bg-slate-50 transition-colors">
+                <Download className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="text-sm text-slate-600 truncate">
+                  {decodeURIComponent(url.split("/").pop().split("?")[0]).replace(/^\d+-[a-z0-9]+\./, "")}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -554,7 +572,7 @@ export default function ClientPortal() {
         if (!clientRows?.length) {
           const { data: emailRows } = await supabase
             .from("clients")
-            .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdf")
+            .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs")
             .eq("contact_email", authUser.email)
             .limit(1);
           clientRows = emailRows;
@@ -735,7 +753,7 @@ export default function ClientPortal() {
           </div>
         )}
 
-        {activeTab === "dashboard"  && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} calendarPdf={clientRecord?.editorial_calendar_pdf} />}
+        {activeTab === "dashboard"  && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} calendarPdfs={clientRecord?.editorial_calendar_pdfs || []} />}
         {activeTab === "reports"    && <ReportsTab stats={stats} content={content} />}
         {activeTab === "contracts"  && <ContractsTab contracts={contracts} />}
         {activeTab === "invoices"   && <InvoicesTab invoices={invoices} />}
