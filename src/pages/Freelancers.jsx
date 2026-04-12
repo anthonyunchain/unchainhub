@@ -90,26 +90,43 @@ export default function Freelancers() {
   if (section) {
     return (
       <div>
+        {/* Mobile: back link above title */}
+        <button onClick={() => setSection(null)} className="sm:hidden text-sm text-slate-500 hover:text-slate-800 flex items-center gap-1.5 mb-3">
+          ← Back
+        </button>
         <PageHeader title="Freelancers & Partners" subtitle="External team management">
-          <button onClick={() => setSection(null)} className="text-sm text-slate-500 hover:text-slate-800 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all">
-            ← Back
-          </button>
+          {/* Desktop: back + all controls */}
+          <div className="hidden sm:flex items-center gap-2">
+            <button onClick={() => setSection(null)} className="text-sm text-slate-500 hover:text-slate-800 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all">
+              ← Back
+            </button>
+            {section === 'team' && (
+              <>
+                <Button variant="outline" className="h-9" onClick={openNewPayment}><Plus className="w-4 h-4 mr-1" /> Payment</Button>
+                {reordering ? (
+                  <>
+                    <Button variant="outline" className="h-9" onClick={() => { setLocalFreelancers(null); setReordering(false); }}>Cancel</Button>
+                    <Button className="bg-brand hover:bg-brand/90 text-brand-foreground h-9" onClick={saveOrder}>Save order</Button>
+                  </>
+                ) : (
+                  <Button variant="outline" className="h-9" onClick={() => setReordering(true)}><ArrowUpDown className="w-4 h-4 mr-1" /> Reorder</Button>
+                )}
+              </>
+            )}
+            {section === 'payments' && (
+              <Button variant="outline" className="h-9" onClick={openNewPayment}><Plus className="w-4 h-4 mr-1" /> New payment</Button>
+            )}
+          </div>
+          {/* Mobile: only primary action */}
           {section === 'team' && (
-            <>
-              <Button variant="outline" className="h-9" onClick={openNewPayment}><Plus className="w-4 h-4 mr-1" /> Payment</Button>
-              {reordering ? (
-                <>
-                  <Button variant="outline" className="h-9" onClick={() => { setLocalFreelancers(null); setReordering(false); }}>Cancel</Button>
-                  <Button className="bg-brand hover:bg-brand/90 text-brand-foreground h-9" onClick={saveOrder}>Save order</Button>
-                </>
-              ) : (
-                <Button variant="outline" className="h-9" onClick={() => setReordering(true)}><ArrowUpDown className="w-4 h-4 mr-1" /> Reorder</Button>
-              )}
-              <Button onClick={() => openEditFreelancer(null)} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" /> New profile</Button>
-            </>
+            <Button onClick={() => openEditFreelancer(null)} className="sm:hidden bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" /> New profile</Button>
           )}
           {section === 'payments' && (
-            <Button variant="outline" className="h-9" onClick={openNewPayment}><Plus className="w-4 h-4 mr-1" /> New payment</Button>
+            <Button className="sm:hidden bg-brand hover:bg-brand/90 text-brand-foreground h-9" onClick={openNewPayment}><Plus className="w-4 h-4 mr-1" /> New payment</Button>
+          )}
+          {/* Desktop: New profile */}
+          {section === 'team' && (
+            <Button onClick={() => openEditFreelancer(null)} className="hidden sm:inline-flex bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" /> New profile</Button>
           )}
         </PageHeader>
 
