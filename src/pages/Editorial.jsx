@@ -266,26 +266,28 @@ export default function Editorial() {
     const calEnd = startOfWeek(addDays(monthEnd, 6), { weekStartsOn: 1 });
     const allDays = eachDayOfInterval({ start: calStart, end: addDays(calEnd, 6) }).slice(0, 49);
     const allDaysNoWeekend = allDays.filter(d => d.getDay() !== 0 && d.getDay() !== 6);
-    // Group into rows of 5 and keep only weeks that have at least one day in the current month
     const weeks = [];
     for (let i = 0; i < allDaysNoWeekend.length; i += 5) weeks.push(allDaysNoWeekend.slice(i, i + 5));
     const visibleDays = weeks.filter(week => week.some(d => isSameMonth(d, currentDate))).flat();
     const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+    // On mobile: hide Thu (dayOfWeek=4) & Fri (dayOfWeek=5) → 3-col grid
     return (
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
-      <div className="min-w-[560px]">
-        <div className="grid grid-cols-5 border-b border-slate-100">
-          {weekDays.map(d => <div key={d} className="text-center text-xs font-medium text-slate-400 py-2">{d}</div>)}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
+        <div className="grid grid-cols-3 sm:grid-cols-5 border-b border-slate-100">
+          {weekDays.map((d, i) => (
+            <div key={d} className={`text-center text-xs font-medium text-slate-400 py-2 ${i >= 3 ? "hidden sm:block" : ""}`}>{d}</div>
+          ))}
         </div>
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-3 sm:grid-cols-5">
           {visibleDays.map(day => {
             const dayContent = filtered.filter(c => c.scheduled_date && isSameDay(new Date(c.scheduled_date), day));
             const isToday = isSameDay(day, new Date());
             const inMonth = isSameMonth(day, currentDate);
+            const dow = day.getDay(); // 4=Thu, 5=Fri
             return (
               <div
                 key={day.toISOString()}
-                className={`min-h-[100px] border-b border-r border-slate-100 p-1.5 transition-colors ${!inMonth ? "bg-slate-50/50" : ""} ${draggingId && inMonth ? "hover:bg-blue-50/40" : ""}`}
+                className={`min-h-[100px] border-b border-r border-slate-100 p-1.5 transition-colors ${!inMonth ? "bg-slate-50/50" : ""} ${draggingId && inMonth ? "hover:bg-blue-50/40" : ""} ${dow >= 4 ? "hidden sm:block" : ""}`}
                 onDragOver={e => e.preventDefault()}
                 onDrop={() => inMonth && handleDrop(day)}
               >
@@ -303,7 +305,6 @@ export default function Editorial() {
             );
           })}
         </div>
-      </div>
       </div>
     );
   };
@@ -368,28 +369,30 @@ export default function Editorial() {
   return (
     <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Editorial Calendar" subtitle="Content planning">
-        <Select value={filterClient} onValueChange={setFilterClient}>
-          <SelectTrigger className="w-48 h-9 text-sm"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All clients</SelectItem>
-            {clients.map(c => <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Link to="/ContentDescriptions">
-          <Button variant="outline" className="h-9">
-            <AlignLeft className="w-4 h-4 mr-1" /> Descriptions
-          </Button>
-        </Link>
-        {!isReadOnly && (
-          <>
-            <Button variant="outline" className="h-9" onClick={() => setCsvOpen(true)}>
-              <Upload className="w-4 h-4 mr-1" /> Import CSV
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
+          <Select value={filterClient} onValueChange={setFilterClient}>
+            <SelectTrigger className="w-full sm:w-48 h-9 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All clients</SelectItem>
+              {clients.map(c => <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Link to="/ContentDescriptions" className="contents">
+            <Button variant="outline" className="w-full sm:w-auto h-9">
+              <AlignLeft className="w-4 h-4 mr-1" /> Descriptions
             </Button>
-            <Button onClick={() => openNew()} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
-              <Plus className="w-4 h-4 mr-1" /> New content
-            </Button>
-          </>
-        )}
+          </Link>
+          {!isReadOnly && (
+            <>
+              <Button variant="outline" className="w-full sm:w-auto h-9" onClick={() => setCsvOpen(true)}>
+                <Upload className="w-4 h-4 mr-1" /> Import CSV
+              </Button>
+              <Button onClick={() => openNew()} className="w-full sm:w-auto bg-brand hover:bg-brand/90 text-brand-foreground h-9">
+                <Plus className="w-4 h-4 mr-1" /> New content
+              </Button>
+            </>
+          )}
+        </div>
       </PageHeader>
 
       {/* Controls */}
