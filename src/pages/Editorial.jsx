@@ -467,7 +467,7 @@ export default function Editorial() {
           <DialogHeader><DialogTitle>{editData?.id ? (isReadOnly ? "View content" : "Edit content") : "New content"}</DialogTitle></DialogHeader>
           {editData && (
             <div className="mt-2">
-              <div className="grid grid-cols-2 gap-6 items-start">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
 
                 {/* ── Left column ── */}
                 <div className="space-y-3">

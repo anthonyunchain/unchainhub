@@ -184,7 +184,7 @@ export default function Tasks() {
   const taskClients = [...new Set(tasks.map((t) => t.client_name).filter(Boolean))];
 
   return (
-    <div className="mx-auto" style={{ maxWidth: '1400px' }}>
+    <div className="mx-auto px-4 md:px-6" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Tasks" subtitle="Team task management">
         <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
           <Plus className="w-4 h-4 mr-1" /> New task
@@ -262,7 +262,7 @@ export default function Tasks() {
           <p className="text-slate-400 text-sm">No tasks</p>
         </div> :
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {filtered.map((task) =>
         <TaskCard
           key={task.id}

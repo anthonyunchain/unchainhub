@@ -128,7 +128,8 @@ function EditorialCalendar({ content }) {
       </div>
 
       {/* Grid */}
-      <div className="rounded-2xl border border-slate-100 overflow-hidden">
+      <div className="rounded-2xl border border-slate-100 overflow-x-auto">
+        <div className="min-w-[480px]">
         {/* Header row */}
         <div className="grid grid-cols-5 border-b border-slate-100 bg-slate-50/60">
           {DAY_LABELS.map(d => (
@@ -170,6 +171,7 @@ function EditorialCalendar({ content }) {
               </div>
             );
           })}
+        </div>
         </div>
       </div>
     </div>
@@ -269,7 +271,7 @@ export default function ClientDetail() {
 
       {/* ── Header card ── */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-4">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-4">
             {/* Avatar */}
             <div style={{
@@ -336,7 +338,7 @@ export default function ClientDetail() {
       </div>
 
       {/* ── Tab bar ── */}
-      <div className="flex items-center gap-1 mb-4 bg-white rounded-xl border border-slate-100 shadow-sm p-1.5 w-fit">
+      <div className="flex items-center gap-1 mb-4 bg-white rounded-xl border border-slate-100 shadow-sm p-1.5 overflow-x-auto">
         {TABS.map(tab => (
           <button
             key={tab.id}
@@ -353,6 +355,8 @@ export default function ClientDetail() {
               cursor: "pointer",
               transition: "all 150ms ease",
               letterSpacing: "0.03em",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             {tab.label}
@@ -401,7 +405,7 @@ export default function ClientDetail() {
       {/* REPORTS */}
       {activeTab === "reports" && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { label: "This month",    value: thisMonthContent.length, color: "text-slate-900" },
               { label: "Published",     value: publishedMonth,          color: "text-emerald-600" },

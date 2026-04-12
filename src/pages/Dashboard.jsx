@@ -98,7 +98,7 @@ export default function Dashboard() {
                 total posts planned
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+            <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
               {[
                 { label: 'Shot', value: shot },
                 { label: 'In Editing', value: inProgress },
@@ -119,7 +119,7 @@ export default function Dashboard() {
         </Link>
 
         {/* 2×2 KPI grid — equal row heights */}
-        <div className="lg:col-span-2 grid grid-cols-2 gap-3" style={{ gridTemplateRows: '1fr 1fr' }}>
+        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3" style={{ gridTemplateRows: '1fr 1fr' }}>
           <KpiCard title="Active clients" value={activeClients} icon={Users} tint="blue" />
           <KpiCard title="Open deals" value={openDeals} icon={Kanban} tint="purple" />
           <Link to="/Reports" style={{ textDecoration: 'none', display: 'block' }}>

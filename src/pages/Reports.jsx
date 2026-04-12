@@ -182,7 +182,7 @@ export default function Reports() {
 
         <TabsContent value="social">
           {/* KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-xl border border-slate-100 p-5">
               <p className="text-xs text-slate-400 uppercase">Total views</p>
               <p className="text-2xl font-bold text-blue-600 mt-1">{totalViews.toLocaleString("fr-FR")}</p>

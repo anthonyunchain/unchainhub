@@ -93,7 +93,7 @@ export default function Finance() {
       {/* Ratios */}
       <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
         <h3 className="text-sm font-semibold text-slate-900 mb-4">Key ratios</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           <div>
             <p className="text-xs text-slate-400 uppercase">Margin rate</p>
             <p className="text-2xl font-bold text-slate-900 mt-1">{marginPct}%</p>
