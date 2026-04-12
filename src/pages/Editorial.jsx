@@ -446,7 +446,7 @@ export default function Editorial() {
           {view === "list" && <h3 className="text-sm font-semibold text-slate-700">{filtered.length} content{filtered.length > 1 ? "s" : ""}</h3>}
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
+          <div className="hidden sm:flex items-center gap-1">
             {["Reel", "Story", "Carousel"].map(type => (
               <button
                 key={type}
@@ -461,7 +461,7 @@ export default function Editorial() {
               </button>
             ))}
           </div>
-          <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-0.5">
+          <div className="hidden sm:flex items-center bg-slate-100 rounded-lg p-1 gap-0.5">
             {[
               { key: "day", label: "Day", icon: CalendarIcon },
                 { key: "week", label: "Week", icon: CalendarIcon },
