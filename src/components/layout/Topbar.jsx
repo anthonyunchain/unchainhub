@@ -56,7 +56,7 @@ export default function Topbar() {
           }}>
             <span style={{ fontSize: '13px', fontWeight: 800, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>U</span>
           </div>
-          <span className="hidden sm:inline" style={{ fontSize: '15px', fontWeight: 800, color: 'var(--ink)', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.2px' }}>
+          <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--ink)', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.2px' }}>
             Unchain Studio
           </span>
         </Link>
