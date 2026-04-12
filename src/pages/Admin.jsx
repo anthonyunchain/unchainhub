@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
@@ -1255,7 +1256,8 @@ function loadAdminNav() {
 
 export default function Admin() {
   const { user } = useAuth();
-  const [section, setSection] = useState('tasks');
+  const [searchParams] = useSearchParams();
+  const [section, setSection] = useState(searchParams.get('s') || 'tasks');
   const [navItems, setNavItems] = useState(loadAdminNav);
   const [editingNav, setEditingNav] = useState(false);
 
