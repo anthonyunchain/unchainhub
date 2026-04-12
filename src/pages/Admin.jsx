@@ -661,7 +661,6 @@ function UserManagement() {
   const [inviteForm, setInviteForm] = useState({ email: "", client_id: "" });
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState("");
-  const [inviteMode, setInviteMode] = useState("email");
   const [invitePassword, setInvitePassword] = useState("");
   const qc = useQueryClient();
 
@@ -676,7 +675,6 @@ function UserManagement() {
   const openInvite = () => {
     setInviteForm({ email: "", client_id: "" });
     setInviteMsg("");
-    setInviteMode("email");
     setInvitePassword(generatePassword());
     setInviteOpen(true);
   };
@@ -688,40 +686,18 @@ function UserManagement() {
     setInviteMsg("");
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (inviteMode === "password") {
-        const { data, error } = await supabase.functions.invoke('setClientPassword', {
-          body: { email: inviteForm.email, company_name: client?.company_name, client_id: inviteForm.client_id, password: invitePassword },
-          headers: { Authorization: `Bearer ${session?.access_token}` },
-        });
-        if (error || data?.error) {
-          setInviteMsg("Erreur : " + (data?.error || error?.message));
-        } else {
-          setInviteMsg("✓ Compte créé. Partagez le mot de passe avec le client.");
-          qc.invalidateQueries({ queryKey: ["profiles"] });
-        }
+      const { data, error } = await supabase.functions.invoke('setClientPassword', {
+        body: { email: inviteForm.email, company_name: client?.company_name, client_id: inviteForm.client_id, password: invitePassword },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error || data?.error) {
+        setInviteMsg("Erreur : " + (data?.error || error?.message));
       } else {
-        const { data } = await base44.functions.invoke('inviteClient', {
-          email: inviteForm.email,
-          company_name: client?.company_name,
-          client_id: inviteForm.client_id,
-        });
-        if (data?.error) {
-          const msg = data.error;
-          if (msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('email')) {
-            setInviteMsg("✓ Compte lié. Limite d'email atteinte — demandez au client d'utiliser 'Mot de passe oublié'.");
-            qc.invalidateQueries({ queryKey: ["profiles"] });
-            setTimeout(() => { setInviteOpen(false); setInviteMsg(""); }, 4000);
-          } else {
-            setInviteMsg("Error: " + msg);
-          }
-        } else {
-          setInviteMsg("✓ Invitation envoyée à " + inviteForm.email);
-          qc.invalidateQueries({ queryKey: ["profiles"] });
-          setTimeout(() => { setInviteOpen(false); setInviteMsg(""); }, 2000);
-        }
+        setInviteMsg("✓ Compte créé. Partagez le mot de passe avec le client.");
+        qc.invalidateQueries({ queryKey: ["profiles"] });
       }
     } catch (e) {
-      setInviteMsg("Error: " + (e?.message || "Unknown error"));
+      setInviteMsg("Erreur : " + (e?.message || "Unknown error"));
     } finally {
       setInviting(false);
     }
@@ -823,31 +799,11 @@ function UserManagement() {
         </table>
       </div>
 
-      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) { setInviteMsg(""); setInviteMode("email"); } }}>
+      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteMsg(""); }}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><UserPlus className="w-5 h-5 text-blue-500" />Accès au portail client</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
-            <div className="flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
-              <button
-                className={`flex-1 py-1.5 text-sm rounded-md transition-colors ${inviteMode === 'email' ? 'bg-white shadow-sm font-medium text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
-                onClick={() => { setInviteMode('email'); setInviteMsg(''); }}
-              >
-                <Send className="w-3.5 h-3.5 inline mr-1.5" />Email d'invitation
-              </button>
-              <button
-                className={`flex-1 py-1.5 text-sm rounded-md transition-colors ${inviteMode === 'password' ? 'bg-white shadow-sm font-medium text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
-                onClick={() => { setInviteMode('password'); setInviteMsg(''); }}
-              >
-                <KeyRound className="w-3.5 h-3.5 inline mr-1.5" />Générer un mot de passe
-              </button>
-            </div>
-
-            {inviteMode === 'email' ? (
-              <p className="text-sm text-slate-500">Le client recevra un email pour définir son mot de passe et accéder à son portail.</p>
-            ) : (
-              <p className="text-sm text-slate-500">Créez directement un compte avec mot de passe. Partagez-le avec le client par SMS ou en personne. Fonctionne même si l'email est déjà utilisé.</p>
-            )}
-
+            <p className="text-sm text-slate-500">Créez directement un compte avec mot de passe. Partagez-le avec le client par SMS ou en personne. Fonctionne même si l'email est déjà utilisé.</p>
             <div>
               <Label>Client *</Label>
               <Select value={inviteForm.client_id} onValueChange={v => setInviteForm({ ...inviteForm, client_id: v, email: clients.find(c => c.id === v)?.contact_email || inviteForm.email })}>
@@ -861,32 +817,25 @@ function UserManagement() {
               <Label>Email *</Label>
               <Input type="email" value={inviteForm.email} onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })} placeholder="client@company.com" />
             </div>
-
-            {inviteMode === 'password' && (
-              <div>
-                <Label>Mot de passe</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input value={invitePassword} onChange={e => setInvitePassword(e.target.value)} className="font-mono" />
-                  <Button variant="outline" size="icon" onClick={() => setInvitePassword(generatePassword())} title="Regénérer">
-                    <RefreshCw className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(invitePassword)} title="Copier">
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
+            <div>
+              <Label>Mot de passe</Label>
+              <div className="flex gap-2 mt-1">
+                <Input value={invitePassword} onChange={e => setInvitePassword(e.target.value)} className="font-mono" />
+                <Button variant="outline" size="icon" onClick={() => setInvitePassword(generatePassword())} title="Regénérer">
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(invitePassword)} title="Copier">
+                  <Copy className="w-4 h-4" />
+                </Button>
               </div>
-            )}
-
+            </div>
             {inviteMsg && (
-              <p className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith('Error') || inviteMsg.startsWith('Erreur') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>{inviteMsg}</p>
+              <p className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith('Erreur') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>{inviteMsg}</p>
             )}
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="outline" onClick={() => setInviteOpen(false)}>Annuler</Button>
-              <Button onClick={handleInvite} disabled={inviting || !inviteForm.email || !inviteForm.client_id || (inviteMode === 'password' && !invitePassword)} className="bg-brand hover:bg-brand/90 text-brand-foreground">
-                {inviteMode === 'password'
-                  ? <><KeyRound className="w-4 h-4 mr-1.5" />{inviting ? "Création..." : "Créer le compte"}</>
-                  : <><Send className="w-4 h-4 mr-1.5" />{inviting ? "Envoi..." : "Envoyer l'invitation"}</>
-                }
+              <Button onClick={handleInvite} disabled={inviting || !inviteForm.email || !inviteForm.client_id || !invitePassword} className="bg-brand hover:bg-brand/90 text-brand-foreground">
+                <KeyRound className="w-4 h-4 mr-1.5" />{inviting ? "Création..." : "Créer le compte"}
               </Button>
             </div>
           </div>

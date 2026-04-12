@@ -5,7 +5,7 @@ import StatusBadge from "../components/shared/StatusBadge";
 import {
   ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt,
   Pencil, Upload, X, ExternalLink, Briefcase, Trash2, UserPlus,
-  Send, ChevronLeft, ChevronRight, RefreshCw, Copy, KeyRound,
+  ChevronLeft, ChevronRight, RefreshCw, Copy, KeyRound,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -190,7 +190,6 @@ export default function ClientDetail() {
   const [inviteEmail,        setInviteEmail]        = useState("");
   const [inviting,           setInviting]           = useState(false);
   const [inviteMsg,          setInviteMsg]          = useState("");
-  const [inviteMode,         setInviteMode]         = useState("email");
   const [invitePassword,     setInvitePassword]     = useState("");
   const qc = useQueryClient();
 
@@ -225,7 +224,6 @@ export default function ClientDetail() {
   const openInvite = () => {
     setInviteEmail(client.contact_email || "");
     setInviteMsg("");
-    setInviteMode("email");
     setInvitePassword(generatePassword());
     setInviteOpen(true);
   };
@@ -234,20 +232,12 @@ export default function ClientDetail() {
     setInviting(true); setInviteMsg("");
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (inviteMode === "password") {
-        const { data, error } = await supabase.functions.invoke("setClientPassword", {
-          body: { email: inviteEmail, company_name: client.company_name, client_id: id, password: invitePassword },
-          headers: { Authorization: `Bearer ${session?.access_token}` },
-        });
-        setInviteMsg(error || data?.error ? "Erreur : " + (data?.error || error?.message) : "✓ Compte créé. Partagez le mot de passe avec le client.");
-      } else {
-        const { data, error } = await supabase.functions.invoke("inviteClient", {
-          body: { email: inviteEmail, company_name: client.company_name, client_id: id },
-          headers: { Authorization: `Bearer ${session?.access_token}` },
-        });
-        setInviteMsg(error || data?.error ? "Error: " + (data?.error || error?.message) : "Invitation sent!");
-      }
-    } catch (e) { setInviteMsg("Error: " + (e?.message || "Unknown error")); }
+      const { data, error } = await supabase.functions.invoke("setClientPassword", {
+        body: { email: inviteEmail, company_name: client.company_name, client_id: id, password: invitePassword },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      setInviteMsg(error || data?.error ? "Erreur : " + (data?.error || error?.message) : "✓ Compte créé. Partagez le mot de passe avec le client.");
+    } catch (e) { setInviteMsg("Erreur : " + (e?.message || "Unknown error")); }
     finally { setInviting(false); }
   };
 
@@ -556,7 +546,7 @@ export default function ClientDetail() {
       )}
 
       {/* ── Invite Dialog ── */}
-      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) { setInviteMsg(""); setInviteMode("email"); } }}>
+      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteMsg(""); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -564,61 +554,32 @@ export default function ClientDetail() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
-            <div className="flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
-              <button
-                className={`flex-1 py-1.5 text-sm rounded-md transition-colors ${inviteMode === 'email' ? 'bg-white shadow-sm font-medium text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
-                onClick={() => { setInviteMode('email'); setInviteMsg(''); }}
-              >
-                <Send className="w-3.5 h-3.5 inline mr-1.5" />Email d'invitation
-              </button>
-              <button
-                className={`flex-1 py-1.5 text-sm rounded-md transition-colors ${inviteMode === 'password' ? 'bg-white shadow-sm font-medium text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
-                onClick={() => { setInviteMode('password'); setInviteMsg(''); }}
-              >
-                <KeyRound className="w-3.5 h-3.5 inline mr-1.5" />Générer un mot de passe
-              </button>
-            </div>
-
-            {inviteMode === 'email' ? (
-              <p className="text-sm text-slate-500">
-                Le client recevra un email pour définir son mot de passe et accéder à son portail.
-              </p>
-            ) : (
-              <p className="text-sm text-slate-500">
-                Créez directement un compte avec mot de passe. Partagez-le avec le client par SMS ou en personne. Fonctionne même si l'email est déjà utilisé.
-              </p>
-            )}
-
+            <p className="text-sm text-slate-500">
+              Créez directement un compte avec mot de passe. Partagez-le avec le client par SMS ou en personne. Fonctionne même si l'email est déjà utilisé.
+            </p>
             <div>
               <Label>Adresse email</Label>
               <Input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="client@company.com" className="mt-1" />
             </div>
-
-            {inviteMode === 'password' && (
-              <div>
-                <Label>Mot de passe</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input value={invitePassword} onChange={e => setInvitePassword(e.target.value)} className="font-mono" />
-                  <Button variant="outline" size="icon" onClick={() => setInvitePassword(generatePassword())} title="Regénérer">
-                    <RefreshCw className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(invitePassword)} title="Copier">
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
+            <div>
+              <Label>Mot de passe</Label>
+              <div className="flex gap-2 mt-1">
+                <Input value={invitePassword} onChange={e => setInvitePassword(e.target.value)} className="font-mono" />
+                <Button variant="outline" size="icon" onClick={() => setInvitePassword(generatePassword())} title="Regénérer">
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(invitePassword)} title="Copier">
+                  <Copy className="w-4 h-4" />
+                </Button>
               </div>
-            )}
-
+            </div>
             {inviteMsg && (
-              <p className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith("Error") || inviteMsg.startsWith("Erreur") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>{inviteMsg}</p>
+              <p className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith("Erreur") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>{inviteMsg}</p>
             )}
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="outline" onClick={() => setInviteOpen(false)}>Annuler</Button>
-              <Button onClick={sendInvite} disabled={inviting || !inviteEmail || (inviteMode === 'password' && !invitePassword)} className="bg-brand hover:bg-brand/90 text-brand-foreground">
-                {inviteMode === 'password'
-                  ? <><KeyRound className="w-4 h-4 mr-1.5" />{inviting ? "Création…" : "Créer le compte"}</>
-                  : <><Send className="w-4 h-4 mr-1.5" />{inviting ? "Envoi…" : "Envoyer l'invitation"}</>
-                }
+              <Button onClick={sendInvite} disabled={inviting || !inviteEmail || !invitePassword} className="bg-brand hover:bg-brand/90 text-brand-foreground">
+                <KeyRound className="w-4 h-4 mr-1.5" />{inviting ? "Création…" : "Créer le compte"}
               </Button>
             </div>
           </div>
