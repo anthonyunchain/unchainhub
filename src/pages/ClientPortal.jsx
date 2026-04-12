@@ -236,27 +236,6 @@ function CalendarTab({ content }) {
         </div>
       </div>
 
-      {/* Month list */}
-      {monthContent.length > 0 && (
-        <div className="rounded-2xl divide-y divide-slate-100 overflow-hidden" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
-          {monthContent.map(c => (
-            <div key={c.id} className="flex items-center gap-3 px-4 py-3">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[c.status] || STATUS_DOT.default}`} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 truncate">{c.title || c.post_type}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
-                  {c.platform && PLATFORM_ICON[c.platform]}
-                  {c.platform && <span>{c.platform}</span>}
-                  {c.scheduled_date && <span>· {format(new Date(c.scheduled_date), "d MMM", { locale: enUS })}</span>}
-                </p>
-              </div>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${TYPE_COLOR[c.post_type] || "bg-slate-100 text-slate-500"}`}>
-                {c.post_type}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
