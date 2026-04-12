@@ -1339,18 +1339,19 @@ export default function Admin() {
                 </DragDropContext>
               ) : (
                 <>
-                  {/* Mobile: horizontal scroll tabs */}
-                  <div className="flex md:hidden overflow-x-auto gap-1.5 p-2 scrollbar-none">
-                    {navItems.map(item => {
-                      const isActive = section === item.id;
-                      return (
-                        <button key={item.id} onClick={() => setSection(item.id)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${isActive ? 'bg-[#2A69FF] text-white' : 'bg-slate-100 text-slate-600'}`}>
-                          {item.label}
-                          {badges[item.id] && <span className="ml-1 opacity-70 text-[10px]">{badges[item.id]}</span>}
-                        </button>
-                      );
-                    })}
+                  {/* Mobile: dropdown */}
+                  <div className="md:hidden p-2">
+                    <select
+                      value={section}
+                      onChange={e => setSection(e.target.value)}
+                      className="w-full text-sm font-semibold border border-slate-200 rounded-xl px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-[#2A69FF]/30"
+                    >
+                      {navItems.map(item => (
+                        <option key={item.id} value={item.id}>
+                          {item.label}{badges[item.id] ? ` (${badges[item.id]})` : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   {/* Desktop: vertical nav */}
                   <div className="hidden md:block">
