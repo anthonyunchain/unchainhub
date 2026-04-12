@@ -685,10 +685,8 @@ function UserManagement() {
     setInviting(true);
     setInviteMsg("");
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const { data, error } = await supabase.functions.invoke('setClientPassword', {
         body: { email: inviteForm.email, company_name: client?.company_name, client_id: inviteForm.client_id, password: invitePassword },
-        headers: { Authorization: `Bearer ${session?.access_token}` },
       });
       if (error || data?.error) {
         setInviteMsg("Erreur : " + (data?.error || error?.message));

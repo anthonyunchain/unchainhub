@@ -231,10 +231,8 @@ export default function ClientDetail() {
     if (!inviteEmail) return;
     setInviting(true); setInviteMsg("");
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const { data, error } = await supabase.functions.invoke("setClientPassword", {
         body: { email: inviteEmail, company_name: client.company_name, client_id: id, password: invitePassword },
-        headers: { Authorization: `Bearer ${session?.access_token}` },
       });
       setInviteMsg(error || data?.error ? "Erreur : " + (data?.error || error?.message) : "✓ Compte créé. Partagez le mot de passe avec le client.");
     } catch (e) { setInviteMsg("Erreur : " + (e?.message || "Unknown error")); }
