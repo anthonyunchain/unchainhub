@@ -78,12 +78,29 @@ function DashboardTab({ client, stats, content, contracts, invoices }) {
 
   return (
     <div className="space-y-4">
-      {/* KPIs — only content/social metrics relevant to the client */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 gap-3">
         <KpiCard label="Views this month" value={totalViews.toLocaleString()} icon={Eye} color="#2A69FF" />
-        <KpiCard label="Followers gained" value={`+${totalFollowers}`} icon={Users} color="#8B5CF6" />
         <KpiCard label="Posts published" value={published} icon={TrendingUp} color="#10B981" />
       </div>
+
+      {/* Quick access — Editorial Calendar PDF */}
+      <button
+        onClick={() => window.print()}
+        className="w-full flex items-center justify-between px-5 py-4 rounded-2xl transition-all hover:opacity-90"
+        style={{ background: '#2A69FF', border: 'none', cursor: 'pointer', boxShadow: '0 4px 24px rgba(42,105,255,0.25)' }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
+            <Calendar className="w-4 h-4 text-white" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-semibold text-white">Editorial Calendar</p>
+            <p className="text-[11px] text-white/70">Export as PDF</p>
+          </div>
+        </div>
+        <Download className="w-4 h-4 text-white/80" />
+      </button>
 
       {/* Chart */}
       {chartData.some(d => d.views > 0) && (
@@ -98,23 +115,6 @@ function DashboardTab({ client, stats, content, contracts, invoices }) {
               <Bar dataKey="views" fill="#2A69FF" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
-      )}
-
-      {/* Recent content */}
-      {monthContent.length > 0 && (
-        <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
-          <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">This month's content</p>
-          <div className="space-y-2">
-            {monthContent.slice(0, 6).map(c => (
-              <div key={c.id} className="flex items-center gap-3 py-2 border-b border-slate-50 last:border-0">
-                <div className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[c.status] || STATUS_DOT.default}`} />
-                <span className="text-sm font-medium text-slate-700 flex-1 truncate">{c.title || c.post_type}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${TYPE_COLOR[c.post_type] || "bg-slate-100 text-slate-500"}`}>{c.post_type}</span>
-                {c.scheduled_date && <span className="text-[10px] text-slate-400 shrink-0">{format(new Date(c.scheduled_date), "d MMM", { locale: enUS })}</span>}
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
