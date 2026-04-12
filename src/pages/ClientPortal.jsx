@@ -78,29 +78,27 @@ function DashboardTab({ client, stats, content, contracts, invoices }) {
 
   return (
     <div className="space-y-4">
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* KPIs + Calendar shortcut — same grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <KpiCard label="Views this month" value={totalViews.toLocaleString()} icon={Eye} color="#2A69FF" />
         <KpiCard label="Posts published" value={published} icon={TrendingUp} color="#10B981" />
+        <button
+          onClick={() => window.print()}
+          className="col-span-2 lg:col-span-1 flex items-center justify-between px-5 py-4 rounded-2xl transition-all hover:opacity-90"
+          style={{ background: '#2A69FF', border: 'none', cursor: 'pointer', boxShadow: '0 4px 24px rgba(42,105,255,0.25)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
+              <Calendar className="w-4 h-4 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-semibold text-white">Editorial Calendar</p>
+              <p className="text-[11px] text-white/70">Export as PDF</p>
+            </div>
+          </div>
+          <Download className="w-4 h-4 text-white/80" />
+        </button>
       </div>
-
-      {/* Quick access — Editorial Calendar PDF */}
-      <button
-        onClick={() => window.print()}
-        className="w-full flex items-center justify-between px-5 py-4 rounded-2xl transition-all hover:opacity-90"
-        style={{ background: '#2A69FF', border: 'none', cursor: 'pointer', boxShadow: '0 4px 24px rgba(42,105,255,0.25)' }}
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
-            <Calendar className="w-4 h-4 text-white" />
-          </div>
-          <div className="text-left">
-            <p className="text-sm font-semibold text-white">Editorial Calendar</p>
-            <p className="text-[11px] text-white/70">Export as PDF</p>
-          </div>
-        </div>
-        <Download className="w-4 h-4 text-white/80" />
-      </button>
 
       {/* Chart */}
       {chartData.some(d => d.views > 0) && (
