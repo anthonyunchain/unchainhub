@@ -34,25 +34,17 @@ export default function MobileNav() {
           bottom: `calc(12px + env(safe-area-inset-bottom))`,
           height: 64,
           borderRadius: 28,
-          // Frosted glass core
-          background: 'rgba(10, 14, 30, 0.55)',
-          backdropFilter: 'blur(28px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-          // Layered border: top specular highlight + subtle outer glow
-          border: '1px solid rgba(255,255,255,0.13)',
-          boxShadow: [
-            '0 0 0 0.5px rgba(255,255,255,0.06) inset',   // inner rim
-            '0 8px 32px rgba(0,0,0,0.45)',                  // depth shadow
-            '0 2px 8px rgba(0,0,0,0.3)',                    // close shadow
-            '0 1px 0 rgba(255,255,255,0.12) inset',         // top specular line
-          ].join(', '),
+          background: 'rgba(8, 12, 28, 0.94)',
+          backdropFilter: 'blur(24px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.08) inset',
         }}
       >
         {/* Top specular shimmer strip */}
         <div style={{
-          position: 'absolute', top: 0, left: '15%', right: '15%', height: 1,
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25) 40%, rgba(255,255,255,0.25) 60%, transparent)',
-          borderRadius: '0 0 2px 2px',
+          position: 'absolute', top: 0, left: '20%', right: '20%', height: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 40%, rgba(255,255,255,0.18) 60%, transparent)',
           pointerEvents: 'none',
         }} />
 
@@ -71,18 +63,17 @@ export default function MobileNav() {
               {isActive && (
                 <div style={{
                   position: 'absolute',
-                  width: 48, height: 38,
-                  borderRadius: 14,
-                  background: 'linear-gradient(160deg, rgba(42,105,255,0.45) 0%, rgba(42,105,255,0.2) 100%)',
-                  border: '1px solid rgba(42,105,255,0.5)',
-                  boxShadow: '0 0 12px rgba(42,105,255,0.3), 0 1px 0 rgba(255,255,255,0.15) inset',
-                  backdropFilter: 'blur(4px)',
-                  top: '50%', transform: 'translateY(-54%)',
+                  width: 44, height: 36,
+                  borderRadius: 13,
+                  background: 'linear-gradient(160deg, rgba(42,105,255,0.55) 0%, rgba(42,105,255,0.3) 100%)',
+                  border: '1px solid rgba(42,105,255,0.6)',
+                  boxShadow: '0 0 14px rgba(42,105,255,0.35)',
+                  top: '50%', transform: 'translateY(-56%)',
                 }} />
               )}
               <Icon
-                className="w-[18px] h-[18px] relative z-10"
-                style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.38)', strokeWidth: isActive ? 2.2 : 1.8 }}
+                className="w-[19px] h-[19px] relative z-10"
+                style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.6)', strokeWidth: isActive ? 2.2 : 1.8 }}
               />
               <span
                 className="relative z-10"
@@ -91,7 +82,7 @@ export default function MobileNav() {
                   fontFamily: "'DM Mono', monospace",
                   fontWeight: 500,
                   letterSpacing: '0.04em',
-                  color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.32)',
+                  color: isActive ? '#fff' : 'rgba(255,255,255,0.5)',
                 }}
               >
                 {item.label}
@@ -120,8 +111,8 @@ export default function MobileNav() {
             }} />
           )}
           {moreOpen
-            ? <X className="w-[18px] h-[18px] relative z-10" style={{ color: 'rgba(255,255,255,0.7)', strokeWidth: 2 }} />
-            : <MoreHorizontal className="w-[18px] h-[18px] relative z-10" style={{ color: isMoreActive ? '#fff' : 'rgba(255,255,255,0.38)', strokeWidth: 1.8 }} />
+            ? <X className="w-[19px] h-[19px] relative z-10" style={{ color: 'rgba(255,255,255,0.85)', strokeWidth: 2 }} />
+            : <MoreHorizontal className="w-[19px] h-[19px] relative z-10" style={{ color: isMoreActive ? '#fff' : 'rgba(255,255,255,0.6)', strokeWidth: 1.8 }} />
           }
           <span
             className="relative z-10"
@@ -130,7 +121,7 @@ export default function MobileNav() {
               fontFamily: "'DM Mono', monospace",
               fontWeight: 500,
               letterSpacing: '0.04em',
-              color: isMoreActive || moreOpen ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.32)',
+              color: isMoreActive || moreOpen ? '#fff' : 'rgba(255,255,255,0.5)',
             }}
           >
             More
@@ -154,7 +145,7 @@ export default function MobileNav() {
             style={{
               bottom: `calc(88px + env(safe-area-inset-bottom))`,
               borderRadius: 24,
-              background: 'rgba(10, 14, 30, 0.65)',
+              background: 'rgba(8, 12, 28, 0.94)',
               backdropFilter: 'blur(28px) saturate(180%)',
               WebkitBackdropFilter: 'blur(28px) saturate(180%)',
               border: '1px solid rgba(255,255,255,0.13)',
@@ -207,14 +198,14 @@ export default function MobileNav() {
                   >
                     <Icon
                       className="w-5 h-5"
-                      style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.45)', strokeWidth: isActive ? 2.2 : 1.8 }}
+                      style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.65)', strokeWidth: isActive ? 2.2 : 1.8 }}
                     />
                     <span style={{
                       fontSize: '9px',
                       fontFamily: "'DM Mono', monospace",
                       fontWeight: 500,
                       textAlign: 'center',
-                      color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.38)',
+                      color: isActive ? '#fff' : 'rgba(255,255,255,0.55)',
                     }}>
                       {item.label}
                     </span>
