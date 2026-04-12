@@ -211,14 +211,14 @@ function CalendarTab({ content }) {
         {/* Cells */}
         <div className="grid grid-cols-7">
           {Array(startPad).fill(null).map((_, i) => (
-            <div key={`pad-${i}`} className="min-h-[64px] border-b border-r border-slate-50 p-1 bg-slate-50/50" />
+            <div key={`pad-${i}`} className="min-h-[110px] border-b border-r border-slate-50 p-1 bg-slate-50/50" />
           ))}
           {days.map(day => {
             const key = format(day, "yyyy-MM-dd");
             const items = contentByDay[key] || [];
             const isToday = isSameDay(day, new Date());
             return (
-              <div key={key} className={`min-h-[64px] border-b border-r border-slate-50 p-1.5 ${isToday ? "bg-blue-50/40" : ""}`}>
+              <div key={key} className={`min-h-[110px] border-b border-r border-slate-50 p-1.5 ${isToday ? "bg-blue-50/40" : ""}`}>
                 <span className={`text-[11px] font-semibold inline-flex items-center justify-center w-5 h-5 rounded-full mb-1 ${
                   isToday ? "bg-[#2A69FF] text-white" : "text-slate-400"
                 }`}>{format(day, "d")}</span>
