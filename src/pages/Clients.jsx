@@ -128,20 +128,22 @@ export default function Clients() {
   return (
     <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Clients" subtitle="Active client management">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input placeholder="Search..." className="pl-9 w-full sm:w-60 h-9" value={search} onChange={e => setSearch(e.target.value)} />
+        <div className="hidden sm:flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input placeholder="Search..." className="pl-9 w-60 h-9" value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          {reordering ? (
+            <>
+              <Button variant="outline" className="h-9" onClick={() => { setLocalClients(null); setReordering(false); }}>Cancel</Button>
+              <Button className="bg-brand hover:bg-brand/90 text-brand-foreground h-9" onClick={saveOrder}>Save order</Button>
+            </>
+          ) : (
+            <Button variant="outline" className="h-9" onClick={() => setReordering(true)}>
+              <ArrowUpDown className="w-4 h-4 mr-1" /> Reorder
+            </Button>
+          )}
         </div>
-        {reordering ? (
-          <>
-            <Button variant="outline" className="h-9" onClick={() => { setLocalClients(null); setReordering(false); }}>Cancel</Button>
-            <Button className="bg-brand hover:bg-brand/90 text-brand-foreground h-9" onClick={saveOrder}>Save order</Button>
-          </>
-        ) : (
-          <Button variant="outline" className="h-9" onClick={() => setReordering(true)}>
-            <ArrowUpDown className="w-4 h-4 mr-1" /> Reorder
-          </Button>
-        )}
         <Button onClick={() => openEdit(null)} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
           <Plus className="w-4 h-4 mr-1" /> New client
         </Button>
