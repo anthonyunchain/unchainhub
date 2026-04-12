@@ -138,6 +138,9 @@ function DashboardTab({ client, stats, content, contracts, invoices }) {
           </div>
         </div>
       )}
+
+      {/* Editorial calendar */}
+      <CalendarTab content={content} />
     </div>
   );
 }
@@ -512,7 +515,6 @@ function SettingsDialog({ open, onClose }) {
 // ── Main portal ────────────────────────────────────────────────────────────
 const TABS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { key: "calendar",  label: "Calendar",  icon: Calendar },
   { key: "reports",   label: "Reports",   icon: BarChart2 },
   { key: "invoices",  label: "Invoices",  icon: Receipt },
   { key: "contracts", label: "Contracts", icon: FileText },
@@ -736,7 +738,6 @@ export default function ClientPortal() {
         )}
 
         {activeTab === "dashboard"  && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} />}
-        {activeTab === "calendar"   && <CalendarTab content={content} />}
         {activeTab === "reports"    && <ReportsTab stats={stats} content={content} />}
         {activeTab === "contracts"  && <ContractsTab contracts={contracts} />}
         {activeTab === "invoices"   && <InvoicesTab invoices={invoices} />}
