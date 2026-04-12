@@ -13,11 +13,10 @@ const MAIN_TABS = [
 ];
 
 const MORE_ITEMS = [
-  { path: "/Clients",        label: "Clients",     icon: Users },
-  { path: "/Freelancers",    label: "Freelancers", icon: UserCheck },
-  { path: "/Admin",          label: "Admin",       icon: Shield },
-  { path: "/Admin?s=tasks",  label: "Tasks",       icon: CheckSquare },
-  { path: "/Services",       label: "Services",    icon: Layers },
+  { path: "/Clients",     label: "Clients",     icon: Users },
+  { path: "/Freelancers", label: "Freelancers", icon: UserCheck },
+  { path: "/Admin",       label: "Admin",       icon: Shield },
+  { path: "/Services",    label: "Services",    icon: Layers },
 ];
 
 export default function MobileNav() {
@@ -90,7 +89,7 @@ export default function MobileNav() {
               background: 'var(--navy-border)',
               margin: '0 auto 16px',
             }} />
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {MORE_ITEMS.map(item => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path.split('?')[0];
