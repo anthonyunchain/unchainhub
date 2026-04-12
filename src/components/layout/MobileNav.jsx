@@ -63,7 +63,7 @@ export default function MobileNav() {
               {isActive && (
                 <div style={{
                   position: 'absolute',
-                  width: 64, height: 44,
+                  width: 64, height: 52,
                   borderRadius: 16,
                   background: 'linear-gradient(160deg, #2A69FF 0%, #1a54e0 100%)',
                   boxShadow: '0 4px 12px rgba(42,105,255,0.35)',
@@ -99,7 +99,7 @@ export default function MobileNav() {
           {(isMoreActive || moreOpen) && (
             <div style={{
               position: 'absolute',
-              width: 64, height: 44,
+              width: 64, height: 52,
               borderRadius: 16,
               background: 'linear-gradient(160deg, #2A69FF 0%, #1a54e0 100%)',
               boxShadow: '0 4px 12px rgba(42,105,255,0.35)',
