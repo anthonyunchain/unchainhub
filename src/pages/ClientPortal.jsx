@@ -55,7 +55,7 @@ function DashboardTab({ client, stats, content, contracts, invoices }) {
   const totalViews = monthStats.reduce((s, r) => s + (r.views || 0), 0);
   const totalFollowers = monthStats.reduce((s, r) => s + (r.followers_gained || 0), 0);
   const monthContent = content.filter(c => c.scheduled_date?.startsWith(currentMonth));
-  const published = monthContent.length; // content is already filtered to Publié
+  const published = monthContent.filter(c => c.status === "Publié").length;
 
   // Chart: last 6 months
   const chartData = [];
@@ -581,7 +581,6 @@ export default function ClientPortal() {
             .from("editorial_content")
             .select("id, title, post_type, scheduled_date, status, platform, client_name")
             .eq("client_name", cName)
-            .eq("status", "Publié")
             .order("scheduled_date", { ascending: false }),
           supabase
             .from("contracts")
