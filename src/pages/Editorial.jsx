@@ -434,19 +434,19 @@ export default function Editorial() {
 
       {/* Controls */}
       <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1">
           {view !== "list" && (
             <>
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}><ChevronLeft className="w-4 h-4" /></Button>
-              <h3 className="text-sm font-semibold text-slate-700 capitalize min-w-[220px] text-center">{navLabel()}</h3>
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate(1)}><ChevronRight className="w-4 h-4" /></Button>
-              <Button variant="ghost" className="hidden sm:inline-flex text-xs h-7 text-slate-500" onClick={goToday}>Today</Button>
+              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate(-1)}><ChevronLeft className="w-4 h-4" /></Button>
+              <h3 className="text-sm font-semibold text-slate-700 capitalize flex-1 text-center">{navLabel()}</h3>
+              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate(1)}><ChevronRight className="w-4 h-4" /></Button>
+              <Button variant="ghost" className="hidden sm:inline-flex text-xs h-7 text-slate-500 shrink-0" onClick={goToday}>Today</Button>
             </>
           )}
           {view === "list" && <h3 className="text-sm font-semibold text-slate-700">{filtered.length} content{filtered.length > 1 ? "s" : ""}</h3>}
         </div>
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-1">
+        <div className="hidden sm:flex items-center gap-3">
+          <div className="flex items-center gap-1">
             {["Reel", "Story", "Carousel"].map(type => (
               <button
                 key={type}
