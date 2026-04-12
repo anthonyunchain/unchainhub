@@ -82,41 +82,45 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <KpiCard label="Views this month" value={totalViews.toLocaleString()} icon={Eye} color="#2A69FF" />
         <KpiCard label="Posts published" value={published} icon={TrendingUp} color="#10B981" />
-        {calendarPdfs.length > 0 ? (
-          <a
-            href={calendarPdfs[0]}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="col-span-2 lg:col-span-1 flex items-center justify-between px-5 py-4 rounded-2xl transition-all hover:opacity-90"
-            style={{ background: '#2A69FF', textDecoration: 'none', boxShadow: '0 4px 24px rgba(42,105,255,0.25)' }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
-                <Calendar className="w-4 h-4 text-white" />
+        {(() => {
+          const latest = Array.isArray(calendarPdfs) && calendarPdfs.length > 0 ? calendarPdfs[0] : null;
+          const latestLabel = latest ? format(new Date(latest.month + "-01"), "MMMM yyyy", { locale: enUS }) : null;
+          return latest ? (
+            <a
+              href={latest.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="col-span-2 lg:col-span-1 flex items-center justify-between px-5 py-4 rounded-2xl transition-all hover:opacity-90"
+              style={{ background: '#2A69FF', textDecoration: 'none', boxShadow: '0 4px 24px rgba(42,105,255,0.25)' }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                  <Calendar className="w-4 h-4 text-white" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-white">Editorial Calendar</p>
+                  <p className="text-[11px] text-white/70">{latestLabel}</p>
+                </div>
               </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold text-white">Editorial Calendar</p>
-                <p className="text-[11px] text-white/70">Download latest PDF</p>
+              <Download className="w-4 h-4 text-white/80" />
+            </a>
+          ) : (
+            <div
+              className="col-span-2 lg:col-span-1 flex items-center justify-between px-5 py-4 rounded-2xl"
+              style={{ background: '#e8edf5', border: '1px solid #d8dde5' }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-200">
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-slate-500">Editorial Calendar</p>
+                  <p className="text-[11px] text-slate-400">Not available yet</p>
+                </div>
               </div>
             </div>
-            <Download className="w-4 h-4 text-white/80" />
-          </a>
-        ) : (
-          <div
-            className="col-span-2 lg:col-span-1 flex items-center justify-between px-5 py-4 rounded-2xl"
-            style={{ background: '#e8edf5', border: '1px solid #d8dde5' }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-200">
-                <Calendar className="w-4 h-4 text-slate-400" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold text-slate-500">Editorial Calendar</p>
-                <p className="text-[11px] text-slate-400">Not available yet</p>
-              </div>
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Chart */}
@@ -157,31 +161,14 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
       )}
 
       {/* Editorial calendar */}
-      <CalendarTab content={content} />
+      <CalendarTab content={content} calendarPdfs={calendarPdfs} />
 
-      {/* PDF history */}
-      {calendarPdfs.length > 1 && (
-        <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
-          <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">Previous calendars</p>
-          <div className="space-y-1.5">
-            {calendarPdfs.slice(1).map((url, i) => (
-              <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2.5 py-2 px-3 rounded-xl hover:bg-slate-50 transition-colors">
-                <Download className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="text-sm text-slate-600 truncate">
-                  {decodeURIComponent(url.split("/").pop().split("?")[0]).replace(/^\d+-[a-z0-9]+\./, "")}
-                </span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 // ── Calendar tab ───────────────────────────────────────────────────────────
-function CalendarTab({ content }) {
+function CalendarTab({ content, calendarPdfs = [] }) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const monthStart = startOfMonth(currentDate);
@@ -201,6 +188,9 @@ function CalendarTab({ content }) {
     c.scheduled_date && c.scheduled_date.startsWith(format(currentDate, "yyyy-MM"))
   );
 
+  const currentMonthKey = format(currentDate, "yyyy-MM");
+  const monthPdf = Array.isArray(calendarPdfs) ? calendarPdfs.find(p => p.month === currentMonthKey) : null;
+
   return (
     <div className="space-y-4">
       {/* Month nav */}
@@ -208,13 +198,22 @@ function CalendarTab({ content }) {
         <h2 className="text-base font-bold text-slate-800 capitalize">
           {format(currentDate, "MMMM yyyy", { locale: enUS })}
         </h2>
-        <div className="flex items-center gap-1">
-          <button onClick={() => setCurrentDate(d => subMonths(d, 1))} className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
-            <ChevronLeft className="w-4 h-4 text-slate-500" />
-          </button>
-          <button onClick={() => setCurrentDate(d => addMonths(d, 1))} className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
-            <ChevronRight className="w-4 h-4 text-slate-500" />
-          </button>
+        <div className="flex items-center gap-2">
+          {monthPdf && (
+            <a href={monthPdf.url} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90"
+              style={{ background: '#2A69FF' }}>
+              <Download className="w-3 h-3" /> PDF
+            </a>
+          )}
+          <div className="flex items-center gap-1">
+            <button onClick={() => setCurrentDate(d => subMonths(d, 1))} className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
+              <ChevronLeft className="w-4 h-4 text-slate-500" />
+            </button>
+            <button onClick={() => setCurrentDate(d => addMonths(d, 1))} className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
+              <ChevronRight className="w-4 h-4 text-slate-500" />
+            </button>
+          </div>
         </div>
       </div>
 
