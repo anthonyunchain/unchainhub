@@ -406,31 +406,49 @@ export default function Editorial() {
   return (
     <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Editorial Calendar" subtitle="Content planning">
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
+        {/* Desktop: all controls */}
+        <div className="hidden sm:flex flex-wrap gap-2">
           <Select value={filterClient} onValueChange={setFilterClient}>
-            <SelectTrigger className="w-full sm:w-48 h-9 text-sm"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-48 h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All clients</SelectItem>
               {clients.map(c => <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Link to="/ContentDescriptions" className="contents">
-            <Button variant="outline" className="w-full sm:w-auto h-9">
+          <Link to="/ContentDescriptions">
+            <Button variant="outline" className="h-9">
               <AlignLeft className="w-4 h-4 mr-1" /> Descriptions
             </Button>
           </Link>
           {!isReadOnly && (
             <>
-              <Button variant="outline" className="w-full sm:w-auto h-9" onClick={() => setCsvOpen(true)}>
+              <Button variant="outline" className="h-9" onClick={() => setCsvOpen(true)}>
                 <Upload className="w-4 h-4 mr-1" /> Import CSV
               </Button>
-              <Button onClick={() => openNew()} className="w-full sm:w-auto bg-brand hover:bg-brand/90 text-brand-foreground h-9">
+              <Button onClick={() => openNew()} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
                 <Plus className="w-4 h-4 mr-1" /> New content
               </Button>
             </>
           )}
         </div>
+        {/* Mobile: only New content */}
+        {!isReadOnly && (
+          <Button onClick={() => openNew()} className="sm:hidden bg-brand hover:bg-brand/90 text-brand-foreground h-9">
+            <Plus className="w-4 h-4 mr-1" /> New content
+          </Button>
+        )}
       </PageHeader>
+
+      {/* Mobile: client filter below header */}
+      <div className="sm:hidden mb-3">
+        <Select value={filterClient} onValueChange={setFilterClient}>
+          <SelectTrigger className="w-full h-9 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All clients</SelectItem>
+            {clients.map(c => <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Controls */}
       <div className="flex items-center justify-between mb-5">
