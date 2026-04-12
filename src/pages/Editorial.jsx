@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
@@ -260,6 +260,9 @@ export default function Editorial() {
 
   // MONTH VIEW
   const MonthView = () => {
+    const [dayPage, setDayPage] = useState(0); // 0 = Mon/Tue/Wed  1 = Wed/Thu/Fri
+    const touchStartX = useRef(null);
+
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -268,43 +271,77 @@ export default function Editorial() {
     const allDaysNoWeekend = allDays.filter(d => d.getDay() !== 0 && d.getDay() !== 6);
     const weeks = [];
     for (let i = 0; i < allDaysNoWeekend.length; i += 5) weeks.push(allDaysNoWeekend.slice(i, i + 5));
-    const visibleDays = weeks.filter(week => week.some(d => isSameMonth(d, currentDate))).flat();
-    const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-    // On mobile: hide Thu (dayOfWeek=4) & Fri (dayOfWeek=5) → 3-col grid
+    const allWeeks = weeks.filter(week => week.some(d => isSameMonth(d, currentDate)));
+    const visibleDays = allWeeks.flat(); // desktop: all days
+
+    const weekDayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+    // Mobile: page 0 → cols 0,1,2 (Mon/Tue/Wed)  page 1 → cols 2,3,4 (Wed/Thu/Fri)
+    const mobileColIdx = dayPage === 0 ? [0, 1, 2] : [2, 3, 4];
+    const mobileDays = allWeeks.flatMap(week => mobileColIdx.map(i => week[i]).filter(Boolean));
+    const mobileHeaders = mobileColIdx.map(i => weekDayLabels[i]);
+
+    const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+    const onTouchEnd = (e) => {
+      if (touchStartX.current === null) return;
+      const dx = e.changedTouches[0].clientX - touchStartX.current;
+      if (Math.abs(dx) > 40) setDayPage(dx < 0 ? 1 : 0);
+      touchStartX.current = null;
+    };
+
+    const DayCell = ({ day, border = true }) => {
+      const dayContent = filtered.filter(c => c.scheduled_date && isSameDay(new Date(c.scheduled_date), day));
+      const isToday = isSameDay(day, new Date());
+      const inMonth = isSameMonth(day, currentDate);
+      return (
+        <div
+          className={`min-h-[100px] p-1.5 transition-colors ${border ? "border-b border-r border-slate-100" : ""} ${!inMonth ? "bg-slate-50/50" : ""} ${draggingId && inMonth ? "hover:bg-blue-50/40" : ""}`}
+          onDragOver={e => e.preventDefault()}
+          onDrop={() => inMonth && handleDrop(day)}
+        >
+          <div className="flex items-center justify-between mb-1">
+            <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${isToday ? "bg-[#2A69FF] text-white" : inMonth ? "text-slate-700" : "text-slate-300"}`}>
+              {format(day, "d")}
+            </span>
+            {inMonth && !isReadOnly && <button onClick={() => openNew(day)} className="text-slate-200 hover:text-emerald-500 transition-colors"><Plus className="w-3 h-3" /></button>}
+          </div>
+          <div className="space-y-0.5">
+            {dayContent.slice(0, 2).map(c => <ContentCard key={c.id} c={c} compact />)}
+            {dayContent.length > 2 && <p className="text-[9px] text-slate-400 pl-1">+{dayContent.length - 2} more</p>}
+          </div>
+        </div>
+      );
+    };
+
     return (
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
-        <div className="grid grid-cols-3 sm:grid-cols-5 border-b border-slate-100">
-          {weekDays.map((d, i) => (
-            <div key={d} className={`text-center text-xs font-medium text-slate-400 py-2 ${i >= 3 ? "hidden sm:block" : ""}`}>{d}</div>
-          ))}
+
+        {/* ── Mobile swipeable (3 cols) ── */}
+        <div className="sm:hidden" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+          <div className="grid grid-cols-3 border-b border-slate-100">
+            {mobileHeaders.map(d => (
+              <div key={d} className="text-center text-xs font-medium text-slate-400 py-2">{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-3">
+            {mobileDays.map(day => <DayCell key={day.toISOString()} day={day} />)}
+          </div>
+          {/* Swipe dots */}
+          <div className="flex justify-center gap-1.5 py-2.5">
+            <button onClick={() => setDayPage(0)} className={`w-1.5 h-1.5 rounded-full transition-all ${dayPage === 0 ? "bg-[#2A69FF] w-3" : "bg-slate-200"}`} />
+            <button onClick={() => setDayPage(1)} className={`w-1.5 h-1.5 rounded-full transition-all ${dayPage === 1 ? "bg-[#2A69FF] w-3" : "bg-slate-200"}`} />
+          </div>
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-5">
-          {visibleDays.map(day => {
-            const dayContent = filtered.filter(c => c.scheduled_date && isSameDay(new Date(c.scheduled_date), day));
-            const isToday = isSameDay(day, new Date());
-            const inMonth = isSameMonth(day, currentDate);
-            const dow = day.getDay(); // 4=Thu, 5=Fri
-            return (
-              <div
-                key={day.toISOString()}
-                className={`min-h-[100px] border-b border-r border-slate-100 p-1.5 transition-colors ${!inMonth ? "bg-slate-50/50" : ""} ${draggingId && inMonth ? "hover:bg-blue-50/40" : ""} ${dow >= 4 ? "hidden sm:block" : ""}`}
-                onDragOver={e => e.preventDefault()}
-                onDrop={() => inMonth && handleDrop(day)}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${isToday ? "bg-[#2A69FF] text-white" : inMonth ? "text-slate-700" : "text-slate-300"}`}>
-                    {format(day, "d")}
-                  </span>
-                  {inMonth && !isReadOnly && <button onClick={() => openNew(day)} className="text-slate-200 hover:text-emerald-500 transition-colors"><Plus className="w-3 h-3" /></button>}
-                </div>
-                <div className="space-y-0.5">
-                  {dayContent.slice(0, 2).map(c => <ContentCard key={c.id} c={c} compact />)}
-                  {dayContent.length > 2 && <p className="text-[9px] text-slate-400 pl-1">+{dayContent.length - 2} more</p>}
-                </div>
-              </div>
-            );
-          })}
+
+        {/* ── Desktop (5 cols) ── */}
+        <div className="hidden sm:block">
+          <div className="grid grid-cols-5 border-b border-slate-100">
+            {weekDayLabels.map(d => <div key={d} className="text-center text-xs font-medium text-slate-400 py-2">{d}</div>)}
+          </div>
+          <div className="grid grid-cols-5">
+            {visibleDays.map(day => <DayCell key={day.toISOString()} day={day} />)}
+          </div>
         </div>
+
       </div>
     );
   };
