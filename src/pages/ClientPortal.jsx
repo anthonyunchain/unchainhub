@@ -580,7 +580,7 @@ export default function ClientPortal() {
         const [contentRes, contractsRes, invoicesRes, statsRes] = await Promise.all([
           supabase
             .from("editorial_content")
-            .select("id, title, post_type, scheduled_date, status, platform, client_name, client_id")
+            .select("id, title, post_type, scheduled_date, status, client_name, client_id")
             .or(`client_name.eq.${cName},client_id.eq.${cId}`)
             .order("scheduled_date", { ascending: false }),
           supabase
