@@ -186,6 +186,7 @@ export default function ClientDetail() {
   const [editData,           setEditData]           = useState(null);
   const [uploadingContract,  setUploadingContract]  = useState(false);
   const [uploadingInvoice,   setUploadingInvoice]   = useState(false);
+  const [uploadingCalPdf,    setUploadingCalPdf]    = useState(false);
   const [inviteOpen,         setInviteOpen]         = useState(false);
   const [inviteEmail,        setInviteEmail]        = useState("");
   const [inviting,           setInviting]           = useState(false);
@@ -390,6 +391,38 @@ export default function ClientDetail() {
               ? <p className="text-sm text-slate-400">No content scheduled for this client.</p>
               : <EditorialCalendar content={clientContent} />
             }
+          </div>
+
+          {/* Editorial Calendar PDF */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-slate-400" />
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Monthly Calendar PDF</span>
+              </div>
+              <label className={`cursor-pointer text-xs text-[#2A69FF] hover:underline flex items-center gap-1 ${uploadingCalPdf ? "opacity-50 pointer-events-none" : ""}`}>
+                <Upload className="w-3 h-3" />{uploadingCalPdf ? "Uploading…" : "Upload PDF"}
+                <input type="file" className="hidden" accept=".pdf" onChange={async (e) => {
+                  const file = e.target.files?.[0]; if (!file) return;
+                  setUploadingCalPdf(true);
+                  const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                  await updateMut.mutateAsync({ id: client.id, d: { ...client, editorial_calendar_pdf: file_url } });
+                  setUploadingCalPdf(false); e.target.value = "";
+                }} />
+              </label>
+            </div>
+            {client.editorial_calendar_pdf ? (
+              <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-50 border border-slate-100">
+                <a href={client.editorial_calendar_pdf} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#2A69FF] hover:underline truncate">
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                  {decodeURIComponent(client.editorial_calendar_pdf.split("/").pop().split("?")[0])}
+                </a>
+                <button onClick={async () => { await updateMut.mutateAsync({ id: client.id, d: { ...client, editorial_calendar_pdf: null } }); }}
+                  className="text-slate-300 hover:text-red-400 ml-2 shrink-0"><X className="w-4 h-4" /></button>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400">No PDF uploaded — the client won't see a download button.</p>
+            )}
           </div>
         </div>
       )}

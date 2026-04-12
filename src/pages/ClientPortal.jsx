@@ -49,7 +49,7 @@ function KpiCard({ label, value, icon: Icon, color = "#2A69FF" }) {
 }
 
 // ── Dashboard tab ──────────────────────────────────────────────────────────
-function DashboardTab({ client, stats, content, contracts, invoices }) {
+function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf }) {
   const currentMonth = format(new Date(), "yyyy-MM");
   const monthStats = stats.filter(s => s.period === currentMonth);
   const totalViews = monthStats.reduce((s, r) => s + (r.views || 0), 0);
@@ -82,22 +82,41 @@ function DashboardTab({ client, stats, content, contracts, invoices }) {
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <KpiCard label="Views this month" value={totalViews.toLocaleString()} icon={Eye} color="#2A69FF" />
         <KpiCard label="Posts published" value={published} icon={TrendingUp} color="#10B981" />
-        <button
-          onClick={() => window.print()}
-          className="col-span-2 lg:col-span-1 flex items-center justify-between px-5 py-4 rounded-2xl transition-all hover:opacity-90"
-          style={{ background: '#2A69FF', border: 'none', cursor: 'pointer', boxShadow: '0 4px 24px rgba(42,105,255,0.25)' }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
-              <Calendar className="w-4 h-4 text-white" />
+        {calendarPdf ? (
+          <a
+            href={calendarPdf}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="col-span-2 lg:col-span-1 flex items-center justify-between px-5 py-4 rounded-2xl transition-all hover:opacity-90"
+            style={{ background: '#2A69FF', textDecoration: 'none', boxShadow: '0 4px 24px rgba(42,105,255,0.25)' }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                <Calendar className="w-4 h-4 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-white">Editorial Calendar</p>
+                <p className="text-[11px] text-white/70">Download PDF</p>
+              </div>
             </div>
-            <div className="text-left">
-              <p className="text-sm font-semibold text-white">Editorial Calendar</p>
-              <p className="text-[11px] text-white/70">Export as PDF</p>
+            <Download className="w-4 h-4 text-white/80" />
+          </a>
+        ) : (
+          <div
+            className="col-span-2 lg:col-span-1 flex items-center justify-between px-5 py-4 rounded-2xl"
+            style={{ background: '#e8edf5', border: '1px solid #d8dde5' }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-200">
+                <Calendar className="w-4 h-4 text-slate-400" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-slate-500">Editorial Calendar</p>
+                <p className="text-[11px] text-slate-400">Not available yet</p>
+              </div>
             </div>
           </div>
-          <Download className="w-4 h-4 text-white/80" />
-        </button>
+        )}
       </div>
 
       {/* Chart */}
@@ -535,7 +554,7 @@ export default function ClientPortal() {
         if (!clientRows?.length) {
           const { data: emailRows } = await supabase
             .from("clients")
-            .select("id, company_name, portal_user_id, contact_email")
+            .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdf")
             .eq("contact_email", authUser.email)
             .limit(1);
           clientRows = emailRows;
@@ -716,7 +735,7 @@ export default function ClientPortal() {
           </div>
         )}
 
-        {activeTab === "dashboard"  && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} />}
+        {activeTab === "dashboard"  && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} calendarPdf={clientRecord?.editorial_calendar_pdf} />}
         {activeTab === "reports"    && <ReportsTab stats={stats} content={content} />}
         {activeTab === "contracts"  && <ContractsTab contracts={contracts} />}
         {activeTab === "invoices"   && <InvoicesTab invoices={invoices} />}
