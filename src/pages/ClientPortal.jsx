@@ -574,13 +574,14 @@ export default function ClientPortal() {
         }
 
         const cName = client.company_name;
+        const cId = client.id;
 
-        // Fetch all data in parallel, filtered by client_name
+        // Fetch all data in parallel, filtered by client_name OR client_id
         const [contentRes, contractsRes, invoicesRes, statsRes] = await Promise.all([
           supabase
             .from("editorial_content")
-            .select("id, title, post_type, scheduled_date, status, platform, client_name")
-            .eq("client_name", cName)
+            .select("id, title, post_type, scheduled_date, status, platform, client_name, client_id")
+            .or(`client_name.eq.${cName},client_id.eq.${cId}`)
             .order("scheduled_date", { ascending: false }),
           supabase
             .from("contracts")
