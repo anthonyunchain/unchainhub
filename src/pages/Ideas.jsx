@@ -121,7 +121,6 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
             onKeyDown={handleTitleKeyDown}
             placeholder="Drop an idea… Enter to expand, Enter again to save"
             className="flex-1 border-0 shadow-none text-sm focus-visible:ring-0 px-0 placeholder:text-slate-300"
-            autoFocus
           />
           {title.trim() && (
             <button
