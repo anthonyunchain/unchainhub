@@ -90,34 +90,29 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
               href={latest.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="col-span-2 lg:col-span-1 flex items-center justify-between px-5 py-4 rounded-2xl transition-all hover:opacity-90"
+              className="col-span-2 lg:col-span-1 rounded-2xl p-5 flex flex-col gap-2 transition-all hover:opacity-90"
               style={{ background: '#2A69FF', textDecoration: 'none', boxShadow: '0 4px 24px rgba(42,105,255,0.25)' }}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono text-white/70 uppercase tracking-wider">Editorial Calendar PDF</span>
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
-                  <Calendar className="w-4 h-4 text-white" />
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-white">Editorial Calendar</p>
-                  <p className="text-[11px] text-white/70">{latestLabel}</p>
+                  <Download className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <Download className="w-4 h-4 text-white/80" />
+              <p className="text-3xl font-extrabold text-white tracking-tight">{latestLabel}</p>
             </a>
           ) : (
             <div
-              className="col-span-2 lg:col-span-1 flex items-center justify-between px-5 py-4 rounded-2xl"
-              style={{ background: '#e8edf5', border: '1px solid #d8dde5' }}
+              className="col-span-2 lg:col-span-1 rounded-2xl p-5 flex flex-col gap-2"
+              style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-200">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Editorial Calendar PDF</span>
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-100">
                   <Calendar className="w-4 h-4 text-slate-400" />
                 </div>
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-slate-500">Editorial Calendar</p>
-                  <p className="text-[11px] text-slate-400">Not available yet</p>
-                </div>
               </div>
+              <p className="text-3xl font-extrabold text-slate-300 tracking-tight">—</p>
             </div>
           );
         })()}
