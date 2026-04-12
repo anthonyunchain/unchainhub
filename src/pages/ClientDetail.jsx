@@ -563,11 +563,19 @@ export default function ClientDetail() {
                 onChange={e => setCalPdfMonth(e.target.value)}
                 className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none flex-1"
               >
-                {Array.from({ length: 12 }, (_, i) => {
-                  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
-                  const val = format(d, "yyyy-MM");
-                  return <option key={val} value={val}>{format(d, "MMMM yyyy", { locale: enUS })}</option>;
-                })}
+                {(() => {
+                  const now = new Date(); now.setDate(1);
+                  const start = client.start_date ? new Date(client.start_date) : new Date(now.getFullYear() - 1, now.getMonth(), 1);
+                  start.setDate(1);
+                  const months = [];
+                  const cur = new Date(now);
+                  while (cur >= start) {
+                    const val = format(cur, "yyyy-MM");
+                    months.push(<option key={val} value={val}>{format(cur, "MMMM yyyy", { locale: enUS })}</option>);
+                    cur.setMonth(cur.getMonth() - 1);
+                  }
+                  return months;
+                })()}
               </select>
               <label className={`cursor-pointer text-xs text-white bg-[#2A69FF] hover:opacity-90 px-3 py-1.5 rounded-lg flex items-center gap-1 whitespace-nowrap ${uploadingCalPdf ? "opacity-50 pointer-events-none" : ""}`}>
                 <Upload className="w-3 h-3" />{uploadingCalPdf ? "Uploading…" : "Upload PDF"}
