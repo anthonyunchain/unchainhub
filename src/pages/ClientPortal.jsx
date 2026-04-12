@@ -36,7 +36,7 @@ const PLATFORM_ICON = {
 
 function KpiCard({ label, value, icon: Icon, color = "#2A69FF" }) {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col gap-2">
+    <div className="rounded-2xl p-5 flex flex-col gap-2" style={{ background: '#ffffff', border: '1px solid #e8ecf0', boxShadow: '0 2px 16px rgba(0,0,0,0.07)' }}>
       <div className="flex items-center justify-between">
         <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">{label}</span>
         <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: color + "18" }}>
