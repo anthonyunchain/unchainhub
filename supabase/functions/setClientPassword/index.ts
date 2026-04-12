@@ -19,16 +19,26 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Verify caller is admin
+    // Verify caller is admin — decode JWT locally (same approach as inviteClient)
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+    if (!authHeader) return Response.json({ error: 'Unauthorized' }, { headers: corsHeaders });
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+    let callerId: string | null = null;
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
+        const payload = JSON.parse(atob(padded));
+        callerId = payload.sub || null;
+      }
+    } catch { /* invalid token */ }
 
-    const { data: callerProfile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
-    if (callerProfile?.role !== 'admin') return Response.json({ error: 'Forbidden: admin only' }, { status: 403, headers: corsHeaders });
+    if (!callerId) return Response.json({ error: 'Unauthorized' }, { headers: corsHeaders });
+
+    const { data: callerProfile } = await supabaseAdmin.from('profiles').select('role').eq('id', callerId).single();
+    if (callerProfile?.role !== 'admin') return Response.json({ error: 'Forbidden: admin only' }, { headers: corsHeaders });
 
     const { email, company_name, client_id, password: inputPassword } = await req.json();
     if (!email || typeof email !== 'string') return Response.json({ error: 'Email is required' }, { headers: corsHeaders });
