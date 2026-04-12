@@ -4,7 +4,7 @@ import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import StatusBadge from "../components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, MapPin, Building2, ChevronRight, Trash2, Pencil, GripVertical, ArrowUpDown, UserPlus, Send } from "lucide-react";
+import { Plus, Search, MapPin, Building2, ChevronRight, Trash2, Pencil, GripVertical, ArrowUpDown, UserPlus, Send, RefreshCw, Copy, KeyRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -51,6 +51,8 @@ export default function Clients() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState("");
+  const [inviteMode, setInviteMode] = useState("email");
+  const [invitePassword, setInvitePassword] = useState("");
   const qc = useQueryClient();
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
@@ -83,10 +85,17 @@ export default function Clients() {
     setLocalClients(items);
   };
 
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  };
+
   const openInvite = (c) => {
     setInviteClient(c);
     setInviteEmail(c.contact_email || "");
     setInviteMsg("");
+    setInviteMode("email");
+    setInvitePassword(generatePassword());
     setInviteOpen(true);
   };
 
@@ -95,13 +104,27 @@ export default function Clients() {
     setInviting(true);
     setInviteMsg("");
     try {
-      const { data, error } = await supabase.functions.invoke('inviteClient', {
-        body: { email: inviteEmail, company_name: inviteClient?.company_name },
-      });
-      if (error || data?.error) {
-        setInviteMsg("Error: " + (data?.error || error?.message));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (inviteMode === "password") {
+        const { data, error } = await supabase.functions.invoke('setClientPassword', {
+          body: { email: inviteEmail, company_name: inviteClient?.company_name, client_id: inviteClient?.id, password: invitePassword },
+          headers: { Authorization: `Bearer ${session?.access_token}` },
+        });
+        if (error || data?.error) {
+          setInviteMsg("Erreur : " + (data?.error || error?.message));
+        } else {
+          setInviteMsg("✓ Compte créé. Partagez le mot de passe avec le client.");
+        }
       } else {
-        setInviteMsg("Invitation sent successfully!");
+        const { data, error } = await supabase.functions.invoke('inviteClient', {
+          body: { email: inviteEmail, company_name: inviteClient?.company_name, client_id: inviteClient?.id },
+          headers: { Authorization: `Bearer ${session?.access_token}` },
+        });
+        if (error || data?.error) {
+          setInviteMsg("Error: " + (data?.error || error?.message));
+        } else {
+          setInviteMsg("Invitation sent successfully!");
+        }
       }
     } catch (e) {
       setInviteMsg("Error: " + (e?.message || "Unknown error"));
@@ -240,19 +263,41 @@ export default function Clients() {
       </DragDropContext>
 
       {/* Invite to Client Portal dialog */}
-      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteMsg(""); }}>
+      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) { setInviteMsg(""); setInviteMode("email"); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-blue-500" /> Invite to Client Portal
+              <UserPlus className="w-5 h-5 text-blue-500" /> Accès au portail — {inviteClient?.company_name}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
-            <p className="text-sm text-slate-500">
-              Send a portal invitation to <strong>{inviteClient?.company_name}</strong>. They'll receive an email to set their password and access their reports, calendar, and contracts.
-            </p>
+            <div className="flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
+              <button
+                className={`flex-1 py-1.5 text-sm rounded-md transition-colors ${inviteMode === 'email' ? 'bg-white shadow-sm font-medium text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                onClick={() => { setInviteMode('email'); setInviteMsg(''); }}
+              >
+                <Send className="w-3.5 h-3.5 inline mr-1.5" />Email d'invitation
+              </button>
+              <button
+                className={`flex-1 py-1.5 text-sm rounded-md transition-colors ${inviteMode === 'password' ? 'bg-white shadow-sm font-medium text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                onClick={() => { setInviteMode('password'); setInviteMsg(''); }}
+              >
+                <KeyRound className="w-3.5 h-3.5 inline mr-1.5" />Générer un mot de passe
+              </button>
+            </div>
+
+            {inviteMode === 'email' ? (
+              <p className="text-sm text-slate-500">
+                Le client recevra un email pour définir son mot de passe et accéder à son portail.
+              </p>
+            ) : (
+              <p className="text-sm text-slate-500">
+                Créez directement un compte avec mot de passe. Partagez-le avec le client par SMS ou en personne. Fonctionne même si l'email est déjà utilisé.
+              </p>
+            )}
+
             <div>
-              <Label>Email address</Label>
+              <Label>Adresse email</Label>
               <Input
                 type="email"
                 value={inviteEmail}
@@ -261,20 +306,42 @@ export default function Clients() {
                 className="mt-1"
               />
             </div>
+
+            {inviteMode === 'password' && (
+              <div>
+                <Label>Mot de passe</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={invitePassword}
+                    onChange={e => setInvitePassword(e.target.value)}
+                    className="font-mono"
+                  />
+                  <Button variant="outline" size="icon" onClick={() => setInvitePassword(generatePassword())} title="Regénérer">
+                    <RefreshCw className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(invitePassword)} title="Copier">
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {inviteMsg && (
-              <p className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith('Error') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+              <p className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith('Error') || inviteMsg.startsWith('Erreur') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
                 {inviteMsg}
               </p>
             )}
             <div className="flex justify-end gap-2 pt-1">
-              <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setInviteOpen(false)}>Annuler</Button>
               <Button
                 onClick={sendInvite}
-                disabled={inviting || !inviteEmail || inviteMsg.startsWith('Invitation sent')}
+                disabled={inviting || !inviteEmail || (inviteMode === 'password' && !invitePassword)}
                 className="bg-brand hover:bg-brand/90 text-white"
               >
-                <Send className="w-4 h-4 mr-1.5" />
-                {inviting ? "Sending..." : "Send invitation"}
+                {inviteMode === 'password'
+                  ? <><KeyRound className="w-4 h-4 mr-1.5" />{inviting ? "Création..." : "Créer le compte"}</>
+                  : <><Send className="w-4 h-4 mr-1.5" />{inviting ? "Envoi..." : "Envoyer l'invitation"}</>
+                }
               </Button>
             </div>
           </div>
