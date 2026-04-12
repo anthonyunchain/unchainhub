@@ -630,7 +630,7 @@ export default function ClientPortal() {
   const initials = clientName?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "CL";
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1 }}>
       {/* Topbar */}
       <div style={{ paddingTop: 'max(28px, env(safe-area-inset-top))', paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }}>
         <div className="flex items-center justify-between gap-4">
@@ -643,7 +643,7 @@ export default function ClientPortal() {
           </div>
 
           {/* Desktop tabs */}
-          <div className="hidden md:flex items-center gap-1 p-1" style={{ background: 'var(--card)', borderRadius: 'var(--pill-radius)', boxShadow: 'var(--card-shadow)' }}>
+          <div className="hidden md:flex items-center gap-1 p-1" style={{ background: '#ffffff', borderRadius: 'var(--pill-radius)', boxShadow: '0 4px 24px rgba(13,27,42,0.12)', border: '1px solid #d8dde5' }}>
             {MAIN_TABS.map(t => (
               <button key={t.key} onClick={() => setActiveTab(t.key)}
                 style={{
