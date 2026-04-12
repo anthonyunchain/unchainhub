@@ -201,6 +201,7 @@ export default function ClientDetail() {
   const updateMut = useMutation({
     mutationFn: ({ id, d }) => base44.entities.Client.update(id, d),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["client", id] }); qc.invalidateQueries({ queryKey: ["clients"] }); setEditOpen(false); },
+    onError: (e) => alert("Save error: " + (e?.message || JSON.stringify(e))),
   });
 
   const deleteMut = useMutation({
