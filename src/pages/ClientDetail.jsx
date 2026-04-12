@@ -231,11 +231,13 @@ export default function ClientDetail() {
     if (!inviteEmail) return;
     setInviting(true); setInviteMsg("");
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const { data, error } = await supabase.functions.invoke("setClientPassword", {
         body: { email: inviteEmail, company_name: client.company_name, client_id: id, password: invitePassword },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
       });
-      setInviteMsg(error || data?.error ? "Erreur : " + (data?.error || error?.message) : "✓ Compte créé. Partagez le mot de passe avec le client.");
-    } catch (e) { setInviteMsg("Erreur : " + (e?.message || "Unknown error")); }
+      setInviteMsg(error || data?.error ? "Error: " + (data?.error || error?.message) : "✓ Account created. Share the password with the client.");
+    } catch (e) { setInviteMsg("Error: " + (e?.message || "Unknown error")); }
     finally { setInviting(false); }
   };
 
@@ -548,36 +550,36 @@ export default function ClientDetail() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-blue-500" /> Accès au portail — {client?.company_name}
+              <UserPlus className="w-5 h-5 text-blue-500" /> Portal access — {client?.company_name}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <p className="text-sm text-slate-500">
-              Créez directement un compte avec mot de passe. Partagez-le avec le client par SMS ou en personne. Fonctionne même si l'email est déjà utilisé.
+              Create an account with a password directly. Share it with the client via SMS or in person. Works even if the email is already registered.
             </p>
             <div>
-              <Label>Adresse email</Label>
+              <Label>Email address</Label>
               <Input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="client@company.com" className="mt-1" />
             </div>
             <div>
-              <Label>Mot de passe</Label>
+              <Label>Password</Label>
               <div className="flex gap-2 mt-1">
                 <Input value={invitePassword} onChange={e => setInvitePassword(e.target.value)} className="font-mono" />
-                <Button variant="outline" size="icon" onClick={() => setInvitePassword(generatePassword())} title="Regénérer">
+                <Button variant="outline" size="icon" onClick={() => setInvitePassword(generatePassword())} title="Regenerate">
                   <RefreshCw className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(invitePassword)} title="Copier">
+                <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(invitePassword)} title="Copy">
                   <Copy className="w-4 h-4" />
                 </Button>
               </div>
             </div>
             {inviteMsg && (
-              <p className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith("Erreur") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>{inviteMsg}</p>
+              <p className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith("Error") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>{inviteMsg}</p>
             )}
             <div className="flex justify-end gap-2 pt-1">
-              <Button variant="outline" onClick={() => setInviteOpen(false)}>Annuler</Button>
+              <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
               <Button onClick={sendInvite} disabled={inviting || !inviteEmail || !invitePassword} className="bg-brand hover:bg-brand/90 text-brand-foreground">
-                <KeyRound className="w-4 h-4 mr-1.5" />{inviting ? "Création…" : "Créer le compte"}
+                <KeyRound className="w-4 h-4 mr-1.5" />{inviting ? "Creating…" : "Create account"}
               </Button>
             </div>
           </div>
