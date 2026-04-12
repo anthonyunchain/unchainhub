@@ -1,26 +1,23 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import {
-  LayoutDashboard, CheckSquare, Calendar, Users,
-  MoreHorizontal, X, BarChart3, Shield, Clapperboard,
-  UserCheck, FileText, Receipt, Mail, MonitorSmartphone, TrendingUp
+  LayoutDashboard, CheckSquare, Calendar, Lightbulb,
+  MoreHorizontal, X, Shield, UserCheck, Users, Layers
 } from "lucide-react";
 
 const MAIN_TABS = [
-  { path: "/Dashboard", label: "Home", icon: LayoutDashboard },
-  { path: "/Tasks", label: "Tasks", icon: CheckSquare },
+  { path: "/Dashboard", label: "Home",     icon: LayoutDashboard },
+  { path: "/Tasks",     label: "Tasks",    icon: CheckSquare },
   { path: "/Editorial", label: "Calendar", icon: Calendar },
-  { path: "/Clients", label: "Clients", icon: Users },
+  { path: "/Ideas",     label: "Ideas",    icon: Lightbulb },
 ];
 
 const MORE_ITEMS = [
+  { path: "/Clients",     label: "Clients",     icon: Users },
   { path: "/Freelancers", label: "Freelancers", icon: UserCheck },
-  { path: "/VideoEditing", label: "Video", icon: Clapperboard },
-  { path: "/Outreach", label: "Outreach", icon: Mail },
-  { path: "/Invoices", label: "Invoices", icon: Receipt },
-  { path: "/Contracts", label: "Contracts", icon: FileText },
-  { path: "/FreelancerAdmin", label: "FL Portal", icon: MonitorSmartphone },
-  { path: "/Admin", label: "Admin", icon: Shield },
+  { path: "/Admin",       label: "Admin",       icon: Shield },
+  { path: "/Tasks",       label: "Tasks",       icon: CheckSquare },
+  { path: "/Services",    label: "Services",    icon: Layers },
 ];
 
 export default function MobileNav() {
@@ -93,10 +90,7 @@ export default function MobileNav() {
               background: 'var(--navy-border)',
               margin: '0 auto 16px',
             }} />
-            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--navy-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, paddingLeft: 4 }}>
-              More pages
-            </p>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {MORE_ITEMS.map(item => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
