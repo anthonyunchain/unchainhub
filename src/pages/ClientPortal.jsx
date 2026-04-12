@@ -50,6 +50,7 @@ function KpiCard({ label, value, icon: Icon, color = "#2A69FF" }) {
 
 // ── Dashboard tab ──────────────────────────────────────────────────────────
 function DashboardTab({ client, stats, content, contracts, invoices, calendarPdfs }) {
+  const [calCurrentDate, setCalCurrentDate] = useState(new Date());
   const currentMonth = format(new Date(), "yyyy-MM");
   const monthStats = stats.filter(s => s.period === currentMonth);
   const totalViews = monthStats.reduce((s, r) => s + (r.views || 0), 0);
@@ -83,11 +84,12 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
         <KpiCard label="Views this month" value={totalViews.toLocaleString()} icon={Eye} color="#2A69FF" />
         <KpiCard label="Posts published" value={published} icon={TrendingUp} color="#10B981" />
         {(() => {
-          const latest = Array.isArray(calendarPdfs) && calendarPdfs.length > 0 ? calendarPdfs[0] : null;
-          const latestLabel = latest ? format(new Date(latest.month + "-01"), "MMMM yyyy", { locale: enUS }) : null;
-          return latest ? (
+          const calMonthKey = format(calCurrentDate, "yyyy-MM");
+          const monthPdf = Array.isArray(calendarPdfs) ? calendarPdfs.find(p => p.month === calMonthKey) : null;
+          const monthLabel = format(calCurrentDate, "MMMM yyyy", { locale: enUS });
+          return monthPdf ? (
             <a
-              href={latest.url}
+              href={monthPdf.url}
               target="_blank"
               rel="noopener noreferrer"
               className="col-span-2 lg:col-span-1 rounded-2xl p-5 flex flex-col gap-2 transition-all hover:opacity-90"
@@ -99,7 +101,7 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
                   <Download className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-white tracking-tight">{latestLabel}</p>
+              <p className="text-3xl font-extrabold text-white tracking-tight">{monthLabel}</p>
             </a>
           ) : (
             <div
@@ -156,15 +158,17 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
       )}
 
       {/* Editorial calendar */}
-      <CalendarTab content={content} calendarPdfs={calendarPdfs} />
+      <CalendarTab content={content} calendarPdfs={calendarPdfs} currentDate={calCurrentDate} setCurrentDate={setCalCurrentDate} />
 
     </div>
   );
 }
 
 // ── Calendar tab ───────────────────────────────────────────────────────────
-function CalendarTab({ content, calendarPdfs = [] }) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, setCurrentDate: externalSetDate }) {
+  const [internalDate, setInternalDate] = useState(new Date());
+  const currentDate = externalDate ?? internalDate;
+  const setCurrentDate = externalSetDate ?? setInternalDate;
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
