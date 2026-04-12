@@ -613,8 +613,6 @@ export default function ClientPortal() {
             .order("period", { ascending: false }),
         ]);
 
-        console.log('[portal] contentRes:', contentRes.data, contentRes.error);
-        console.log('[portal] cName:', cName, 'cId:', cId);
         setContent(contentRes.data || []);
         setContracts(contractsRes.data || []);
         setInvoices(invoicesRes.data || []);

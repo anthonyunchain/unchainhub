@@ -38,6 +38,7 @@ const TABS = [
   { id: "reports",   label: "Reports"   },
   { id: "invoices",  label: "Invoices"  },
   { id: "contract",  label: "Contract"  },
+  { id: "calendars", label: "Calendars" },
 ];
 
 /* ─── Sub-components ──────────────────────────────────────────────────────── */
@@ -394,61 +395,6 @@ export default function ClientDetail() {
             }
           </div>
 
-          {/* Editorial Calendar PDFs — one per month */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <FileText className="w-4 h-4 text-slate-400" />
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Monthly Calendar PDFs</span>
-            </div>
-            {/* Upload row */}
-            <div className="flex items-center gap-2 mb-3">
-              <select
-                value={calPdfMonth}
-                onChange={e => setCalPdfMonth(e.target.value)}
-                className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none flex-1"
-              >
-                {Array.from({ length: 12 }, (_, i) => {
-                  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
-                  const val = format(d, "yyyy-MM");
-                  return <option key={val} value={val}>{format(d, "MMMM yyyy", { locale: enUS })}</option>;
-                })}
-              </select>
-              <label className={`cursor-pointer text-xs text-white bg-[#2A69FF] hover:opacity-90 px-3 py-1.5 rounded-lg flex items-center gap-1 whitespace-nowrap ${uploadingCalPdf ? "opacity-50 pointer-events-none" : ""}`}>
-                <Upload className="w-3 h-3" />{uploadingCalPdf ? "Uploading…" : "Upload PDF"}
-                <input type="file" className="hidden" accept=".pdf" onChange={async (e) => {
-                  const file = e.target.files?.[0]; if (!file) return;
-                  setUploadingCalPdf(true);
-                  const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                  const existing = Array.isArray(client.editorial_calendar_pdfs) ? client.editorial_calendar_pdfs : [];
-                  const filtered = existing.filter(p => p.month !== calPdfMonth);
-                  const updated = [{ month: calPdfMonth, url: file_url }, ...filtered].sort((a, b) => b.month.localeCompare(a.month));
-                  await updateMut.mutateAsync({ id: client.id, d: { ...client, editorial_calendar_pdfs: updated } });
-                  setUploadingCalPdf(false); e.target.value = "";
-                }} />
-              </label>
-            </div>
-            {/* List */}
-            {(client.editorial_calendar_pdfs || []).length > 0 ? (
-              <div className="space-y-1.5">
-                {(client.editorial_calendar_pdfs || []).map((p, i) => (
-                  <div key={i} className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs font-semibold text-slate-500 shrink-0">{format(new Date(p.month + "-01"), "MMM yyyy", { locale: enUS })}</span>
-                      <a href={p.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-[#2A69FF] hover:underline truncate">
-                        <ExternalLink className="w-3 h-3 shrink-0" />Download
-                      </a>
-                    </div>
-                    <button onClick={async () => {
-                      const updated = (client.editorial_calendar_pdfs || []).filter((_, idx) => idx !== i);
-                      await updateMut.mutateAsync({ id: client.id, d: { ...client, editorial_calendar_pdfs: updated } });
-                    }} className="text-slate-300 hover:text-red-400 ml-2 shrink-0"><X className="w-4 h-4" /></button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-400">No PDFs yet — upload one per month.</p>
-            )}
-          </div>
         </div>
       )}
 
@@ -597,6 +543,66 @@ export default function ClientDetail() {
             })}
             {clientContracts.length === 0 && (client.contract_documents || []).length === 0 && (
               <p className="px-6 py-8 text-sm text-slate-400 text-center">No contracts</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* CALENDARS */}
+      {activeTab === "calendars" && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="w-4 h-4 text-slate-400" />
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Monthly Calendar PDFs</span>
+            </div>
+            {/* Upload row */}
+            <div className="flex items-center gap-2 mb-3">
+              <select
+                value={calPdfMonth}
+                onChange={e => setCalPdfMonth(e.target.value)}
+                className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none flex-1"
+              >
+                {Array.from({ length: 12 }, (_, i) => {
+                  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+                  const val = format(d, "yyyy-MM");
+                  return <option key={val} value={val}>{format(d, "MMMM yyyy", { locale: enUS })}</option>;
+                })}
+              </select>
+              <label className={`cursor-pointer text-xs text-white bg-[#2A69FF] hover:opacity-90 px-3 py-1.5 rounded-lg flex items-center gap-1 whitespace-nowrap ${uploadingCalPdf ? "opacity-50 pointer-events-none" : ""}`}>
+                <Upload className="w-3 h-3" />{uploadingCalPdf ? "Uploading…" : "Upload PDF"}
+                <input type="file" className="hidden" accept=".pdf" onChange={async (e) => {
+                  const file = e.target.files?.[0]; if (!file) return;
+                  setUploadingCalPdf(true);
+                  const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                  const existing = Array.isArray(client.editorial_calendar_pdfs) ? client.editorial_calendar_pdfs : [];
+                  const filtered = existing.filter(p => p.month !== calPdfMonth);
+                  const updated = [{ month: calPdfMonth, url: file_url }, ...filtered].sort((a, b) => b.month.localeCompare(a.month));
+                  await updateMut.mutateAsync({ id: client.id, d: { ...client, editorial_calendar_pdfs: updated } });
+                  setUploadingCalPdf(false); e.target.value = "";
+                }} />
+              </label>
+            </div>
+            {/* List */}
+            {(client.editorial_calendar_pdfs || []).length > 0 ? (
+              <div className="space-y-1.5">
+                {(client.editorial_calendar_pdfs || []).map((p, i) => (
+                  <div key={i} className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs font-semibold text-slate-500 shrink-0">{format(new Date(p.month + "-01"), "MMM yyyy", { locale: enUS })}</span>
+                      <a href={p.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-[#2A69FF] hover:underline truncate">
+                        <ExternalLink className="w-3 h-3 shrink-0" />Download
+                      </a>
+                    </div>
+                    <button onClick={async () => {
+                      const updated = (client.editorial_calendar_pdfs || []).filter((_, idx) => idx !== i);
+                      await updateMut.mutateAsync({ id: client.id, d: { ...client, editorial_calendar_pdfs: updated } });
+                    }} className="text-slate-300 hover:text-red-400 ml-2 shrink-0"><X className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400">No PDFs yet — upload one per month.</p>
             )}
           </div>
         </div>
