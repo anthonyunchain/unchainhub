@@ -36,7 +36,7 @@ const PLATFORM_ICON = {
 
 function KpiCard({ label, value, icon: Icon, color = "#2A69FF" }) {
   return (
-    <div className="rounded-2xl p-5 flex flex-col gap-2" style={{ background: '#ffffff', border: '1px solid #e8ecf0', boxShadow: '0 2px 16px rgba(0,0,0,0.07)' }}>
+    <div className="rounded-2xl p-5 flex flex-col gap-2" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
       <div className="flex items-center justify-between">
         <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">{label}</span>
         <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: color + "18" }}>
@@ -87,7 +87,7 @@ function DashboardTab({ client, stats, content, contracts, invoices }) {
 
       {/* Chart */}
       {chartData.some(d => d.views > 0) && (
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
           <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-4">Views — last 6 months</p>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={chartData} barSize={20}>
@@ -103,7 +103,7 @@ function DashboardTab({ client, stats, content, contracts, invoices }) {
 
       {/* Recent content */}
       {monthContent.length > 0 && (
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
           <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">This month's content</p>
           <div className="space-y-2">
             {monthContent.slice(0, 6).map(c => (
@@ -120,7 +120,7 @@ function DashboardTab({ client, stats, content, contracts, invoices }) {
 
       {/* Pending invoices */}
       {unpaidInvoices.length > 0 && (
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
           <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">Pending invoices</p>
           <div className="space-y-2">
             {unpaidInvoices.map(inv => (
@@ -200,7 +200,7 @@ function CalendarTab({ content }) {
       </div>
 
       {/* Calendar grid */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="rounded-2xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
         {/* Day headers */}
         <div className="grid grid-cols-7 border-b border-slate-100">
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
@@ -238,7 +238,7 @@ function CalendarTab({ content }) {
 
       {/* Month list */}
       {monthContent.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 divide-y divide-slate-50 overflow-hidden">
+        <div className="rounded-2xl divide-y divide-slate-100 overflow-hidden" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
           {monthContent.map(c => (
             <div key={c.id} className="flex items-center gap-3 px-4 py-3">
               <div className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[c.status] || STATUS_DOT.default}`} />
@@ -315,14 +315,14 @@ function ReportsTab({ stats, content }) {
       </div>
 
       {/* Content published */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+      <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
         <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-1">Posts this month</p>
         <p className="text-3xl font-extrabold text-slate-800">{monthContent.filter(c => c.status === "Publié").length}</p>
         <p className="text-xs text-slate-400 mt-1">{monthContent.length} planned total</p>
       </div>
 
       {/* Chart */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+      <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
         <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-4">Views over 12 months</p>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={chartData} barSize={14}>
@@ -337,7 +337,7 @@ function ReportsTab({ stats, content }) {
 
       {/* Per-platform breakdown */}
       {monthStats.length > 1 && (
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
           <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">By platform</p>
           <div className="space-y-2">
             {monthStats.map(s => (
@@ -381,7 +381,7 @@ function ContractsTab({ contracts }) {
   return (
     <div className="space-y-3">
       {contracts.map(c => (
-        <div key={c.id} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <div key={c.id} className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -433,7 +433,7 @@ function InvoicesTab({ invoices }) {
   return (
     <div className="space-y-3">
       {invoices.map(inv => (
-        <div key={inv.id} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <div key={inv.id} className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
