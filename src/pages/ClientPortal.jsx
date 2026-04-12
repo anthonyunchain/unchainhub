@@ -514,9 +514,12 @@ const TABS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { key: "calendar",  label: "Calendar",  icon: Calendar },
   { key: "reports",   label: "Reports",   icon: BarChart2 },
-  { key: "contracts", label: "Contracts", icon: FileText },
   { key: "invoices",  label: "Invoices",  icon: Receipt },
+  { key: "contracts", label: "Contracts", icon: FileText },
 ];
+
+const MAIN_TABS = TABS.filter(t => t.key !== "contracts");
+const CONTRACTS_TAB = TABS.find(t => t.key === "contracts");
 
 export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -627,23 +630,23 @@ export default function ClientPortal() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
       {/* Topbar */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, backgroundColor: 'var(--bg)', paddingTop: 'max(16px, env(safe-area-inset-top))' }}>
-        <div className="px-4 sm:px-6 pb-3 flex items-center justify-between gap-3">
+      <div style={{ paddingTop: 'max(28px, env(safe-area-inset-top))', paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }}>
+        <div className="flex items-center justify-between gap-4">
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5 shrink-0">
             <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>U</span>
             </div>
-            <span className="hidden sm:inline text-sm font-extrabold" style={{ color: 'var(--ink)' }}>Unchain Studio</span>
+            <span className="hidden sm:inline" style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.2px' }}>Unchain Studio</span>
           </div>
 
           {/* Desktop tabs */}
-          <div className="hidden md:flex items-center gap-1 p-1 rounded-full" style={{ background: 'var(--card)', boxShadow: 'var(--card-shadow)' }}>
-            {TABS.map(t => (
+          <div className="hidden md:flex items-center gap-1 p-1" style={{ background: 'var(--card)', borderRadius: 'var(--pill-radius)', boxShadow: 'var(--card-shadow)' }}>
+            {MAIN_TABS.map(t => (
               <button key={t.key} onClick={() => setActiveTab(t.key)}
                 style={{
                   fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 500,
-                  padding: '6px 14px', borderRadius: 100,
+                  padding: '6px 14px', borderRadius: 'var(--pill-radius)',
                   background: activeTab === t.key ? 'var(--brand)' : 'transparent',
                   color: activeTab === t.key ? '#fff' : 'var(--muted)',
                   border: 'none', cursor: 'pointer', transition: 'all 200ms',
@@ -653,10 +656,23 @@ export default function ClientPortal() {
                 {t.label}
               </button>
             ))}
+            <div style={{ width: 1, height: 16, background: 'var(--divider)', margin: '0 4px', flexShrink: 0 }} />
+            <button onClick={() => setActiveTab(CONTRACTS_TAB.key)}
+              style={{
+                fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 500,
+                padding: '6px 14px', borderRadius: 'var(--pill-radius)',
+                background: activeTab === CONTRACTS_TAB.key ? 'var(--brand)' : 'transparent',
+                color: activeTab === CONTRACTS_TAB.key ? '#fff' : 'var(--muted)',
+                border: 'none', cursor: 'pointer', transition: 'all 200ms',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+              <CONTRACTS_TAB.icon style={{ width: 12, height: 12 }} />
+              {CONTRACTS_TAB.label}
+            </button>
           </div>
 
           {/* Avatar */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button onClick={() => setMenuOpen(v => !v)}
               style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--brand)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{initials}</span>
@@ -695,7 +711,7 @@ export default function ClientPortal() {
       </div>
 
       {/* Content */}
-      <div className="px-4 sm:px-6 pb-24 md:pb-8 mx-auto" style={{ maxWidth: 900 }}>
+      <div className="px-5 pb-24 md:pb-8 mx-auto" style={{ maxWidth: 1400 }}>
         {/* Greeting — dashboard only */}
         {activeTab === "dashboard" && (
           <div className="mb-5">
