@@ -5,7 +5,7 @@ import StatusBadge from "../components/shared/StatusBadge";
 import {
   ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt,
   Pencil, Upload, X, ExternalLink, Briefcase, Trash2, UserPlus,
-  ChevronLeft, ChevronRight, RefreshCw, Copy, KeyRound, Plus,
+  ChevronLeft, ChevronRight, RefreshCw, Copy, KeyRound, Plus, Paperclip,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -249,22 +249,22 @@ export default function ClientDetail() {
       invoice_number: num,
       client_id: id,
       client_name: client.company_name,
-      description: "",
       total_amount: 0,
-      tax_rate: 20,
+      tax_rate: 25.5,
       tax_amount: 0,
       total_with_tax: 0,
-      status: "Envoyée",
+      status: "Payée",
       issue_date: format(new Date(), "yyyy-MM-dd"),
       due_date: "",
       notes: "",
+      file_urls: [],
     }));
     setInvoiceMutError(null);
     setInvoiceOpen(true);
   };
 
   const openEditInvoice = (inv) => {
-    setInvoiceData({ ...inv });
+    setInvoiceData({ ...inv, file_urls: inv.file_urls || [] });
     setInvoiceMutError(null);
     setInvoiceOpen(true);
   };
@@ -834,17 +834,13 @@ export default function ClientDetail() {
                   <Select value={invoiceData.status} onValueChange={v => setInvoiceData({ ...invoiceData, status: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Envoyée">Sent</SelectItem>
                       <SelectItem value="Payée">Paid</SelectItem>
+                      <SelectItem value="Envoyée">Sent</SelectItem>
                       <SelectItem value="En retard">Overdue</SelectItem>
                       <SelectItem value="Brouillon">Draft</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              <div><Label>Description</Label>
-                <Input value={invoiceData.description || ""} onChange={e => setInvoiceData({ ...invoiceData, description: e.target.value })} placeholder="e.g. Social media management — April 2026" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -861,7 +857,7 @@ export default function ClientDetail() {
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <Label className="shrink-0">VAT (%)</Label>
-                  <Input type="number" className="w-36 text-right" value={invoiceData.tax_rate ?? 20} placeholder="20"
+                  <Input type="number" className="w-36 text-right" value={invoiceData.tax_rate ?? 25.5} placeholder="25.5"
                     onChange={e => setInvoiceData(calcInvoice({ ...invoiceData, tax_rate: parseFloat(e.target.value) || 0 }))} />
                 </div>
                 <div className="flex items-center justify-between text-sm text-slate-500">
@@ -871,6 +867,35 @@ export default function ClientDetail() {
                 <div className="flex items-center justify-between font-semibold text-slate-800 border-t border-slate-200 pt-2">
                   <span>Total incl. tax</span>
                   <span className="text-lg">{(invoiceData.total_with_tax || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</span>
+                </div>
+              </div>
+
+              {/* PDF attachments */}
+              <div>
+                <Label className="flex items-center gap-1.5 mb-1.5"><Paperclip className="w-3.5 h-3.5" />PDF</Label>
+                <div className="space-y-1.5">
+                  {(invoiceData.file_urls || []).map((url, i) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
+                      <FileText className="w-4 h-4 text-brand shrink-0" />
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline flex-1 truncate">
+                        {decodeURIComponent(url.split("/").pop().split("?")[0])}
+                      </a>
+                      <button onClick={() => setInvoiceData(d => ({ ...d, file_urls: (d.file_urls || []).filter((_, idx) => idx !== i) }))} className="text-slate-300 hover:text-red-400">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  {(invoiceData.file_urls || []).length < 3 && (
+                    <label className="cursor-pointer flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand border border-dashed border-slate-200 rounded-lg px-4 py-2.5 w-full justify-center hover:border-brand/40 transition-colors">
+                      <Upload className="w-4 h-4" /> Attach PDF
+                      <input type="file" accept=".pdf" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0]; if (!file) return;
+                        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                        setInvoiceData(d => ({ ...d, file_urls: [...(d.file_urls || []), file_url] }));
+                        e.target.value = "";
+                      }} />
+                    </label>
+                  )}
                 </div>
               </div>
 

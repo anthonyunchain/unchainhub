@@ -10,15 +10,15 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 
 const DEFAULT_NAV_ITEMS = [
-  { path: "/Dashboard", label: "Dashboard", icon: "LayoutDashboard" },
-  { path: "/Tasks", label: "Tasks", icon: "CheckSquare" },
-  { path: "/Editorial", label: "Editorial Calendar", icon: "Calendar" },
-  { path: "/VideoEditing", label: "Video Editing", icon: "Clapperboard" },
-  { path: "/Outreach", label: "Outreach", icon: "Mail" },
-  { path: "/Clients", label: "Clients", icon: "Users" },
-  { path: "/Freelancers", label: "Freelancers", icon: "UserCheck" },
-  { path: "/Admin", label: "Admin", icon: "Shield" },
-  { path: "/FreelancerAdmin", label: "Freelancer Portal", icon: "MonitorSmartphone" },
+  { path: "/Dashboard",      label: "Dashboard",        icon: "LayoutDashboard" },
+  { path: "/Tasks",          label: "Tasks",            icon: "CheckSquare" },
+  { path: "/Editorial",      label: "Calendars",        icon: "Calendar" },
+  { path: "/Freelancers",    label: "Freelancers",      icon: "UserCheck" },
+  { path: "/Clients",        label: "Clients",          icon: "Users" },
+  { path: "/Admin",          label: "Admin",            icon: "Shield" },
+  { path: "/VideoEditing",   label: "Video Editing",    icon: "Clapperboard" },
+  { path: "/Outreach",       label: "Outreach",         icon: "Mail" },
+  { path: "/FreelancerAdmin",label: "Freelancer Portal",icon: "MonitorSmartphone" },
 ];
 
 const ICON_MAP = {
@@ -27,7 +27,7 @@ const ICON_MAP = {
 };
 
 const STORAGE_KEY = "sidebar_nav_order";
-const STORAGE_VERSION = "v5"; // bump this to force-reset stored nav order
+const STORAGE_VERSION = "v6"; // bump this to force-reset stored nav order
 
 function loadOrder() {
   try {

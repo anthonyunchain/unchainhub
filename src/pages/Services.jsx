@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,28 +23,47 @@ export default function Services() {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(null);
   const [newInclude, setNewInclude] = useState("");
+  const [mutError, setMutError] = useState(null);
   const qc = useQueryClient();
 
   const { data: services = [] } = useQuery({
     queryKey: ["services"],
-    queryFn: () => base44.entities.Service.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("services").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
   });
 
   const createMut = useMutation({
-    mutationFn: (d) => base44.entities.Service.create(d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["services"] }); setOpen(false); },
+    mutationFn: async (d) => {
+      const { id, ...rest } = d;
+      const { error } = await supabase.from("services").insert(rest);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["services"] }); setOpen(false); setMutError(null); },
+    onError: (e) => setMutError(e.message),
   });
   const updateMut = useMutation({
-    mutationFn: ({ id, d }) => base44.entities.Service.update(id, d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["services"] }); setOpen(false); },
+    mutationFn: async ({ id, d }) => {
+      const { id: _id, created_at, ...rest } = d;
+      const { error } = await supabase.from("services").update(rest).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["services"] }); setOpen(false); setMutError(null); },
+    onError: (e) => setMutError(e.message),
   });
   const deleteMut = useMutation({
-    mutationFn: (id) => base44.entities.Service.delete(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["services"] }); setOpen(false); },
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("services").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["services"] }); setOpen(false); setMutError(null); },
+    onError: (e) => setMutError(e.message),
   });
 
-  const openNew = () => { setData({ ...EMPTY, includes: [] }); setOpen(true); };
-  const openEdit = (s) => { setData({ ...s, includes: s.includes || [] }); setOpen(true); };
+  const openNew = () => { setData({ ...EMPTY, includes: [] }); setMutError(null); setOpen(true); };
+  const openEdit = (s) => { setData({ ...s, includes: s.includes || [] }); setMutError(null); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
   const handleDelete = () => { if (data?.id && confirm("Delete this service?")) { deleteMut.mutate(data.id); } };
 
@@ -99,7 +118,7 @@ export default function Services() {
         ))}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setMutError(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{data?.id ? "Edit service" : "New service"}</DialogTitle></DialogHeader>
           {data && (
@@ -144,11 +163,16 @@ export default function Services() {
                   ))}
                 </div>
               </div>
+              {mutError && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{mutError}</p>}
+
               <div className="flex justify-between items-center pt-2">
                 {data.id ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={handleDelete}><Trash2 className="w-4 h-4 mr-1" />Delete</Button> : <div />}
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!data.name}>Save</Button>
+                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground"
+                    disabled={!data.name || createMut.isPending || updateMut.isPending}>
+                    {createMut.isPending || updateMut.isPending ? "Saving…" : "Save"}
+                  </Button>
                 </div>
               </div>
             </div>

@@ -59,7 +59,7 @@ export default function Invoices() {
 
   const openNew = () => {
     const num = `INV-${String(invoices.length + 1).padStart(4, "0")}`;
-    setEditData(calc({ invoice_number: num, client_id: "", client_name: "", description: "", total_amount: 0, tax_rate: 25.5, tax_amount: 0, total_with_tax: 0, status: "Envoyée", issue_date: format(new Date(), "yyyy-MM-dd"), due_date: "", notes: "" }));
+    setEditData(calc({ invoice_number: num, client_id: "", client_name: "", total_amount: 0, tax_rate: 25.5, tax_amount: 0, total_with_tax: 0, status: "Payée", issue_date: format(new Date(), "yyyy-MM-dd"), due_date: "", notes: "", file_urls: [] }));
     setDialogOpen(true);
   };
 
@@ -235,56 +235,47 @@ export default function Invoices() {
           <DialogHeader><DialogTitle>{editData?.id ? "Edit invoice" : "New invoice"}</DialogTitle></DialogHeader>
           {editData && (
             <div className="space-y-4 mt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Invoice No.</Label><Input value={editData.invoice_number || ""} onChange={e => setEditData({ ...editData, invoice_number: e.target.value })} /></div>
+              {/* Client + Invoice No */}
+              <div className="grid grid-cols-2 gap-3">
                 <div><Label>Client</Label>
                   <Select value={editData.client_id || ""} onValueChange={v => { const cl = clients.find(c => c.id === v); setEditData({ ...editData, client_id: v, client_name: cl?.company_name || "" }); }}>
-                    <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
                     <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
+                <div><Label>Invoice No.</Label><Input value={editData.invoice_number || ""} onChange={e => setEditData({ ...editData, invoice_number: e.target.value })} /></div>
               </div>
 
-              <div><Label>Description</Label>
-                <Input value={editData.description || ""} onChange={e => setEditData({ ...editData, description: e.target.value })} placeholder="e.g. Social media management — March 2026" />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Dates + Status */}
+              <div className="grid grid-cols-3 gap-3">
                 <div><Label>Issue date</Label><Input type="date" value={editData.issue_date || ""} onChange={e => setEditData({ ...editData, issue_date: e.target.value })} /></div>
                 <div><Label>Due date</Label><Input type="date" value={editData.due_date || ""} onChange={e => setEditData({ ...editData, due_date: e.target.value })} /></div>
-                <div><Label>Statut</Label>
+                <div><Label>Status</Label>
                   <Select value={editData.status} onValueChange={v => setEditData({ ...editData, status: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Envoyée">Sent</SelectItem>
                       <SelectItem value="Payée">Paid</SelectItem>
+                      <SelectItem value="Envoyée">Sent</SelectItem>
                       <SelectItem value="En retard">Overdue</SelectItem>
+                      <SelectItem value="Brouillon">Draft</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              {/* Montants */}
+              {/* Amounts */}
               <div className="bg-slate-50 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between gap-4">
                   <Label className="shrink-0">Amount excl. tax (€)</Label>
-                  <Input
-                    type="number"
-                    className="w-40 text-right"
+                  <Input type="number" className="w-40 text-right" placeholder="0.00"
                     value={editData.total_amount || ""}
-                    onChange={e => setEditData(calc({ ...editData, total_amount: parseFloat(e.target.value) || 0 }))}
-                    placeholder="0.00"
-                  />
+                    onChange={e => setEditData(calc({ ...editData, total_amount: parseFloat(e.target.value) || 0 }))} />
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <Label className="shrink-0">VAT (%)</Label>
-                  <Input
-                    type="number"
-                    className="w-40 text-right"
-                    value={editData.tax_rate ?? 24}
-                    onChange={e => setEditData(calc({ ...editData, tax_rate: parseFloat(e.target.value) || 0 }))}
-                    placeholder="24"
-                  />
+                  <Input type="number" className="w-40 text-right" placeholder="25.5"
+                    value={editData.tax_rate ?? 25.5}
+                    onChange={e => setEditData(calc({ ...editData, tax_rate: parseFloat(e.target.value) || 0 }))} />
                 </div>
                 <div className="flex items-center justify-between text-sm text-slate-500">
                   <span>VAT amount</span>
@@ -296,24 +287,24 @@ export default function Invoices() {
                 </div>
               </div>
 
-              {/* Fichiers joints */}
+              {/* PDF */}
               <div>
-                <Label className="flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5" />Attached files (PDF)</Label>
-                <div className="mt-1.5 space-y-1.5">
+                <Label className="flex items-center gap-1.5 mb-1.5"><Paperclip className="w-3.5 h-3.5" />PDF</Label>
+                <div className="space-y-1.5">
                   {(editData.file_urls || []).map((url, i) => (
                     <div key={i} className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
                       <FileText className="w-4 h-4 text-brand shrink-0" />
                       <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline flex-1 truncate">
                         {decodeURIComponent(url.split("/").pop().split("?")[0])}
                       </a>
-                      <button onClick={() => setEditData(d => ({ ...d, file_urls: (d.file_urls || []).filter((_, idx) => idx !== i) }))} className="text-slate-300 hover:text-red-400 shrink-0">
+                      <button onClick={() => setEditData(d => ({ ...d, file_urls: (d.file_urls || []).filter((_, idx) => idx !== i) }))} className="text-slate-300 hover:text-red-400">
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
-                  {(editData.file_urls || []).length < 2 && (
-                    <label className="cursor-pointer inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand border border-dashed border-slate-200 rounded-lg px-4 py-2.5 w-full justify-center hover:border-brand/40 transition-colors">
-                      <Upload className="w-4 h-4" /> Attach a PDF file
+                  {(editData.file_urls || []).length < 3 && (
+                    <label className="cursor-pointer flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand border border-dashed border-slate-200 rounded-lg px-4 py-2.5 w-full justify-center hover:border-brand/40 transition-colors">
+                      <Upload className="w-4 h-4" /> Attach PDF
                       <input type="file" accept=".pdf" className="hidden" onChange={async (e) => {
                         const file = e.target.files?.[0]; if (!file) return;
                         const { file_url } = await base44.integrations.Core.UploadFile({ file });
