@@ -8,12 +8,12 @@ import UserMenu from "./UserMenu";
 import NotificationBell from "./NotificationBell";
 
 const NAV_LINKS = [
-  { path: "/Dashboard", label: "Dashboard" },
-  { path: "/FreelancerAdmin", label: "Freelancers" },
-  { path: "/Tasks", label: "Tasks" },
-  { path: "/Editorial", label: "Calendars" },
-  { path: "/Clients", label: "Clients" },
-  { path: "/Admin", label: "Admin" },
+  { path: "/Dashboard",      label: "Dashboard"  },
+  { path: "/Tasks",          label: "Tasks"      },
+  { path: "/Editorial",      label: "Calendars"  },
+  { path: "/FreelancerAdmin",label: "Freelancers"},
+  { path: "/Clients",        label: "Clients"    },
+  { path: "/Admin",          label: "Admin"      },
 ];
 
 export default function Topbar() {
