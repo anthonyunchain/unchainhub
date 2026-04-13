@@ -703,13 +703,17 @@ function MeetingsTab({ meetings }) {
 }
 
 // ─── INVOICES TAB ─────────────────────────────────────────────────────────
-function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded }) {
+function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded, openTrigger }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const qc = useQueryClient();
+
+  useEffect(() => {
+    if (openTrigger > 0) openNew();
+  }, [openTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openNew = () => {
     setFormData({
@@ -764,12 +768,6 @@ function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded })
         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Total</p><p className="text-lg font-bold text-slate-900 mt-1">{total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p></div>
         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Paid</p><p className="text-lg font-bold text-emerald-600 mt-1">{paid.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p></div>
         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Pending</p><p className="text-lg font-bold text-amber-600 mt-1">{pending.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p></div>
-      </div>
-
-      <div className="flex justify-end mb-4">
-        <Button onClick={openNew} className="bg-slate-800 hover:bg-slate-700 text-white h-9">
-          <Plus className="w-4 h-4 mr-1" /> Submit an invoice
-        </Button>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
@@ -912,6 +910,7 @@ export default function FreelancerPortal() {
   const [loadError, setLoadError] = useState(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [todoNewTrigger, setTodoNewTrigger] = useState(0);
+  const [invoiceOpenTrigger, setInvoiceOpenTrigger] = useState(0);
   const [time, setTime] = useState("");
 
   useEffect(() => {
@@ -1002,7 +1001,7 @@ export default function FreelancerPortal() {
       case "ideas": return <Ideas currentUserId={user?.id} currentUserName={profile?.name || user?.email} isFreelancer={true} />;
       case "tools": return <ToolsTab tools={tools} />;
       case "meetings": return <MeetingsTab meetings={meetings} />;
-      case "invoices": return <InvoicesTab payments={payments} freelancerName={freelancerName} freelancerId={profile?.id} onPaymentAdded={handlePaymentAdded} />;
+      case "invoices": return <InvoicesTab payments={payments} freelancerName={freelancerName} freelancerId={profile?.id} onPaymentAdded={handlePaymentAdded} openTrigger={invoiceOpenTrigger} />;
       case "contract": return <ContractTab profile={profile} />;
       case "profile": return <ProfileTab user={user} freelancerProfile={profile} onProfileUpdate={(p) => setFreelancerData(d => ({ ...d, profile: p }))} />;
       case "notifications": return <NotificationsPanel freelancerId={profile?.id} onAccept={(pid) => handleProjectUpdate()} onDecline={(pid) => handleProjectUpdate()} />;
@@ -1179,6 +1178,14 @@ export default function FreelancerPortal() {
                       style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--card)', color: 'var(--muted)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: "'DM Mono', monospace" }}
                     >
                       ← Calendar
+                    </button>
+                  )}
+                  {activeTab === 'invoices' && (
+                    <button
+                      onClick={() => setInvoiceOpenTrigger(n => n + 1)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--brand)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                    >
+                      <Plus style={{ width: 15, height: 15 }} /> Submit an invoice
                     </button>
                   )}
                 </div>
