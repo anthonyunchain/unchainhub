@@ -409,11 +409,42 @@ function AdminTasks() {
   const [activeStatus, setActiveStatus] = useState("all");
   const qc = useQueryClient();
 
-  const { data: tasks = [] } = useQuery({ queryKey: ["admin-tasks"], queryFn: () => base44.entities.AdminTask.list("-created_date") });
+  const { data: tasks = [], error: tasksError } = useQuery({
+    queryKey: ["admin-tasks"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("admin_tasks").select("*").order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return data || [];
+    }
+  });
 
-  const createMut = useMutation({ mutationFn: (d) => base44.entities.AdminTask.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-tasks"] }); setOpen(false); } });
-  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.AdminTask.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-tasks"] }); setOpen(false); } });
-  const deleteMut = useMutation({ mutationFn: (id) => base44.entities.AdminTask.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-tasks"] }) });
+  const [mutError, setMutError] = useState(null);
+  const onMutError = (e) => setMutError(e?.message || "Error saving task");
+
+  const createMut = useMutation({
+    mutationFn: async (d) => {
+      const { error } = await supabase.from("admin_tasks").insert(d);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-tasks"] }); setOpen(false); setMutError(null); },
+    onError: onMutError,
+  });
+  const updateMut = useMutation({
+    mutationFn: async ({ id, d }) => {
+      const { error } = await supabase.from("admin_tasks").update(d).eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-tasks"] }); setOpen(false); setMutError(null); },
+    onError: onMutError,
+  });
+  const deleteMut = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("admin_tasks").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-tasks"] }),
+    onError: onMutError,
+  });
 
   const empty = { title: "", description: "", category: "Autre", status: "À faire", priority: "Normale", due_date: "", assigned_to: "", notes: "" };
   const openNew = () => { setData({ ...empty }); setOpen(true); };
@@ -423,7 +454,7 @@ function AdminTasks() {
 
   const toggleStatus = (task) => {
     const next = task.status === "Terminé" ? "À faire" : "Terminé";
-    updateMut.mutate({ id: task.id, d: { ...task, status: next } });
+    updateMut.mutate({ id: task.id, d: { status: next } });
   };
 
   const STATUS_COLORS = { "À faire": "bg-slate-100 text-slate-600", "En cours": "bg-blue-50 text-blue-700", "Terminé": "bg-emerald-50 text-emerald-700", "Bloqué": "bg-red-50 text-red-700" };
@@ -510,11 +541,14 @@ function AdminTasks() {
               </div>
               <div><Label>Assigned to</Label><Input value={data.assigned_to || ""} onChange={e => setData({ ...data, assigned_to: e.target.value })} placeholder="Person's name..." /></div>
               <div><Label>Description</Label><Textarea value={data.description || ""} onChange={e => setData({ ...data, description: e.target.value })} rows={3} /></div>
+              {mutError && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{mutError}</p>}
               <div className="flex justify-between items-center pt-2">
                 {data.id ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={handleDelete}><Trash2 className="w-4 h-4 mr-1" />Delete</Button> : <div />}
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!data.title}>Save</Button>
+                  <Button variant="outline" onClick={() => { setOpen(false); setMutError(null); }}>Cancel</Button>
+                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!data.title || createMut.isPending || updateMut.isPending}>
+                    {createMut.isPending || updateMut.isPending ? "Saving…" : "Save"}
+                  </Button>
                 </div>
               </div>
             </div>
