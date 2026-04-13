@@ -1147,7 +1147,7 @@ export default function FreelancerPortal() {
               // Profile tab manages its own header inside the grid layout
               if (activeTab === 'profile') return null;
               return (
-                <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
                     <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px', margin: 0 }}>
                       {meta.title}
