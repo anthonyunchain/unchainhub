@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { base44, supabase } from "@/api/base44Client";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Calendar, BarChart2, FileText, LogOut,
   Settings, ChevronLeft, ChevronRight, Eye, Users, TrendingUp,
   Bell, Moon, Sun, ExternalLink, Instagram, Youtube, Facebook,
-  Linkedin, Globe, Download, Receipt
+  Linkedin, Globe, Download, Receipt, ClipboardList, CheckCircle2, Save
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -551,11 +551,178 @@ function SettingsDialog({ open, onClose }) {
   );
 }
 
+// ── Monthly Brief form ──────────────────────────────────────────────────────
+const BRIEF_FIELDS = [
+  { key: "key_events", label: "Key dates & events",           placeholder: "Product launches, seasonal events, campaigns, holidays…" },
+  { key: "campaigns",  label: "Campaigns & promotions",       placeholder: "Ongoing promotions, partnerships, discount periods…" },
+  { key: "themes",     label: "Main themes / topics",         placeholder: "Topics you want to cover, content pillars for the month…" },
+  { key: "products",   label: "Products / services to highlight", placeholder: "What you want to put forward this month…" },
+  { key: "notes",      label: "Additional notes",             placeholder: "Tone, constraints, anything else we should know…" },
+];
+
+function BriefTab({ clientName }) {
+  const nextMonth = format(addMonths(new Date(), 1), "yyyy-MM");
+  const [month, setMonth] = useState(nextMonth);
+  const [form, setForm] = useState({ key_events: "", campaigns: "", themes: "", products: "", notes: "" });
+  const [briefId, setBriefId] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const shiftMonth = (dir) => {
+    const d = new Date(month + "-01");
+    d.setMonth(d.getMonth() + dir);
+    setMonth(format(d, "yyyy-MM"));
+  };
+
+  // Load existing brief for this month
+  useEffect(() => {
+    if (!clientName) return;
+    setLoading(true);
+    setSaved(false);
+    supabase.from("monthly_briefs")
+      .select("*")
+      .eq("client_name", clientName)
+      .eq("month", month)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setBriefId(data.id);
+          setSubmitted(!!data.submitted_at);
+          setForm({ key_events: data.key_events || "", campaigns: data.campaigns || "", themes: data.themes || "", products: data.products || "", notes: data.notes || "" });
+        } else {
+          setBriefId(null);
+          setSubmitted(false);
+          setForm({ key_events: "", campaigns: "", themes: "", products: "", notes: "" });
+        }
+        setLoading(false);
+      });
+  }, [clientName, month]);
+
+  const handleSave = async (submit = false) => {
+    setSaving(true);
+    const payload = { client_name: clientName, month, ...form, updated_at: new Date().toISOString(), ...(submit ? { submitted_at: new Date().toISOString() } : {}) };
+    let error;
+    if (briefId) {
+      ({ error } = await supabase.from("monthly_briefs").update(payload).eq("id", briefId));
+    } else {
+      const { data, error: e } = await supabase.from("monthly_briefs").insert(payload).select("id").single();
+      error = e;
+      if (data) setBriefId(data.id);
+    }
+    setSaving(false);
+    if (!error) {
+      if (submit) setSubmitted(true);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }
+  };
+
+  const monthLabel = format(new Date(month + "-01"), "MMMM yyyy", { locale: enUS });
+  const isNextMonth = month === nextMonth;
+  const isFuture = month >= nextMonth;
+
+  return (
+    <div style={{ maxWidth: 640, margin: '0 auto' }}>
+      {/* Month nav */}
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => shiftMonth(-1)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <ChevronLeft style={{ width: 16, height: 16, color: 'var(--muted)' }} />
+        </button>
+        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', flex: 1, textAlign: 'center', textTransform: 'capitalize' }}>{monthLabel}</span>
+        <button onClick={() => shiftMonth(1)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <ChevronRight style={{ width: 16, height: 16, color: 'var(--muted)' }} />
+        </button>
+      </div>
+
+      {/* Status banner */}
+      {submitted && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 12, background: '#ecfdf5', border: '1px solid #6ee7b7', marginBottom: 16 }}>
+          <CheckCircle2 style={{ width: 16, height: 16, color: '#059669' }} />
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#059669', margin: 0 }}>Brief submitted — thank you! You can still update it below.</p>
+        </div>
+      )}
+
+      {/* Intro card — next month only */}
+      {isNextMonth && !submitted && (
+        <div style={{ background: 'var(--card)', border: '1px solid var(--divider)', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
+          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--ink)', margin: '0 0 4px 0' }}>Monthly brief — {monthLabel}</p>
+          <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
+            Fill in the key info about next month so we can build your content calendar. The more detail, the better!
+          </p>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="w-5 h-5 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {BRIEF_FIELDS.map(f => (
+            <div key={f.key} style={{ background: 'var(--card)', border: '1px solid var(--divider)', borderRadius: 16, padding: '14px 16px' }}>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>{f.label}</p>
+              <textarea
+                value={form[f.key]}
+                onChange={e => setForm(v => ({ ...v, [f.key]: e.target.value }))}
+                placeholder={f.placeholder}
+                rows={3}
+                style={{
+                  width: '100%', background: 'transparent', border: 'none', outline: 'none',
+                  fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, resize: 'none',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}
+              />
+            </div>
+          ))}
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+            <button
+              onClick={() => handleSave(false)}
+              disabled={saving}
+              style={{
+                flex: 1, height: 44, borderRadius: 12, border: '1px solid var(--divider)',
+                background: 'var(--card)', fontSize: 13, fontWeight: 600,
+                color: saved ? '#059669' : 'var(--ink)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
+            >
+              {saved ? <><CheckCircle2 style={{ width: 15, height: 15 }} /> Saved</> : <><Save style={{ width: 15, height: 15 }} /> Save draft</>}
+            </button>
+            {isFuture && (
+              <button
+                onClick={() => handleSave(true)}
+                disabled={saving || submitted}
+                style={{
+                  flex: 2, height: 44, borderRadius: 12, border: 'none',
+                  background: submitted ? '#d1fae5' : 'var(--brand)',
+                  fontSize: 13, fontWeight: 700,
+                  color: submitted ? '#059669' : '#fff', cursor: submitted ? 'default' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  opacity: saving ? 0.6 : 1,
+                }}
+              >
+                {submitted
+                  ? <><CheckCircle2 style={{ width: 15, height: 15 }} /> Submitted</>
+                  : saving ? "Submitting…"
+                  : <><CheckCircle2 style={{ width: 15, height: 15 }} /> Submit brief</>
+                }
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main portal ────────────────────────────────────────────────────────────
 const TABS = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { key: "reports",   label: "Reports",   icon: BarChart2 },
-  { key: "admin",     label: "Admin",     icon: Settings },
+  { key: "dashboard", label: "Dashboard",    icon: LayoutDashboard },
+  { key: "brief",     label: "Monthly Brief", icon: ClipboardList },
+  { key: "reports",   label: "Reports",       icon: BarChart2 },
+  { key: "admin",     label: "Admin",         icon: Settings },
 ];
 
 export default function ClientPortal() {
@@ -764,6 +931,7 @@ export default function ClientPortal() {
         )}
 
         {activeTab === "dashboard" && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} calendarPdfs={clientRecord?.editorial_calendar_pdfs || []} />}
+        {activeTab === "brief"     && <BriefTab clientName={clientName} />}
         {activeTab === "reports"   && <ReportsTab stats={stats} content={content} />}
         {activeTab === "admin"     && (
           <div style={{ maxWidth: 640, margin: '0 auto' }}>

@@ -19,6 +19,7 @@ import Reports from "./Reports";
 import Pipeline from "./Pipeline";
 import Contracts from "./Contracts";
 import Ideas from "./Ideas";
+import MonthlyBriefs from "../components/admin/MonthlyBriefs";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { useAuth } from "@/lib/AuthContext";
@@ -1516,6 +1517,7 @@ function AdminExpenses() {
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 const DEFAULT_NAV_ITEMS = [
   { id: 'tasks',         label: 'Admin Tasks' },
+  { id: 'briefs',        label: 'Monthly Briefs' },
   { id: 'ideas',         label: 'Ideas' },
   { id: 'analytics',     label: 'Analytics' },
   { id: 'sales',         label: 'Pipeline' },
@@ -1704,6 +1706,7 @@ export default function Admin() {
           {section === 'users'        && <UserManagement />}
           {section === 'permissions'  && <Permissions />}
           {section === 'ideas'        && <Ideas currentUserId={user?.id} currentUserName={user?.full_name || user?.email} />}
+          {section === 'briefs'       && <MonthlyBriefs />}
         </div>
 
       </div>
