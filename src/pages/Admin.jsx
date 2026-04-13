@@ -1255,21 +1255,21 @@ function Permissions() {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 const DEFAULT_NAV_ITEMS = [
-  { id: 'tasks',        label: 'Admin Tasks' },
-  { id: 'meetings',     label: 'Board Meetings' },
-  { id: 'legal',        label: 'Legal Docs' },
-  { id: 'shareholders', label: 'Shareholders' },
-  { id: 'salaries',     label: 'Salaries' },
+  { id: 'tasks',         label: 'Admin Tasks' },
+  { id: 'ideas',         label: 'Ideas' },
+  { id: 'analytics',     label: 'Analytics' },
+  { id: 'sales',         label: 'Pipeline' },
+  { id: 'finance',       label: 'Finance' },
+  { id: 'services',      label: 'Services' },
   { id: 'subscriptions', label: 'Subscriptions' },
-  { id: 'invoices',     label: 'Invoices' },
-  { id: 'finance',      label: 'Finance' },
-  { id: 'services',     label: 'Services' },
-  { id: 'analytics',    label: 'Analytics' },
-  { id: 'sales',        label: 'Pipeline' },
-  { id: 'contracts',    label: 'Contracts' },
-  { id: 'users',        label: 'Users' },
-  { id: 'permissions',  label: 'Permissions' },
-  { id: 'ideas',        label: 'Ideas' },
+  { id: 'invoices',      label: 'Invoices' },
+  { id: 'salaries',      label: 'Salaries' },
+  { id: 'contracts',     label: 'Contracts' },
+  { id: 'meetings',      label: 'Board Meetings' },
+  { id: 'legal',         label: 'Legal Docs' },
+  { id: 'shareholders',  label: 'Shareholders' },
+  { id: 'users',         label: 'Users' },
+  { id: 'permissions',   label: 'Permissions' },
 ];
 
 const ADMIN_NAV_KEY = "admin_nav_order_v2";
