@@ -100,21 +100,14 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
   );
 
   return (
-    <div style={{ height: 'calc(100vh - 140px)' }} className="flex flex-col gap-3">
-      {/* Page title */}
-      <div className="shrink-0">
-        <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px', margin: 0 }}>Profile</h1>
-        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Your information & settings</p>
-      </div>
+    <div className="flex flex-col gap-3">
+      {/* 2-col on desktop, 1-col on mobile */}
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-3">
 
-      {/* 2×2 symmetric grid */}
-      <div className="w-full grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0"
-           style={{ maxWidth: '100%' }}>
-
-        {/* ── TOP-LEFT : Identity + Availability ── */}
+        {/* ── Identity + Availability ── */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
           {cardHeader(User, "Identity")}
-          <div className="flex-1 p-4 flex flex-col justify-between">
+          <div className="p-4 flex flex-col gap-4">
             {/* Avatar row */}
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-white text-xl font-bold shrink-0">
@@ -146,10 +139,10 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
           </div>
         </div>
 
-        {/* ── TOP-RIGHT : Email ── */}
+        {/* ── Email ── */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
           {cardHeader(Mail, "Email address")}
-          <div className="flex-1 p-4 flex flex-col justify-between">
+          <div className="p-4 flex flex-col gap-4">
             <div className="space-y-3">
               <div className="space-y-1.5">
                 {fieldLabel("Email")}
@@ -164,10 +157,10 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
           </div>
         </div>
 
-        {/* ── BOTTOM-LEFT : Profile form ── */}
+        {/* ── Profile form ── */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
           {cardHeader(Briefcase, "Profile")}
-          <div className="flex-1 p-4 flex flex-col gap-3 min-h-0">
+          <div className="p-4 flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 {fieldLabel("Display name")}
@@ -182,15 +175,15 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
               {fieldLabel("Phone")}
               <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+1 …" className="h-9 text-sm" maxLength={30} />
             </div>
-            <div className="space-y-1.5 flex-1 flex flex-col min-h-0">
+            <div className="space-y-1.5">
               {fieldLabel("Bio")}
               <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 placeholder="Specialties, tools, experience…" maxLength={2000}
-                className="text-sm resize-none flex-1 min-h-0" style={{ minHeight: 0 }} />
+                rows={3} className="text-sm resize-none" />
             </div>
-            {error && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-xl shrink-0">{error}</p>}
+            {error && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
             <button onClick={handleSave} disabled={saving}
-              className={`h-10 w-full rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all shrink-0 ${
+              className={`h-10 w-full rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
                 saved ? "bg-emerald-500 text-white" : "bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-60"
               }`}>
               {saved ? <><CheckCircle2 className="w-4 h-4" /> Saved!</> : saving ? "Saving…" : <><Save className="w-4 h-4" /> Save profile</>}
@@ -198,10 +191,10 @@ export default function ProfileTab({ user, freelancerProfile, onProfileUpdate })
           </div>
         </div>
 
-        {/* ── BOTTOM-RIGHT : Password ── */}
+        {/* ── Password ── */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
           {cardHeader(Lock, "Password")}
-          <div className="flex-1 p-4 flex flex-col justify-between">
+          <div className="p-4 flex flex-col gap-4">
             <div className="space-y-3">
               <div className="space-y-1.5">
                 {fieldLabel("New password")}
