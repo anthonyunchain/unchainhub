@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import StatusBadge from "../components/shared/StatusBadge";
 import FreelancerProfileCard from "@/components/freelancer/FreelancerProfileCard";
 import { Button } from "@/components/ui/button";
-import { Plus, UserCheck, Pencil, Upload, FileText, X, GripVertical, ArrowUpDown } from "lucide-react";
+import { Plus, UserCheck, Pencil, Upload, FileText, X, GripVertical, ArrowUpDown, Trash2 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -13,16 +13,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { fr, enUS } from "date-fns/locale";
 
 export default function Freelancers() {
   const [section, setSection] = useState(null);
+  const [selectedFreelancer, setSelectedFreelancer] = useState(null);
+  const [detailTab, setDetailTab] = useState("profile");
   const [fDialogOpen, setFDialogOpen] = useState(false);
   const [pDialogOpen, setPDialogOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [filterFreelancer, setFilterFreelancer] = useState("all");
   const [editFreelancer, setEditFreelancer] = useState(null);
   const [paymentData, setPaymentData] = useState(null);
+  const [paymentMutError, setPaymentMutError] = useState(null);
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [localFreelancers, setLocalFreelancers] = useState(null);
@@ -31,14 +34,44 @@ export default function Freelancers() {
 
   const { data: freelancers = [] } = useQuery({ queryKey: ["freelancers"], queryFn: () => base44.entities.Freelancer.list() });
   const orderedFreelancers = (localFreelancers || [...freelancers].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
-  const { data: payments = [] } = useQuery({ queryKey: ["freelancer-payments"], queryFn: () => base44.entities.FreelancerPayment.list() });
+  const { data: payments = [] } = useQuery({
+    queryKey: ["freelancer-payments"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("freelancer_payments").select("*").order("date", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   const createFMut = useMutation({ mutationFn: (d) => base44.entities.Freelancer.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setFDialogOpen(false); } });
   const updateFMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setFDialogOpen(false); } });
   const deleteFMut = useMutation({ mutationFn: (id) => base44.entities.Freelancer.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setFDialogOpen(false); setConfirmDelete(null); } });
-  const deletePMut = useMutation({ mutationFn: (id) => base44.entities.FreelancerPayment.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setPDialogOpen(false); setConfirmDelete(null); } });
-  const createPMut = useMutation({ mutationFn: (d) => base44.entities.FreelancerPayment.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setPDialogOpen(false); } });
-  const updatePMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.FreelancerPayment.update(id, d), onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancer-payments"] }) });
+  const createPMut = useMutation({
+    mutationFn: async (d) => {
+      const { id, ...rest } = d;
+      const { error } = await supabase.from("freelancer_payments").insert({ ...rest, amount: parseFloat(rest.amount) || 0 });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setPDialogOpen(false); setPaymentMutError(null); },
+    onError: (e) => setPaymentMutError(e.message),
+  });
+  const updatePMut = useMutation({
+    mutationFn: async ({ id, d }) => {
+      const { id: _id, created_at, ...rest } = d;
+      const { error } = await supabase.from("freelancer_payments").update({ ...rest, amount: parseFloat(rest.amount) || 0 }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setPDialogOpen(false); setPaymentMutError(null); },
+    onError: (e) => setPaymentMutError(e.message),
+  });
+  const deletePMut = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("freelancer_payments").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setPDialogOpen(false); setConfirmDelete(null); },
+    onError: (e) => setPaymentMutError(e.message),
+  });
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
@@ -62,15 +95,187 @@ export default function Freelancers() {
     setFDialogOpen(true);
   };
 
-  const openNewPayment = () => {
-    setPaymentData({ freelancer_id: "", freelancer_name: "", mission: "", client_name: "", amount: 0, date: format(new Date(), "yyyy-MM-dd"), status: "En attente", invoice_url: "", notes: "" });
+  const openNewPayment = (freelancer = null) => {
+    setPaymentData({
+      freelancer_id: freelancer?.id || "",
+      freelancer_name: freelancer?.name || "",
+      mission: "", client_name: "", amount: "",
+      date: format(new Date(), "yyyy-MM-dd"),
+      status: "En attente", invoice_url: "", notes: "",
+    });
+    setPaymentMutError(null);
     setPDialogOpen(true);
+  };
+
+  const openFreelancerDetail = (f) => {
+    setSelectedFreelancer(f);
+    setDetailTab("profile");
+    setSection("detail");
   };
 
   const openEditPayment = (p) => {
     setPaymentData({ ...p });
+    setPaymentMutError(null);
     setPDialogOpen(true);
   };
+
+  const renderFreelancerDialog = () => (
+    <Dialog open={fDialogOpen} onOpenChange={setFDialogOpen}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>{editFreelancer?.id ? "Edit freelancer" : "New freelancer"}</DialogTitle></DialogHeader>
+        {editFreelancer && (
+          <div className="space-y-4 mt-2">
+            <div><Label>Name *</Label><Input value={editFreelancer.name} onChange={e => setEditFreelancer({ ...editFreelancer, name: e.target.value })} /></div>
+            <div><Label>Role (free text)</Label><Input value={editFreelancer.role || ""} onChange={e => setEditFreelancer({ ...editFreelancer, role: e.target.value })} placeholder="e.g. Video editor, Photographer..." /></div>
+            <div>
+              <Label>Skill tags</Label>
+              <p className="text-[10px] text-slate-400 mb-1.5">The <strong>Video editor</strong> tag enables Reel assignment in the editorial calendar.</p>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {(editFreelancer.tags || []).map((tag, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
+                    {tag}
+                    <button type="button" onClick={() => setEditFreelancer({ ...editFreelancer, tags: editFreelancer.tags.filter((_, idx) => idx !== i) })} className="hover:text-red-500">×</button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input value={newTag} onChange={e => setNewTag(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && newTag.trim()) { setEditFreelancer({ ...editFreelancer, tags: [...(editFreelancer.tags || []), newTag.trim()] }); setNewTag(""); e.preventDefault(); } }}
+                  placeholder="Ex: Video editor, Photographer…" className="h-8 text-sm" />
+                <Button type="button" variant="outline" className="h-8 shrink-0" onClick={() => { if (newTag.trim()) { setEditFreelancer({ ...editFreelancer, tags: [...(editFreelancer.tags || []), newTag.trim()] }); setNewTag(""); } }}>
+                  <Plus className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {["Video editor", "Photographer", "Designer", "Copywriter"].filter(t => !(editFreelancer.tags || []).includes(t)).map(t => (
+                  <button key={t} type="button" onClick={() => setEditFreelancer({ ...editFreelancer, tags: [...(editFreelancer.tags || []), t] })} className="text-[10px] px-2 py-0.5 border border-dashed border-slate-200 rounded-full text-slate-400 hover:border-blue-300 hover:text-blue-600 transition-colors">+ {t}</button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Type</Label>
+                <Select value={editFreelancer.type} onValueChange={v => setEditFreelancer({ ...editFreelancer, type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="Partenaire">Partner</SelectItem><SelectItem value="Freelance">Freelance</SelectItem></SelectContent>
+                </Select></div>
+              <div><Label>Status</Label>
+                <Select value={editFreelancer.status} onValueChange={v => setEditFreelancer({ ...editFreelancer, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="Actif">Active</SelectItem><SelectItem value="Indisponible">Unavailable</SelectItem></SelectContent>
+                </Select></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Email</Label><Input value={editFreelancer.email || ""} onChange={e => setEditFreelancer({ ...editFreelancer, email: e.target.value })} /></div>
+              <div><Label>Phone</Label><Input value={editFreelancer.phone || ""} onChange={e => setEditFreelancer({ ...editFreelancer, phone: e.target.value })} /></div>
+            </div>
+            <div><Label>Notes</Label><Textarea value={editFreelancer.notes || ""} onChange={e => setEditFreelancer({ ...editFreelancer, notes: e.target.value })} rows={3} /></div>
+            <div className="flex justify-between items-center pt-2">
+              {editFreelancer.id && (
+                confirmDelete === "freelancer" ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-red-600">Confirm?</span>
+                    <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 h-7 text-xs" onClick={() => deleteFMut.mutate(editFreelancer.id)}>Yes, delete</Button>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+                  </div>
+                ) : (
+                  <Button variant="ghost" className="text-red-500 hover:bg-red-50 h-8 text-xs" onClick={() => setConfirmDelete("freelancer")}>🗑 Delete</Button>
+                )
+              )}
+              {!editFreelancer.id && <div />}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setFDialogOpen(false)}>Cancel</Button>
+                <Button onClick={() => { if (editFreelancer.id) updateFMut.mutate({ id: editFreelancer.id, d: editFreelancer }); else createFMut.mutate(editFreelancer); }} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!editFreelancer.name}>Save</Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+
+  const renderPaymentDialog = () => (
+    <Dialog open={pDialogOpen} onOpenChange={(o) => { setPDialogOpen(o); if (!o) setPaymentMutError(null); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>{paymentData?.id ? "Edit invoice" : "New invoice"}</DialogTitle></DialogHeader>
+        {paymentData && (
+          <div className="space-y-4 mt-2">
+            <div><Label>Freelancer</Label>
+              <Select value={paymentData.freelancer_id || ""} onValueChange={v => { const f = freelancers.find(ff => ff.id === v); setPaymentData({ ...paymentData, freelancer_id: v, freelancer_name: f?.name || "" }); }}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>{freelancers.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Mission / Description</Label><Input value={paymentData.mission || ""} onChange={e => setPaymentData({ ...paymentData, mission: e.target.value })} placeholder="e.g. Video editing — April 2026" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Client</Label><Input value={paymentData.client_name || ""} onChange={e => setPaymentData({ ...paymentData, client_name: e.target.value })} /></div>
+              <div><Label>Amount (€)</Label><Input type="number" value={paymentData.amount || ""} placeholder="0.00" onChange={e => setPaymentData({ ...paymentData, amount: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Date</Label><Input type="date" value={paymentData.date || ""} onChange={e => setPaymentData({ ...paymentData, date: e.target.value })} /></div>
+              <div><Label>Status</Label>
+                <Select value={paymentData.status || "En attente"} onValueChange={v => setPaymentData({ ...paymentData, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Payé">Paid</SelectItem>
+                    <SelectItem value="En attente">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Invoice PDF</Label>
+              <div className="mt-1.5">
+                {paymentData.invoice_url ? (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
+                    <FileText className="w-4 h-4 text-brand shrink-0" />
+                    <a href={paymentData.invoice_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline flex-1 truncate">
+                      {decodeURIComponent(paymentData.invoice_url.split("/").pop().split("?")[0])}
+                    </a>
+                    <button onClick={() => setPaymentData({ ...paymentData, invoice_url: "" })} className="text-slate-300 hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                ) : (
+                  <label className={`cursor-pointer flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand border border-dashed border-slate-200 rounded-lg px-4 py-2.5 w-full justify-center hover:border-brand/40 transition-colors ${uploadingInvoice ? "opacity-50 pointer-events-none" : ""}`}>
+                    <Upload className="w-4 h-4" />
+                    {uploadingInvoice ? "Uploading..." : "Attach invoice PDF"}
+                    <input type="file" accept=".pdf" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0]; if (!file) return;
+                      setUploadingInvoice(true);
+                      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                      setPaymentData(d => ({ ...d, invoice_url: file_url }));
+                      setUploadingInvoice(false);
+                      e.target.value = "";
+                    }} />
+                  </label>
+                )}
+              </div>
+            </div>
+            {paymentMutError && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{paymentMutError}</p>}
+            <div className="flex justify-between items-center pt-2">
+              {paymentData.id ? (
+                confirmDelete === "payment" ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-red-600">Confirm?</span>
+                    <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 h-7 text-xs" onClick={() => deletePMut.mutate(paymentData.id)}>Yes, delete</Button>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+                  </div>
+                ) : (
+                  <Button variant="ghost" className="text-red-500 hover:bg-red-50 h-8 text-xs" onClick={() => setConfirmDelete("payment")}><Trash2 className="w-4 h-4 mr-1" />Delete</Button>
+                )
+              ) : <div />}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setPDialogOpen(false)}>Cancel</Button>
+                <Button onClick={() => { if (paymentData.id) updatePMut.mutate({ id: paymentData.id, d: paymentData }); else createPMut.mutate(paymentData); }}
+                  className="bg-brand hover:bg-brand/90 text-brand-foreground"
+                  disabled={!paymentData.freelancer_id || createPMut.isPending || updatePMut.isPending}>
+                  {createPMut.isPending || updatePMut.isPending ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 
   const filteredPayments = filterFreelancer === "all" ? payments : payments.filter(p => p.freelancer_name === filterFreelancer || p.freelancer_id === filterFreelancer);
   const totalPaid = filteredPayments.filter(p => p.status === "Payé").reduce((s, p) => s + (p.amount || 0), 0);
@@ -86,6 +291,153 @@ export default function Freelancers() {
   const hoverOff = e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; };
   const LABEL = { fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' };
   const VAL = { fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '36px', fontWeight: 800, color: 'var(--ink)', letterSpacing: '-2px', lineHeight: 1.05 };
+
+  /* ── Freelancer detail view ── */
+  if (section === 'detail' && selectedFreelancer) {
+    const fl = selectedFreelancer;
+    const flPayments = payments.filter(p => p.freelancer_id === fl.id);
+    const totalPaidFl = flPayments.filter(p => p.status === "Payé").reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+    const pendingFl = flPayments.filter(p => p.status === "En attente").reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+
+    return (
+      <div className="mx-auto" style={{ maxWidth: '1400px' }}>
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <button onClick={() => setSection(null)} className="text-sm text-slate-500 hover:text-slate-800 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all">
+            ← Back
+          </button>
+          <div className="flex items-center gap-3 flex-1">
+            <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center text-brand font-bold text-base shrink-0">
+              {fl.name?.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 leading-tight">{fl.name}</h2>
+              <p className="text-xs text-slate-400">{fl.role || "Freelancer"}</p>
+            </div>
+          </div>
+          {detailTab === "payments" && (
+            <Button onClick={() => openNewPayment(fl)} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
+              <Plus className="w-4 h-4 mr-1" /> Add invoice
+            </Button>
+          )}
+          {detailTab === "profile" && (
+            <Button variant="outline" className="h-9" onClick={() => { setEditFreelancer({ ...fl }); setNewTag(""); setFDialogOpen(true); }}>
+              <Pencil className="w-4 h-4 mr-1" /> Edit
+            </Button>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 p-1 bg-slate-100 rounded-xl w-fit">
+          {["profile", "payments"].map(tab => (
+            <button key={tab} onClick={() => setDetailTab(tab)}
+              className={`px-5 py-2 rounded-lg text-sm font-medium transition-all capitalize ${detailTab === tab ? "bg-white shadow-sm text-slate-800" : "text-slate-500 hover:text-slate-700"}`}>
+              {tab === "payments" ? `Invoices & Payments` : "Profile"}
+            </button>
+          ))}
+        </div>
+
+        {/* Profile tab */}
+        {detailTab === "profile" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+              <h3 className="text-sm font-semibold text-slate-700">Information</h3>
+              <div className="space-y-3">
+                {fl.email && <div className="flex items-center gap-2 text-sm text-slate-600"><span className="text-slate-400 w-16 shrink-0 text-xs">Email</span>{fl.email}</div>}
+                {fl.phone && <div className="flex items-center gap-2 text-sm text-slate-600"><span className="text-slate-400 w-16 shrink-0 text-xs">Phone</span>{fl.phone}</div>}
+                <div className="flex items-center gap-2 text-sm text-slate-600"><span className="text-slate-400 w-16 shrink-0 text-xs">Type</span>{fl.type || "—"}</div>
+                <div className="flex items-center gap-2 text-sm"><span className="text-slate-400 w-16 shrink-0 text-xs">Status</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${fl.status === "Actif" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{fl.status}</span>
+                </div>
+              </div>
+              {fl.tags?.length > 0 && (
+                <div>
+                  <p className="text-xs text-slate-400 mb-2">Skills</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {fl.tags.map((t, i) => <span key={i} className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full">{t}</span>)}
+                  </div>
+                </div>
+              )}
+              {fl.notes && <div><p className="text-xs text-slate-400 mb-1">Notes</p><p className="text-sm text-slate-600 whitespace-pre-line">{fl.notes}</p></div>}
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+              <h3 className="text-sm font-semibold text-slate-700">Payment summary</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                  <span className="text-sm text-slate-500">Total paid</span>
+                  <span className="text-lg font-bold text-emerald-600">{totalPaidFl.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</span>
+                </div>
+                <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                  <span className="text-sm text-slate-500">Pending</span>
+                  <span className="text-lg font-bold text-amber-500">{pendingFl.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-slate-500">Invoices</span>
+                  <span className="text-sm font-semibold text-slate-700">{flPayments.length}</span>
+                </div>
+              </div>
+              <Button variant="outline" className="w-full mt-2" onClick={() => setDetailTab("payments")}>
+                View all invoices →
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Payments tab */}
+        {detailTab === "payments" && (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            {flPayments.length === 0 ? (
+              <div className="py-16 text-center">
+                <p className="text-sm text-slate-400 mb-3">No invoices yet for {fl.name}</p>
+                <button onClick={() => openNewPayment(fl)} className="text-sm text-brand hover:underline font-medium">+ Add first invoice</button>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/50">
+                    <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Date</th>
+                    <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Mission</th>
+                    <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Client</th>
+                    <th className="text-right text-xs font-medium text-slate-400 px-5 py-3">Amount</th>
+                    <th className="text-center text-xs font-medium text-slate-400 px-5 py-3">Invoice</th>
+                    <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {flPayments.map(p => (
+                    <tr key={p.id} className="hover:bg-slate-50/50 cursor-pointer transition-colors" onClick={() => { setPaymentData({ ...p }); setPaymentMutError(null); setPDialogOpen(true); }}>
+                      <td className="px-5 py-3.5 text-sm text-slate-500 whitespace-nowrap">
+                        {p.date ? format(new Date(p.date), "d MMM yyyy", { locale: enUS }) : "—"}
+                      </td>
+                      <td className="px-5 py-3.5 text-sm font-medium text-slate-800">{p.mission || "—"}</td>
+                      <td className="px-5 py-3.5 text-sm text-slate-500">{p.client_name || "—"}</td>
+                      <td className="px-5 py-3.5 text-sm font-semibold text-right text-slate-800 whitespace-nowrap">
+                        {(parseFloat(p.amount) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                      </td>
+                      <td className="px-5 py-3.5 text-center">
+                        {p.invoice_url
+                          ? <a href={p.invoice_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="inline-flex items-center gap-1 text-xs text-brand hover:underline"><FileText className="w-3.5 h-3.5" /> PDF</a>
+                          : <span className="text-slate-200">—</span>}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <button onClick={e => { e.stopPropagation(); updatePMut.mutate({ id: p.id, d: { ...p, status: p.status === "Payé" ? "En attente" : "Payé" } }); }}>
+                          <StatusBadge status={p.status} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+
+        {/* Dialogs below (reuse existing) */}
+        {renderFreelancerDialog()}
+        {renderPaymentDialog()}
+      </div>
+    );
+  }
 
   if (section) {
     return (
@@ -142,7 +494,7 @@ export default function Freelancers() {
                       <Draggable key={f.id} draggableId={f.id} index={index} isDragDisabled={!reordering}>{(dragProvided, snapshot) => (
                         <div ref={dragProvided.innerRef} {...dragProvided.draggableProps} className={`flex flex-col gap-2 ${snapshot.isDragging ? 'opacity-80' : ''}`}>
                           {reordering && (<div {...dragProvided.dragHandleProps} className="flex items-center gap-2 px-3 py-2 bg-white border border-dashed border-slate-200 rounded-lg cursor-grab text-slate-400 text-xs"><GripVertical className="w-4 h-4" /> Drag to reorder</div>)}
-                          <FreelancerProfileCard freelancer={f} onClick={reordering ? undefined : openEditFreelancer} />
+                          <FreelancerProfileCard freelancer={f} onClick={reordering ? undefined : openFreelancerDetail} />
                           <div className="bg-white rounded-xl border border-slate-100 px-4 py-3 flex items-center justify-between">
                             <span className="text-xs text-slate-400">{fPayments.length} missions</span>
                             <span className="text-sm font-semibold text-slate-700">{totalPaidF.toLocaleString('fr-FR')} € paid</span>
@@ -286,157 +638,9 @@ export default function Freelancers() {
       </div>
 
 
-      {/* Freelancer Dialog */}
-      <Dialog open={fDialogOpen} onOpenChange={setFDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editFreelancer?.id ? "Edit freelancer" : "New freelancer"}</DialogTitle></DialogHeader>
-          {editFreelancer && (
-            <div className="space-y-4 mt-2">
-              <div><Label>Name *</Label><Input value={editFreelancer.name} onChange={e => setEditFreelancer({ ...editFreelancer, name: e.target.value })} /></div>
-              <div><Label>Role (free text)</Label><Input value={editFreelancer.role || ""} onChange={e => setEditFreelancer({ ...editFreelancer, role: e.target.value })} placeholder="e.g. Video editor, Photographer..." /></div>
-              <div>
-                <Label>Skill tags</Label>
-                <p className="text-[10px] text-slate-400 mb-1.5">The <strong>Video editor</strong> tag enables Reel assignment in the editorial calendar.</p>
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {(editFreelancer.tags || []).map((tag, i) => (
-                    <span key={i} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
-                      {tag}
-                      <button type="button" onClick={() => setEditFreelancer({ ...editFreelancer, tags: editFreelancer.tags.filter((_, idx) => idx !== i) })} className="hover:text-red-500">×</button>
-                    </span>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    value={newTag}
-                    onChange={e => setNewTag(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter" && newTag.trim()) { setEditFreelancer({ ...editFreelancer, tags: [...(editFreelancer.tags || []), newTag.trim()] }); setNewTag(""); e.preventDefault(); } }}
-                    placeholder="Ex: Video editor, Photographer…"
-                    className="h-8 text-sm"
-                  />
-                  <Button type="button" variant="outline" className="h-8 shrink-0" onClick={() => { if (newTag.trim()) { setEditFreelancer({ ...editFreelancer, tags: [...(editFreelancer.tags || []), newTag.trim()] }); setNewTag(""); } }}>
-                    <Plus className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {["Video editor", "Photographer", "Designer", "Copywriter"].filter(t => !(editFreelancer.tags || []).includes(t)).map(t => (
-                    <button key={t} type="button" onClick={() => setEditFreelancer({ ...editFreelancer, tags: [...(editFreelancer.tags || []), t] })} className="text-[10px] px-2 py-0.5 border border-dashed border-slate-200 rounded-full text-slate-400 hover:border-blue-300 hover:text-blue-600 transition-colors">+ {t}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Type</Label>
-                  <Select value={editFreelancer.type} onValueChange={v => setEditFreelancer({ ...editFreelancer, type: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Partenaire">Partner</SelectItem><SelectItem value="Freelance">Freelance</SelectItem></SelectContent>
-                  </Select></div>
-                <div><Label>Status</Label>
-                  <Select value={editFreelancer.status} onValueChange={v => setEditFreelancer({ ...editFreelancer, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Actif">Active</SelectItem><SelectItem value="Indisponible">Unavailable</SelectItem></SelectContent>
-                  </Select></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Email</Label><Input value={editFreelancer.email || ""} onChange={e => setEditFreelancer({ ...editFreelancer, email: e.target.value })} /></div>
-                <div><Label>Phone</Label><Input value={editFreelancer.phone || ""} onChange={e => setEditFreelancer({ ...editFreelancer, phone: e.target.value })} /></div>
-              </div>
-              <div><Label>Notes</Label><Textarea value={editFreelancer.notes || ""} onChange={e => setEditFreelancer({ ...editFreelancer, notes: e.target.value })} rows={3} /></div>
-              <div className="flex justify-between items-center pt-2">
-                {editFreelancer.id && (
-                  confirmDelete === "freelancer" ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-red-600">Confirm?</span>
-                      <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 h-7 text-xs" onClick={() => deleteFMut.mutate(editFreelancer.id)}>Yes, delete</Button>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setConfirmDelete(null)}>Cancel</Button>
-                    </div>
-                  ) : (
-                    <Button variant="ghost" className="text-red-500 hover:bg-red-50 h-8 text-xs" onClick={() => setConfirmDelete("freelancer")}>🗑 Delete</Button>
-                  )
-                )}
-                {!editFreelancer.id && <div />}
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setFDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={() => { if (editFreelancer.id) updateFMut.mutate({ id: editFreelancer.id, d: editFreelancer }); else createFMut.mutate(editFreelancer); }} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!editFreelancer.name}>Save</Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Payment Dialog */}
-      <Dialog open={pDialogOpen} onOpenChange={setPDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{paymentData?.id ? "Edit payment" : "New payment"}</DialogTitle></DialogHeader>
-          {paymentData && (
-            <div className="space-y-4 mt-2">
-              <div><Label>Freelancer</Label>
-                <Select value={paymentData.freelancer_id || ""} onValueChange={v => { const f = freelancers.find(ff => ff.id === v); setPaymentData({ ...paymentData, freelancer_id: v, freelancer_name: f?.name || "" }); }}>
-                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                  <SelectContent>{freelancers.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
-                </Select></div>
-              <div><Label>Mission</Label><Input value={paymentData.mission || ""} onChange={e => setPaymentData({ ...paymentData, mission: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Client</Label><Input value={paymentData.client_name || ""} onChange={e => setPaymentData({ ...paymentData, client_name: e.target.value })} /></div>
-                <div><Label>Amount (€)</Label><Input type="number" value={paymentData.amount || 0} onChange={e => setPaymentData({ ...paymentData, amount: Number(e.target.value) })} /></div>
-              </div>
-              <div><Label>Date</Label><Input type="date" value={paymentData.date || ""} onChange={e => setPaymentData({ ...paymentData, date: e.target.value })} /></div>
-
-              {/* Facture PDF */}
-              <div>
-                <Label>Invoice (PDF)</Label>
-                <div className="mt-1.5">
-                  {paymentData.invoice_url ? (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
-                      <FileText className="w-4 h-4 text-[#2A69FF]" />
-                      <a href={paymentData.invoice_url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#2A69FF] hover:underline flex-1 truncate">
-                        {decodeURIComponent(paymentData.invoice_url.split("/").pop().split("?")[0])}
-                      </a>
-                      <button onClick={() => setPaymentData({ ...paymentData, invoice_url: "" })} className="text-slate-300 hover:text-red-400">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className={`cursor-pointer inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#2A69FF] border border-dashed border-slate-200 rounded-lg px-4 py-2.5 w-full justify-center hover:border-[#2A69FF]/40 transition-colors ${uploadingInvoice ? "opacity-50 pointer-events-none" : ""}`}>
-                      <Upload className="w-4 h-4" />
-                      {uploadingInvoice ? "Uploading..." : "Attach invoice PDF"}
-                      <input type="file" accept=".pdf" className="hidden" onChange={async (e) => {
-                        const file = e.target.files?.[0]; if (!file) return;
-                        setUploadingInvoice(true);
-                        const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                        setPaymentData(d => ({ ...d, invoice_url: file_url }));
-                        setUploadingInvoice(false);
-                        e.target.value = "";
-                      }} />
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center pt-2">
-                {paymentData.id && (
-                  confirmDelete === "payment" ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-red-600">Confirm?</span>
-                      <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 h-7 text-xs" onClick={() => deletePMut.mutate(paymentData.id)}>Yes, delete</Button>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setConfirmDelete(null)}>Cancel</Button>
-                    </div>
-                  ) : (
-                    <Button variant="ghost" className="text-red-500 hover:bg-red-50 h-8 text-xs" onClick={() => setConfirmDelete("payment")}>🗑 Delete</Button>
-                  )
-                )}
-                {!paymentData.id && <div />}
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setPDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={() => {
-                    if (paymentData.id) updatePMut.mutate({ id: paymentData.id, d: paymentData }, { onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setPDialogOpen(false); } });
-                    else createPMut.mutate(paymentData);
-                  }} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!paymentData.freelancer_id}>Save</Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {renderFreelancerDialog()}
+      {renderPaymentDialog()}
     </div>
   );
 }
+
