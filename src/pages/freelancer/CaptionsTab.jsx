@@ -28,9 +28,10 @@ export default function CaptionsTab({ items = [] }) {
 
   const clients = [...new Set(items.map(i => i.client_name).filter(Boolean))];
 
-  const currentMonth = format(new Date(), "yyyy-MM");
+  const today = format(new Date(), "yyyy-MM-dd");
   const filtered = localItems
-    .filter(c => c.scheduled_date?.startsWith(currentMonth))
+    .filter(c => c.scheduled_date >= today)
+    .filter(c => c.status !== "Publié")
     .filter(c => filterClient === "all" || c.client_name === filterClient)
     .filter(c => filterType === "all" || c.post_type === filterType)
     .sort((a, b) => new Date(a.scheduled_date || 0) - new Date(b.scheduled_date || 0));
