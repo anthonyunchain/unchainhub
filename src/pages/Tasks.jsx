@@ -178,7 +178,13 @@ export default function Tasks() {
   const filtered = tasks
     .filter((t) => activeStatus === "all" || t.status === activeStatus)
     .filter((t) => activeClient === "all" || t.client_name === activeClient)
-    .filter((t) => activeCategory === "all" || t.category === activeCategory);
+    .filter((t) => activeCategory === "all" || t.category === activeCategory)
+    .sort((a, b) => {
+      if (a.due_date && b.due_date) return new Date(a.due_date) - new Date(b.due_date);
+      if (a.due_date) return -1;
+      if (b.due_date) return 1;
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
 
   const countByStatus = (s) => tasks.filter((t) => t.status === s).length;
   const taskClients = [...new Set(tasks.map((t) => t.client_name).filter(Boolean))];
