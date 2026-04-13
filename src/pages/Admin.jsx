@@ -1253,6 +1253,260 @@ function Permissions() {
   );
 }
 
+// ─── EXPENSES ─────────────────────────────────────────────────────────────────
+const EXPENSE_CATEGORIES = [
+  "Software", "Hardware", "Office", "Travel", "Meals", "Marketing", "Legal", "Accounting", "Other",
+];
+
+const EMPTY_EXPENSE = {
+  date: format(new Date(), "yyyy-MM-dd"),
+  description: "",
+  category: "Other",
+  amount: "",
+  receipt_url: "",
+  notes: "",
+};
+
+function AdminExpenses() {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState(null);
+  const [mutError, setMutError] = useState(null);
+  const [filterMonth, setFilterMonth] = useState("");
+  const [filterCat, setFilterCat] = useState("all");
+  const qc = useQueryClient();
+
+  const { data: expenses = [] } = useQuery({
+    queryKey: ["expenses"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("expenses").select("*").order("date", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const createMut = useMutation({
+    mutationFn: async (d) => {
+      const { id, ...rest } = d;
+      const { error } = await supabase.from("expenses").insert({ ...rest, amount: parseFloat(rest.amount) || 0 });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["expenses"] }); setOpen(false); setMutError(null); },
+    onError: (e) => setMutError(e.message),
+  });
+  const updateMut = useMutation({
+    mutationFn: async ({ id, d }) => {
+      const { id: _id, created_at, ...rest } = d;
+      const { error } = await supabase.from("expenses").update({ ...rest, amount: parseFloat(rest.amount) || 0 }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["expenses"] }); setOpen(false); setMutError(null); },
+    onError: (e) => setMutError(e.message),
+  });
+  const deleteMut = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("expenses").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["expenses"] }); setOpen(false); },
+    onError: (e) => setMutError(e.message),
+  });
+
+  const openNew = () => { setData({ ...EMPTY_EXPENSE }); setMutError(null); setOpen(true); };
+  const openEdit = (e) => { setData({ ...e }); setMutError(null); setOpen(true); };
+  const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
+
+  const filtered = expenses.filter(e => {
+    if (filterCat !== "all" && e.category !== filterCat) return false;
+    if (filterMonth && !e.date?.startsWith(filterMonth)) return false;
+    return true;
+  });
+
+  const total = filtered.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+
+  const byCategory = EXPENSE_CATEGORIES.map(cat => ({
+    cat,
+    total: filtered.filter(e => e.category === cat).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0),
+  })).filter(x => x.total > 0);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">Expenses</h2>
+          <p className="text-sm text-slate-400 mt-0.5">Company receipts & operational costs</p>
+        </div>
+        <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
+          <Plus className="w-4 h-4 mr-1" /> Add expense
+        </Button>
+      </div>
+
+      {/* Summary bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 col-span-2 sm:col-span-1">
+          <p className="text-xs text-slate-400 mb-1">Total</p>
+          <p className="text-2xl font-bold text-slate-800">{total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+        </div>
+        {byCategory.slice(0, 3).map(({ cat, total: t }) => (
+          <div key={cat} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+            <p className="text-xs text-slate-400 mb-1">{cat}</p>
+            <p className="text-lg font-semibold text-slate-700">{t.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <Input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
+          className="h-8 text-xs w-40" placeholder="Filter by month" />
+        <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+          className="h-8 text-xs px-3 rounded-lg border border-slate-200 bg-white text-slate-700">
+          <option value="all">All categories</option>
+          {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        {(filterMonth || filterCat !== "all") && (
+          <button onClick={() => { setFilterMonth(""); setFilterCat("all"); }}
+            className="h-8 px-3 text-xs text-slate-400 hover:text-slate-600 border border-slate-200 rounded-lg bg-white">
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        {filtered.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="text-sm text-slate-400 mb-3">No expenses yet</p>
+            <button onClick={openNew} className="text-sm text-brand hover:underline font-medium">+ Add first expense</button>
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <th className="px-5 py-3 text-left text-xs font-medium text-slate-400">Date</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-slate-400">Description</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-slate-400">Category</th>
+                <th className="px-5 py-3 text-right text-xs font-medium text-slate-400">Amount</th>
+                <th className="px-5 py-3 text-center text-xs font-medium text-slate-400">Receipt</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filtered.map(e => (
+                <tr key={e.id} onClick={() => openEdit(e)} className="hover:bg-slate-50/50 cursor-pointer transition-colors">
+                  <td className="px-5 py-3.5 text-sm text-slate-500 whitespace-nowrap">
+                    {e.date ? format(new Date(e.date), "d MMM yyyy", { locale: enUS }) : "—"}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <p className="text-sm font-medium text-slate-800">{e.description || "—"}</p>
+                    {e.notes && <p className="text-xs text-slate-400 truncate max-w-[200px]">{e.notes}</p>}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">{e.category || "—"}</span>
+                  </td>
+                  <td className="px-5 py-3.5 text-right font-semibold text-slate-800 whitespace-nowrap">
+                    {(parseFloat(e.amount) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                  </td>
+                  <td className="px-5 py-3.5 text-center">
+                    {e.receipt_url
+                      ? <a href={e.receipt_url} target="_blank" rel="noopener noreferrer" onClick={ev => ev.stopPropagation()} className="text-brand hover:text-brand/80">
+                          <ExternalLink className="w-4 h-4 inline" />
+                        </a>
+                      : <span className="text-slate-200">—</span>
+                    }
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Dialog */}
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setMutError(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{data?.id ? "Edit expense" : "New expense"}</DialogTitle></DialogHeader>
+          {data && (
+            <div className="space-y-4 mt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Date</Label>
+                  <Input type="date" value={data.date || ""} onChange={e => setData({ ...data, date: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Category</Label>
+                  <Select value={data.category} onValueChange={v => setData({ ...data, category: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {EXPENSE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label>Description</Label>
+                <Input value={data.description || ""} onChange={e => setData({ ...data, description: e.target.value })} placeholder="e.g. Figma subscription" />
+              </div>
+
+              <div>
+                <Label>Amount (€)</Label>
+                <Input type="number" value={data.amount || ""} placeholder="0.00"
+                  onChange={e => setData({ ...data, amount: e.target.value })} />
+              </div>
+
+              <div>
+                <Label>Receipt / PDF</Label>
+                {data.receipt_url ? (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100 mt-1">
+                    <ExternalLink className="w-4 h-4 text-brand shrink-0" />
+                    <a href={data.receipt_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline flex-1 truncate">
+                      {decodeURIComponent(data.receipt_url.split("/").pop().split("?")[0])}
+                    </a>
+                    <button onClick={() => setData({ ...data, receipt_url: "" })} className="text-slate-300 hover:text-red-400">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand border border-dashed border-slate-200 rounded-lg px-4 py-2.5 w-full justify-center hover:border-brand/40 transition-colors mt-1">
+                    <Upload className="w-4 h-4" /> Attach receipt
+                    <input type="file" accept=".pdf,image/*" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0]; if (!file) return;
+                      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                      setData(d => ({ ...d, receipt_url: file_url }));
+                      e.target.value = "";
+                    }} />
+                  </label>
+                )}
+              </div>
+
+              <div>
+                <Label>Notes</Label>
+                <Textarea value={data.notes || ""} onChange={e => setData({ ...data, notes: e.target.value })} rows={2} placeholder="Additional details…" />
+              </div>
+
+              {mutError && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{mutError}</p>}
+
+              <div className="flex justify-between items-center pt-2">
+                {data.id
+                  ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={() => { if (confirm("Delete this expense?")) deleteMut.mutate(data.id); }}>
+                      <Trash2 className="w-4 h-4 mr-1" />Delete
+                    </Button>
+                  : <div />}
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground"
+                    disabled={!data.description || createMut.isPending || updateMut.isPending}>
+                    {createMut.isPending || updateMut.isPending ? "Saving…" : "Save"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 const DEFAULT_NAV_ITEMS = [
   { id: 'tasks',         label: 'Admin Tasks' },
@@ -1260,6 +1514,7 @@ const DEFAULT_NAV_ITEMS = [
   { id: 'analytics',     label: 'Analytics' },
   { id: 'sales',         label: 'Pipeline' },
   { id: 'finance',       label: 'Finance' },
+  { id: 'expenses',      label: 'Expenses' },
   { id: 'services',      label: 'Services' },
   { id: 'subscriptions', label: 'Subscriptions' },
   { id: 'invoices',      label: 'Invoices' },
@@ -1435,6 +1690,7 @@ export default function Admin() {
           {section === 'subscriptions' && <Subscriptions />}
           {section === 'invoices'     && <Invoices />}
           {section === 'finance'      && <Finance />}
+          {section === 'expenses'     && <AdminExpenses />}
           {section === 'services'     && <Services />}
           {section === 'analytics'    && <Reports />}
           {section === 'sales'        && <Pipeline />}
