@@ -1,11 +1,7 @@
 import { useState } from "react";
-import { supabase } from "@/api/base44Client";
 import { format, startOfWeek, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, addDays, addWeeks, addMonths, subWeeks, subMonths, startOfMonth, endOfWeek } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const TYPE_COLORS = {
@@ -15,13 +11,10 @@ const TYPE_COLORS = {
   "Post":     "bg-blue-100 text-blue-700",
 };
 
-export default function ProjectsTab({ projects = [], onProjectUpdate }) {
+export default function ProjectsTab({ projects = [] }) {
   const [view, setView] = useState("month");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filterClient, setFilterClient] = useState("all");
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [caption, setCaption] = useState("");
-  const [saving, setSaving] = useState(false);
 
   const clients = [...new Set(projects.map(p => p.client_name).filter(Boolean))];
 
@@ -38,36 +31,13 @@ export default function ProjectsTab({ projects = [], onProjectUpdate }) {
   const getProjectsForDay = (day) =>
     filteredProjects.filter(p => p.scheduled_date && isSameDay(new Date(p.scheduled_date), day));
 
-  const openCaption = (p) => {
-    setSelectedItem(p);
-    setCaption(p.description || "");
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const { error } = await supabase.functions.invoke('updateContentDescription', {
-        body: { content_id: selectedItem.id, description: caption },
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
-      if (error) throw error;
-      if (onProjectUpdate) onProjectUpdate();
-      setSelectedItem(null);
-    } catch (e) {
-      alert("Error saving: " + (e?.message || e));
-    }
-    setSaving(false);
-  };
-
   const renderItem = (p) => (
-    <button
+    <div
       key={p.id}
-      onClick={() => openCaption(p)}
-      className={`w-full text-left text-[10px] px-1.5 py-0.5 rounded mb-0.5 truncate cursor-pointer hover:opacity-80 transition-opacity ${TYPE_COLORS[p.post_type] || "bg-slate-100 text-slate-600"}`}
+      className={`w-full text-left text-[10px] px-1.5 py-0.5 rounded mb-0.5 truncate ${TYPE_COLORS[p.post_type] || "bg-slate-100 text-slate-600"}`}
     >
       {p.title || p.client_name}
-    </button>
+    </div>
   );
 
   const renderCalendarCell = (day, ps) => (
@@ -92,15 +62,14 @@ export default function ProjectsTab({ projects = [], onProjectUpdate }) {
             ? <p className="text-sm text-slate-400 text-center py-10">No content this day</p>
             : <div className="space-y-2">
                 {dayProjects.map(p => (
-                  <button key={p.id} onClick={() => openCaption(p)}
-                    className="w-full text-left bg-white rounded-xl border border-slate-100 shadow-sm p-4 hover:border-slate-200 transition-colors">
+                  <div key={p.id} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
                     <p className="text-sm font-semibold text-slate-800">{p.title || "Untitled"}</p>
                     <p className="text-xs text-slate-400 mt-0.5">{p.client_name}</p>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {p.post_type && <span className={`text-[10px] px-2 py-0.5 rounded-full ${TYPE_COLORS[p.post_type] || "bg-slate-100 text-slate-600"}`}>{p.post_type}</span>}
                     </div>
                     {p.description && <p className="text-xs text-slate-500 mt-2 line-clamp-2">{p.description}</p>}
-                  </button>
+                  </div>
                 ))}
               </div>
           }
@@ -192,33 +161,6 @@ export default function ProjectsTab({ projects = [], onProjectUpdate }) {
       </div>
 
       {renderView()}
-
-      {/* Caption editing dialog */}
-      <Dialog open={!!selectedItem} onOpenChange={(o) => !o && setSelectedItem(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{selectedItem?.title || "Caption"}</DialogTitle>
-            {selectedItem?.client_name && (
-              <p className="text-xs text-slate-400 mt-0.5">{selectedItem.client_name}
-                {selectedItem?.scheduled_date && ` · ${format(new Date(selectedItem.scheduled_date), "d MMM yyyy", { locale: enUS })}`}
-              </p>
-            )}
-          </DialogHeader>
-          <Textarea
-            value={caption}
-            onChange={e => setCaption(e.target.value)}
-            rows={6}
-            placeholder="Write the caption..."
-            className="mt-2"
-          />
-          <div className="flex gap-2 justify-end mt-2">
-            <Button variant="outline" onClick={() => setSelectedItem(null)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-slate-900 hover:bg-slate-800 text-white">
-              {saving ? "Saving…" : "Save"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

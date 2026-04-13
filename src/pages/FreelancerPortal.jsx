@@ -21,6 +21,7 @@ import UserMenu from "@/components/layout/UserMenu";
 import NotificationBell from "@/components/layout/NotificationBell";
 import ProfileTab from "./freelancer/ProfileTab";
 import ProjectsTab from "./freelancer/ProjectsTab";
+import CaptionsTab from "./freelancer/CaptionsTab";
 import TasksTabComponent from "@/components/freelancer/TasksTab";
 import FreelancerProjects from "@/components/freelancer/FreelancerProjects";
 import NotificationsPanel from "@/components/freelancer/NotificationsPanel";
@@ -995,7 +996,8 @@ export default function FreelancerPortal() {
       case "todo": return <PersonalTasksTab userId={user?.id} newTrigger={todoNewTrigger} />;
       case "tasks": return <TasksTabComponent tasks={tasks} onUpdateTask={handleUpdateTask} />;
       case "myprojects": return <FreelancerProjects projects={myProjects} onRefresh={handleProjectUpdate} freelancerName={freelancerName} />;
-      case "projects": return <ProjectsTab projects={[...editorialProjects, ...visibleCalendars.filter(vc => !editorialProjects.find(ep => ep.id === vc.id))]} onProjectUpdate={handleProjectUpdate} />;
+      case "projects": return <ProjectsTab projects={[...editorialProjects, ...visibleCalendars.filter(vc => !editorialProjects.find(ep => ep.id === vc.id))]} />;
+      case "captions": return <CaptionsTab items={[...editorialProjects, ...visibleCalendars.filter(vc => !editorialProjects.find(ep => ep.id === vc.id))]} />;
       case "calendar": return <CalendarsTab visibleCalendars={visibleCalendars} />;
       case "ideas": return <Ideas currentUserId={user?.id} currentUserName={profile?.name || user?.email} isFreelancer={true} />;
       case "tools": return <ToolsTab tools={tools} />;
@@ -1132,6 +1134,7 @@ export default function FreelancerPortal() {
                 myprojects:  { title: 'Projects',        subtitle: 'Projects assigned to you' },
                 projects:    { title: 'Editorial Calendar', subtitle: 'Content schedule & captions' },
                 calendar:    { title: 'Shared Calendars', subtitle: 'Editorial calendars shared with you' },
+                captions:    { title: 'Captions',         subtitle: 'Write captions for this month\'s content' },
                 ideas:       { title: 'Ideas',           subtitle: 'Brainstorm content ideas' },
                 tools:       { title: 'Tools',           subtitle: 'Your tools & resources' },
                 meetings:    { title: 'Meetings',        subtitle: 'Upcoming & past meetings' },
@@ -1160,6 +1163,22 @@ export default function FreelancerPortal() {
                       style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--brand)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                     >
                       <Plus style={{ width: 15, height: 15 }} /> New task
+                    </button>
+                  )}
+                  {activeTab === 'projects' && (
+                    <button
+                      onClick={() => setActiveTab('captions')}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--card)', color: 'var(--brand)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: "'DM Mono', monospace" }}
+                    >
+                      Captions →
+                    </button>
+                  )}
+                  {activeTab === 'captions' && (
+                    <button
+                      onClick={() => setActiveTab('projects')}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--card)', color: 'var(--muted)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: "'DM Mono', monospace" }}
+                    >
+                      ← Calendar
                     </button>
                   )}
                 </div>
