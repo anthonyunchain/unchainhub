@@ -7,8 +7,13 @@ import { getGreeting } from "@/lib/greeting";
 import {
   FileText, CalendarDays, FileCheck, Wrench, Upload, ExternalLink,
   Clock, CheckCircle2, Square, AlertTriangle, FolderOpen, ClipboardList,
-  LayoutDashboard, User, Bell, Briefcase, Plus, Trash2, ListTodo, Lightbulb
+  LayoutDashboard, User, Bell, Briefcase, Plus, Trash2, ListTodo, Lightbulb, X
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import Ideas from "./Ideas";
 
 import FreelancerSidebar from "@/components/freelancer/FreelancerSidebar";
@@ -698,77 +703,164 @@ function MeetingsTab({ meetings }) {
 
 // ─── INVOICES TAB ─────────────────────────────────────────────────────────
 function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded }) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formData, setFormData] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState(null);
-  const handleUpload = async (e) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    setUploading(true);
-    setUploadError(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const qc = useQueryClient();
+
+  const openNew = () => {
+    setFormData({
+      mission: "", client_name: "", amount: "",
+      date: format(new Date(), "yyyy-MM-dd"),
+      invoice_url: "",
+    });
+    setError(null);
+    setDialogOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.mission) { setError("Mission is required."); return; }
+    setSaving(true); setError(null);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file, bucket: 'invoices' });
-      const newPayment = await base44.entities.FreelancerPayment.create({
+      const { error: err } = await supabase.from("freelancer_payments").insert({
         freelancer_id: freelancerId,
         freelancer_name: freelancerName,
-        amount: 0,
-        status: "En attente",
-        date: format(new Date(), "yyyy-MM-dd"),
-        invoice_url: file_url,
-        description: file.name.replace(/\.[^/.]+$/, ""),
+        mission: formData.mission,
+        client_name: formData.client_name,
+        amount: parseFloat(formData.amount) || 0,
+        date: formData.date,
+        status: "Pending",
+        invoice_url: formData.invoice_url,
       });
-      onPaymentAdded(newPayment);
-    } catch (err) {
-      setUploadError(err.message || "Upload failed");
+      if (err) throw err;
+      qc.invalidateQueries({ queryKey: ["freelancer-payments"] });
+      onPaymentAdded();
+      setDialogOpen(false);
+    } catch (e) {
+      setError(e.message);
     } finally {
-      setUploading(false);
-      e.target.value = "";
+      setSaving(false);
     }
   };
+
   const STATUS_COLORS = {
+    "Pending": "bg-amber-50 text-amber-700",
+    "Paid": "bg-emerald-50 text-emerald-700",
+    "Overdue": "bg-red-50 text-red-700",
     "En attente": "bg-amber-50 text-amber-700",
     "Payé": "bg-emerald-50 text-emerald-700",
-    "En retard": "bg-red-50 text-red-700",
   };
-  const STATUS_LABELS = { "En attente": "Pending", "Payé": "Paid", "En retard": "Overdue" };
-  const total = payments.reduce((s, p) => s + (p.amount || 0), 0);
-  const paid = payments.filter(p => p.status === "Payé").reduce((s, p) => s + (p.amount || 0), 0);
-  const pending = payments.filter(p => p.status === "En attente").reduce((s, p) => s + (p.amount || 0), 0);
+
+  const total = payments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+  const paid = payments.filter(p => p.status === "Paid" || p.status === "Payé").reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+  const pending = payments.filter(p => p.status === "Pending" || p.status === "En attente").reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+
   return (
     <div>
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Total</p><p className="text-lg font-bold text-slate-900 mt-1">{total.toLocaleString("fr-FR")} €</p></div>
-        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Paid</p><p className="text-lg font-bold text-emerald-600 mt-1">{paid.toLocaleString("fr-FR")} €</p></div>
-        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Pending</p><p className="text-lg font-bold text-amber-600 mt-1">{pending.toLocaleString("fr-FR")} €</p></div>
+        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Total</p><p className="text-lg font-bold text-slate-900 mt-1">{total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p></div>
+        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Paid</p><p className="text-lg font-bold text-emerald-600 mt-1">{paid.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p></div>
+        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Pending</p><p className="text-lg font-bold text-amber-600 mt-1">{pending.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p></div>
       </div>
-      <div className="flex flex-col items-end gap-2 mb-4">
-        {uploadError && <p className="text-xs text-red-500">{uploadError}</p>}
-        <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
-          <Upload className="w-4 h-4" />{uploading ? "Uploading..." : "Submit an invoice"}
-          <input type="file" accept=".pdf" className="hidden" onChange={handleUpload} />
-        </label>
+
+      <div className="flex justify-end mb-4">
+        <Button onClick={openNew} className="bg-slate-800 hover:bg-slate-700 text-white h-9">
+          <Plus className="w-4 h-4 mr-1" /> Submit an invoice
+        </Button>
       </div>
+
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
         <table className="w-full">
           <thead><tr className="border-b border-slate-100 bg-slate-50">
             <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Mission</th>
+            <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Client</th>
             <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Date</th>
             <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Status</th>
             <th className="text-right text-xs font-medium text-slate-400 px-5 py-3">Amount</th>
             <th className="px-5 py-3"></th>
           </tr></thead>
           <tbody>
-            {payments.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">No invoices yet</td></tr>}
+            {payments.length === 0 && (
+              <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-400">
+                No invoices yet — <button onClick={openNew} className="text-brand hover:underline font-medium">submit your first one</button>
+              </td></tr>
+            )}
             {payments.map(p => (
               <tr key={p.id} className="border-b border-slate-50">
-                <td className="px-5 py-3 text-sm font-medium text-slate-800">{p.description || "—"}</td>
+                <td className="px-5 py-3 text-sm font-medium text-slate-800">{p.mission || p.description || "—"}</td>
+                <td className="px-5 py-3 text-sm text-slate-500">{p.client_name || "—"}</td>
                 <td className="px-5 py-3 text-sm text-slate-500">{p.date ? format(new Date(p.date), "d MMM yyyy", { locale: enUS }) : "—"}</td>
-                <td className="px-5 py-3"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}>{STATUS_LABELS[p.status] || p.status}</span></td>
-                <td className="px-5 py-3 text-sm font-semibold text-right text-slate-800">{p.amount ? `${p.amount.toLocaleString("fr-FR")} €` : "—"}</td>
-                <td className="px-5 py-3">{p.invoice_url && <a href={p.invoice_url} target="_blank" rel="noopener noreferrer" className="text-[#2A69FF] hover:underline text-xs flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> View</a>}</td>
+                <td className="px-5 py-3"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}>{p.status}</span></td>
+                <td className="px-5 py-3 text-sm font-semibold text-right text-slate-800">{p.amount ? `${parseFloat(p.amount).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €` : "—"}</td>
+                <td className="px-5 py-3">{p.invoice_url && <a href={p.invoice_url} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline text-xs flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> PDF</a>}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Submit dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setError(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Submit an invoice</DialogTitle></DialogHeader>
+          {formData && (
+            <div className="space-y-4 mt-2">
+              <div>
+                <Label>Mission / Description *</Label>
+                <Input value={formData.mission} onChange={e => setFormData({ ...formData, mission: e.target.value })} placeholder="e.g. Video editing — April 2026" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Amount (€)</Label>
+                  <Input type="number" value={formData.amount} placeholder="0.00" onChange={e => setFormData({ ...formData, amount: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Date</Label>
+                  <Input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label>Client (optional)</Label>
+                <Input value={formData.client_name} onChange={e => setFormData({ ...formData, client_name: e.target.value })} placeholder="Client name" />
+              </div>
+              <div>
+                <Label>Invoice PDF</Label>
+                {formData.invoice_url ? (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100 mt-1">
+                    <FileText className="w-4 h-4 text-brand shrink-0" />
+                    <a href={formData.invoice_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline flex-1 truncate">
+                      {decodeURIComponent(formData.invoice_url.split("/").pop().split("?")[0])}
+                    </a>
+                    <button onClick={() => setFormData({ ...formData, invoice_url: "" })} className="text-slate-300 hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                ) : (
+                  <label className={`cursor-pointer flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand border border-dashed border-slate-200 rounded-lg px-4 py-2.5 w-full justify-center hover:border-brand/40 transition-colors mt-1 ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+                    <Upload className="w-4 h-4" />{uploading ? "Uploading..." : "Attach PDF"}
+                    <input type="file" accept=".pdf" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0]; if (!file) return;
+                      setUploading(true);
+                      try {
+                        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                        setFormData(d => ({ ...d, invoice_url: file_url }));
+                      } catch (err) { setError(err.message); }
+                      finally { setUploading(false); e.target.value = ""; }
+                    }} />
+                  </label>
+                )}
+              </div>
+              {error && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSubmit} className="bg-slate-800 hover:bg-slate-700 text-white" disabled={saving || !formData.mission}>
+                  {saving ? "Submitting…" : "Submit invoice"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
