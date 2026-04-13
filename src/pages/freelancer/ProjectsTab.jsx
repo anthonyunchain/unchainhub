@@ -127,7 +127,7 @@ function ProjectCard({ p, onAction }) {
 }
 
 export default function ProjectsTab({ projects = [], onProjectUpdate }) {
-  const [view, setView] = useState("list");
+  const [view, setView] = useState("month");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filterClient, setFilterClient] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
