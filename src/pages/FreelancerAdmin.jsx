@@ -449,7 +449,7 @@ function InvoicesManagement() {
       freelancer_name: preselected?.name || "",
       mission: "", client_name: "", amount: "",
       date: format(new Date(), "yyyy-MM-dd"),
-      status: "En attente", invoice_url: "", notes: "",
+      status: "Pending", invoice_url: "", notes: "",
     });
     setMutError(null);
     setDialogOpen(true);
@@ -458,17 +458,17 @@ function InvoicesManagement() {
   const handleSave = () => editData.id ? updateMut.mutate({ id: editData.id, d: editData }) : createMut.mutate(editData);
 
   const STATUS_COLORS = {
-    "En attente": "bg-amber-50 text-amber-700",
-    "Payé": "bg-emerald-50 text-emerald-700",
-    "En retard": "bg-red-50 text-red-700",
+    "Pending": "bg-amber-50 text-amber-700",
+    "Paid": "bg-emerald-50 text-emerald-700",
+    "Overdue": "bg-red-50 text-red-700",
   };
 
   const filtered = selectedFreelancer === "all"
     ? payments
     : payments.filter(p => p.freelancer_id === selectedFreelancer);
 
-  const pending = filtered.filter(p => p.status === "En attente");
-  const paid = filtered.filter(p => p.status === "Payé");
+  const pending = filtered.filter(p => p.status === "Pending");
+  const paid = filtered.filter(p => p.status === "Paid");
 
   if (isLoading) return <div className="text-center py-10 text-slate-400 text-sm">Loading...</div>;
 
@@ -574,12 +574,12 @@ function InvoicesManagement() {
                 </div>
               </div>
               <div><Label>Status</Label>
-                <Select value={editData.status || "En attente"} onValueChange={v => setEditData({ ...editData, status: v })}>
+                <Select value={editData.status || "Pending"} onValueChange={v => setEditData({ ...editData, status: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Payé">Paid</SelectItem>
-                    <SelectItem value="En attente">Pending</SelectItem>
-                    <SelectItem value="En retard">Overdue</SelectItem>
+                    <SelectItem value="Paid">Paid</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Overdue">Overdue</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

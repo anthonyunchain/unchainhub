@@ -101,7 +101,7 @@ export default function Freelancers() {
       freelancer_name: freelancer?.name || "",
       mission: "", client_name: "", amount: "",
       date: format(new Date(), "yyyy-MM-dd"),
-      status: "En attente", invoice_url: "", notes: "",
+      status: "Pending", invoice_url: "", notes: "",
     });
     setPaymentMutError(null);
     setPDialogOpen(true);
@@ -213,11 +213,11 @@ export default function Freelancers() {
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Date</Label><Input type="date" value={paymentData.date || ""} onChange={e => setPaymentData({ ...paymentData, date: e.target.value })} /></div>
               <div><Label>Status</Label>
-                <Select value={paymentData.status || "En attente"} onValueChange={v => setPaymentData({ ...paymentData, status: v })}>
+                <Select value={paymentData.status || "Pending"} onValueChange={v => setPaymentData({ ...paymentData, status: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Payé">Paid</SelectItem>
-                    <SelectItem value="En attente">Pending</SelectItem>
+                    <SelectItem value="Paid">Paid</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -278,12 +278,12 @@ export default function Freelancers() {
   );
 
   const filteredPayments = filterFreelancer === "all" ? payments : payments.filter(p => p.freelancer_name === filterFreelancer || p.freelancer_id === filterFreelancer);
-  const totalPaid = filteredPayments.filter(p => p.status === "Payé").reduce((s, p) => s + (p.amount || 0), 0);
+  const totalPaid = filteredPayments.filter(p => p.status === "Paid").reduce((s, p) => s + (p.amount || 0), 0);
 
   const activeFreelancers = freelancers.filter(f => f.status === "Actif");
   const unavailable = freelancers.filter(f => f.status === "Indisponible");
-  const totalAllPaid = payments.filter(p => p.status === "Payé").reduce((s, p) => s + (p.amount || 0), 0);
-  const pendingPayments = payments.filter(p => p.status === "En attente");
+  const totalAllPaid = payments.filter(p => p.status === "Paid").reduce((s, p) => s + (p.amount || 0), 0);
+  const pendingPayments = payments.filter(p => p.status === "Pending");
   const totalPending = pendingPayments.reduce((s, p) => s + (p.amount || 0), 0);
 
   const CARD = { background: 'var(--card)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--card-shadow)', padding: '24px', cursor: 'pointer', transition: 'box-shadow 200ms ease, transform 200ms ease' };
@@ -296,8 +296,8 @@ export default function Freelancers() {
   if (section === 'detail' && selectedFreelancer) {
     const fl = selectedFreelancer;
     const flPayments = payments.filter(p => p.freelancer_id === fl.id);
-    const totalPaidFl = flPayments.filter(p => p.status === "Payé").reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
-    const pendingFl = flPayments.filter(p => p.status === "En attente").reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+    const totalPaidFl = flPayments.filter(p => p.status === "Paid").reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+    const pendingFl = flPayments.filter(p => p.status === "Pending").reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
 
     return (
       <div className="mx-auto" style={{ maxWidth: '1400px' }}>
@@ -420,7 +420,7 @@ export default function Freelancers() {
                           : <span className="text-slate-200">—</span>}
                       </td>
                       <td className="px-5 py-3.5">
-                        <button onClick={e => { e.stopPropagation(); updatePMut.mutate({ id: p.id, d: { ...p, status: p.status === "Payé" ? "En attente" : "Payé" } }); }}>
+                        <button onClick={e => { e.stopPropagation(); updatePMut.mutate({ id: p.id, d: { ...p, status: p.status === "Paid" ? "Pending" : "Paid" } }); }}>
                           <StatusBadge status={p.status} />
                         </button>
                       </td>
@@ -489,7 +489,7 @@ export default function Freelancers() {
                 <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
                   {orderedFreelancers.map((f, index) => {
                     const fPayments = payments.filter(p => p.freelancer_id === f.id || p.freelancer_name === f.name);
-                    const totalPaidF = fPayments.filter(p => p.status === "Payé").reduce((s, p) => s + (p.amount || 0), 0);
+                    const totalPaidF = fPayments.filter(p => p.status === "Paid").reduce((s, p) => s + (p.amount || 0), 0);
                     return (
                       <Draggable key={f.id} draggableId={f.id} index={index} isDragDisabled={!reordering}>{(dragProvided, snapshot) => (
                         <div ref={dragProvided.innerRef} {...dragProvided.draggableProps} className={`flex flex-col gap-2 ${snapshot.isDragging ? 'opacity-80' : ''}`}>
@@ -550,7 +550,7 @@ export default function Freelancers() {
                     <td className="px-5 py-3 text-sm text-slate-500">{p.date ? format(new Date(p.date), 'd MMM yyyy', { locale: fr }) : '—'}</td>
                     <td className="px-5 py-3 text-sm font-medium text-right">{(p.amount || 0).toLocaleString('fr-FR')} €</td>
                     <td className="px-5 py-3">{p.invoice_url ? (<a href={p.invoice_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-[#2A69FF] hover:underline"><FileText className="w-3.5 h-3.5" /> PDF</a>) : <span className="text-xs text-slate-300">—</span>}</td>
-                    <td className="px-5 py-3"><button onClick={(e) => { e.stopPropagation(); updatePMut.mutate({ id: p.id, d: { ...p, status: p.status === 'Payé' ? 'En attente' : 'Payé' } }); }}><StatusBadge status={p.status} /></button></td>
+                    <td className="px-5 py-3"><button onClick={(e) => { e.stopPropagation(); updatePMut.mutate({ id: p.id, d: { ...p, status: p.status === 'Paid' ? 'Pending' : 'Paid' } }); }}><StatusBadge status={p.status} /></button></td>
                   </tr>
                 ))}
                 {filteredPayments.length === 0 && <tr><td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-400">No payments</td></tr>}
@@ -603,7 +603,7 @@ export default function Freelancers() {
           <p style={{ ...VAL, color: 'var(--success)', marginTop: 8 }}>{totalAllPaid.toLocaleString('fr-FR')} €</p>
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginTop: 6 }}>{payments.length} total payment{payments.length !== 1 ? 's' : ''}</p>
           <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', background: '#E8F5EE', color: '#1A5C33', padding: '4px 10px', borderRadius: 100 }}>{payments.filter(p => p.status === 'Payé').length} paid</span>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', background: '#E8F5EE', color: '#1A5C33', padding: '4px 10px', borderRadius: 100 }}>{payments.filter(p => p.status === 'Paid').length} paid</span>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', background: '#FFF8E6', color: '#9A6700', padding: '4px 10px', borderRadius: 100 }}>{pendingPayments.length} pending</span>
           </div>
           <div style={{ marginTop: 16 }}>
