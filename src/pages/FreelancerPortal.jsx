@@ -7,7 +7,8 @@ import { getGreeting } from "@/lib/greeting";
 import {
   FileText, CalendarDays, FileCheck, Wrench, Upload, ExternalLink,
   Clock, CheckCircle2, Square, AlertTriangle, FolderOpen, ClipboardList,
-  LayoutDashboard, User, Bell, Briefcase, Plus, Trash2, ListTodo, Lightbulb, X
+  LayoutDashboard, User, Bell, Briefcase, Plus, Trash2, ListTodo, Lightbulb, X,
+  MoreHorizontal, AlignLeft
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -911,6 +912,7 @@ export default function FreelancerPortal() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [todoNewTrigger, setTodoNewTrigger] = useState(0);
   const [invoiceOpenTrigger, setInvoiceOpenTrigger] = useState(0);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [time, setTime] = useState("");
 
   useEffect(() => {
@@ -1195,71 +1197,144 @@ export default function FreelancerPortal() {
       </div>
 
       {/* Mobile bottom nav — liquid glass */}
-      <nav
-        className="fixed left-4 right-4 z-50 flex md:hidden items-center"
-        style={{
-          bottom: `calc(12px + env(safe-area-inset-bottom))`,
-          height: 64,
-          borderRadius: 28,
-          background: 'rgba(255,255,255,0.82)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          border: '1px solid rgba(255,255,255,0.9)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,1) inset',
-        }}
-      >
-        {/* Top specular shimmer */}
-        <div style={{
-          position: 'absolute', top: 0, left: '20%', right: '20%', height: 1,
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,1) 40%, rgba(255,255,255,1) 60%, transparent)',
-          pointerEvents: 'none',
-        }} />
+      <>
+        <nav
+          className="fixed left-4 right-4 z-50 flex md:hidden items-center"
+          style={{
+            bottom: `calc(12px + env(safe-area-inset-bottom))`,
+            height: 64,
+            borderRadius: 28,
+            background: 'rgba(255,255,255,0.82)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            border: '1px solid rgba(255,255,255,0.9)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,1) inset',
+          }}
+        >
+          {/* Top specular shimmer */}
+          <div style={{
+            position: 'absolute', top: 0, left: '20%', right: '20%', height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,1) 40%, rgba(255,255,255,1) 60%, transparent)',
+            pointerEvents: 'none',
+          }} />
 
-        {[
-          { id: "dashboard",  label: "Home",      Icon: LayoutDashboard },
-          { id: "myprojects", label: "Projects",  Icon: Briefcase },
-          { id: "projects",   label: "Editorial", Icon: FileText },
-          { id: "invoices",   label: "Invoices",  Icon: FileText },
-          { id: "profile",    label: "Profile",   Icon: User },
-        ].map(({ id, label, Icon }) => {
-          const isActive = activeTab === id;
-          return (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className="flex-1 flex flex-col items-center justify-center gap-1 relative"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', height: '100%' }}
-            >
-              {isActive && (
-                <div style={{
-                  position: 'absolute',
-                  width: 64, height: 52,
-                  borderRadius: 16,
-                  background: 'linear-gradient(160deg, #2A69FF 0%, #1a54e0 100%)',
-                  boxShadow: '0 4px 12px rgba(42,105,255,0.35)',
-                  top: '50%', transform: 'translateY(-50%)',
-                }} />
-              )}
-              <Icon
-                className="w-[19px] h-[19px] relative z-10"
-                style={{ color: isActive ? '#fff' : 'rgba(30,40,70,0.5)', strokeWidth: isActive ? 2.2 : 1.8 }}
-              />
-              <span
-                className="relative z-10"
-                style={{
-                  fontSize: '9px',
-                  fontFamily: "'DM Mono', monospace",
-                  fontWeight: 500,
-                  letterSpacing: '0.04em',
-                  color: isActive ? '#fff' : 'rgba(30,40,70,0.5)',
-                }}
+          {[
+            { id: "dashboard",  label: "Home",      Icon: LayoutDashboard },
+            { id: "myprojects", label: "Projects",  Icon: Briefcase },
+            { id: "projects",   label: "Editorial", Icon: CalendarDays },
+            { id: "invoices",   label: "Invoices",  Icon: FileText },
+          ].map(({ id, label, Icon }) => {
+            const isActive = activeTab === id;
+            return (
+              <button key={id} onClick={() => { setActiveTab(id); setMoreOpen(false); }}
+                className="flex-1 flex flex-col items-center justify-center gap-1 relative"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', height: '100%' }}
               >
-                {label}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+                {isActive && (
+                  <div style={{
+                    position: 'absolute', width: 64, height: 52, borderRadius: 16,
+                    background: 'linear-gradient(160deg, #2A69FF 0%, #1a54e0 100%)',
+                    boxShadow: '0 4px 12px rgba(42,105,255,0.35)',
+                    top: '50%', transform: 'translateY(-50%)',
+                  }} />
+                )}
+                <Icon className="w-[19px] h-[19px] relative z-10"
+                  style={{ color: isActive ? '#fff' : 'rgba(30,40,70,0.5)', strokeWidth: isActive ? 2.2 : 1.8 }} />
+                <span className="relative z-10" style={{ fontSize: '9px', fontFamily: "'DM Mono', monospace", fontWeight: 500, letterSpacing: '0.04em', color: isActive ? '#fff' : 'rgba(30,40,70,0.5)' }}>
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* More button */}
+          {(() => {
+            const moreActive = moreOpen || ['profile','tasks','todo','captions','ideas','tools','meetings','contract'].includes(activeTab);
+            return (
+              <button onClick={() => setMoreOpen(v => !v)}
+                className="flex-1 flex flex-col items-center justify-center gap-1 relative"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', height: '100%' }}
+              >
+                {moreActive && (
+                  <div style={{
+                    position: 'absolute', width: 64, height: 52, borderRadius: 16,
+                    background: 'linear-gradient(160deg, #2A69FF 0%, #1a54e0 100%)',
+                    boxShadow: '0 4px 12px rgba(42,105,255,0.35)',
+                    top: '50%', transform: 'translateY(-50%)',
+                  }} />
+                )}
+                {moreOpen
+                  ? <X className="w-[19px] h-[19px] relative z-10" style={{ color: moreActive ? '#fff' : 'rgba(30,40,70,0.5)', strokeWidth: 2 }} />
+                  : <MoreHorizontal className="w-[19px] h-[19px] relative z-10" style={{ color: moreActive ? '#fff' : 'rgba(30,40,70,0.5)', strokeWidth: 1.8 }} />
+                }
+                <span className="relative z-10" style={{ fontSize: '9px', fontFamily: "'DM Mono', monospace", fontWeight: 500, letterSpacing: '0.04em', color: moreActive ? '#fff' : 'rgba(30,40,70,0.5)' }}>
+                  More
+                </span>
+              </button>
+            );
+          })()}
+        </nav>
+
+        {/* More sheet */}
+        {moreOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-40 md:hidden"
+              style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+              onClick={() => setMoreOpen(false)}
+            />
+            <div
+              className="fixed left-4 right-4 z-40 md:hidden"
+              style={{
+                bottom: `calc(88px + env(safe-area-inset-bottom))`,
+                borderRadius: 24,
+                background: 'rgba(255,255,255,0.88)',
+                backdropFilter: 'blur(28px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+                border: '1px solid rgba(255,255,255,0.95)',
+                boxShadow: '0 16px 48px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.08)',
+                padding: '20px 16px 16px',
+              }}
+            >
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'rgba(30,40,70,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12, paddingLeft: 4 }}>
+                More
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { id: 'profile',   label: 'Profile',   Icon: User },
+                  { id: 'tasks',     label: 'Tasks',     Icon: ClipboardList },
+                  { id: 'todo',      label: 'To-Do',     Icon: ListTodo },
+                  { id: 'captions',  label: 'Captions',  Icon: AlignLeft },
+                  ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas', Icon: Lightbulb }] : []),
+                  { id: 'tools',     label: 'Tools',     Icon: Wrench },
+                  { id: 'meetings',  label: 'Meetings',  Icon: CalendarDays },
+                  { id: 'contract',  label: 'Contract',  Icon: FileCheck },
+                ].map(({ id, label, Icon }) => {
+                  const isActive = activeTab === id;
+                  return (
+                    <button key={id}
+                      onClick={() => { setActiveTab(id); setMoreOpen(false); }}
+                      className="flex flex-col items-center gap-1.5 py-3.5"
+                      style={{
+                        borderRadius: 16,
+                        background: isActive ? 'linear-gradient(160deg, #2A69FF 0%, #1a54e0 100%)' : 'rgba(30,40,70,0.05)',
+                        border: isActive ? 'none' : '1px solid rgba(30,40,70,0.08)',
+                        boxShadow: isActive ? '0 4px 12px rgba(42,105,255,0.3)' : 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Icon className="w-5 h-5" style={{ color: isActive ? '#fff' : 'rgba(30,40,70,0.55)', strokeWidth: isActive ? 2.2 : 1.8 }} />
+                      <span style={{ fontSize: '9px', fontFamily: "'DM Mono', monospace", fontWeight: 500, textAlign: 'center', color: isActive ? '#fff' : 'rgba(30,40,70,0.55)' }}>
+                        {label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+      </>
     </div>
   );
 }
