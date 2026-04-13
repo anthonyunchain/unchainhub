@@ -765,7 +765,11 @@ export default function ClientPortal() {
 
         {activeTab === "dashboard" && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} calendarPdfs={clientRecord?.editorial_calendar_pdfs || []} />}
         {activeTab === "reports"   && <ReportsTab stats={stats} content={content} />}
-        {activeTab === "admin"     && <AdminTab contracts={contracts} contractDocuments={clientRecord?.contract_documents || []} invoices={invoices} />}
+        {activeTab === "admin"     && (
+          <div style={{ maxWidth: 640 }}>
+            <AdminTab contracts={contracts} contractDocuments={clientRecord?.contract_documents || []} invoices={invoices} />
+          </div>
+        )}
       </div>
 
       {/* Mobile bottom nav */}
