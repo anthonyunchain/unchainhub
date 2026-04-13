@@ -5,7 +5,7 @@ import StatusBadge from "../components/shared/StatusBadge";
 import {
   ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt,
   Pencil, Upload, X, ExternalLink, Briefcase, Trash2, UserPlus,
-  ChevronLeft, ChevronRight, RefreshCw, Copy, KeyRound,
+  ChevronLeft, ChevronRight, RefreshCw, Copy, KeyRound, Plus,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -196,6 +196,9 @@ export default function ClientDetail() {
   const [inviting,           setInviting]           = useState(false);
   const [inviteMsg,          setInviteMsg]          = useState("");
   const [invitePassword,     setInvitePassword]     = useState("");
+  const [invoiceOpen,        setInvoiceOpen]        = useState(false);
+  const [invoiceData,        setInvoiceData]        = useState(null);
+  const [invoiceMutError,    setInvoiceMutError]    = useState(null);
   const qc = useQueryClient();
 
   const { data: client }     = useQuery({ queryKey: ["client", id], queryFn: () => base44.entities.Client.list().then(arr => arr.find(c => c.id === id)), enabled: !!id });
@@ -214,6 +217,63 @@ export default function ClientDetail() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); navigate("/Clients"); },
     onError: (e) => alert("Deletion error: " + (e?.message || e)),
   });
+
+  const calcInvoice = (d) => {
+    const ht = parseFloat(d.total_amount) || 0;
+    const tax_rate = parseFloat(d.tax_rate) || 0;
+    const tax_amount = ht * (tax_rate / 100);
+    return { ...d, tax_amount, total_with_tax: ht + tax_amount };
+  };
+
+  const createInvoiceMut = useMutation({
+    mutationFn: async (d) => {
+      const { error } = await supabase.from("invoices").insert(d);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoices"] }); setInvoiceOpen(false); setInvoiceMutError(null); },
+    onError: (e) => setInvoiceMutError(e.message),
+  });
+
+  const updateInvoiceMut = useMutation({
+    mutationFn: async ({ id, d }) => {
+      const { error } = await supabase.from("invoices").update(d).eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoices"] }); setInvoiceOpen(false); setInvoiceMutError(null); },
+    onError: (e) => setInvoiceMutError(e.message),
+  });
+
+  const openNewInvoice = () => {
+    const num = `INV-${String((invoices?.length || 0) + 1).padStart(4, "0")}`;
+    setInvoiceData(calcInvoice({
+      invoice_number: num,
+      client_id: id,
+      client_name: client.company_name,
+      description: "",
+      total_amount: 0,
+      tax_rate: 20,
+      tax_amount: 0,
+      total_with_tax: 0,
+      status: "Envoyée",
+      issue_date: format(new Date(), "yyyy-MM-dd"),
+      due_date: "",
+      notes: "",
+    }));
+    setInvoiceMutError(null);
+    setInvoiceOpen(true);
+  };
+
+  const openEditInvoice = (inv) => {
+    setInvoiceData({ ...inv });
+    setInvoiceMutError(null);
+    setInvoiceOpen(true);
+  };
+
+  const handleSaveInvoice = () => {
+    const final = calcInvoice(invoiceData);
+    if (final.id) updateInvoiceMut.mutate({ id: final.id, d: final });
+    else createInvoiceMut.mutate(final);
+  };
 
   if (!client) return <div className="flex items-center justify-center h-64 text-slate-400">Loading…</div>;
 
@@ -460,26 +520,53 @@ export default function ClientDetail() {
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><Receipt className="w-4 h-4" />Invoices</h3>
-            <label className={`cursor-pointer text-xs text-[#2A69FF] hover:underline flex items-center gap-1 ${uploadingInvoice ? "opacity-50 pointer-events-none" : ""}`}>
-              <Upload className="w-3 h-3" />{uploadingInvoice ? "Uploading…" : "Attach file"}
-              <input type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={async (e) => {
-                const file = e.target.files?.[0]; if (!file) return;
-                setUploadingInvoice(true);
-                const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                await updateMut.mutateAsync({ id: client.id, d: { ...client, invoice_documents: [...(client.invoice_documents || []), file_url] } });
-                setUploadingInvoice(false); e.target.value = "";
-              }} />
-            </label>
+            <div className="flex items-center gap-3">
+              <label className={`cursor-pointer text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 ${uploadingInvoice ? "opacity-50 pointer-events-none" : ""}`}>
+                <Upload className="w-3 h-3" />{uploadingInvoice ? "Uploading…" : "Attach PDF"}
+                <input type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={async (e) => {
+                  const file = e.target.files?.[0]; if (!file) return;
+                  setUploadingInvoice(true);
+                  const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                  await updateMut.mutateAsync({ id: client.id, d: { ...client, invoice_documents: [...(client.invoice_documents || []), file_url] } });
+                  setUploadingInvoice(false); e.target.value = "";
+                }} />
+              </label>
+              <button onClick={openNewInvoice} className="text-xs text-[#2A69FF] hover:underline flex items-center gap-1 font-medium">
+                <Plus className="w-3 h-3" /> New invoice
+              </button>
+            </div>
           </div>
+
+          {/* Summary row */}
+          {clientInvoices.length > 0 && (
+            <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 bg-slate-50/30">
+              {[
+                { label: "Paid", val: clientInvoices.filter(i => i.status === "Payée").reduce((s, i) => s + (i.total_with_tax || i.total_amount || 0), 0), color: "text-emerald-600" },
+                { label: "Pending", val: clientInvoices.filter(i => i.status === "Envoyée").reduce((s, i) => s + (i.total_with_tax || i.total_amount || 0), 0), color: "text-blue-600" },
+                { label: "Overdue", val: clientInvoices.filter(i => i.status === "En retard").reduce((s, i) => s + (i.total_with_tax || i.total_amount || 0), 0), color: "text-red-500" },
+              ].map(({ label, val, color }) => (
+                <div key={label} className="px-5 py-3 text-center">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider">{label}</p>
+                  <p className={`text-sm font-bold ${color} mt-0.5`}>{val.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="divide-y divide-slate-50">
             {clientInvoices.map(i => (
-              <div key={i.id} className="flex items-center justify-between px-6 py-3.5 hover:bg-slate-50/40">
+              <div key={i.id} className="flex items-center justify-between px-6 py-3.5 hover:bg-slate-50/40 cursor-pointer" onClick={() => openEditInvoice(i)}>
                 <div>
                   <p className="text-sm font-medium text-slate-800">{i.invoice_number || "Invoice"}</p>
-                  <p className="text-xs text-slate-400">{i.issue_date ? format(new Date(i.issue_date), "d MMM yyyy", { locale: enUS }) : ""}</p>
+                  <p className="text-xs text-slate-400">{i.description || ""}{i.issue_date ? ` · ${format(new Date(i.issue_date), "d MMM yyyy", { locale: enUS })}` : ""}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-slate-700">{(i.total_with_tax || i.total_amount || 0).toLocaleString("fr-FR")} €</span>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-slate-800">{(i.total_with_tax || i.total_amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+                    {i.total_amount > 0 && i.total_with_tax !== i.total_amount && (
+                      <p className="text-[10px] text-slate-400">excl. tax: {(i.total_amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+                    )}
+                  </div>
                   <StatusBadge status={i.status} />
                 </div>
               </div>
@@ -499,7 +586,10 @@ export default function ClientDetail() {
               );
             })}
             {clientInvoices.length === 0 && (client.invoice_documents || []).length === 0 && (
-              <p className="px-6 py-8 text-sm text-slate-400 text-center">No invoices</p>
+              <div className="px-6 py-10 text-center">
+                <p className="text-sm text-slate-400 mb-3">No invoices yet</p>
+                <button onClick={openNewInvoice} className="text-sm text-[#2A69FF] hover:underline font-medium">+ Create first invoice</button>
+              </div>
             )}
           </div>
         </div>
@@ -725,6 +815,86 @@ export default function ClientDetail() {
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
                   <Button onClick={() => updateMut.mutate({ id: editData.id, d: editData })} className="bg-emerald-600 hover:bg-emerald-700 text-white" disabled={!editData.company_name}>Save</Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Invoice dialog ──────────────────────────────── */}
+      <Dialog open={invoiceOpen} onOpenChange={(o) => { setInvoiceOpen(o); if (!o) setInvoiceMutError(null); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{invoiceData?.id ? "Edit invoice" : "New invoice"}</DialogTitle></DialogHeader>
+          {invoiceData && (
+            <div className="space-y-4 mt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Invoice No.</Label><Input value={invoiceData.invoice_number || ""} onChange={e => setInvoiceData({ ...invoiceData, invoice_number: e.target.value })} /></div>
+                <div><Label>Status</Label>
+                  <Select value={invoiceData.status} onValueChange={v => setInvoiceData({ ...invoiceData, status: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Envoyée">Sent</SelectItem>
+                      <SelectItem value="Payée">Paid</SelectItem>
+                      <SelectItem value="En retard">Overdue</SelectItem>
+                      <SelectItem value="Brouillon">Draft</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div><Label>Description</Label>
+                <Input value={invoiceData.description || ""} onChange={e => setInvoiceData({ ...invoiceData, description: e.target.value })} placeholder="e.g. Social media management — April 2026" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Issue date</Label><Input type="date" value={invoiceData.issue_date || ""} onChange={e => setInvoiceData({ ...invoiceData, issue_date: e.target.value })} /></div>
+                <div><Label>Due date</Label><Input type="date" value={invoiceData.due_date || ""} onChange={e => setInvoiceData({ ...invoiceData, due_date: e.target.value })} /></div>
+              </div>
+
+              {/* Amounts */}
+              <div className="bg-slate-50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <Label className="shrink-0">Amount excl. tax (€)</Label>
+                  <Input type="number" className="w-36 text-right" value={invoiceData.total_amount || ""} placeholder="0.00"
+                    onChange={e => setInvoiceData(calcInvoice({ ...invoiceData, total_amount: parseFloat(e.target.value) || 0 }))} />
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <Label className="shrink-0">VAT (%)</Label>
+                  <Input type="number" className="w-36 text-right" value={invoiceData.tax_rate ?? 20} placeholder="20"
+                    onChange={e => setInvoiceData(calcInvoice({ ...invoiceData, tax_rate: parseFloat(e.target.value) || 0 }))} />
+                </div>
+                <div className="flex items-center justify-between text-sm text-slate-500">
+                  <span>VAT amount</span>
+                  <span>{(invoiceData.tax_amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</span>
+                </div>
+                <div className="flex items-center justify-between font-semibold text-slate-800 border-t border-slate-200 pt-2">
+                  <span>Total incl. tax</span>
+                  <span className="text-lg">{(invoiceData.total_with_tax || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</span>
+                </div>
+              </div>
+
+              <div><Label>Notes</Label>
+                <Textarea value={invoiceData.notes || ""} onChange={e => setInvoiceData({ ...invoiceData, notes: e.target.value })} rows={2} placeholder="Payment terms, bank details…" />
+              </div>
+
+              {invoiceMutError && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{invoiceMutError}</p>}
+
+              <div className="flex justify-between items-center pt-2">
+                {invoiceData.id
+                  ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={async () => {
+                      if (!confirm("Delete this invoice?")) return;
+                      await supabase.from("invoices").delete().eq("id", invoiceData.id);
+                      qc.invalidateQueries({ queryKey: ["invoices"] });
+                      setInvoiceOpen(false);
+                    }}><Trash2 className="w-4 h-4 mr-1" />Delete</Button>
+                  : <div />}
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setInvoiceOpen(false)}>Cancel</Button>
+                  <Button onClick={handleSaveInvoice} className="bg-brand hover:bg-brand/90 text-brand-foreground"
+                    disabled={createInvoiceMut.isPending || updateInvoiceMut.isPending}>
+                    {createInvoiceMut.isPending || updateInvoiceMut.isPending ? "Saving…" : "Save invoice"}
+                  </Button>
                 </div>
               </div>
             </div>
