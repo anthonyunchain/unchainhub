@@ -24,14 +24,14 @@ CREATE POLICY "clients_own_monthly_briefs" ON monthly_briefs
     client_name IN (
       SELECT company_name FROM clients
       WHERE portal_user_id = auth.uid()
-         OR contact_email = (SELECT email FROM auth.users WHERE id = auth.uid())
+         OR contact_email = auth.email()
     )
   )
   WITH CHECK (
     client_name IN (
       SELECT company_name FROM clients
       WHERE portal_user_id = auth.uid()
-         OR contact_email = (SELECT email FROM auth.users WHERE id = auth.uid())
+         OR contact_email = auth.email()
     )
   );
 
