@@ -17,27 +17,27 @@ CREATE TABLE IF NOT EXISTS monthly_briefs (
 
 ALTER TABLE monthly_briefs ENABLE ROW LEVEL SECURITY;
 
--- Clients can read & write their own briefs (matched by company_name)
+-- Security definer function: reads clients table bypassing its own RLS
+CREATE OR REPLACE FUNCTION get_my_client_name()
+RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT company_name FROM clients
+  WHERE portal_user_id = auth.uid()
+     OR contact_email = auth.email()
+  LIMIT 1;
+$$;
+
+-- Clients can read & write their own briefs
 CREATE POLICY "clients_own_monthly_briefs" ON monthly_briefs
   FOR ALL
-  USING (
-    client_name IN (
-      SELECT company_name FROM clients
-      WHERE portal_user_id = auth.uid()
-         OR contact_email = auth.email()
-    )
-  )
-  WITH CHECK (
-    client_name IN (
-      SELECT company_name FROM clients
-      WHERE portal_user_id = auth.uid()
-         OR contact_email = auth.email()
-    )
-  );
+  USING (client_name = get_my_client_name())
+  WITH CHECK (client_name = get_my_client_name());
 
--- Admins can read all briefs
-CREATE POLICY "admins_read_all_monthly_briefs" ON monthly_briefs
+-- Staff/admin = authenticated user with no matching client record → reads all
+CREATE POLICY "staff_read_all_monthly_briefs" ON monthly_briefs
   FOR SELECT
-  USING (
-    (SELECT raw_user_meta_data->>'role' FROM auth.users WHERE id = auth.uid()) = 'admin'
-  );
+  USING (get_my_client_name() IS NULL);
