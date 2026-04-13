@@ -16,32 +16,21 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Verify caller — decode JWT payload to extract user info
+    // Verify caller via Supabase auth
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
     }
-    const token = authHeader.replace('Bearer ', '');
-    let userId: string;
-    let userEmail: string;
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) throw new Error('Invalid JWT structure');
-      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-      const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
-      const payload = JSON.parse(atob(padded));
-      console.log('[getFreelancerData] JWT claims - sub:', payload.sub, 'email:', payload.email, 'role:', payload.role);
-      userId = payload.sub;
-      userEmail = payload.email;
-      if (!userId) throw new Error('Missing sub claim');
-      if (!userEmail) throw new Error('Missing email claim');
-    } catch (e) {
-      console.error('[getFreelancerData] JWT decode error:', e?.message);
-      return Response.json({ error: `Invalid token: ${e?.message}` }, { status: 401, headers: corsHeaders });
-    }
 
-    // Build a fake user object for compatibility
-    const user = { id: userId, email: userEmail };
+    const supabaseUser = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+    }
 
     // Get profile
     const { data: profile, error: profileErr } = await supabaseAdmin
