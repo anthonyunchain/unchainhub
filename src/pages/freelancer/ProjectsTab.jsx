@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { format, startOfWeek, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, addDays, addWeeks, addMonths, subWeeks, subMonths, startOfMonth, endOfWeek } from "date-fns";
+import { useState, useRef } from "react";
+import { format, startOfWeek, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval, addDays, addWeeks, addMonths, subWeeks, subMonths, startOfMonth, endOfWeek, startOfDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,6 +15,20 @@ export default function ProjectsTab({ projects = [] }) {
   const [view, setView] = useState("month");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filterClient, setFilterClient] = useState("all");
+  const [mobileDayStart, setMobileDayStart] = useState(startOfDay(new Date()));
+  const touchStartX = useRef(null);
+
+  const mobileDays = [0, 1, 2].map(i => addDays(mobileDayStart, i));
+
+  const shiftMobileDays = (dir) => setMobileDayStart(d => addDays(d, dir * 3));
+
+  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const onTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 40) shiftMobileDays(dx < 0 ? 1 : -1);
+    touchStartX.current = null;
+  };
 
   const clients = [...new Set(projects.map(p => p.client_name).filter(Boolean))];
 
@@ -139,28 +153,72 @@ export default function ProjectsTab({ projects = [] }) {
         )}
       </div>
 
-      {/* View switcher + nav */}
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div className="flex items-center gap-1 bg-white border border-slate-100 rounded-lg p-1 shadow-sm">
-          {[{ id: "day", label: "Day" }, { id: "week", label: "Week" }, { id: "month", label: "Month" }].map(v => (
-            <button key={v.id} onClick={() => setView(v.id)}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${view === v.id ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"}`}>
-              {v.label}
-            </button>
+      {/* ── Mobile: 3-day swipeable view ── */}
+      <div className="sm:hidden" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        {/* Header row */}
+        <div className="grid grid-cols-3 mb-1">
+          {mobileDays.map(day => (
+            <div key={day.toISOString()} className={`text-center py-2 rounded-lg ${isSameDay(day, new Date()) ? "bg-[#2A69FF]/10" : ""}`}>
+              <p className="text-[10px] font-medium text-slate-400 uppercase">{format(day, "EEE", { locale: enUS })}</p>
+              <p className={`text-base font-bold mt-0.5 ${isSameDay(day, new Date()) ? "text-[#2A69FF]" : "text-slate-700"}`}>{format(day, "d")}</p>
+            </div>
           ))}
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => navigate(-1)} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors">
+        {/* Day columns */}
+        <div className="grid grid-cols-3 gap-1">
+          {mobileDays.map(day => {
+            const ps = getProjectsForDay(day);
+            return (
+              <div key={day.toISOString()} className="bg-white rounded-xl border border-slate-100 min-h-[120px] p-2">
+                {ps.length === 0
+                  ? <p className="text-[10px] text-slate-200 text-center mt-4">—</p>
+                  : ps.map(p => (
+                      <div key={p.id} className={`text-[10px] px-1.5 py-1 rounded mb-1 leading-tight ${TYPE_COLORS[p.post_type] || "bg-slate-100 text-slate-600"}`}>
+                        <p className="font-semibold truncate">{p.client_name}</p>
+                        {p.title && <p className="opacity-75 truncate">{p.title}</p>}
+                      </div>
+                    ))
+                }
+              </div>
+            );
+          })}
+        </div>
+        {/* Navigation */}
+        <div className="flex items-center justify-between mt-3 px-1">
+          <button onClick={() => shiftMobileDays(-1)} className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-400">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-sm font-medium text-slate-700 min-w-[140px] text-center">{viewLabel}</span>
-          <button onClick={() => navigate(1)} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors">
+          <p className="text-xs font-medium text-slate-500">{format(mobileDays[0], "d MMM", { locale: enUS })} – {format(mobileDays[2], "d MMM yyyy", { locale: enUS })}</p>
+          <button onClick={() => shiftMobileDays(1)} className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-400">
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {renderView()}
+      {/* ── Desktop: full calendar ── */}
+      <div className="hidden sm:block">
+        {/* View switcher + nav */}
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <div className="flex items-center gap-1 bg-white border border-slate-100 rounded-lg p-1 shadow-sm">
+            {[{ id: "day", label: "Day" }, { id: "week", label: "Week" }, { id: "month", label: "Month" }].map(v => (
+              <button key={v.id} onClick={() => setView(v.id)}
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${view === v.id ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"}`}>
+                {v.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigate(-1)} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-sm font-medium text-slate-700 min-w-[140px] text-center">{viewLabel}</span>
+            <button onClick={() => navigate(1)} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        {renderView()}
+      </div>
     </div>
   );
 }
