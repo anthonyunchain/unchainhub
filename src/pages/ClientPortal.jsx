@@ -484,6 +484,22 @@ function InvoicesTab({ invoices }) {
   );
 }
 
+// ── Admin tab (contracts + invoices) ──────────────────────────────────────
+function AdminTab({ contracts, contractDocuments, invoices }) {
+  return (
+    <div className="space-y-8">
+      <div>
+        <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">Contracts</p>
+        <ContractsTab contracts={contracts} contractDocuments={contractDocuments} />
+      </div>
+      <div>
+        <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">Invoices</p>
+        <InvoicesTab invoices={invoices} />
+      </div>
+    </div>
+  );
+}
+
 // ── Settings dialog ────────────────────────────────────────────────────────
 function SettingsDialog({ open, onClose }) {
   const [email, setEmail] = useState("");
@@ -539,12 +555,8 @@ function SettingsDialog({ open, onClose }) {
 const TABS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { key: "reports",   label: "Reports",   icon: BarChart2 },
-  { key: "invoices",  label: "Invoices",  icon: Receipt },
-  { key: "contracts", label: "Contracts", icon: FileText },
+  { key: "admin",     label: "Admin",     icon: Settings },
 ];
-
-const MAIN_TABS = TABS.filter(t => t.key !== "contracts");
-const CONTRACTS_TAB = TABS.find(t => t.key === "contracts");
 
 export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -667,33 +679,24 @@ export default function ClientPortal() {
 
           {/* Desktop tabs */}
           <div className="hidden md:flex items-center gap-1 p-1" style={{ background: '#ffffff', borderRadius: 'var(--pill-radius)', boxShadow: '0 4px 24px rgba(13,27,42,0.12)', border: '1px solid #d8dde5' }}>
-            {MAIN_TABS.map(t => (
-              <button key={t.key} onClick={() => setActiveTab(t.key)}
-                style={{
-                  fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 500,
-                  padding: '6px 14px', borderRadius: 'var(--pill-radius)',
-                  background: activeTab === t.key ? 'var(--brand)' : 'transparent',
-                  color: activeTab === t.key ? '#fff' : 'var(--muted)',
-                  border: 'none', cursor: 'pointer', transition: 'all 200ms',
-                  display: 'flex', alignItems: 'center', gap: 6,
-                }}>
-                <t.icon style={{ width: 12, height: 12 }} />
-                {t.label}
-              </button>
-            ))}
-            <div style={{ width: 1, height: 16, background: 'var(--divider)', margin: '0 4px', flexShrink: 0 }} />
-            <button onClick={() => setActiveTab(CONTRACTS_TAB.key)}
-              style={{
-                fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 500,
-                padding: '6px 14px', borderRadius: 'var(--pill-radius)',
-                background: activeTab === CONTRACTS_TAB.key ? 'var(--brand)' : 'transparent',
-                color: activeTab === CONTRACTS_TAB.key ? '#fff' : 'var(--muted)',
-                border: 'none', cursor: 'pointer', transition: 'all 200ms',
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-              <CONTRACTS_TAB.icon style={{ width: 12, height: 12 }} />
-              {CONTRACTS_TAB.label}
-            </button>
+            {TABS.map((t, i) => {
+              const isAdmin = t.key === "admin";
+              return (
+                <button key={t.key} onClick={() => setActiveTab(t.key)}
+                  style={{
+                    fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 500,
+                    padding: isAdmin ? '6px 10px' : '6px 14px',
+                    borderRadius: 'var(--pill-radius)',
+                    background: activeTab === t.key ? 'var(--brand)' : 'transparent',
+                    color: activeTab === t.key ? '#fff' : 'var(--muted)',
+                    border: 'none', cursor: 'pointer', transition: 'all 200ms',
+                    display: 'flex', alignItems: 'center', gap: 5,
+                  }}>
+                  <t.icon style={{ width: 12, height: 12 }} />
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Avatar */}
@@ -760,10 +763,9 @@ export default function ClientPortal() {
           </div>
         )}
 
-        {activeTab === "dashboard"  && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} calendarPdfs={clientRecord?.editorial_calendar_pdfs || []} />}
-        {activeTab === "reports"    && <ReportsTab stats={stats} content={content} />}
-        {activeTab === "contracts"  && <ContractsTab contracts={contracts} contractDocuments={clientRecord?.contract_documents || []} />}
-        {activeTab === "invoices"   && <InvoicesTab invoices={invoices} />}
+        {activeTab === "dashboard" && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} calendarPdfs={clientRecord?.editorial_calendar_pdfs || []} />}
+        {activeTab === "reports"   && <ReportsTab stats={stats} content={content} />}
+        {activeTab === "admin"     && <AdminTab contracts={contracts} contractDocuments={clientRecord?.contract_documents || []} invoices={invoices} />}
       </div>
 
       {/* Mobile bottom nav */}
