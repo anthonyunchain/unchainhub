@@ -398,20 +398,64 @@ function ToolsManagement() {
 function InvoicesManagement() {
   const qc = useQueryClient();
   const [selectedFreelancer, setSelectedFreelancer] = useState("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [mutError, setMutError] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ["freelancer-payments"],
-    queryFn: () => base44.entities.FreelancerPayment.list("-date"),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("freelancer_payments").select("*").order("date", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
   });
   const { data: freelancers = [] } = useQuery({
     queryKey: ["freelancers"],
     queryFn: () => base44.entities.Freelancer.list(),
   });
 
-  const updateMut = useMutation({
-    mutationFn: ({ id, status }) => base44.entities.FreelancerPayment.update(id, { status }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancer-payments"] }),
+  const createMut = useMutation({
+    mutationFn: async (d) => {
+      const { id, ...rest } = d;
+      const { error } = await supabase.from("freelancer_payments").insert({ ...rest, amount: parseFloat(rest.amount) || 0 });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setDialogOpen(false); setMutError(null); },
+    onError: (e) => setMutError(e.message),
   });
+  const updateMut = useMutation({
+    mutationFn: async ({ id, d }) => {
+      const { id: _id, created_at, ...rest } = d;
+      const { error } = await supabase.from("freelancer_payments").update({ ...rest, amount: parseFloat(rest.amount) || 0 }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setDialogOpen(false); setMutError(null); },
+    onError: (e) => setMutError(e.message),
+  });
+  const deleteMut = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("freelancer_payments").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setDialogOpen(false); },
+  });
+
+  const openNew = () => {
+    const preselected = selectedFreelancer !== "all" ? freelancers.find(f => f.id === selectedFreelancer) : null;
+    setEditData({
+      freelancer_id: preselected?.id || "",
+      freelancer_name: preselected?.name || "",
+      mission: "", client_name: "", amount: "",
+      date: format(new Date(), "yyyy-MM-dd"),
+      status: "En attente", invoice_url: "", notes: "",
+    });
+    setMutError(null);
+    setDialogOpen(true);
+  };
+  const openEdit = (p) => { setEditData({ ...p }); setMutError(null); setDialogOpen(true); };
+  const handleSave = () => editData.id ? updateMut.mutate({ id: editData.id, d: editData }) : createMut.mutate(editData);
 
   const STATUS_COLORS = {
     "En attente": "bg-amber-50 text-amber-700",
@@ -421,7 +465,7 @@ function InvoicesManagement() {
 
   const filtered = selectedFreelancer === "all"
     ? payments
-    : payments.filter(p => p.freelancer_id === selectedFreelancer || p.freelancer_name === selectedFreelancer);
+    : payments.filter(p => p.freelancer_id === selectedFreelancer);
 
   const pending = filtered.filter(p => p.status === "En attente");
   const paid = filtered.filter(p => p.status === "Payé");
@@ -430,23 +474,23 @@ function InvoicesManagement() {
 
   return (
     <div>
-      {/* Freelancer filter */}
-      <div className="flex gap-2 flex-wrap mb-6">
-        <button
-          onClick={() => setSelectedFreelancer("all")}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedFreelancer === "all" ? "bg-slate-800 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-        >
-          All freelancers
-        </button>
-        {freelancers.map(f => (
-          <button
-            key={f.id}
-            onClick={() => setSelectedFreelancer(f.id)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedFreelancer === f.id ? "bg-slate-800 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-          >
-            {f.name}
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setSelectedFreelancer("all")}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedFreelancer === "all" ? "bg-slate-800 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+            All freelancers
           </button>
-        ))}
+          {freelancers.map(f => (
+            <button key={f.id} onClick={() => setSelectedFreelancer(f.id)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedFreelancer === f.id ? "bg-slate-800 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+              {f.name}
+            </button>
+          ))}
+        </div>
+        <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9 shrink-0 ml-3">
+          <Plus className="w-4 h-4 mr-1" /> Add invoice
+        </Button>
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">
@@ -469,38 +513,34 @@ function InvoicesManagement() {
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr>
               <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Freelancer</th>
-              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Description</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Mission</th>
               <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Date</th>
               <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
-              <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase">Amount</th>
+              <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase">Amount</th>
               <th className="px-5 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-400">No invoices yet</td></tr>
+              <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-400">
+                No invoices yet — <button onClick={openNew} className="text-brand hover:underline">add one</button>
+              </td></tr>
             )}
             {filtered.map(p => (
-              <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50">
-                <td className="px-5 py-3 font-medium text-slate-800">{p.freelancer_name || "—"}</td>
-                <td className="px-5 py-3 text-slate-500">{p.description || "—"}</td>
-                <td className="px-5 py-3 text-slate-500">{p.date ? format(new Date(p.date), "d MMM yyyy") : "—"}</td>
-                <td className="px-5 py-3">
-                  <select
-                    value={p.status}
-                    onChange={e => updateMut.mutate({ id: p.id, status: e.target.value })}
-                    className={`text-xs px-2.5 py-1 rounded-full font-medium border-0 cursor-pointer ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}
-                  >
-                    <option value="En attente">En attente</option>
-                    <option value="Payé">Payé</option>
-                    <option value="En retard">En retard</option>
-                  </select>
+              <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50 cursor-pointer" onClick={() => openEdit(p)}>
+                <td className="px-5 py-3.5 font-medium text-slate-800">{p.freelancer_name || "—"}</td>
+                <td className="px-5 py-3.5 text-slate-500">{p.mission || "—"}</td>
+                <td className="px-5 py-3.5 text-slate-500">{p.date ? format(new Date(p.date), "d MMM yyyy") : "—"}</td>
+                <td className="px-5 py-3.5">
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}>
+                    {p.status}
+                  </span>
                 </td>
-                <td className="px-5 py-3 font-semibold text-slate-800">{p.amount ? `${p.amount.toLocaleString("fr-FR")} €` : "—"}</td>
-                <td className="px-5 py-3">
+                <td className="px-5 py-3.5 font-semibold text-slate-800 text-right">{p.amount ? `${parseFloat(p.amount).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €` : "—"}</td>
+                <td className="px-5 py-3.5" onClick={e => e.stopPropagation()}>
                   {p.invoice_url && (
-                    <a href={p.invoice_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs flex items-center gap-1">
-                      <FileText className="w-3.5 h-3.5" /> View PDF
+                    <a href={p.invoice_url} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline text-xs flex items-center gap-1">
+                      <FileText className="w-3.5 h-3.5" /> PDF
                     </a>
                   )}
                 </td>
@@ -509,6 +549,79 @@ function InvoicesManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setMutError(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editData?.id ? "Edit invoice" : "New invoice"}</DialogTitle></DialogHeader>
+          {editData && (
+            <div className="space-y-4 mt-2">
+              <div><Label>Freelancer</Label>
+                <Select value={editData.freelancer_id || ""} onValueChange={v => { const f = freelancers.find(ff => ff.id === v); setEditData({ ...editData, freelancer_id: v, freelancer_name: f?.name || "" }); }}>
+                  <SelectTrigger><SelectValue placeholder="Select freelancer…" /></SelectTrigger>
+                  <SelectContent>{freelancers.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Mission / Description</Label>
+                <Input value={editData.mission || ""} onChange={e => setEditData({ ...editData, mission: e.target.value })} placeholder="e.g. Video editing — April 2026" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Amount (€)</Label>
+                  <Input type="number" value={editData.amount || ""} placeholder="0.00" onChange={e => setEditData({ ...editData, amount: e.target.value })} />
+                </div>
+                <div><Label>Date</Label>
+                  <Input type="date" value={editData.date || ""} onChange={e => setEditData({ ...editData, date: e.target.value })} />
+                </div>
+              </div>
+              <div><Label>Status</Label>
+                <Select value={editData.status || "En attente"} onValueChange={v => setEditData({ ...editData, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Payé">Paid</SelectItem>
+                    <SelectItem value="En attente">Pending</SelectItem>
+                    <SelectItem value="En retard">Overdue</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Invoice PDF</Label>
+                {editData.invoice_url ? (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100 mt-1">
+                    <FileText className="w-4 h-4 text-brand shrink-0" />
+                    <a href={editData.invoice_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline flex-1 truncate">
+                      {decodeURIComponent(editData.invoice_url.split("/").pop().split("?")[0])}
+                    </a>
+                    <button onClick={() => setEditData({ ...editData, invoice_url: "" })} className="text-slate-300 hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                ) : (
+                  <label className={`cursor-pointer flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand border border-dashed border-slate-200 rounded-lg px-4 py-2.5 w-full justify-center hover:border-brand/40 transition-colors mt-1 ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+                    <Upload className="w-4 h-4" />{uploading ? "Uploading..." : "Attach invoice PDF"}
+                    <input type="file" accept=".pdf" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0]; if (!file) return;
+                      setUploading(true);
+                      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                      setEditData(d => ({ ...d, invoice_url: file_url }));
+                      setUploading(false); e.target.value = "";
+                    }} />
+                  </label>
+                )}
+              </div>
+              {mutError && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{mutError}</p>}
+              <div className="flex justify-between items-center pt-2">
+                {editData.id
+                  ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={() => { if (confirm("Delete?")) deleteMut.mutate(editData.id); }}><Trash2 className="w-4 h-4 mr-1" />Delete</Button>
+                  : <div />}
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground"
+                    disabled={!editData.freelancer_id || createMut.isPending || updateMut.isPending}>
+                    {createMut.isPending || updateMut.isPending ? "Saving…" : "Save"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
