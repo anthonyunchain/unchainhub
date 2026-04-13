@@ -568,6 +568,7 @@ function BriefTab({ clientName }) {
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const shiftMonth = (dir) => {
@@ -602,17 +603,24 @@ function BriefTab({ clientName }) {
 
   const handleSave = async (submit = false) => {
     setSaving(true);
-    const payload = { client_name: clientName, month, ...form, updated_at: new Date().toISOString(), ...(submit ? { submitted_at: new Date().toISOString() } : {}) };
-    let error;
-    if (briefId) {
-      ({ error } = await supabase.from("monthly_briefs").update(payload).eq("id", briefId));
-    } else {
-      const { data, error: e } = await supabase.from("monthly_briefs").insert(payload).select("id").single();
-      error = e;
-      if (data) setBriefId(data.id);
-    }
+    setSaveError(null);
+    const payload = {
+      client_name: clientName,
+      month,
+      ...form,
+      updated_at: new Date().toISOString(),
+      ...(submit ? { submitted_at: new Date().toISOString() } : {}),
+    };
+    const { data, error } = await supabase
+      .from("monthly_briefs")
+      .upsert(payload, { onConflict: "client_name,month" })
+      .select("id")
+      .single();
     setSaving(false);
-    if (!error) {
+    if (error) {
+      setSaveError(error.message);
+    } else {
+      if (data?.id) setBriefId(data.id);
       if (submit) setSubmitted(true);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -676,6 +684,12 @@ function BriefTab({ clientName }) {
               />
             </div>
           ))}
+
+          {saveError && (
+            <div style={{ padding: '10px 14px', borderRadius: 12, background: '#fef2f2', border: '1px solid #fca5a5' }}>
+              <p style={{ fontSize: 13, color: '#dc2626', margin: 0 }}>{saveError}</p>
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button
