@@ -6,6 +6,7 @@ import { Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import StatusBadge from "../../components/shared/StatusBadge";
 
 const TYPE_COLORS = {
   Reel:     "bg-pink-100 text-pink-700",
@@ -89,6 +90,7 @@ export default function CaptionsTab({ items = [] }) {
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
                   <span className="text-xs font-semibold text-slate-700">{c.client_name}</span>
                   {c.title && <span className="text-xs text-slate-500">— {c.title}</span>}
+                  <StatusBadge status={c.status} />
                   {c.scheduled_date && (
                     <span className="text-xs text-slate-400">{format(new Date(c.scheduled_date), "d MMM yyyy", { locale: enUS })}</span>
                   )}
