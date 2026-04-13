@@ -1025,7 +1025,7 @@ export default function FreelancerPortal() {
           paddingRight: '20px',
           paddingTop: 'max(28px, env(safe-area-inset-top))',
         }}
-        className="pb-20 md:pb-5"
+        className="pb-28 md:pb-5"
       >
         {/* Topbar */}
         <nav style={{ padding: '0 0 20px 0', position: 'relative', zIndex: 10 }}>
@@ -1196,28 +1196,68 @@ export default function FreelancerPortal() {
         </main>
       </div>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950 border-t border-slate-800 flex md:hidden">
+      {/* Mobile bottom nav — liquid glass */}
+      <nav
+        className="fixed left-4 right-4 z-50 flex md:hidden items-center"
+        style={{
+          bottom: `calc(12px + env(safe-area-inset-bottom))`,
+          height: 64,
+          borderRadius: 28,
+          background: 'rgba(255,255,255,0.82)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          border: '1px solid rgba(255,255,255,0.9)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,1) inset',
+        }}
+      >
+        {/* Top specular shimmer */}
+        <div style={{
+          position: 'absolute', top: 0, left: '20%', right: '20%', height: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,1) 40%, rgba(255,255,255,1) 60%, transparent)',
+          pointerEvents: 'none',
+        }} />
+
         {[
-          { id: "dashboard",   label: "Home",      Icon: LayoutDashboard },
-          { id: "myprojects",  label: "Projects",  Icon: Briefcase },
-          { id: "projects",    label: "Editorial", Icon: FileText },
-          { id: "invoices",    label: "Invoices",  Icon: FileText },
-          { id: "profile",     label: "Profile",   Icon: User },
+          { id: "dashboard",  label: "Home",      Icon: LayoutDashboard },
+          { id: "myprojects", label: "Projects",  Icon: Briefcase },
+          { id: "projects",   label: "Editorial", Icon: FileText },
+          { id: "invoices",   label: "Invoices",  Icon: FileText },
+          { id: "profile",    label: "Profile",   Icon: User },
         ].map(({ id, label, Icon }) => {
           const isActive = activeTab === id;
-          const badge = id === "notifications" && unreadCount > 0 ? unreadCount : null;
           return (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`flex-1 flex flex-col items-center justify-center py-2 gap-1 transition-colors relative ${isActive ? "text-[#2A69FF]" : "text-slate-500"}`}
+              className="flex-1 flex flex-col items-center justify-center gap-1 relative"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', height: '100%' }}
             >
-              <div className="relative">
-                <Icon className="w-5 h-5" />
-                {badge && <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-red-500 rounded-full text-[8px] font-bold text-white flex items-center justify-center">{badge}</span>}
-              </div>
-              <span className="text-[9px] font-medium">{label}</span>
+              {isActive && (
+                <div style={{
+                  position: 'absolute',
+                  width: 64, height: 52,
+                  borderRadius: 16,
+                  background: 'linear-gradient(160deg, #2A69FF 0%, #1a54e0 100%)',
+                  boxShadow: '0 4px 12px rgba(42,105,255,0.35)',
+                  top: '50%', transform: 'translateY(-50%)',
+                }} />
+              )}
+              <Icon
+                className="w-[19px] h-[19px] relative z-10"
+                style={{ color: isActive ? '#fff' : 'rgba(30,40,70,0.5)', strokeWidth: isActive ? 2.2 : 1.8 }}
+              />
+              <span
+                className="relative z-10"
+                style={{
+                  fontSize: '9px',
+                  fontFamily: "'DM Mono', monospace",
+                  fontWeight: 500,
+                  letterSpacing: '0.04em',
+                  color: isActive ? '#fff' : 'rgba(30,40,70,0.5)',
+                }}
+              >
+                {label}
+              </span>
             </button>
           );
         })}
