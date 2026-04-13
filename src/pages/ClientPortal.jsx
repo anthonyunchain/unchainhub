@@ -369,7 +369,7 @@ function ReportsTab({ stats, content }) {
 }
 
 // ── Contracts tab ──────────────────────────────────────────────────────────
-function ContractsTab({ contracts }) {
+function ContractsTab({ contracts, contractDocuments }) {
   const STATUS_COLOR = {
     "Actif": "bg-emerald-100 text-emerald-700",
     "Signé": "bg-blue-100 text-blue-700",
@@ -383,7 +383,7 @@ function ContractsTab({ contracts }) {
     "Terminé": "Completed", "Résilié": "Terminated",
   };
 
-  if (!contracts.length) return (
+  if (!contracts.length && !contractDocuments.length) return (
     <div className="text-center py-20 text-slate-400">
       <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
       <p className="text-sm">No contracts found</p>
@@ -416,6 +416,17 @@ function ContractsTab({ contracts }) {
           </div>
         </div>
       ))}
+      {contractDocuments.map((url, i) => {
+        const name = decodeURIComponent(url.split("/").pop().split("?")[0]);
+        return (
+          <a key={`doc-${i}`} href={url} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-3 rounded-2xl p-5 hover:bg-slate-50 transition-colors"
+            style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
+            <FileText className="w-5 h-5 text-slate-400 shrink-0" />
+            <span className="text-sm font-medium text-slate-800 truncate">{name}</span>
+          </a>
+        );
+      })}
     </div>
   );
 }
@@ -563,14 +574,14 @@ export default function ClientPortal() {
         // Find client record linked to this user (try portal_user_id first, fall back to email)
         let { data: clientRows } = await supabase
           .from("clients")
-          .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs")
+          .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs, contract_documents")
           .eq("portal_user_id", authUser.id)
           .limit(1);
 
         if (!clientRows?.length) {
           const { data: emailRows } = await supabase
             .from("clients")
-            .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs")
+            .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs, contract_documents")
             .eq("contact_email", authUser.email)
             .limit(1);
           clientRows = emailRows;
@@ -751,7 +762,7 @@ export default function ClientPortal() {
 
         {activeTab === "dashboard"  && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} calendarPdfs={clientRecord?.editorial_calendar_pdfs || []} />}
         {activeTab === "reports"    && <ReportsTab stats={stats} content={content} />}
-        {activeTab === "contracts"  && <ContractsTab contracts={contracts} />}
+        {activeTab === "contracts"  && <ContractsTab contracts={contracts} contractDocuments={clientRecord?.contract_documents || []} />}
         {activeTab === "invoices"   && <InvoicesTab invoices={invoices} />}
       </div>
 
