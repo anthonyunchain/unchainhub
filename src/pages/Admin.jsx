@@ -463,9 +463,15 @@ function AdminTasks() {
   const STATUS_LABEL = { "À faire": "To do", "En cours": "In progress", "Terminé": "Done", "Bloqué": "Blocked" };
   const STATUSES = ["À faire", "En cours", "Terminé", "Bloqué"];
   const countByStatus = (s) => tasks.filter((t) => t.status === s).length;
+  const sortByUrgency = (arr) => [...arr].sort((a, b) => {
+    if (a.due_date && b.due_date) return new Date(a.due_date) - new Date(b.due_date);
+    if (a.due_date) return -1;
+    if (b.due_date) return 1;
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
   const filtered = activeStatus === "all" ? tasks : tasks.filter(t => t.status === activeStatus);
-  const pending = filtered.filter(t => t.status !== "Terminé");
-  const done = filtered.filter(t => t.status === "Terminé");
+  const pending = sortByUrgency(filtered.filter(t => t.status !== "Terminé"));
+  const done = sortByUrgency(filtered.filter(t => t.status === "Terminé"));
   return (
     <div>
       <div className="max-w-2xl mx-auto mb-6">
