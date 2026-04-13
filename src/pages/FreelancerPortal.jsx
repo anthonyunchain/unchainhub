@@ -481,7 +481,7 @@ function CalendarsTab({ visibleCalendars: initialCalendars }) {
   const toggleExpand = (id) => setExpandedIds(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
   const monthItems = localItems
-    .filter(c => c.scheduled_date?.startsWith(currentMonth) && c.status !== 'Publié')
+    .filter(c => c.scheduled_date?.startsWith(currentMonth))
     .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
 
   const byClient = {};
@@ -1055,6 +1055,7 @@ export default function FreelancerPortal() {
                 { id: 'tasks', label: 'Tasks' },
                 { id: 'myprojects', label: 'Projects' },
                 { id: 'projects', label: 'Calendar' },
+                ...(visibleCalendars.length > 0 ? [{ id: 'calendar', label: 'Shared calendars' }] : []),
                 ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas' }] : []),
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
@@ -1130,7 +1131,7 @@ export default function FreelancerPortal() {
                 tasks:       { title: 'Tasks',           subtitle: 'Tasks assigned to you' },
                 myprojects:  { title: 'Projects',        subtitle: 'Projects assigned to you' },
                 projects:    { title: 'Editorial Calendar', subtitle: 'Content schedule & captions' },
-                calendar:    { title: 'Captions',        subtitle: 'Write & edit captions for your assigned calendars' },
+                calendar:    { title: 'Shared Calendars', subtitle: 'Editorial calendars shared with you' },
                 ideas:       { title: 'Ideas',           subtitle: 'Brainstorm content ideas' },
                 tools:       { title: 'Tools',           subtitle: 'Your tools & resources' },
                 meetings:    { title: 'Meetings',        subtitle: 'Upcoming & past meetings' },
