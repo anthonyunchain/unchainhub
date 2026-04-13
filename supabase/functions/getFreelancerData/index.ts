@@ -21,13 +21,8 @@ Deno.serve(async (req) => {
     if (!authHeader) {
       return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
     }
-
-    const supabaseUser = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
     }
