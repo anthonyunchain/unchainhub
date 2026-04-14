@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
 import { Link } from "react-router-dom";
 import { AlignLeft } from "lucide-react";
 import StatusBadge from "../components/shared/StatusBadge";
@@ -27,6 +28,7 @@ const TYPE_COLORS = {
 };
 
 export default function Editorial() {
+  const { toast } = useToast();
   const [view, setView] = useState("month");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -57,8 +59,16 @@ export default function Editorial() {
   // Only video editors can be assigned to montage
   const videoEditors = allFreelancers.filter(f => (f.tags || []).map(t => t.toLowerCase()).includes("video editor") || f.role?.toLowerCase().includes("monteur") || f.role?.toLowerCase().includes("video editor"));
 
-  const createMut = useMutation({ mutationFn: (d) => base44.entities.EditorialContent.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["editorial"] }); setDialogOpen(false); } });
-  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.EditorialContent.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["editorial"] }); setDialogOpen(false); } });
+  const createMut = useMutation({
+    mutationFn: (d) => base44.entities.EditorialContent.create(d),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["editorial"] }); setDialogOpen(false); },
+    onError: (err) => toast({ title: "Erreur lors de la création", description: err?.message || String(err), variant: "destructive" }),
+  });
+  const updateMut = useMutation({
+    mutationFn: ({ id, d }) => base44.entities.EditorialContent.update(id, d),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["editorial"] }); setDialogOpen(false); },
+    onError: (err) => toast({ title: "Erreur lors de la sauvegarde", description: err?.message || String(err), variant: "destructive" }),
+  });
   const deleteMut = useMutation({
     mutationFn: (id) => {
       console.log('deleteMut.mutationFn called with id:', id);
@@ -620,15 +630,16 @@ export default function Editorial() {
                   <div>
                     <Label>Assigned editor</Label>
                     <Select value={editData.assigned_editor_id || ""} onValueChange={v => {
+                      const editorId = v || null;
                       const fl = videoEditors.find(f => f.id === v);
                       const isReel = editData.post_type === "Reel";
-                      setEditData({ ...editData, assigned_editor_id: v, assigned_editor_name: fl?.name || "",
-                        editing_status: v ? (isReel ? "En attente d'acceptation" : (editData.editing_status === "Non assigné" ? "À faire" : editData.editing_status)) : "Non assigné"
+                      setEditData({ ...editData, assigned_editor_id: editorId, assigned_editor_name: fl?.name || "",
+                        editing_status: editorId ? (isReel ? "En attente d'acceptation" : (editData.editing_status === "Non assigné" ? "À faire" : editData.editing_status)) : "Non assigné"
                       });
                     }}>
                       <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={null}>None</SelectItem>
+                        <SelectItem value="">None</SelectItem>
                         {videoEditors.length === 0 && <SelectItem value="_none" disabled>No video editors</SelectItem>}
                         {videoEditors.map(f => <SelectItem key={f.id} value={f.id}>{f.name} {f.status === "Indisponible" ? "⚠️" : ""}</SelectItem>)}
                       </SelectContent>
