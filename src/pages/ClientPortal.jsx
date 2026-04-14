@@ -193,20 +193,16 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
   return (
     <div className="space-y-4">
       {/* Month nav */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-bold text-slate-800 capitalize">
+      <div className="flex items-center gap-3 mb-2">
+        <button onClick={() => setCurrentDate(d => subMonths(d, 1))} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <ChevronLeft style={{ width: 16, height: 16, color: 'var(--muted)' }} />
+        </button>
+        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', flex: 1, textAlign: 'center', textTransform: 'capitalize' }}>
           {format(currentDate, "MMMM yyyy", { locale: enUS })}
-        </h2>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <button onClick={() => setCurrentDate(d => subMonths(d, 1))} className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
-              <ChevronLeft className="w-4 h-4 text-slate-500" />
-            </button>
-            <button onClick={() => setCurrentDate(d => addMonths(d, 1))} className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
-              <ChevronRight className="w-4 h-4 text-slate-500" />
-            </button>
-          </div>
-        </div>
+        </span>
+        <button onClick={() => setCurrentDate(d => addMonths(d, 1))} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <ChevronRight style={{ width: 16, height: 16, color: 'var(--muted)' }} />
+        </button>
       </div>
 
       {/* Stats row */}
@@ -270,6 +266,12 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
 function ReportsTab({ stats, content }) {
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
 
+  const shiftMonth = (dir) => {
+    const d = new Date(selectedMonth + "-01");
+    d.setMonth(d.getMonth() + dir);
+    setSelectedMonth(format(d, "yyyy-MM"));
+  };
+
   const months = [];
   for (let i = 11; i >= 0; i--) {
     const d = new Date();
@@ -298,17 +300,17 @@ function ReportsTab({ stats, content }) {
 
   return (
     <div className="space-y-4">
-      {/* Month selector */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-slate-500">Month:</span>
-        <div className="flex gap-1 flex-wrap">
-          {months.slice(-6).map(m => (
-            <button key={m} onClick={() => setSelectedMonth(m)}
-              className={`text-[11px] font-mono px-3 py-1.5 rounded-lg transition-colors ${selectedMonth === m ? "bg-[#2A69FF] text-white" : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"}`}>
-              {format(new Date(m + "-01"), "MMM yy", { locale: enUS })}
-            </button>
-          ))}
-        </div>
+      {/* Month nav */}
+      <div className="flex items-center gap-3 mb-2">
+        <button onClick={() => shiftMonth(-1)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <ChevronLeft style={{ width: 16, height: 16, color: 'var(--muted)' }} />
+        </button>
+        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', flex: 1, textAlign: 'center', textTransform: 'capitalize' }}>
+          {format(new Date(selectedMonth + "-01"), "MMMM yyyy", { locale: enUS })}
+        </span>
+        <button onClick={() => shiftMonth(1)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <ChevronRight style={{ width: 16, height: 16, color: 'var(--muted)' }} />
+        </button>
       </div>
 
       {/* KPIs */}
