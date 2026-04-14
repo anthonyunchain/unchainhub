@@ -1337,7 +1337,7 @@ function AdminExpenses() {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(null);
   const [mutError, setMutError] = useState(null);
-  const [filterMonth, setFilterMonth] = useState("");
+  const [filterMonth, setFilterMonth] = useState(() => format(new Date(), "yyyy-MM"));
   const [filterCat, setFilterCat] = useState("all");
   const qc = useQueryClient();
 
@@ -1426,69 +1426,35 @@ function AdminExpenses() {
 
       {/* Filters */}
       <div className="flex flex-col gap-3 mb-4">
-        {/* Month pills + arrow nav */}
-        {availableMonths.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Prev arrow */}
-            <button
-              onClick={() => {
-                const idx = filterMonth ? availableMonths.indexOf(filterMonth) : -1;
-                const next = idx === -1 ? 0 : idx + 1;
-                if (next < availableMonths.length) setFilterMonth(availableMonths[next]);
-              }}
-              disabled={filterMonth === availableMonths[availableMonths.length - 1]}
-              className="h-8 w-8 flex items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:text-slate-800 hover:border-slate-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            {/* Next arrow */}
-            <button
-              onClick={() => {
-                const idx = filterMonth ? availableMonths.indexOf(filterMonth) : availableMonths.length;
-                const prev = idx - 1;
-                if (prev >= 0) setFilterMonth(availableMonths[prev]);
-                else setFilterMonth("");
-              }}
-              disabled={!filterMonth}
-              className="h-8 w-8 flex items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:text-slate-800 hover:border-slate-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-
-            <div className="w-px h-5 bg-slate-200 mx-1" />
-
-            <button
-              onClick={() => setFilterMonth("")}
-              className="h-8 px-4 text-xs font-medium rounded-full border transition-all"
-              style={{
-                background: !filterMonth ? 'var(--brand)' : '#fff',
-                color: !filterMonth ? '#fff' : 'var(--muted)',
-                borderColor: !filterMonth ? 'var(--brand)' : '#e2e8f0',
-              }}
-            >
-              All
-            </button>
-            {availableMonths.map(m => {
-              const active = filterMonth === m;
-              const label = format(new Date(m + '-01'), 'MMM yyyy', { locale: enUS });
-              return (
-                <button
-                  key={m}
-                  onClick={() => setFilterMonth(active ? "" : m)}
-                  className="h-8 px-4 text-xs font-medium rounded-full border transition-all"
-                  style={{
-                    background: active ? 'var(--brand)' : '#fff',
-                    color: active ? '#fff' : 'var(--muted)',
-                    borderColor: active ? 'var(--brand)' : '#e2e8f0',
-                  }}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* Month navigator */}
+        {availableMonths.length > 0 && (() => {
+          const idx = filterMonth ? availableMonths.indexOf(filterMonth) : 0;
+          const currentMonth = availableMonths[idx] || availableMonths[0];
+          const label = format(new Date(currentMonth + '-01'), 'MMMM yyyy', { locale: enUS });
+          const canPrev = idx < availableMonths.length - 1;
+          const canNext = idx > 0;
+          return (
+            <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden w-full">
+              <button
+                onClick={() => canPrev && setFilterMonth(availableMonths[idx + 1])}
+                disabled={!canPrev}
+                className="h-9 w-10 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-r border-slate-100"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="flex-1 text-center text-sm font-medium text-slate-700 capitalize">
+                {label}
+              </span>
+              <button
+                onClick={() => canNext && setFilterMonth(availableMonths[idx - 1])}
+                disabled={!canNext}
+                className="h-9 w-10 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-l border-slate-100"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          );
+        })()}
         {/* Category filter */}
         <div className="flex gap-2 flex-wrap items-center">
           <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
@@ -1496,8 +1462,8 @@ function AdminExpenses() {
             <option value="all">All categories</option>
             {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          {(filterMonth || filterCat !== "all") && (
-            <button onClick={() => { setFilterMonth(""); setFilterCat("all"); }}
+          {filterCat !== "all" && (
+            <button onClick={() => setFilterCat("all")}
               className="h-8 px-3 text-xs text-slate-400 hover:text-slate-600 border border-slate-200 rounded-lg bg-white">
               Clear
             </button>
