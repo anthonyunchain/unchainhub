@@ -1117,11 +1117,7 @@ export default function FreelancerPortal() {
                 { id: 'todo', label: 'My To-Do' },
                 { id: 'tasks', label: 'Tasks' },
                 { id: 'myprojects', label: 'Projects' },
-                { id: 'projects', label: 'Calendar' },
-
                 ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas' }] : []),
-                { id: 'tools', label: 'Tools' },
-                { id: 'meetings', label: 'Meetings' },
                 { id: 'invoices', label: 'Invoices' },
               ].map(item => {
                 const isActive = activeTab === item.id;
@@ -1311,7 +1307,7 @@ export default function FreelancerPortal() {
 
           {/* More button */}
           {(() => {
-            const moreActive = moreOpen || ['profile','tasks','todo','captions','ideas','tools','meetings','contract'].includes(activeTab);
+            const moreActive = moreOpen || ['profile','tasks','todo','captions','ideas','contract'].includes(activeTab);
             return (
               <button onClick={() => setMoreOpen(v => !v)}
                 className="flex-1 flex flex-col items-center justify-center gap-1 relative"
@@ -1368,8 +1364,6 @@ export default function FreelancerPortal() {
                   { id: 'todo',      label: 'To-Do',     Icon: ListTodo },
                   { id: 'captions',  label: 'Captions',  Icon: AlignLeft },
                   ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas', Icon: Lightbulb }] : []),
-                  { id: 'tools',     label: 'Tools',     Icon: Wrench },
-                  { id: 'meetings',  label: 'Meetings',  Icon: CalendarDays },
                   { id: 'contract',  label: 'Contract',  Icon: FileCheck },
                 ].map(({ id, label, Icon }) => {
                   const isActive = activeTab === id;
