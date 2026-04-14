@@ -1292,19 +1292,18 @@ export default function FreelancerPortal() {
             pointerEvents: 'none',
           }} />
 
-          {[
+          {(profile?.id === 'a83475b8-6afe-45c8-bbfb-7afcbbabfe54' ? [
+            { id: "dashboard",  label: "Home",     Icon: LayoutDashboard },
+            { id: "todo",       label: "My To-Do", Icon: ListTodo },
+            { id: "tasks",      label: "Tasks",    Icon: ClipboardList },
+            { id: "myprojects", label: "Projects", Icon: Briefcase },
+            { id: "invoices",   label: "Invoices", Icon: FileText },
+          ] : [
             { id: "dashboard",  label: "Home",      Icon: LayoutDashboard },
             { id: "myprojects", label: "Projects",  Icon: Briefcase },
             { id: "projects",   label: "Editorial", Icon: CalendarDays },
             { id: "invoices",   label: "Invoices",  Icon: FileText },
-          ].filter(item => {
-            const hidden = profile?.hidden_nav_items?.length
-              ? profile.hidden_nav_items
-              : profile?.id === 'a83475b8-6afe-45c8-bbfb-7afcbbabfe54'
-                ? ['projects', 'tools', 'meetings']
-                : [];
-            return !hidden.includes(item.id);
-          }).map(({ id, label, Icon }) => {
+          ]).map(({ id, label, Icon }) => {
             const isActive = activeTab === id;
             return (
               <button key={id} onClick={() => { setActiveTab(id); setMoreOpen(false); }}
@@ -1329,7 +1328,7 @@ export default function FreelancerPortal() {
           })}
 
           {/* More button */}
-          {(() => {
+          {profile?.id !== 'a83475b8-6afe-45c8-bbfb-7afcbbabfe54' && ((() => {
             const moreActive = moreOpen || ['profile','tasks','todo','captions','ideas','tools','meetings','contract'].includes(activeTab);
             return (
               <button onClick={() => setMoreOpen(v => !v)}
@@ -1353,7 +1352,7 @@ export default function FreelancerPortal() {
                 </span>
               </button>
             );
-          })()}
+          })())}
         </nav>
 
         {/* More sheet */}
