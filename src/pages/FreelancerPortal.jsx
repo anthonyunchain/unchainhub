@@ -1297,7 +1297,14 @@ export default function FreelancerPortal() {
             { id: "myprojects", label: "Projects",  Icon: Briefcase },
             { id: "projects",   label: "Editorial", Icon: CalendarDays },
             { id: "invoices",   label: "Invoices",  Icon: FileText },
-          ].map(({ id, label, Icon }) => {
+          ].filter(item => {
+            const hidden = profile?.hidden_nav_items?.length
+              ? profile.hidden_nav_items
+              : profile?.id === 'a83475b8-6afe-45c8-bbfb-7afcbbabfe54'
+                ? ['projects', 'tools', 'meetings']
+                : [];
+            return !hidden.includes(item.id);
+          }).map(({ id, label, Icon }) => {
             const isActive = activeTab === id;
             return (
               <button key={id} onClick={() => { setActiveTab(id); setMoreOpen(false); }}
