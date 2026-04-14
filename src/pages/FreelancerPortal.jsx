@@ -1035,7 +1035,7 @@ export default function FreelancerPortal() {
 
   const handleUpdateTask = async (task, updates) => {
     if (updates.status) {
-      await base44.functions.invoke('updateTaskStatus', { task_id: task.id, status: updates.status });
+      await base44.entities.Task.update(task.id, { status: updates.status });
     }
     const res = await base44.functions.invoke('getFreelancerData', {});
     setFreelancerData(res.data);
