@@ -935,6 +935,16 @@ function ContractTab({ profile }) {
   );
 }
 
+// ─── PER-FREELANCER HIDDEN NAV ITEMS (fallback until DB migration is applied) ─
+const HIDDEN_NAV_BY_ID = {
+  'a83475b8-6afe-45c8-bbfb-7afcbbabfe54': ['projects', 'tools', 'meetings'], // Domnin
+  '2ba918c3-a88e-4b9f-a570-68d8e6b0c1ed': ['tools'],
+};
+function getHiddenNav(profile) {
+  if (profile?.hidden_nav_items?.length) return profile.hidden_nav_items;
+  return HIDDEN_NAV_BY_ID[profile?.id] || [];
+}
+
 // ─── MAIN PORTAL ──────────────────────────────────────────────────────────
 const TAB_TITLES = {
   dashboard: "Dashboard",
@@ -1127,14 +1137,7 @@ export default function FreelancerPortal() {
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
                 { id: 'invoices', label: 'Invoices' },
-              ].filter(item => {
-                const hidden = profile?.hidden_nav_items?.length
-                  ? profile.hidden_nav_items
-                  : profile?.id === 'a83475b8-6afe-45c8-bbfb-7afcbbabfe54'
-                    ? ['projects', 'tools', 'meetings']
-                    : [];
-                return !hidden.includes(item.id);
-              }).map(item => {
+              ].filter(item => !getHiddenNav(profile).includes(item.id)).map(item => {
                 const isActive = activeTab === item.id;
                 return (
                   <button
@@ -1388,14 +1391,7 @@ export default function FreelancerPortal() {
                   { id: 'tools',     label: 'Tools',     Icon: Wrench },
                   { id: 'meetings',  label: 'Meetings',  Icon: CalendarDays },
                   { id: 'contract',  label: 'Contract',  Icon: FileCheck },
-                ].filter(item => {
-                  const hidden = profile?.hidden_nav_items?.length
-                    ? profile.hidden_nav_items
-                    : profile?.id === 'a83475b8-6afe-45c8-bbfb-7afcbbabfe54'
-                      ? ['projects', 'tools', 'meetings']
-                      : [];
-                  return !hidden.includes(item.id);
-                }).map(({ id, label, Icon }) => {
+                ].filter(item => !getHiddenNav(profile).includes(item.id)).map(({ id, label, Icon }) => {
                   const isActive = activeTab === id;
                   return (
                     <button key={id}
