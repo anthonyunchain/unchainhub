@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Upload, X, ExternalLink, Trash2, GripVertical, Settings2, Check, Users, UserPlus, Send, Eye, EyeOff, CalendarDays, Shield, User as UserIcon, Building2, RefreshCw, Copy, KeyRound } from "lucide-react";
+import { Plus, Upload, X, ExternalLink, Trash2, GripVertical, Settings2, Check, Users, UserPlus, Send, Eye, EyeOff, CalendarDays, Shield, User as UserIcon, Building2, RefreshCw, Copy, KeyRound, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import Invoices from "./Invoices";
 import Finance from "./Finance";
@@ -1426,9 +1426,38 @@ function AdminExpenses() {
 
       {/* Filters */}
       <div className="flex flex-col gap-3 mb-4">
-        {/* Month pills */}
+        {/* Month pills + arrow nav */}
         {availableMonths.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Prev arrow */}
+            <button
+              onClick={() => {
+                const idx = filterMonth ? availableMonths.indexOf(filterMonth) : -1;
+                const next = idx === -1 ? 0 : idx + 1;
+                if (next < availableMonths.length) setFilterMonth(availableMonths[next]);
+              }}
+              disabled={filterMonth === availableMonths[availableMonths.length - 1]}
+              className="h-8 w-8 flex items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:text-slate-800 hover:border-slate-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {/* Next arrow */}
+            <button
+              onClick={() => {
+                const idx = filterMonth ? availableMonths.indexOf(filterMonth) : availableMonths.length;
+                const prev = idx - 1;
+                if (prev >= 0) setFilterMonth(availableMonths[prev]);
+                else setFilterMonth("");
+              }}
+              disabled={!filterMonth}
+              className="h-8 w-8 flex items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:text-slate-800 hover:border-slate-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+
+            <div className="w-px h-5 bg-slate-200 mx-1" />
+
             <button
               onClick={() => setFilterMonth("")}
               className="h-8 px-4 text-xs font-medium rounded-full border transition-all"
