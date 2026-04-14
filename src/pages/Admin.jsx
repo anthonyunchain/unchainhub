@@ -818,6 +818,26 @@ function UserManagement() {
     }
   };
 
+  const [deletingUserId, setDeletingUserId] = useState(null);
+
+  const handleDeleteUser = async (userId, name) => {
+    if (!confirm(`Delete user "${name}"? This cannot be undone.`)) return;
+    setDeletingUserId(userId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error: fnError } = await supabase.functions.invoke("deleteUser", {
+        body: { user_id: userId },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (fnError || data?.error) throw new Error(data?.error || fnError?.message || "Error");
+      qc.invalidateQueries({ queryKey: ["profiles"] });
+    } catch (e) {
+      alert("Error: " + (e.message || "Unknown error"));
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
   const ROLE_COLORS = { admin: "bg-violet-50 text-violet-700", user: "bg-blue-50 text-blue-700", freelancer: "bg-amber-50 text-amber-700" };
 
   return (
@@ -838,6 +858,7 @@ function UserManagement() {
               <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Name</th>
               <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Role</th>
               <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">ID</th>
+              <th className="px-5 py-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -858,6 +879,16 @@ function UserManagement() {
                   </span>
                 </td>
                 <td className="px-5 py-3 text-xs text-slate-400 font-mono">{p.id}</td>
+                <td className="px-5 py-3 text-right">
+                  <button
+                    onClick={() => handleDeleteUser(p.id, p.full_name || p.id)}
+                    disabled={deletingUserId === p.id}
+                    className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
+                    title="Delete user"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
