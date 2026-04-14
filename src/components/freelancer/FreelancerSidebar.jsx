@@ -67,7 +67,7 @@ export default function FreelancerSidebar({ activeTab, onTabChange, user, freela
 
   const HIDDEN_NAV_BY_ID = {
     'a83475b8-6afe-45c8-bbfb-7afcbbabfe54': ['projects', 'tools', 'meetings'], // Domnin
-    '2ba918c3-a88e-4b9f-a570-68d8e6b0c1ed': ['tools'],
+    '2ba918c3-a88e-4b9f-a570-68d8e6b0c1ed': ['tools', 'projects', 'captions'],
   };
   const hiddenNavItems = freelancerProfile?.hidden_nav_items?.length
     ? freelancerProfile.hidden_nav_items
