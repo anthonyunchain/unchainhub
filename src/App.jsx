@@ -65,15 +65,16 @@ const AuthenticatedApp = () => {
 
   const [role, setRole] = useState(null);
   const [roleChecked, setRoleChecked] = useState(false);
+  const [roleError, setRoleError] = useState(false);
 
   useEffect(() => {
     if (!isLoadingAuth && isAuthenticated) {
       (async () => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error('no user');
+          if (!user) { await supabase.auth.signOut(); return; }
 
-          // Check per-user cache
+          // Check per-user cache (keyed by UID so switching accounts is safe)
           const cacheKey = getRoleCacheKey(user.id);
           const cached = localStorage.getItem(cacheKey);
           if (cached) {
@@ -93,24 +94,32 @@ const AuthenticatedApp = () => {
             : profile?.role === 'admin' ? 'admin'
             : null;
 
-          // If profile role is not set or ambiguous, fall back to freelancer check
-          if (!detectedRole || detectedRole === 'admin') {
-            try {
-              const { data, error } = await supabase.functions.invoke('getFreelancerData');
-              const isFreelancer = !error && !data?.error && data?.profile;
-              const finalRole = isFreelancer ? 'freelancer' : 'admin';
-              setRole(finalRole);
-              localStorage.setItem(cacheKey, finalRole);
-            } catch {
-              setRole('admin');
-              localStorage.setItem(cacheKey, 'admin');
-            }
-          } else {
+          if (detectedRole) {
+            // Profile role is explicitly set — trust it directly
             setRole(detectedRole);
             localStorage.setItem(cacheKey, detectedRole);
+          } else {
+            // No role set in profile — check if this user is a freelancer
+            try {
+              const { data, error } = await supabase.functions.invoke('getFreelancerData');
+              if (!error && !data?.error && data?.profile) {
+                setRole('freelancer');
+                localStorage.setItem(cacheKey, 'freelancer');
+              } else {
+                // Not a freelancer and no explicit role — fail safe, do NOT escalate to admin
+                console.error('[App] No role found for user, signing out for safety');
+                setRoleError(true);
+                await supabase.auth.signOut();
+              }
+            } catch {
+              // Network / function error — fail safe (never escalate to admin on error)
+              setRoleError(true);
+            }
           }
-        } catch {
-          setRole('admin');
+        } catch (err) {
+          // Outer error (getUser failed, DB unreachable) — fail safe
+          console.error('[App] Role detection failed:', err?.message);
+          setRoleError(true);
         }
         setRoleChecked(true);
       })();
@@ -120,12 +129,21 @@ const AuthenticatedApp = () => {
       Object.keys(localStorage).filter(k => k.startsWith('uc_role_')).forEach(k => localStorage.removeItem(k));
       setRole(null);
       setRoleChecked(false);
+      setRoleError(false);
     }
   }, [isLoadingAuth, isAuthenticated]);
 
   if (isLoadingAuth) return <Spinner />;
   if (!isAuthenticated) return <LoginPage />;
   if (!roleChecked) return <Spinner />;
+  if (roleError) return (
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-slate-50 gap-4 p-6 text-center">
+      <p className="text-slate-700 font-semibold">Unable to load your account</p>
+      <p className="text-sm text-slate-500">Could not determine your access level. Please check your connection and try again.</p>
+      <button onClick={() => window.location.reload()} className="text-sm text-blue-600 underline">Retry</button>
+      <button onClick={() => supabase.auth.signOut()} className="text-xs text-slate-400 underline">Sign out</button>
+    </div>
+  );
 
   if (role === 'freelancer') {
     return (
