@@ -380,7 +380,7 @@ export default function Reports() {
 
       {/* Bulk entry dialog */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Bulk entry — social stats</DialogTitle>
           </DialogHeader>
@@ -393,13 +393,13 @@ export default function Reports() {
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-slate-50 z-10">
                 <tr className="border-b border-slate-200">
-                  <th className="text-left px-4 py-2 text-xs font-medium text-slate-500 w-40">Client</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 w-32">Platform</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500">Views</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500">Reach</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500">Likes</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500">Comments</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500">Followers +</th>
+                  <th className="text-left px-4 py-2 text-xs font-medium text-slate-500" style={{width: 160}}>Client</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500" style={{width: 130}}>Platform</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500" style={{width: 120}}>Views</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500" style={{width: 120}}>Reach</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500" style={{width: 120}}>Likes</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500" style={{width: 120}}>Comments</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500" style={{width: 120}}>Followers +</th>
                 </tr>
               </thead>
               <tbody>
@@ -427,7 +427,7 @@ export default function Reports() {
                           value={row[field]}
                           onChange={e => updateBulkRow(idx, field, e.target.value)}
                           placeholder="—"
-                          className="h-7 w-full text-xs px-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-brand"
+                          className="h-8 w-full text-sm px-3 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-brand"
                         />
                       </td>
                     ))}
