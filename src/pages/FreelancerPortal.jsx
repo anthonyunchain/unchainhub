@@ -1034,10 +1034,10 @@ export default function FreelancerPortal() {
   const unreadCount = myProjects.filter(p => p.status === "Pending acceptance").length;
 
   const handleUpdateTask = async (task, updates) => {
-    if (updates.status) {
-      await base44.functions.invoke('updateTaskStatus', { task_id: task.id, status: updates.status });
-    }
-    const res = await base44.functions.invoke('getFreelancerData', {});
+    const payload = updates.status
+      ? { update_task_id: task.id, update_task_status: updates.status }
+      : {};
+    const res = await base44.functions.invoke('getFreelancerData', payload);
     setFreelancerData(res.data);
   };
 
