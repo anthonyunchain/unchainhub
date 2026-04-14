@@ -941,6 +941,41 @@ function getHiddenNav(profile) {
   return HIDDEN_NAV_BY_ID[profile?.id] || [];
 }
 
+// ─── CUSTOM MOBILE BOTTOM NAV PER FREELANCER ──────────────────────────────
+// bottomBar: items shown in the fixed bottom bar
+// showMore: whether the More button appears
+// moreItems: override for the More sheet items (null = use default)
+const MOBILE_NAV_BY_ID = {
+  'a83475b8-6afe-45c8-bbfb-7afcbbabfe54': { // Domnin — no More button
+    bottomBar: (icons) => [
+      { id: 'dashboard',  label: 'Home',     Icon: icons.LayoutDashboard },
+      { id: 'todo',       label: 'My To-Do', Icon: icons.ListTodo },
+      { id: 'tasks',      label: 'Tasks',    Icon: icons.ClipboardList },
+      { id: 'myprojects', label: 'Projects', Icon: icons.Briefcase },
+      { id: 'invoices',   label: 'Admin',    Icon: icons.FileText },
+    ],
+    showMore: false,
+    moreItems: null,
+  },
+  '25f828d3-0855-4399-a17d-cf32f5108469': { // Jane
+    bottomBar: (icons) => [
+      { id: 'dashboard', label: 'Home',      Icon: icons.LayoutDashboard },
+      { id: 'tasks',     label: 'Tasks',     Icon: icons.ClipboardList },
+      { id: 'projects',  label: 'Calendars', Icon: icons.CalendarDays },
+      { id: 'invoices',  label: 'Admin',     Icon: icons.FileText },
+    ],
+    showMore: true,
+    moreItems: (icons) => [
+      { id: 'profile',    label: 'Profile',   Icon: icons.User },
+      { id: 'myprojects', label: 'Projects',  Icon: icons.Briefcase },
+      { id: 'todo',       label: 'To-Do',     Icon: icons.ListTodo },
+      { id: 'captions',   label: 'Captions',  Icon: icons.AlignLeft },
+      { id: 'tools',      label: 'Tools',     Icon: icons.Wrench },
+      { id: 'meetings',   label: 'Meetings',  Icon: icons.CalendarDays },
+    ],
+  },
+};
+
 // ─── MAIN PORTAL ──────────────────────────────────────────────────────────
 const TAB_TITLES = {
   dashboard: "Dashboard",
@@ -1290,18 +1325,19 @@ export default function FreelancerPortal() {
             pointerEvents: 'none',
           }} />
 
-          {(profile?.id === 'a83475b8-6afe-45c8-bbfb-7afcbbabfe54' ? [
-            { id: "dashboard",  label: "Home",     Icon: LayoutDashboard },
-            { id: "todo",       label: "My To-Do", Icon: ListTodo },
-            { id: "tasks",      label: "Tasks",    Icon: ClipboardList },
-            { id: "myprojects", label: "Projects", Icon: Briefcase },
-            { id: "invoices",   label: "Admin", Icon: FileText },
-          ] : [
-            { id: "dashboard",  label: "Home",      Icon: LayoutDashboard },
-            { id: "myprojects", label: "Projects",  Icon: Briefcase },
-            { id: "projects",   label: "Editorial", Icon: CalendarDays },
-            { id: "invoices",   label: "Admin",     Icon: FileText },
-          ]).map(({ id, label, Icon }) => {
+          {(() => {
+            const mobileIcons = { LayoutDashboard, ListTodo, ClipboardList, Briefcase, FileText, CalendarDays, User, Wrench, AlignLeft };
+            const customNav = MOBILE_NAV_BY_ID[profile?.id];
+            return (customNav?.bottomBar
+              ? customNav.bottomBar(mobileIcons)
+              : [
+                { id: "dashboard",  label: "Home",      Icon: LayoutDashboard },
+                { id: "myprojects", label: "Projects",  Icon: Briefcase },
+                { id: "projects",   label: "Editorial", Icon: CalendarDays },
+                { id: "invoices",   label: "Admin",     Icon: FileText },
+              ]
+            );
+          })().map(({ id, label, Icon }) => {
             const isActive = activeTab === id;
             return (
               <button key={id} onClick={() => { setActiveTab(id); setMoreOpen(false); }}
@@ -1326,7 +1362,7 @@ export default function FreelancerPortal() {
           })}
 
           {/* More button */}
-          {profile?.id !== 'a83475b8-6afe-45c8-bbfb-7afcbbabfe54' && ((() => {
+          {(MOBILE_NAV_BY_ID[profile?.id]?.showMore ?? true) && ((() => {
             const moreActive = moreOpen || ['profile','tasks','todo','captions','ideas','tools','meetings'].includes(activeTab);
             return (
               <button onClick={() => setMoreOpen(v => !v)}
@@ -1378,15 +1414,21 @@ export default function FreelancerPortal() {
                 More
               </p>
               <div className="grid grid-cols-4 gap-2">
-                {[
-                  { id: 'profile',   label: 'Profile',   Icon: User },
-                  { id: 'tasks',     label: 'Tasks',     Icon: ClipboardList },
-                  { id: 'todo',      label: 'To-Do',     Icon: ListTodo },
-                  { id: 'captions',  label: 'Captions',  Icon: AlignLeft },
-                  ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas', Icon: Lightbulb }] : []),
-                  { id: 'tools',     label: 'Tools',     Icon: Wrench },
-                  { id: 'meetings',  label: 'Meetings',  Icon: CalendarDays },
-                ].filter(item => !getHiddenNav(profile).includes(item.id)).map(({ id, label, Icon }) => {
+                {(() => {
+                  const mobileIcons = { LayoutDashboard, ListTodo, ClipboardList, Briefcase, FileText, CalendarDays, User, Wrench, AlignLeft, Lightbulb };
+                  const customMore = MOBILE_NAV_BY_ID[profile?.id]?.moreItems;
+                  const defaultMore = [
+                    { id: 'profile',   label: 'Profile',   Icon: User },
+                    { id: 'tasks',     label: 'Tasks',     Icon: ClipboardList },
+                    { id: 'todo',      label: 'To-Do',     Icon: ListTodo },
+                    { id: 'captions',  label: 'Captions',  Icon: AlignLeft },
+                    ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas', Icon: Lightbulb }] : []),
+                    { id: 'tools',     label: 'Tools',     Icon: Wrench },
+                    { id: 'meetings',  label: 'Meetings',  Icon: CalendarDays },
+                  ];
+                  return (customMore ? customMore(mobileIcons) : defaultMore)
+                    .filter(item => !getHiddenNav(profile).includes(item.id));
+                })().map(({ id, label, Icon }) => {
                   const isActive = activeTab === id;
                   return (
                     <button key={id}
