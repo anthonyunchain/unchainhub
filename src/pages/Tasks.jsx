@@ -127,6 +127,7 @@ export default function Tasks() {
   const [activeStatus, setActiveStatus] = useState("all");
   const [activeClient, setActiveClient] = useState("all");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [activeAssignee, setActiveAssignee] = useState("all");
   const [mutError, setMutError] = useState(null);
   const qc = useQueryClient();
 
@@ -175,10 +176,13 @@ export default function Tasks() {
     updateMut.mutate({ id: task.id, d: { ...task, status: newStatus } });
   };
 
+  const taskAssignees = [...new Set(tasks.map((t) => t.assigned_to).filter(Boolean))].sort();
+
   const filtered = tasks
     .filter((t) => activeStatus === "all" || t.status === activeStatus)
     .filter((t) => activeClient === "all" || t.client_name === activeClient)
     .filter((t) => activeCategory === "all" || t.category === activeCategory)
+    .filter((t) => activeAssignee === "all" || t.assigned_to === activeAssignee)
     .sort((a, b) => {
       if (a.due_date && b.due_date) return new Date(a.due_date) - new Date(b.due_date);
       if (a.due_date) return -1;
@@ -259,6 +263,24 @@ export default function Tasks() {
             <span className="ml-1 text-[10px] opacity-60">{tasks.filter(t => t.category === k).length}</span>
           </button>
         )}
+        {taskAssignees.length > 0 && <>
+          <span className="shrink-0 w-px h-4 bg-slate-200 mx-1" />
+          <span className="shrink-0 text-xs text-slate-400 font-medium">Assigned:</span>
+          <button
+            onClick={() => setActiveAssignee("all")}
+            className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeAssignee === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+            All
+          </button>
+          {taskAssignees.map((a) =>
+            <button
+              key={a}
+              onClick={() => setActiveAssignee(activeAssignee === a ? "all" : a)}
+              className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeAssignee === a ? "bg-violet-600 text-white" : "bg-violet-50 text-violet-700 hover:bg-violet-100"}`}>
+              {a}
+              <span className="ml-1 text-[10px] opacity-70">{tasks.filter(t => t.assigned_to === a).length}</span>
+            </button>
+          )}
+        </>}
       </div>
 
       {/* Liste */}
