@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { corsHeaders } from '../_shared/cors.ts';
+import { verifyAuth, verifyAdmin } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -13,28 +14,9 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Verify the caller is authenticated
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
-    }
-
-    // Only admins can delete users
-    const { data: callerProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (callerProfile?.role !== 'admin') {
-      return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders(req) });
-    }
+    const adminResult = await verifyAdmin(req, supabaseAdmin);
+    if (adminResult instanceof Response) return adminResult;
+    const { user } = adminResult as { user: any; profile: any };
 
     const { user_id } = await req.json();
     if (!user_id) {

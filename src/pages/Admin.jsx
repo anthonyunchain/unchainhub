@@ -1159,14 +1159,14 @@ function PermissionToggle({ enabled, onClick, label, icon: Icon, description }) 
 
 function Permissions() {
   const qc = useQueryClient();
-  const { data: freelancers = [], isLoading: loadingFL } = useQuery({ queryKey: ["freelancers-perm"], queryFn: () => base44.entities.Freelancer.list() });
+  const { data: freelancers = [], isLoading: loadingFL } = useQuery({ queryKey: ["freelancers"], queryFn: () => base44.entities.Freelancer.list() });
   const { data: clients = [], isLoading: loadingCL } = useQuery({ queryKey: ["clients-perm"], queryFn: () => base44.entities.Client.list() });
 
   const activeClients = [...clients].filter(c => c.status === 'Actif').sort((a, b) => (a.company_name || '').localeCompare(b.company_name || ''));
 
   const updateFreelancer = useMutation({
     mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancers-perm"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancers"] }),
   });
 
   const updateClient = useMutation({

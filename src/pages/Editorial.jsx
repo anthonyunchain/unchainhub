@@ -70,18 +70,11 @@ export default function Editorial() {
     onError: (err) => toast({ title: "Erreur lors de la sauvegarde", description: err?.message || String(err), variant: "destructive" }),
   });
   const deleteMut = useMutation({
-    mutationFn: (id) => {
-      console.log('deleteMut.mutationFn called with id:', id);
-      return base44.entities.EditorialContent.delete(id);
-    },
+    mutationFn: (id) => base44.entities.EditorialContent.delete(id),
     onSuccess: () => {
-      console.log('deleteMut onSuccess fired');
       qc.invalidateQueries({ queryKey: ["editorial"] });
       setDialogOpen(false);
     },
-    onError: (err) => {
-      console.error('deleteMut onError:', err);
-    }
   });
 
   // Apply URL param for client filter (from Dashboard link)
@@ -124,11 +117,7 @@ export default function Editorial() {
   };
 
   const handleDelete = () => {
-    console.log('handleDelete called');
-    if (!editData?.id) {
-      alert('No content to delete');
-      return;
-    }
+    if (!editData?.id) return;
     setDeleteConfirmId(editData.id);
     setDeleteConfirmOpen(true);
   };
@@ -136,16 +125,12 @@ export default function Editorial() {
   const handleQuickDelete = (e, id) => {
     if (isReadOnly) return;
     e.stopPropagation();
-    console.log('handleQuickDelete called with id:', id);
     setDeleteConfirmId(id);
     setDeleteConfirmOpen(true);
   };
 
   const confirmDelete = () => {
-    if (deleteConfirmId) {
-      console.log('User confirmed, calling deleteMut.mutate with id:', deleteConfirmId);
-      deleteMut.mutate(deleteConfirmId);
-    }
+    if (deleteConfirmId) deleteMut.mutate(deleteConfirmId);
     setDeleteConfirmOpen(false);
     setDeleteConfirmId(null);
   };
