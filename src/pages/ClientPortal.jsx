@@ -36,20 +36,21 @@ const PLATFORM_ICON = {
 
 function KpiCard({ label, value, icon: Icon, color = "#2A69FF" }) {
   return (
-    <div className="rounded-2xl p-5 flex flex-col gap-2" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
+    <div className="rounded-2xl p-5 flex flex-col gap-2" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">{label}</span>
+        <span className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{label}</span>
         <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: color + "18" }}>
           <Icon className="w-4 h-4" style={{ color }} />
         </div>
       </div>
-      <p className="text-3xl font-extrabold text-slate-800 tracking-tight">{value ?? "—"}</p>
+      <p className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--ink)' }}>{value ?? "—"}</p>
     </div>
   );
 }
 
 // ── Dashboard tab ──────────────────────────────────────────────────────────
 function DashboardTab({ client, stats, content, contracts, invoices, calendarPdfs }) {
+  const { dark } = useTheme();
   const [calCurrentDate, setCalCurrentDate] = useState(new Date());
   const currentMonth = format(new Date(), "yyyy-MM");
   const monthStats = stats.filter(s => s.period === currentMonth);
@@ -106,15 +107,15 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
           ) : (
             <div
               className="col-span-2 lg:col-span-1 rounded-2xl p-5 flex flex-col gap-2"
-              style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}
+              style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Editorial Calendar PDF</span>
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-100">
-                  <Calendar className="w-4 h-4 text-slate-400" />
+                <span className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Editorial Calendar PDF</span>
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'var(--divider)' }}>
+                  <Calendar className="w-4 h-4" style={{ color: 'var(--muted)' }} />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-slate-300 tracking-tight">—</p>
+              <p className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--subtle)' }}>—</p>
             </div>
           );
         })()}
@@ -122,14 +123,14 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
 
       {/* Chart */}
       {chartData.some(d => d.views > 0) && (
-        <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
-          <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-4">Views — last 6 months</p>
+        <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
+          <p className="text-xs font-mono uppercase tracking-wider mb-4" style={{ color: 'var(--muted)' }}>Views — last 6 months</p>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={chartData} barSize={20}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f2f5" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#8A9BAD' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#8A9BAD' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke={dark ? '#21262D' : '#f0f2f5'} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: dark ? '#7d8fa3' : '#8A9BAD' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: dark ? '#7d8fa3' : '#8A9BAD' }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ borderRadius: 12, border: 'none', background: dark ? '#1e2736' : '#fff', color: dark ? '#e6edf3' : '#0D1B2A', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', fontSize: 12 }} />
               <Bar dataKey="views" fill="#2A69FF" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -138,17 +139,17 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
 
       {/* Pending invoices */}
       {unpaidInvoices.length > 0 && (
-        <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
-          <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">Pending invoices</p>
+        <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
+          <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>Pending invoices</p>
           <div className="space-y-2">
             {unpaidInvoices.map(inv => (
-              <div key={inv.id} className="flex items-center justify-between py-1.5 border-b border-slate-50 last:border-0">
+              <div key={inv.id} className="flex items-center justify-between py-1.5 last:border-0" style={{ borderBottom: '1px solid var(--divider)' }}>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">{inv.invoice_number || "Invoice"}</p>
-                  {inv.due_date && <p className="text-[10px] text-slate-400">Due {format(new Date(inv.due_date), "d MMM yyyy", { locale: enUS })}</p>}
+                  <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{inv.invoice_number || "Invoice"}</p>
+                  {inv.due_date && <p className="text-[10px]" style={{ color: 'var(--muted)' }}>Due {format(new Date(inv.due_date), "d MMM yyyy", { locale: enUS })}</p>}
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-slate-800">{(inv.total_with_tax || inv.total_amount || 0).toLocaleString("fr-FR")} €</p>
+                  <p className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{(inv.total_with_tax || inv.total_amount || 0).toLocaleString("fr-FR")} €</p>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">{inv.status}</span>
                 </div>
               </div>
@@ -166,6 +167,7 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
 
 // ── Calendar tab ───────────────────────────────────────────────────────────
 function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, setCurrentDate: externalSetDate }) {
+  const { dark } = useTheme();
   const [internalDate, setInternalDate] = useState(new Date());
   const currentDate = externalDate ?? internalDate;
   const setCurrentDate = externalSetDate ?? setInternalDate;
@@ -222,28 +224,28 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
       </div>
 
       {/* Calendar grid */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
         {/* Day headers */}
-        <div className="grid grid-cols-7 border-b border-slate-100">
+        <div className="grid grid-cols-7" style={{ borderBottom: '1px solid var(--divider)' }}>
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
-            <div key={d} className="text-center text-[10px] font-mono text-slate-400 py-2 uppercase tracking-wider">{d}</div>
+            <div key={d} className="text-center text-[10px] font-mono py-2 uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{d}</div>
           ))}
         </div>
 
         {/* Cells */}
         <div className="grid grid-cols-7">
           {Array(startPad).fill(null).map((_, i) => (
-            <div key={`pad-${i}`} className="min-h-[110px] border-b border-r border-slate-50 p-1 bg-slate-50/50" />
+            <div key={`pad-${i}`} className="min-h-[110px] p-1" style={{ borderBottom: '1px solid var(--divider)', borderRight: '1px solid var(--divider)', background: dark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)' }} />
           ))}
           {days.map(day => {
             const key = format(day, "yyyy-MM-dd");
             const items = contentByDay[key] || [];
             const isToday = isSameDay(day, new Date());
             return (
-              <div key={key} className={`min-h-[110px] border-b border-r border-slate-50 p-1.5 ${isToday ? "bg-blue-50/40" : ""}`}>
+              <div key={key} className="min-h-[110px] p-1.5" style={{ borderBottom: '1px solid var(--divider)', borderRight: '1px solid var(--divider)', background: isToday ? (dark ? 'rgba(77,142,255,0.08)' : 'rgba(42,105,255,0.04)') : 'transparent' }}>
                 <span className={`text-[11px] font-semibold inline-flex items-center justify-center w-5 h-5 rounded-full mb-1 ${
-                  isToday ? "bg-[#2A69FF] text-white" : "text-slate-400"
-                }`}>{format(day, "d")}</span>
+                  isToday ? "bg-[#2A69FF] text-white" : ""
+                }`} style={!isToday ? { color: 'var(--muted)' } : {}}>{format(day, "d")}</span>
                 <div className="space-y-0.5">
                   {items.slice(0, 3).map(c => (
                     <div key={c.id} className={`text-[9px] font-semibold px-1.5 py-0.5 rounded truncate ${TYPE_COLOR[c.post_type] || "bg-slate-100 text-slate-500"}`}>
@@ -264,6 +266,7 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
 
 // ── Reports tab ────────────────────────────────────────────────────────────
 function ReportsTab({ stats, content }) {
+  const { dark } = useTheme();
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
 
   const shiftMonth = (dir) => {
@@ -322,21 +325,21 @@ function ReportsTab({ stats, content }) {
       </div>
 
       {/* Content published */}
-      <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
-        <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-1">Posts this month</p>
-        <p className="text-3xl font-extrabold text-slate-800">{monthContent.filter(c => c.status === "Publié").length}</p>
-        <p className="text-xs text-slate-400 mt-1">{monthContent.length} planned total</p>
+      <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
+        <p className="text-xs font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>Posts this month</p>
+        <p className="text-3xl font-extrabold" style={{ color: 'var(--ink)' }}>{monthContent.filter(c => c.status === "Publié").length}</p>
+        <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{monthContent.length} planned total</p>
       </div>
 
       {/* Chart */}
-      <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
-        <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-4">Views over 12 months</p>
+      <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
+        <p className="text-xs font-mono uppercase tracking-wider mb-4" style={{ color: 'var(--muted)' }}>Views over 12 months</p>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={chartData} barSize={14}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f2f5" />
-            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#8A9BAD' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 10, fill: '#8A9BAD' }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 11 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke={dark ? '#21262D' : '#f0f2f5'} />
+            <XAxis dataKey="month" tick={{ fontSize: 10, fill: dark ? '#7d8fa3' : '#8A9BAD' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: dark ? '#7d8fa3' : '#8A9BAD' }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ borderRadius: 12, border: 'none', background: dark ? '#1e2736' : '#fff', color: dark ? '#e6edf3' : '#0D1B2A', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', fontSize: 11 }} />
             <Bar dataKey="views" fill="#2A69FF" radius={[4, 4, 0, 0]} name="Views" />
           </BarChart>
         </ResponsiveContainer>
@@ -344,13 +347,13 @@ function ReportsTab({ stats, content }) {
 
       {/* Per-platform breakdown */}
       {monthStats.length > 1 && (
-        <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
-          <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">By platform</p>
+        <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
+          <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>By platform</p>
           <div className="space-y-2">
             {monthStats.map(s => (
               <div key={s.id} className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-700">{s.platform || "All"}</span>
-                <div className="flex items-center gap-3 text-xs text-slate-500">
+                <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{s.platform || "All"}</span>
+                <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--muted)' }}>
                   <span>{(s.views || 0).toLocaleString()} views</span>
                   <span>+{s.followers_gained || 0} followers</span>
                 </div>
@@ -388,7 +391,7 @@ function ContractsTab({ contracts, contractDocuments }) {
   return (
     <div className="space-y-3">
       {contracts.map(c => (
-        <div key={c.id} className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
+        <div key={c.id} className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -396,17 +399,17 @@ function ContractsTab({ contracts, contractDocuments }) {
                   {STATUS_LABEL[c.status] || c.status}
                 </span>
               </div>
-              <p className="text-base font-bold text-slate-800">{c.title || "Contract"}</p>
+              <p className="text-base font-bold" style={{ color: 'var(--ink)' }}>{c.title || "Contract"}</p>
               {c.start_date && (
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
                   {format(new Date(c.start_date), "d MMM yyyy", { locale: enUS })}
                   {c.end_date && ` → ${format(new Date(c.end_date), "d MMM yyyy", { locale: enUS })}`}
                 </p>
               )}
               {c.monthly_amount > 0 && (
-                <p className="text-sm font-semibold text-slate-700 mt-2">{c.monthly_amount.toLocaleString("fr-FR")} € / month</p>
+                <p className="text-sm font-semibold mt-2" style={{ color: 'var(--ink)' }}>{c.monthly_amount.toLocaleString("fr-FR")} € / month</p>
               )}
-              {c.notes && <p className="text-xs text-slate-500 mt-2 leading-relaxed">{c.notes}</p>}
+              {c.notes && <p className="text-xs mt-2 leading-relaxed" style={{ color: 'var(--muted)' }}>{c.notes}</p>}
             </div>
           </div>
         </div>
@@ -415,10 +418,10 @@ function ContractsTab({ contracts, contractDocuments }) {
         const name = decodeURIComponent(url.split("/").pop().split("?")[0]);
         return (
           <a key={`doc-${i}`} href={url} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-3 rounded-2xl p-5 hover:bg-slate-50 transition-colors"
-            style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
-            <FileText className="w-5 h-5 text-slate-400 shrink-0" />
-            <span className="text-sm font-medium text-slate-800 truncate">{name}</span>
+            className="flex items-center gap-3 rounded-2xl p-5 transition-colors"
+            style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', textDecoration: 'none' }}>
+            <FileText className="w-5 h-5 shrink-0" style={{ color: 'var(--muted)' }} />
+            <span className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>{name}</span>
           </a>
         );
       })}
@@ -451,7 +454,7 @@ function InvoicesTab({ invoices }) {
   return (
     <div className="space-y-3">
       {invoices.map(inv => (
-        <div key={inv.id} className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #d8dde5', boxShadow: '0 4px 24px rgba(13,27,42,0.12)' }}>
+        <div key={inv.id} className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -459,14 +462,14 @@ function InvoicesTab({ invoices }) {
                   {STATUS_LABEL[inv.status] || inv.status}
                 </span>
                 {inv.invoice_number && (
-                  <span className="text-[10px] font-mono text-slate-400">{inv.invoice_number}</span>
+                  <span className="text-[10px] font-mono" style={{ color: 'var(--muted)' }}>{inv.invoice_number}</span>
                 )}
               </div>
-              <p className="text-base font-bold text-slate-800">
+              <p className="text-base font-bold" style={{ color: 'var(--ink)' }}>
                 {(inv.total_with_tax || inv.total_amount || 0).toLocaleString("fr-FR")} €
               </p>
-              {inv.description && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{inv.description}</p>}
-              <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-400">
+              {inv.description && <p className="text-xs mt-1 line-clamp-2" style={{ color: 'var(--muted)' }}>{inv.description}</p>}
+              <div className="flex items-center gap-3 mt-2 text-[10px]" style={{ color: 'var(--muted)' }}>
                 {inv.issue_date && <span>Issued {format(new Date(inv.issue_date), "d MMM yyyy", { locale: enUS })}</span>}
                 {inv.due_date && <span>· Due {format(new Date(inv.due_date), "d MMM yyyy", { locale: enUS })}</span>}
                 {inv.paid_date && <span>· Paid {format(new Date(inv.paid_date), "d MMM yyyy", { locale: enUS })}</span>}
@@ -484,11 +487,11 @@ function AdminTab({ contracts, contractDocuments, invoices }) {
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">Contracts</p>
+        <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>Contracts</p>
         <ContractsTab contracts={contracts} contractDocuments={contractDocuments} />
       </div>
       <div>
-        <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">Invoices</p>
+        <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>Invoices</p>
         <InvoicesTab invoices={invoices} />
       </div>
     </div>
@@ -854,7 +857,7 @@ export default function ClientPortal() {
           </div>
 
           {/* Desktop tabs */}
-          <div className="hidden md:flex items-center gap-1 p-1" style={{ background: '#ffffff', borderRadius: 'var(--pill-radius)', boxShadow: '0 4px 24px rgba(13,27,42,0.12)', border: '1px solid #d8dde5' }}>
+          <div className="hidden md:flex items-center gap-1 p-1" style={{ background: 'var(--card)', borderRadius: 'var(--pill-radius)', boxShadow: 'var(--card-shadow)', border: '1px solid var(--divider)' }}>
             {TABS.map((t, i) => {
               const isAdmin = t.key === "admin";
               return (
