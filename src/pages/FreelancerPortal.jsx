@@ -37,51 +37,78 @@ const TASK_STATUS = {
 };
 
 // ─── DASHBOARD TAB ─────────────────────────────────────────────────────────
-function DashboardTab({ tasks, projects, freelancerName, freelancerFirstName, onTabChange, userId }) {
-  const [time, setTime] = useState("");
+function DashboardTab({ tasks, projects, payments, freelancerName, freelancerFirstName, onTabChange, userId }) {
   const [personalTasks, setPersonalTasks] = useState([]);
-  const today = format(new Date(), "EEEE, d MMMM yyyy", { locale: enUS });
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const todayLabel = format(new Date(), "EEEE, d MMMM yyyy", { locale: enUS });
+  const thisMonthStr = format(new Date(), "yyyy-MM");
   const greeting = useMemo(() => getGreeting(freelancerFirstName || freelancerName?.split(" ")[0] || ""), [freelancerFirstName, freelancerName]);
 
   useEffect(() => {
     if (!userId) return;
-    supabase.from('personal_tasks').select('*').order('created_at', { ascending: false }).limit(6)
+    supabase.from('personal_tasks').select('*').order('created_at', { ascending: false }).limit(20)
       .then(({ data }) => setPersonalTasks(data || []));
   }, [userId]);
 
-  useEffect(() => {
-    const updateTime = () => setTime(format(new Date(), "HH:mm"));
-    updateTime();
-    const interval = setInterval(updateTime, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  const priOrder = { "Urgente": 0, "Haute": 1, "Normale": 2, "Basse": 3 };
 
-  const urgentTasks = tasks
+  // Most urgent task (blue hero)
+  const nextTask = tasks
     .filter(t => t.status !== "Terminé")
     .sort((a, b) => {
-      const priOrder = { "Urgente": 0, "Haute": 1, "Normale": 2, "Basse": 3 };
-      return (priOrder[a.priority] ?? 2) - (priOrder[b.priority] ?? 2);
-    })
-    .slice(0, 5);
+      const pDiff = (priOrder[a.priority] ?? 2) - (priOrder[b.priority] ?? 2);
+      if (pDiff !== 0) return pDiff;
+      if (a.due_date && b.due_date) return new Date(a.due_date) - new Date(b.due_date);
+      if (a.due_date) return -1;
+      if (b.due_date) return 1;
+      return 0;
+    })[0] || null;
+
+  // Tasks due today
+  const todayTasks = tasks
+    .filter(t => t.status !== "Terminé" && t.due_date && t.due_date.slice(0, 10) === todayStr)
+    .sort((a, b) => (priOrder[a.priority] ?? 2) - (priOrder[b.priority] ?? 2));
+
+  const pendingCount = tasks.filter(t => t.status !== "Terminé").length;
+  const completedCount = tasks.filter(t => t.status === "Terminé").length;
 
   const ongoingProjects = projects.filter(p =>
     p.editing_status === "En cours de montage" || p.editing_status === "À faire"
   );
 
+  // Revenues this month
+  const monthPayments = (payments || []).filter(p => p.date && p.date.slice(0, 7) === thisMonthStr);
+  const revenueTotal = monthPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+  const revenuePaid = monthPayments.filter(p => p.status === "Paid" || p.status === "Payé").reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+  const revenuePending = monthPayments.filter(p => p.status === "Pending" || p.status === "En attente").reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+
+  const priColor = { "Urgente": "#ef4444", "Haute": "#f59e0b", "Normale": "#3b82f6", "Basse": "#94a3b8" };
+
+  const cardBase = {
+    background: 'var(--card)',
+    borderRadius: 'var(--card-radius)',
+    boxShadow: 'var(--card-shadow)',
+    padding: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  };
+
   return (
     <div className="space-y-4">
-      {/* Greeting & Time */}
+      {/* Greeting */}
       <div>
         <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 'clamp(20px, 5.5vw, 28px)', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.5px', lineHeight: 1.2 }}>
           {greeting}
         </h2>
         <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginTop: 6, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-          {today}
+          {todayLabel}
         </p>
       </div>
 
-      {/* KPI Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-1">
+      {/* Row 1: Blue hero + Today's Focus */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {/* Blue card — next urgent task */}
         <div style={{
           background: 'linear-gradient(145deg, #1a3a8f 0%, #2A69FF 60%, #5b8fff 100%)',
           borderRadius: 'var(--card-radius)',
@@ -89,159 +116,115 @@ function DashboardTab({ tasks, projects, freelancerName, freelancerFirstName, on
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          minHeight: 220,
+          minHeight: 180,
         }}>
-          <div>
-            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'rgba(255,255,255,0.55)', marginBottom: 8, display: 'block' }}>Total Projects This Month</span>
-            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 'clamp(38px, 12vw, 52px)', fontWeight: 800, color: '#fff', letterSpacing: '-3px', lineHeight: 1.05, margin: 0 }}>
-              {projects.length}
-            </p>
-            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.60)', marginTop: 6 }}>
-              assigned
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-2 mt-5">
-            {[
-              { label: 'Pending', value: projects.filter(p => p.status === 'Pending acceptance').length },
-              { label: 'In Progress', value: ongoingProjects.length },
-              { label: 'Completed', value: projects.filter(p => p.status === 'Completed').length },
-            ].map(s => (
-              <div key={s.label} style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{s.value}</p>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.55)', marginTop: 3 }}>{s.label}</p>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+            Next up
+          </span>
+          {nextTask ? (
+            <>
+              <div style={{ margin: '16px 0 8px' }}>
+                {nextTask.priority && (
+                  <span style={{
+                    display: 'inline-block', marginBottom: 8,
+                    fontFamily: "'DM Mono', monospace", fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase',
+                    color: '#fff', background: 'rgba(255,255,255,0.18)', borderRadius: 6, padding: '3px 8px',
+                  }}>
+                    {nextTask.priority}
+                  </span>
+                )}
+                <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '18px', fontWeight: 700, color: '#fff', lineHeight: 1.3, margin: 0 }}>
+                  {nextTask.title}
+                </p>
               </div>
-            ))}
-          </div>
+              {nextTask.due_date && (
+                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>
+                  Due {format(new Date(nextTask.due_date), "d MMM yyyy", { locale: enUS })}
+                </p>
+              )}
+            </>
+          ) : (
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: 16 }}>
+              No pending tasks
+            </p>
+          )}
         </div>
 
-        <div className="lg:col-span-2 grid grid-cols-2 gap-3" style={{ gridTemplateRows: '1fr 1fr' }}>
-          <div style={{
-            background: 'var(--card-blue)',
-            borderRadius: 'var(--card-radius)',
-            boxShadow: 'var(--card-shadow)',
-            padding: '20px',
-            border: 'none',
-            transition: 'all 200ms ease',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            gap: 12,
-          }}>
-            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Tasks Pending</p>
-            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '34px', fontWeight: 800, color: 'var(--brand)', letterSpacing: '-2px', lineHeight: 1.05 }}>
-              {tasks.filter(t => t.status !== "Terminé").length}
-            </p>
+        {/* Today's Focus */}
+        <div className="lg:col-span-2" style={{ ...cardBase, minHeight: 180 }}>
+          <div className="flex items-center justify-between" style={{ marginBottom: 14, flexShrink: 0 }}>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Today's Focus</span>
+            <button onClick={() => onTabChange("tasks")} style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--brand)', cursor: 'pointer', border: 'none', background: 'none', padding: 0 }}>
+              See all tasks →
+            </button>
           </div>
-          <div style={{
-            background: 'var(--card-green)',
-            borderRadius: 'var(--card-radius)',
-            boxShadow: 'var(--card-shadow)',
-            padding: '20px',
-            border: 'none',
-            transition: 'all 200ms ease',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            gap: 12,
-          }}>
-            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Completed</p>
-            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '34px', fontWeight: 800, color: 'var(--success)', letterSpacing: '-2px', lineHeight: 1.05 }}>
-              {tasks.filter(t => t.status === "Terminé").length}
-            </p>
-          </div>
-          <div style={{
-            background: 'var(--card-amber)',
-            borderRadius: 'var(--card-radius)',
-            boxShadow: 'var(--card-shadow)',
-            padding: '20px',
-            border: 'none',
-            transition: 'all 200ms ease',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            gap: 12,
-          }}>
-            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Total Projects</p>
-            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '34px', fontWeight: 800, color: 'var(--warning)', letterSpacing: '-2px', lineHeight: 1.05 }}>
-              {projects.length}
-            </p>
+          <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {todayTasks.length === 0 ? (
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--subtle)' }}>Nothing due today</p>
+            ) : (
+              todayTasks.map(task => (
+                <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--divider)' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: priColor[task.priority] || '#94a3b8' }} />
+                  <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 600, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+                    {task.title}
+                  </p>
+                  {task.priority && (
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'var(--muted)', flexShrink: 0 }}>
+                      {task.priority}
+                    </span>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
 
-      {/* Row 2: 3 Content Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-1" style={{ alignItems: 'stretch' }}>
-        {/* Urgent Tasks Card */}
-        <div
-          className="lg:h-[420px]"
-          style={{
-            background: 'var(--card)',
-            borderRadius: 'var(--card-radius)',
-            boxShadow: 'var(--card-shadow)',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            transition: 'box-shadow 200ms ease, transform 200ms ease',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-        >
-          <div className="flex items-center justify-between" style={{ marginBottom: 14, flexShrink: 0 }}>
-            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Urgent Tasks</span>
-            <button onClick={() => onTabChange("tasks")} style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--brand)', textDecoration: 'none', cursor: 'pointer', border: 'none', background: 'none', padding: 0 }}>View all →</button>
-          </div>
-          <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {urgentTasks.length === 0 ? (
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--subtle)' }}>No pending tasks</p>
-            ) : (
-              urgentTasks.map(task => (
-                <div key={task.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--divider)' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--brand-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <ClipboardList style={{ width: 14, height: 14, color: 'var(--brand)' }} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.title}</p>
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>{task.priority} {task.due_date && `· ${format(new Date(task.due_date), "d MMM", { locale: enUS })}`}</p>
-                  </div>
-                </div>
-              ))
-            )}
+      {/* Row 2: Tasks stats + Active Projects + My To-Do */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {/* Tasks Pending + Completed */}
+        <div style={cardBase}>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 16, display: 'block' }}>Tasks</span>
+          <div className="grid grid-cols-2 gap-3" style={{ flex: 1 }}>
+            <div style={{ background: 'var(--card-blue)', borderRadius: 12, padding: '16px 14px' }}>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Pending</p>
+              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '36px', fontWeight: 800, color: 'var(--brand)', letterSpacing: '-2px', lineHeight: 1, margin: 0 }}>
+                {pendingCount}
+              </p>
+            </div>
+            <div style={{ background: 'var(--card-green)', borderRadius: 12, padding: '16px 14px' }}>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Completed</p>
+              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '36px', fontWeight: 800, color: 'var(--success)', letterSpacing: '-2px', lineHeight: 1, margin: 0 }}>
+                {completedCount}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Active Projects Card */}
-        <div
-          className="lg:h-[420px]"
-          style={{
-            background: 'var(--card)',
-            borderRadius: 'var(--card-radius)',
-            boxShadow: 'var(--card-shadow)',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            transition: 'box-shadow 200ms ease, transform 200ms ease',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-        >
+        {/* Active Projects */}
+        <div style={{ ...cardBase, minHeight: 220 }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 14, flexShrink: 0 }}>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Active Projects</span>
-            <button onClick={() => onTabChange("projects")} style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--brand)', textDecoration: 'none', cursor: 'pointer', border: 'none', background: 'none', padding: 0 }}>View all →</button>
+            <button onClick={() => onTabChange("myprojects")} style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--brand)', cursor: 'pointer', border: 'none', background: 'none', padding: 0 }}>
+              View all →
+            </button>
           </div>
-          <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {ongoingProjects.length === 0 ? (
               <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--subtle)' }}>No active projects</p>
             ) : (
-              ongoingProjects.slice(0, 4).map(p => (
-                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--divider)' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--brand-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <FolderOpen style={{ width: 14, height: 14, color: 'var(--brand)' }} />
+              ongoingProjects.slice(0, 5).map(p => (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--divider)' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--brand-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <FolderOpen style={{ width: 13, height: 13, color: 'var(--brand)' }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title || "Untitled"}</p>
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>{p.client_name} {p.scheduled_date && `· ${format(new Date(p.scheduled_date), "d MMM", { locale: enUS })}`}</p>
+                    <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>
+                      {p.title || "Untitled"}
+                    </p>
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)', margin: 0 }}>
+                      {p.client_name}{p.scheduled_date && ` · ${format(new Date(p.scheduled_date), "d MMM", { locale: enUS })}`}
+                    </p>
                   </div>
                 </div>
               ))
@@ -249,25 +232,13 @@ function DashboardTab({ tasks, projects, freelancerName, freelancerFirstName, on
           </div>
         </div>
 
-        {/* My To-Do Card */}
-        <div
-          className="lg:h-[420px]"
-          style={{
-            background: 'var(--card)',
-            borderRadius: 'var(--card-radius)',
-            boxShadow: 'var(--card-shadow)',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            transition: 'box-shadow 200ms ease, transform 200ms ease',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-        >
+        {/* My To-Do */}
+        <div style={{ ...cardBase, minHeight: 220 }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 14, flexShrink: 0 }}>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>My To-Do</span>
-            <button onClick={() => onTabChange("todo")} style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--brand)', cursor: 'pointer', border: 'none', background: 'none', padding: 0 }}>View all →</button>
+            <button onClick={() => onTabChange("todo")} style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--brand)', cursor: 'pointer', border: 'none', background: 'none', padding: 0 }}>
+              View all →
+            </button>
           </div>
           <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {personalTasks.filter(t => t.status !== "Terminé").length === 0 ? (
@@ -275,10 +246,12 @@ function DashboardTab({ tasks, projects, freelancerName, freelancerFirstName, on
             ) : (
               personalTasks.filter(t => t.status !== "Terminé").slice(0, 6).map(task => (
                 <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--divider)' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: task.priority === "Urgente" ? '#ef4444' : task.priority === "Haute" ? '#f59e0b' : task.priority === "Normale" ? '#3b82f6' : '#94a3b8' }} />
-                  <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 500, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</p>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: priColor[task.priority] || '#94a3b8' }} />
+                  <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 500, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+                    {task.title}
+                  </p>
                   {task.due_date && (
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'var(--muted)', flexShrink: 0 }}>
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'var(--muted)', flexShrink: 0, margin: 0 }}>
                       {format(new Date(task.due_date), "d MMM", { locale: enUS })}
                     </p>
                   )}
@@ -286,13 +259,39 @@ function DashboardTab({ tasks, projects, freelancerName, freelancerFirstName, on
               ))
             )}
           </div>
-          {personalTasks.filter(t => t.status !== "Terminé").length > 0 && (
-            <div style={{ paddingTop: 12, borderTop: '1px solid var(--divider)', flexShrink: 0 }}>
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>
+          {personalTasks.length > 0 && (
+            <div style={{ paddingTop: 10, borderTop: '1px solid var(--divider)', flexShrink: 0, marginTop: 8 }}>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)', margin: 0 }}>
                 {personalTasks.filter(t => t.status === "Terminé").length} done · {personalTasks.filter(t => t.status !== "Terminé").length} pending
               </p>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Row 3: Revenues this month */}
+      <div style={{ ...cardBase }}>
+        <div className="flex items-center justify-between" style={{ marginBottom: 16, flexShrink: 0 }}>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+            Revenues — {format(new Date(), "MMMM yyyy", { locale: enUS })}
+          </span>
+          <button onClick={() => onTabChange("invoices")} style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--brand)', cursor: 'pointer', border: 'none', background: 'none', padding: 0 }}>
+            View invoices →
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'Total', value: revenueTotal, color: 'var(--ink)' },
+            { label: 'Paid', value: revenuePaid, color: 'var(--success)' },
+            { label: 'Pending', value: revenuePending, color: 'var(--warning)' },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ background: 'var(--card-blue)', borderRadius: 12, padding: '16px 14px' }}>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8, margin: '0 0 8px' }}>{label}</p>
+              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 'clamp(18px, 4vw, 26px)', fontWeight: 800, color, letterSpacing: '-1px', lineHeight: 1, margin: 0 }}>
+                {value.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -1058,7 +1057,7 @@ export default function FreelancerPortal() {
 
   const renderTab = () => {
     switch (activeTab) {
-      case "dashboard": return <DashboardTab tasks={tasks} projects={editorialProjects} freelancerName={freelancerName} freelancerFirstName={freelancerFirstName} onTabChange={setActiveTab} userId={user?.id} />;
+      case "dashboard": return <DashboardTab tasks={tasks} projects={editorialProjects} payments={payments} freelancerName={freelancerName} freelancerFirstName={freelancerFirstName} onTabChange={setActiveTab} userId={user?.id} />;
       case "todo": return <PersonalTasksTab userId={user?.id} newTrigger={todoNewTrigger} />;
       case "tasks": return <TasksTabComponent tasks={tasks} onUpdateTask={handleUpdateTask} />;
       case "myprojects": return <FreelancerProjects projects={myProjects} editorialItems={editorialProjects} onRefresh={handleProjectUpdate} freelancerName={freelancerName} />;
