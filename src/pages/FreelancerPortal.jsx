@@ -72,7 +72,7 @@ function DashboardTab({ tasks, projects, freelancerName, freelancerFirstName, on
     <div className="space-y-4">
       {/* Greeting & Time */}
       <div>
-        <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '28px', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.5px' }}>
+        <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 'clamp(20px, 5.5vw, 28px)', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.5px', lineHeight: 1.2 }}>
           {greeting}
         </h2>
         <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginTop: 6, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
@@ -93,22 +93,22 @@ function DashboardTab({ tasks, projects, freelancerName, freelancerFirstName, on
         }}>
           <div>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'rgba(255,255,255,0.55)', marginBottom: 8, display: 'block' }}>Total Projects This Month</span>
-            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '52px', fontWeight: 800, color: '#fff', letterSpacing: '-3px', lineHeight: 1.05 }}>
+            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 'clamp(38px, 12vw, 52px)', fontWeight: 800, color: '#fff', letterSpacing: '-3px', lineHeight: 1.05, margin: 0 }}>
               {projects.length}
             </p>
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.60)', marginTop: 6 }}>
               assigned
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+          <div className="grid grid-cols-3 gap-2 mt-5">
             {[
-              { label: 'Pending Projects', value: projects.filter(p => p.status === 'Pending acceptance').length },
+              { label: 'Pending', value: projects.filter(p => p.status === 'Pending acceptance').length },
               { label: 'In Progress', value: ongoingProjects.length },
-              { label: 'Total Completed', value: projects.filter(p => p.status === 'Completed').length },
+              { label: 'Completed', value: projects.filter(p => p.status === 'Completed').length },
             ].map(s => (
-              <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 12px' }}>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '18px', fontWeight: 700, color: '#fff' }}>{s.value}</p>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{s.label}</p>
+              <div key={s.label} style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{s.value}</p>
+                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.55)', marginTop: 3 }}>{s.label}</p>
               </div>
             ))}
           </div>
@@ -172,19 +172,20 @@ function DashboardTab({ tasks, projects, freelancerName, freelancerFirstName, on
       {/* Row 2: 3 Content Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-1" style={{ alignItems: 'stretch' }}>
         {/* Urgent Tasks Card */}
-        <div style={{
-          background: 'var(--card)',
-          borderRadius: 'var(--card-radius)',
-          boxShadow: 'var(--card-shadow)',
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          height: 420,
-          overflow: 'hidden',
-          transition: 'box-shadow 200ms ease, transform 200ms ease',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-        onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+        <div
+          className="lg:h-[420px]"
+          style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--card-radius)',
+            boxShadow: 'var(--card-shadow)',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            transition: 'box-shadow 200ms ease, transform 200ms ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
           <div className="flex items-center justify-between" style={{ marginBottom: 14, flexShrink: 0 }}>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Urgent Tasks</span>
@@ -210,19 +211,20 @@ function DashboardTab({ tasks, projects, freelancerName, freelancerFirstName, on
         </div>
 
         {/* Active Projects Card */}
-        <div style={{
-          background: 'var(--card)',
-          borderRadius: 'var(--card-radius)',
-          boxShadow: 'var(--card-shadow)',
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          height: 420,
-          overflow: 'hidden',
-          transition: 'box-shadow 200ms ease, transform 200ms ease',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-        onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+        <div
+          className="lg:h-[420px]"
+          style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--card-radius)',
+            boxShadow: 'var(--card-shadow)',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            transition: 'box-shadow 200ms ease, transform 200ms ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
           <div className="flex items-center justify-between" style={{ marginBottom: 14, flexShrink: 0 }}>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Active Projects</span>
@@ -248,19 +250,20 @@ function DashboardTab({ tasks, projects, freelancerName, freelancerFirstName, on
         </div>
 
         {/* My To-Do Card */}
-        <div style={{
-          background: 'var(--card)',
-          borderRadius: 'var(--card-radius)',
-          boxShadow: 'var(--card-shadow)',
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          height: 420,
-          overflow: 'hidden',
-          transition: 'box-shadow 200ms ease, transform 200ms ease',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-        onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+        <div
+          className="lg:h-[420px]"
+          style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--card-radius)',
+            boxShadow: 'var(--card-shadow)',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            transition: 'box-shadow 200ms ease, transform 200ms ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
           <div className="flex items-center justify-between" style={{ marginBottom: 14, flexShrink: 0 }}>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>My To-Do</span>
