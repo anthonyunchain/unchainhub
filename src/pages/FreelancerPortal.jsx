@@ -1034,6 +1034,11 @@ export default function FreelancerPortal() {
   const unreadCount = myProjects.filter(p => p.status === "Pending acceptance").length;
 
   const handleUpdateTask = async (task, updates) => {
+    // Optimistic update so the UI responds immediately
+    setFreelancerData(prev => ({
+      ...prev,
+      tasks: (prev?.tasks || []).map(t => t.id === task.id ? { ...t, ...updates } : t),
+    }));
     const payload = updates.status
       ? { update_task_id: task.id, update_task_status: updates.status }
       : {};

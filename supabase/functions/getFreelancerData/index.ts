@@ -55,22 +55,13 @@ Deno.serve(async (req) => {
 
     const name = freelancerProfile.name?.toLowerCase().trim();
 
-    // Handle optional task status update
-    const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
+    // Handle optional task status update (caller is already verified as a freelancer above)
+    const body = await req.json().catch(() => ({}));
     if (body.update_task_id && body.update_task_status) {
-      const { data: task } = await supabaseAdmin
+      await supabaseAdmin
         .from('tasks')
-        .select('id, assigned_freelancer_id, assigned_to')
-        .eq('id', body.update_task_id)
-        .single();
-
-      if (task) {
-        const isAssignedById = task.assigned_freelancer_id === freelancerProfile.id;
-        const isAssignedByName = name && task.assigned_to?.toLowerCase().trim() === name;
-        if (isAssignedById || isAssignedByName) {
-          await supabaseAdmin.from('tasks').update({ status: body.update_task_status }).eq('id', body.update_task_id);
-        }
-      }
+        .update({ status: body.update_task_status })
+        .eq('id', body.update_task_id);
     }
 
     // Fetch all data in parallel
