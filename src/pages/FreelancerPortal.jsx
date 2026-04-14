@@ -934,7 +934,7 @@ function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded, o
 // ─── PER-FREELANCER HIDDEN NAV ITEMS (fallback until DB migration is applied) ─
 const HIDDEN_NAV_BY_ID = {
   'a83475b8-6afe-45c8-bbfb-7afcbbabfe54': ['projects', 'tools', 'meetings'], // Domnin
-  '2ba918c3-a88e-4b9f-a570-68d8e6b0c1ed': ['tools'],
+  '2ba918c3-a88e-4b9f-a570-68d8e6b0c1ed': ['tools', 'projects', 'captions'],
 };
 function getHiddenNav(profile) {
   if (profile?.hidden_nav_items?.length) return profile.hidden_nav_items;
@@ -1328,15 +1328,15 @@ export default function FreelancerPortal() {
           {(() => {
             const mobileIcons = { LayoutDashboard, ListTodo, ClipboardList, Briefcase, FileText, CalendarDays, User, Wrench, AlignLeft };
             const customNav = MOBILE_NAV_BY_ID[profile?.id];
-            return (customNav?.bottomBar
+            const items = customNav?.bottomBar
               ? customNav.bottomBar(mobileIcons)
               : [
                 { id: "dashboard",  label: "Home",      Icon: LayoutDashboard },
                 { id: "myprojects", label: "Projects",  Icon: Briefcase },
                 { id: "projects",   label: "Editorial", Icon: CalendarDays },
                 { id: "invoices",   label: "Admin",     Icon: FileText },
-              ]
-            );
+              ];
+            return items.filter(item => !getHiddenNav(profile).includes(item.id));
           })().map(({ id, label, Icon }) => {
             const isActive = activeTab === id;
             return (
