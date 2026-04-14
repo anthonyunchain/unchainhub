@@ -17,7 +17,6 @@ const DEFAULT_NAV = [
   { id: "tools",         label: "Tools",             icon: "Wrench" },
   { id: "meetings",      label: "Meetings",          icon: "CalendarDays" },
   { id: "invoices",      label: "Invoices",          icon: "FileText" },
-  { id: "contract",      label: "Contract",          icon: "FileCheck" },
   { id: "profile",       label: "Profile",           icon: "User" },
 ];
 

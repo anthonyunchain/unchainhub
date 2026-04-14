@@ -705,8 +705,8 @@ function MeetingsTab({ meetings }) {
   );
 }
 
-// ─── INVOICES TAB ─────────────────────────────────────────────────────────
-function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded, openTrigger }) {
+// ─── INVOICES & CONTRACT TAB ──────────────────────────────────────────────
+function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded, openTrigger, profile }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -766,7 +766,27 @@ function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded, o
   const pending = payments.filter(p => p.status === "Pending" || p.status === "En attente").reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
 
   return (
-    <div>
+    <div className="space-y-6">
+      {/* Contract section */}
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
+        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+          <FileCheck className="w-5 h-5 text-emerald-500" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-slate-800">Freelancer Contract</p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {profile?.contract_url ? "Document provided by Unchain Studio. Read only." : "No contract available yet — contact the Unchain Studio team."}
+          </p>
+        </div>
+        {profile?.contract_url && (
+          <a href={profile.contract_url} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-700 transition-colors shrink-0">
+            <FileText className="w-3.5 h-3.5" /> View
+          </a>
+        )}
+      </div>
+
+      <div>
       {/* KPI cards */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="bg-white rounded-xl border border-slate-100 p-3 sm:p-4 shadow-sm">
@@ -906,31 +926,7 @@ function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded, o
           )}
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-// ─── CONTRACT TAB ─────────────────────────────────────────────────────────
-function ContractTab({ profile }) {
-  return (
-    <div>
-      {!profile?.contract_url ? (
-        <div className="text-center py-16 text-slate-400">
-          <FileCheck className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No contract available yet</p>
-          <p className="text-xs mt-1">Please contact the Unchain Studio team.</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-slate-100 p-8 shadow-sm text-center max-w-md mx-auto mt-8">
-          <FileCheck className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-800 mb-1">Your freelancer contract</h3>
-          <p className="text-sm text-slate-500 mb-6">Document provided by Unchain Studio. Read only.</p>
-          <a href={profile.contract_url} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-slate-800 text-white rounded-xl text-sm font-medium hover:bg-slate-700 transition-colors">
-            <FileText className="w-4 h-4" /> View / Download
-          </a>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -953,8 +949,8 @@ const TAB_TITLES = {
   projects: "Editorial Projects",
   tools: "Tools",
   meetings: "Meetings",
-  invoices: "Invoices & Payments",
-  contract: "My Contract",
+  invoices: "Invoices & Contract",
+  contract: "Invoices & Contract",
   profile: "My Profile",
   notifications: "Notifications",
 };
@@ -1077,8 +1073,8 @@ export default function FreelancerPortal() {
       case "ideas": return <Ideas currentUserId={user?.id} currentUserName={profile?.name || user?.email} isFreelancer={true} />;
       case "tools": return <ToolsTab tools={tools} />;
       case "meetings": return <MeetingsTab meetings={meetings} />;
-      case "invoices": return <InvoicesTab payments={payments} freelancerName={freelancerName} freelancerId={profile?.id} onPaymentAdded={handlePaymentAdded} openTrigger={invoiceOpenTrigger} />;
-      case "contract": return <ContractTab profile={profile} />;
+      case "invoices":
+      case "contract": return <InvoicesTab payments={payments} freelancerName={freelancerName} freelancerId={profile?.id} onPaymentAdded={handlePaymentAdded} openTrigger={invoiceOpenTrigger} profile={profile} />;
       case "profile": return <ProfileTab user={user} freelancerProfile={profile} onProfileUpdate={(p) => setFreelancerData(d => ({ ...d, profile: p }))} />;
       case "notifications": return <NotificationsPanel freelancerId={profile?.id} onAccept={(pid) => handleProjectUpdate()} onDecline={(pid) => handleProjectUpdate()} />;
       default: return null;
@@ -1213,8 +1209,8 @@ export default function FreelancerPortal() {
                 ideas:       { title: 'Ideas',           subtitle: 'Brainstorm content ideas' },
                 tools:       { title: 'Tools',           subtitle: 'Your tools & resources' },
                 meetings:    { title: 'Meetings',        subtitle: 'Upcoming & past meetings' },
-                invoices:    { title: 'Invoices',        subtitle: 'Your payment history' },
-                contract:    { title: 'Contract',        subtitle: 'Your contract details' },
+                invoices:    { title: 'Invoices & Contract', subtitle: 'Your payments and contract' },
+                contract:    { title: 'Invoices & Contract', subtitle: 'Your payments and contract' },
                 profile:     { title: 'Profile',         subtitle: 'Your information & settings' },
                 notifications: { title: 'Notifications', subtitle: 'Your latest updates' },
               };
@@ -1331,7 +1327,7 @@ export default function FreelancerPortal() {
 
           {/* More button */}
           {profile?.id !== 'a83475b8-6afe-45c8-bbfb-7afcbbabfe54' && ((() => {
-            const moreActive = moreOpen || ['profile','tasks','todo','captions','ideas','tools','meetings','contract'].includes(activeTab);
+            const moreActive = moreOpen || ['profile','tasks','todo','captions','ideas','tools','meetings'].includes(activeTab);
             return (
               <button onClick={() => setMoreOpen(v => !v)}
                 className="flex-1 flex flex-col items-center justify-center gap-1 relative"
@@ -1390,7 +1386,6 @@ export default function FreelancerPortal() {
                   ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas', Icon: Lightbulb }] : []),
                   { id: 'tools',     label: 'Tools',     Icon: Wrench },
                   { id: 'meetings',  label: 'Meetings',  Icon: CalendarDays },
-                  { id: 'contract',  label: 'Contract',  Icon: FileCheck },
                 ].filter(item => !getHiddenNav(profile).includes(item.id)).map(({ id, label, Icon }) => {
                   const isActive = activeTab === id;
                   return (
