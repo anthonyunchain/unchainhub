@@ -19,7 +19,7 @@ export default function AppLayout() {
           paddingRight: '16px',
           paddingTop: 'max(24px, env(safe-area-inset-top))',
         }}
-        className="pb-28 md:pb-8 sm:px-5"
+        className="pb-36 md:pb-8 sm:px-5"
       >
         <Topbar />
         <main>

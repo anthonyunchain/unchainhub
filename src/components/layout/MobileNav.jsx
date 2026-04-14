@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard, CheckSquare, Calendar, Lightbulb,
   MoreHorizontal, X, Shield, UserCheck, Users, Layers
@@ -22,6 +22,20 @@ const MORE_ITEMS = [
 export default function MobileNav() {
   const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [navVisible, setNavVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const current = window.scrollY;
+      const diff = current - lastScrollY.current;
+      if (diff > 6) setNavVisible(false);       // scrolling down
+      else if (diff < -4) setNavVisible(true);  // scrolling up
+      lastScrollY.current = current;
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const isMoreActive = MORE_ITEMS.some(i => i.path.split('?')[0] === location.pathname);
 
@@ -39,6 +53,8 @@ export default function MobileNav() {
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
           border: '1px solid rgba(255,255,255,0.9)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,1) inset',
+          transform: navVisible ? 'translateY(0)' : 'translateY(calc(100% + 20px))',
+          transition: 'transform 320ms cubic-bezier(0.4,0,0.2,1)',
         }}
       >
         {/* Top specular shimmer strip */}

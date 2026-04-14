@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import { format } from "date-fns";
@@ -959,7 +959,21 @@ export default function FreelancerPortal() {
   const [todoNewTrigger, setTodoNewTrigger] = useState(0);
   const [invoiceOpenTrigger, setInvoiceOpenTrigger] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [navVisible, setNavVisible] = useState(true);
+  const lastScrollY = useRef(0);
   const [time, setTime] = useState("");
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const current = window.scrollY;
+      const diff = current - lastScrollY.current;
+      if (diff > 6) setNavVisible(false);
+      else if (diff < -4) setNavVisible(true);
+      lastScrollY.current = current;
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const updateTime = () => {
@@ -1073,7 +1087,7 @@ export default function FreelancerPortal() {
           paddingRight: '20px',
           paddingTop: 'max(28px, env(safe-area-inset-top))',
         }}
-        className="pb-28 md:pb-5"
+        className="pb-36 md:pb-5"
       >
         {/* Topbar */}
         <nav style={{ padding: '0 0 20px 0', position: 'relative', zIndex: 10 }}>
@@ -1255,6 +1269,8 @@ export default function FreelancerPortal() {
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
             border: '1px solid rgba(255,255,255,0.9)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,1) inset',
+            transform: navVisible ? 'translateY(0)' : 'translateY(calc(100% + 20px))',
+            transition: 'transform 320ms cubic-bezier(0.4,0,0.2,1)',
           }}
         >
           {/* Top specular shimmer */}
