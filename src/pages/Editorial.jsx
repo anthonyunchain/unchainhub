@@ -629,9 +629,9 @@ export default function Editorial() {
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><Clapperboard className="w-3.5 h-3.5" />Video editing</p>
                   <div>
                     <Label>Assigned editor</Label>
-                    <Select value={editData.assigned_editor_id || ""} onValueChange={v => {
-                      const editorId = v || null;
-                      const fl = videoEditors.find(f => f.id === v);
+                    <Select value={editData.assigned_editor_id || "__none__"} onValueChange={v => {
+                      const editorId = v === "__none__" ? null : v;
+                      const fl = videoEditors.find(f => f.id === editorId);
                       const isReel = editData.post_type === "Reel";
                       setEditData({ ...editData, assigned_editor_id: editorId, assigned_editor_name: fl?.name || "",
                         editing_status: editorId ? (isReel ? "En attente d'acceptation" : (editData.editing_status === "Non assigné" ? "À faire" : editData.editing_status)) : "Non assigné"
@@ -639,7 +639,7 @@ export default function Editorial() {
                     }}>
                       <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="__none__">None</SelectItem>
                         {videoEditors.length === 0 && <SelectItem value="_none" disabled>No video editors</SelectItem>}
                         {videoEditors.map(f => <SelectItem key={f.id} value={f.id}>{f.name} {f.status === "Indisponible" ? "⚠️" : ""}</SelectItem>)}
                       </SelectContent>
