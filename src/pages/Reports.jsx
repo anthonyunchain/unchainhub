@@ -24,6 +24,9 @@ export default function Reports() {
   const [activeTab, setActiveTab] = useState("client");
   const [statDialog, setStatDialog] = useState(false);
   const [editStat, setEditStat] = useState(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkMonth, setBulkMonth] = useState(format(new Date(), "yyyy-MM"));
+  const [bulkRows, setBulkRows] = useState([]);
   const qc = useQueryClient();
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
@@ -39,6 +42,59 @@ export default function Reports() {
   const openNew = () => { setEditStat({ ...EMPTY_STAT, period: selectedMonth }); setStatDialog(true); };
   const openEdit = s => { setEditStat({ ...s }); setStatDialog(true); };
   const handleSave = () => editStat.id ? updateStat.mutate({ id: editStat.id, d: editStat }) : createStat.mutate(editStat);
+
+  const openBulk = () => {
+    const existingByClient = Object.fromEntries(allStats.filter(s => s.period === selectedMonth).map(s => [s.client_name, s]));
+    const rows = clients.map(c => {
+      const ex = existingByClient[c.company_name];
+      return {
+        _id: ex?.id || null,
+        client_name: c.company_name,
+        platform: ex?.platform || "All",
+        views: ex?.views ?? "",
+        reach: ex?.reach ?? "",
+        likes: ex?.likes ?? "",
+        comments: ex?.comments ?? "",
+        followers_gained: ex?.followers_gained ?? "",
+      };
+    });
+    setBulkMonth(selectedMonth);
+    setBulkRows(rows);
+    setBulkOpen(true);
+  };
+
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const handleBulkSave = async () => {
+    setBulkSaving(true);
+    const filled = bulkRows.filter(r => r.views !== "" || r.likes !== "" || r.reach !== "");
+    try {
+      await Promise.all(filled.map(r => {
+        const payload = {
+          client_name: r.client_name,
+          period: bulkMonth,
+          platform: r.platform,
+          views: Number(r.views) || 0,
+          reach: Number(r.reach) || 0,
+          likes: Number(r.likes) || 0,
+          comments: Number(r.comments) || 0,
+          followers_gained: Number(r.followers_gained) || 0,
+        };
+        return r._id
+          ? base44.entities.ClientStats.update(r._id, payload)
+          : base44.entities.ClientStats.create(payload);
+      }));
+      qc.invalidateQueries({ queryKey: ["client-stats"] });
+      setBulkOpen(false);
+    } catch (e) {
+      alert("Error: " + e.message);
+    } finally {
+      setBulkSaving(false);
+    }
+  };
+
+  const updateBulkRow = (idx, field, value) => {
+    setBulkRows(rows => rows.map((r, i) => i === idx ? { ...r, [field]: value } : r));
+  };
 
   const monthStats = allStats.filter(s => s.period === selectedMonth);
   const totalViews = monthStats.reduce((s, r) => s + (r.views || 0), 0);
@@ -96,7 +152,8 @@ export default function Reports() {
 
       <div style={{ position: 'relative' }}>
         {activeTab === "social" && (
-          <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 1 }}>
+          <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 1 }} className="flex gap-2">
+            <Button variant="outline" onClick={openBulk} className="h-9">Bulk entry</Button>
             <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" />Add stats</Button>
           </div>
         )}
@@ -320,6 +377,73 @@ export default function Reports() {
         </TabsContent>
       </Tabs>
       </div>
+
+      {/* Bulk entry dialog */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Bulk entry — social stats</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <Label className="shrink-0">Month</Label>
+            <Input type="month" value={bulkMonth} onChange={e => setBulkMonth(e.target.value)} className="w-40 h-8 text-sm" />
+            <p className="text-xs text-slate-400">Leave a row blank to skip it.</p>
+          </div>
+          <div className="overflow-auto flex-1 border border-slate-100 rounded-xl">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-slate-50 z-10">
+                <tr className="border-b border-slate-200">
+                  <th className="text-left px-4 py-2 text-xs font-medium text-slate-500 w-40">Client</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 w-32">Platform</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500">Views</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500">Reach</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500">Likes</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500">Comments</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500">Followers +</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bulkRows.map((row, idx) => (
+                  <tr key={row.client_name} className={`border-b border-slate-50 ${row._id ? 'bg-blue-50/30' : ''}`}>
+                    <td className="px-4 py-2">
+                      <span className="text-sm font-medium text-slate-800 flex items-center gap-1">
+                        {row.client_name}
+                        {row._id && <span className="text-[9px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full">existing</span>}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <select
+                        value={row.platform}
+                        onChange={e => updateBulkRow(idx, 'platform', e.target.value)}
+                        className="h-7 text-xs px-2 rounded-lg border border-slate-200 bg-white text-slate-700 w-full"
+                      >
+                        {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </td>
+                    {['views', 'reach', 'likes', 'comments', 'followers_gained'].map(field => (
+                      <td key={field} className="px-3 py-2">
+                        <input
+                          type="number"
+                          value={row[field]}
+                          onChange={e => updateBulkRow(idx, field, e.target.value)}
+                          placeholder="—"
+                          className="h-7 w-full text-xs px-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-brand"
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <Button variant="outline" onClick={() => setBulkOpen(false)}>Cancel</Button>
+            <Button onClick={handleBulkSave} disabled={bulkSaving} className="bg-brand hover:bg-brand/90 text-brand-foreground">
+              {bulkSaving ? "Saving…" : `Save ${bulkRows.filter(r => r.views !== "" || r.likes !== "" || r.reach !== "").length} entries`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Stat dialog */}
       <Dialog open={statDialog} onOpenChange={setStatDialog}>
