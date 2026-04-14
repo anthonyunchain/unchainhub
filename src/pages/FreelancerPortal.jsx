@@ -957,6 +957,16 @@ const MOBILE_NAV_BY_ID = {
     showMore: false,
     moreItems: null,
   },
+  '2ba918c3-a88e-4b9f-a570-68d8e6b0c1ed': { // Olli
+    bottomBar: (icons) => [
+      { id: 'dashboard',  label: 'Home',     Icon: icons.LayoutDashboard },
+      { id: 'myprojects', label: 'Projects', Icon: icons.Briefcase },
+      { id: 'tasks',      label: 'Tasks',    Icon: icons.ClipboardList },
+      { id: 'invoices',   label: 'Admin',    Icon: icons.FileText },
+    ],
+    showMore: true,
+    moreItems: null, // use default (hidden items filtered automatically)
+  },
   '25f828d3-0855-4399-a17d-cf32f5108469': { // Jane
     bottomBar: (icons) => [
       { id: 'dashboard', label: 'Home',      Icon: icons.LayoutDashboard },
