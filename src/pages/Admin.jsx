@@ -758,7 +758,8 @@ function UserManagement() {
       if (data?.error) {
         setInviteMsg("Error: " + data.error);
       } else {
-        setInviteMsg("✓ Account created. Share the password with the client.");
+        const confirmedPassword = data?.password || invitePassword;
+        setInviteMsg(`✓ Account created.\n📧 ${inviteForm.email}\n🔑 ${confirmedPassword}`);
         qc.invalidateQueries({ queryKey: ["profiles"] });
       }
     } catch (e) {
@@ -926,7 +927,9 @@ function UserManagement() {
               </div>
             </div>
             {inviteMsg && (
-              <p className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith('Error') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>{inviteMsg}</p>
+              <div className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith('Error') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                {inviteMsg.split('\n').map((line, i) => <p key={i} className="font-mono">{line}</p>)}
+              </div>
             )}
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
