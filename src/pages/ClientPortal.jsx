@@ -970,7 +970,7 @@ export default function ClientPortal() {
       </div>
 
       {/* Content */}
-      <div className="px-5 pb-24 md:pb-8 mx-auto" style={{ maxWidth: 1400 }}>
+      <div className="px-4 sm:px-5 pb-36 md:pb-8 mx-auto" style={{ maxWidth: 1400 }}>
         {/* Greeting — dashboard only */}
         {activeTab === "dashboard" && (
           <div className="mb-5">
@@ -1004,24 +1004,75 @@ export default function ClientPortal() {
         )}
       </div>
 
-      {/* Mobile bottom nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 pb-safe" style={{ background: 'var(--card)', borderTop: '1px solid var(--divider)', boxShadow: '0 -4px 20px rgba(0,0,0,0.06)' }}>
-        <div className="flex items-center justify-around px-2 py-2">
-          {TABS.map(t => {
-            const active = activeTab === t.key;
-            return (
-              <button key={t.key} onClick={() => setActiveTab(t.key)}
-                className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-colors"
-                style={{ background: active ? 'var(--brand-muted)' : 'transparent', border: 'none', cursor: 'pointer' }}>
-                <t.icon style={{ width: 20, height: 20, color: active ? 'var(--brand)' : 'var(--subtle)' }} />
-                <span style={{ fontSize: 9, fontFamily: "'DM Mono', monospace", fontWeight: 500, color: active ? 'var(--brand)' : 'var(--subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  {t.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Mobile bottom nav — liquid glass pill */}
+      <nav
+        className="md:hidden fixed left-4 right-4 z-50 flex items-center"
+        style={{
+          bottom: `calc(12px + env(safe-area-inset-bottom))`,
+          height: 64,
+          borderRadius: 28,
+          background: dark
+            ? 'rgba(30,35,45,0.82)'
+            : 'rgba(255,255,255,0.82)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          border: dark
+            ? '1px solid rgba(255,255,255,0.12)'
+            : '1px solid rgba(255,255,255,0.9)',
+          boxShadow: dark
+            ? '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)'
+            : '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,1) inset',
+        }}
+      >
+        {/* Top specular shimmer */}
+        <div style={{
+          position: 'absolute', top: 0, left: '20%', right: '20%', height: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9) 40%, rgba(255,255,255,0.9) 60%, transparent)',
+          pointerEvents: 'none',
+        }} />
+
+        {TABS.map(t => {
+          const active = activeTab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              className="flex-1 flex flex-col items-center justify-center gap-1 relative"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', height: '100%' }}
+            >
+              {/* Active glass bubble */}
+              {active && (
+                <div style={{
+                  position: 'absolute',
+                  width: 56, height: 52,
+                  borderRadius: 16,
+                  background: 'linear-gradient(160deg, #2A69FF 0%, #1a54e0 100%)',
+                  boxShadow: '0 4px 12px rgba(42,105,255,0.35)',
+                  top: '50%', transform: 'translateY(-50%)',
+                }} />
+              )}
+              <t.icon
+                style={{
+                  width: 19, height: 19, position: 'relative', zIndex: 1,
+                  color: active ? '#fff' : dark ? 'rgba(255,255,255,0.4)' : 'rgba(30,40,70,0.5)',
+                  strokeWidth: active ? 2.2 : 1.8,
+                }}
+              />
+              <span style={{
+                fontSize: 9,
+                fontFamily: "'DM Mono', monospace",
+                fontWeight: 500,
+                letterSpacing: '0.04em',
+                position: 'relative', zIndex: 1,
+                color: active ? '#fff' : dark ? 'rgba(255,255,255,0.4)' : 'rgba(30,40,70,0.5)',
+                textTransform: 'uppercase',
+              }}>
+                {t.label === 'Monthly Brief' ? 'Brief' : t.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
