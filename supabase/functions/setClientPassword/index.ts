@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Verify caller is admin — decode JWT locally (same approach as inviteClient)
+    // Verify caller is admin — decode JWT manually
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return Response.json({ error: 'Unauthorized' }, { headers: corsHeaders });
 
@@ -48,21 +48,22 @@ Deno.serve(async (req) => {
 
     const password = inputPassword || generatePassword();
 
-    // Check if user already exists
-    const adminUrl = `${Deno.env.get('SUPABASE_URL')}/auth/v1/admin/users?email=${encodeURIComponent(email)}&page=1&per_page=1`;
-    const adminResp = await fetch(adminUrl, {
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-        'apikey': Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      },
-    });
-    const adminData = await adminResp.json();
-    const existingUserId: string | null = adminData?.users?.[0]?.id || null;
+    // Find existing user by paginating through all users
+    let existingUserId: string | null = null;
+    let page = 1;
+    while (true) {
+      const { data: listData, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (listErr || !listData?.users?.length) break;
+      const found = listData.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+      if (found) { existingUserId = found.id; break; }
+      if (listData.users.length < 1000) break;
+      page++;
+    }
 
     let userId: string;
 
     if (existingUserId) {
-      // Update existing user's password (solves the "already registered" problem)
+      // Update password for existing user
       const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(existingUserId, {
         password,
         email_confirm: true,
@@ -70,7 +71,7 @@ Deno.serve(async (req) => {
       if (updateErr) return Response.json({ error: updateErr.message }, { headers: corsHeaders });
       userId = existingUserId;
     } else {
-      // Create new user with confirmed email
+      // Create new user
       const { data: createData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -93,7 +94,7 @@ Deno.serve(async (req) => {
       await supabaseAdmin.from('clients').update({ portal_user_id: userId }).eq('id', client_id);
     }
 
-    return Response.json({ success: true, password }, { headers: corsHeaders });
+    return Response.json({ success: true, password, email }, { headers: corsHeaders });
   } catch (error) {
     return Response.json({ error: error.message }, { headers: corsHeaders });
   }
