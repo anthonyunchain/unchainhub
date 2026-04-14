@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Eye, TrendingUp } from "lucide-react";
+import { Plus, Trash2, Eye, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
@@ -380,55 +380,83 @@ export default function Reports() {
 
       {/* Bulk entry dialog */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
+        <DialogContent className="max-h-[90vh] flex flex-col" style={{ width: '90vw', maxWidth: '90vw' }}>
           <DialogHeader>
             <DialogTitle>Bulk entry — social stats</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <Label className="shrink-0">Month</Label>
-            <Input type="month" value={bulkMonth} onChange={e => setBulkMonth(e.target.value)} className="w-40 h-8 text-sm" />
-            <p className="text-xs text-slate-400">Leave a row blank to skip it.</p>
-          </div>
+
+          {/* Month navigator */}
+          {(() => {
+            const allMonths = (() => {
+              const ms = [];
+              const start = new Date(2025, 0, 1);
+              const now = new Date();
+              const end = new Date(now.getFullYear(), now.getMonth(), 1);
+              for (let d = new Date(end); d >= start; d.setMonth(d.getMonth() - 1))
+                ms.push(format(new Date(d), 'yyyy-MM'));
+              return ms;
+            })();
+            const idx = allMonths.indexOf(bulkMonth);
+            const label = format(new Date(bulkMonth + '-01'), 'MMMM yyyy', { locale: enUS });
+            const goTo = (m) => {
+              const existingByClient = Object.fromEntries(allStats.filter(s => s.period === m).map(s => [s.client_name, s]));
+              setBulkRows(rows => rows.map(r => {
+                const ex = existingByClient[r.client_name];
+                return ex
+                  ? { ...r, _id: ex.id, platform: ex.platform || 'All', views: ex.views ?? '', reach: ex.reach ?? '', likes: ex.likes ?? '', comments: ex.comments ?? '', followers_gained: ex.followers_gained ?? '' }
+                  : { ...r, _id: null, platform: 'All', views: '', reach: '', likes: '', comments: '', followers_gained: '' };
+              }));
+              setBulkMonth(m);
+            };
+            return (
+              <div className="flex items-center gap-2 mb-3">
+                <div className="inline-flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                  <button onClick={() => idx < allMonths.length - 1 && goTo(allMonths[idx + 1])} disabled={idx >= allMonths.length - 1}
+                    className="h-9 w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-r border-slate-200">
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-sm font-medium text-slate-700 capitalize" style={{ width: 140, textAlign: 'center' }}>{label}</span>
+                  <button onClick={() => idx > 0 && goTo(allMonths[idx - 1])} disabled={idx <= 0}
+                    className="h-9 w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-l border-slate-200">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400">Leave a row blank to skip it.</p>
+              </div>
+            );
+          })()}
+
           <div className="overflow-auto flex-1 border border-slate-100 rounded-xl">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-slate-50 z-10">
                 <tr className="border-b border-slate-200">
-                  <th className="text-left px-4 py-2 text-xs font-medium text-slate-500" style={{width: 160}}>Client</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500" style={{width: 130}}>Platform</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500" style={{width: 120}}>Views</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500" style={{width: 120}}>Reach</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500" style={{width: 120}}>Likes</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500" style={{width: 120}}>Comments</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium text-slate-500" style={{width: 120}}>Followers +</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-slate-500" style={{width: 180}}>Client</th>
+                  <th className="text-left px-3 py-3 text-xs font-medium text-slate-500" style={{width: 140}}>Platform</th>
+                  {['Views', 'Reach', 'Likes', 'Comments', 'Followers +'].map(h => (
+                    <th key={h} className="text-left px-3 py-3 text-xs font-medium text-slate-500">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {bulkRows.map((row, idx) => (
                   <tr key={row.client_name} className={`border-b border-slate-50 ${row._id ? 'bg-blue-50/30' : ''}`}>
-                    <td className="px-4 py-2">
-                      <span className="text-sm font-medium text-slate-800 flex items-center gap-1">
+                    <td className="px-4 py-2.5">
+                      <span className="text-sm font-medium text-slate-800 flex items-center gap-1.5">
                         {row.client_name}
                         {row._id && <span className="text-[9px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full">existing</span>}
                       </span>
                     </td>
-                    <td className="px-3 py-2">
-                      <select
-                        value={row.platform}
-                        onChange={e => updateBulkRow(idx, 'platform', e.target.value)}
-                        className="h-7 text-xs px-2 rounded-lg border border-slate-200 bg-white text-slate-700 w-full"
-                      >
+                    <td className="px-3 py-2.5">
+                      <select value={row.platform} onChange={e => updateBulkRow(idx, 'platform', e.target.value)}
+                        className="h-9 text-sm px-2 rounded-lg border border-slate-200 bg-white text-slate-700 w-full">
                         {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
                     </td>
                     {['views', 'reach', 'likes', 'comments', 'followers_gained'].map(field => (
-                      <td key={field} className="px-3 py-2">
-                        <input
-                          type="number"
-                          value={row[field]}
-                          onChange={e => updateBulkRow(idx, field, e.target.value)}
+                      <td key={field} className="px-3 py-2.5">
+                        <input type="number" value={row[field]} onChange={e => updateBulkRow(idx, field, e.target.value)}
                           placeholder="—"
-                          className="h-8 w-full text-sm px-3 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-brand"
-                        />
+                          className="h-9 w-full text-sm px-3 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-brand" />
                       </td>
                     ))}
                   </tr>
