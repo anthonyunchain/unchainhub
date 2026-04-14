@@ -1190,27 +1190,27 @@ export default function FreelancerPortal() {
               const meta = TAB_TITLES[activeTab];
               if (!meta) return null;
               return (
-                <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px', margin: 0 }}>
+                <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <h1 className="text-xl sm:text-2xl" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px', margin: 0 }}>
                       {meta.title}
                     </h1>
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    <p className="hidden sm:block" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                       {meta.subtitle}
                     </p>
                   </div>
                   {activeTab === 'todo' && (
                     <button
                       onClick={() => setTodoNewTrigger(n => n + 1)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--brand)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 12, background: 'var(--brand)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap', flexShrink: 0 }}
                     >
-                      <Plus style={{ width: 15, height: 15 }} /> New task
+                      <Plus style={{ width: 14, height: 14 }} /> <span className="hidden sm:inline">New task</span><span className="sm:hidden">New</span>
                     </button>
                   )}
                   {activeTab === 'projects' && (
                     <button
                       onClick={() => setActiveTab('captions')}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--card)', color: 'var(--brand)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: "'DM Mono', monospace" }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 12, background: 'var(--card)', color: 'var(--brand)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: "'DM Mono', monospace", whiteSpace: 'nowrap', flexShrink: 0 }}
                     >
                       Captions →
                     </button>
@@ -1218,17 +1218,17 @@ export default function FreelancerPortal() {
                   {activeTab === 'captions' && (
                     <button
                       onClick={() => setActiveTab('projects')}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--card)', color: 'var(--muted)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: "'DM Mono', monospace" }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 12, background: 'var(--card)', color: 'var(--muted)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: "'DM Mono', monospace", whiteSpace: 'nowrap', flexShrink: 0 }}
                     >
-                      ← Calendar
+                      ← <span className="hidden sm:inline">Calendar</span><span className="sm:hidden">Cal.</span>
                     </button>
                   )}
                   {activeTab === 'invoices' && (
                     <button
                       onClick={() => setInvoiceOpenTrigger(n => n + 1)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, background: 'var(--brand)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 12, background: 'var(--brand)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: 'nowrap', flexShrink: 0 }}
                     >
-                      <Plus style={{ width: 15, height: 15 }} /> Submit an invoice
+                      <Plus style={{ width: 14, height: 14 }} /> <span className="hidden sm:inline">Submit an invoice</span><span className="sm:hidden">Invoice</span>
                     </button>
                   )}
                 </div>
