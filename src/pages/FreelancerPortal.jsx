@@ -1013,6 +1013,71 @@ export default function FreelancerPortal() {
   const lastScrollY = useRef(0);
   const [time, setTime] = useState("");
 
+  // ── Notifications (single source of truth + single realtime channel) ──────
+  const [notifications, setNotifications] = useState([]);
+  const [notifsLoading, setNotifsLoading] = useState(false);
+  const notifChannelRef = useRef(null);
+
+  useEffect(() => {
+    const profileId = freelancerData?.profile?.id;
+    if (!profileId) return;
+
+    // Initial fetch
+    setNotifsLoading(true);
+    supabase
+      .from('notifications')
+      .select('*')
+      .eq('recipient_id', profileId)
+      .order('created_at', { ascending: false })
+      .limit(100)
+      .then(({ data }) => {
+        setNotifications(data || []);
+        setNotifsLoading(false);
+      });
+
+    // Real-time subscription — INSERT, UPDATE, DELETE
+    const channel = supabase
+      .channel(`portal-notif-${profileId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${profileId}` },
+        (payload) => setNotifications(prev => [payload.new, ...prev])
+      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${profileId}` },
+        (payload) => setNotifications(prev => prev.map(n => n.id === payload.new.id ? payload.new : n))
+      )
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${profileId}` },
+        (payload) => setNotifications(prev => prev.filter(n => n.id !== payload.old.id))
+      )
+      .subscribe();
+
+    notifChannelRef.current = channel;
+    return () => { supabase.removeChannel(channel); };
+  }, [freelancerData?.profile?.id]);
+
+  const notifMarkRead = async (id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+  };
+
+  const notifMarkAllRead = async () => {
+    const profileId = freelancerData?.profile?.id;
+    if (!profileId) return;
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    await supabase.from('notifications').update({ is_read: true }).eq('recipient_id', profileId).eq('is_read', false);
+  };
+
+  const notifDelete = async (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+    await supabase.from('notifications').delete().eq('id', id);
+  };
+
+  const notifDeleteAll = async () => {
+    const profileId = freelancerData?.profile?.id;
+    if (!profileId) return;
+    setNotifications([]);
+    await supabase.from('notifications').delete().eq('recipient_id', profileId);
+  };
+  // ─────────────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     const handleScroll = () => {
       const current = window.scrollY;
@@ -1081,7 +1146,7 @@ export default function FreelancerPortal() {
   const visibleCalendars = freelancerData?.visibleCalendars || [];
   const freelancerName = profile?.name || user?.full_name || user?.email;
   const freelancerFirstName = profile?.first_name || freelancerName?.split(" ")[0] || "";
-  const unreadCount = myProjects.filter(p => p.status === "Pending acceptance").length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const handleUpdateTask = async (task, updates) => {
     // Optimistic update so the UI responds immediately
@@ -1121,7 +1186,15 @@ export default function FreelancerPortal() {
       case "invoices":
       case "contract": return <InvoicesTab payments={payments} freelancerName={freelancerName} freelancerId={profile?.id} onPaymentAdded={handlePaymentAdded} openTrigger={invoiceOpenTrigger} profile={profile} />;
       case "profile": return <ProfileTab user={user} freelancerProfile={profile} onProfileUpdate={(p) => setFreelancerData(d => ({ ...d, profile: p }))} />;
-      case "notifications": return <NotificationsPanel freelancerId={profile?.id} onAccept={(pid) => handleProjectUpdate()} onDecline={(pid) => handleProjectUpdate()} />;
+      case "notifications": return <NotificationsPanel
+        notifications={notifications}
+        loading={notifsLoading}
+        onMarkRead={notifMarkRead}
+        onMarkAllRead={notifMarkAllRead}
+        onDelete={notifDelete}
+        onAccept={() => handleProjectUpdate()}
+        onDecline={() => handleProjectUpdate()}
+      />;
       default: return null;
     }
   };
@@ -1218,7 +1291,13 @@ export default function FreelancerPortal() {
               }}>
                 {format(new Date(), "EEE, MMM d", { locale: enUS })} · {time}
               </div>
-              <NotificationBell recipientId={profile?.id} />
+              <NotificationBell
+                notifications={notifications}
+                onMarkRead={notifMarkRead}
+                onMarkAllRead={notifMarkAllRead}
+                onDelete={notifDelete}
+                onDeleteAll={notifDeleteAll}
+              />
               <UserMenu
                 userName={freelancerName}
                 userEmail={user?.email}
@@ -1230,7 +1309,13 @@ export default function FreelancerPortal() {
             {/* Mobile: time + bell + avatar menu */}
             <div className="flex md:hidden items-center gap-2">
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>{time}</div>
-              <NotificationBell recipientId={profile?.id} />
+              <NotificationBell
+                notifications={notifications}
+                onMarkRead={notifMarkRead}
+                onMarkAllRead={notifMarkAllRead}
+                onDelete={notifDelete}
+                onDeleteAll={notifDeleteAll}
+              />
               <UserMenu
                 userName={freelancerName}
                 userEmail={user?.email}

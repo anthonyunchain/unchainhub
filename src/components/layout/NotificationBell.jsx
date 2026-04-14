@@ -1,61 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/api/base44Client";
 import { Bell, Check, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
-const TYPE_ICONS = {
-  project_assigned: "📋",
-  project_accepted: "✅",
-  project_declined: "❌",
-  project_delivered: "📦",
-  project_completed: "🏆",
-  revision_requested: "🔄",
-  clarification_requested: "💬",
-  deadline_warning: "⏰",
-  availability_reminder: "📅",
-  message: "💬",
-};
-
-export default function NotificationBell({ recipientId }) {
-  const [notifications, setNotifications] = useState([]);
+export default function NotificationBell({ notifications = [], onMarkRead, onMarkAllRead, onDelete, onDeleteAll }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const channelRef = useRef(null);
-
-  const fetchNotifications = async () => {
-    if (!recipientId) return;
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('recipient_id', recipientId)
-      .order('created_at', { ascending: false })
-      .limit(20);
-    setNotifications(data || []);
-  };
-
-  useEffect(() => {
-    if (!recipientId) return;
-    fetchNotifications();
-
-    const channelName = `bell-${recipientId}-${Math.random().toString(36).slice(2)}`;
-    const channel = supabase
-      .channel(channelName)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${recipientId}` },
-        (payload) => {
-          const n = { ...payload.new };
-          setNotifications(prev => [n, ...prev]);
-        }
-      )
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${recipientId}` },
-        (payload) => {
-          setNotifications(prev => prev.map(n => n.id === payload.new.id ? payload.new : n));
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-    return () => { supabase.removeChannel(channel); };
-  }, [recipientId]);
 
   // Close on outside click
   useEffect(() => {
@@ -65,26 +14,6 @@ export default function NotificationBell({ recipientId }) {
     if (open) document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, [open]);
-
-  const markRead = async (id) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-  };
-
-  const markAllRead = async () => {
-    await supabase.from('notifications').update({ is_read: true }).eq('recipient_id', recipientId).eq('is_read', false);
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-  };
-
-  const deleteNotification = async (id) => {
-    await supabase.from('notifications').delete().eq('id', id);
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
-
-  const deleteAll = async () => {
-    await supabase.from('notifications').delete().eq('recipient_id', recipientId);
-    setNotifications([]);
-  };
 
   const unread = notifications.filter(n => !n.is_read).length;
 
@@ -168,7 +97,7 @@ export default function NotificationBell({ recipientId }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {unread > 0 && (
                 <button
-                  onClick={markAllRead}
+                  onClick={onMarkAllRead}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
                     background: 'transparent', border: 'none', cursor: 'pointer',
@@ -181,7 +110,7 @@ export default function NotificationBell({ recipientId }) {
               )}
               {notifications.length > 0 && (
                 <button
-                  onClick={deleteAll}
+                  onClick={onDeleteAll}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
                     background: 'transparent', border: 'none', cursor: 'pointer',
@@ -206,7 +135,7 @@ export default function NotificationBell({ recipientId }) {
               notifications.map(n => (
                 <div
                   key={n.id}
-                  onClick={() => !n.is_read && markRead(n.id)}
+                  onClick={() => !n.is_read && onMarkRead(n.id)}
                   style={{
                     display: 'flex', alignItems: 'flex-start', gap: 10,
                     padding: '10px 14px',
@@ -229,7 +158,7 @@ export default function NotificationBell({ recipientId }) {
                           <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--brand)' }} />
                         )}
                         <button
-                          onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
+                          onClick={(e) => { e.stopPropagation(); onDelete(n.id); }}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--muted)', opacity: 0.4, display: 'flex' }}
                           onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                           onMouseLeave={e => e.currentTarget.style.opacity = '0.4'}
