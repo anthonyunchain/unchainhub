@@ -115,8 +115,44 @@ export default function Pipeline() {
         </div>
       </PageHeader>
 
-      {/* List view */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+      {/* Mobile card list — visible on small screens */}
+      <div className="md:hidden space-y-3">
+        {filtered.length === 0 && (
+          <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-sm text-slate-400">No prospects</div>
+        )}
+        {filtered.map(p => (
+          <div key={p.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 cursor-pointer active:bg-slate-50" onClick={() => openEdit(p)}>
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-800 truncate">{p.company_name}</p>
+                {p.estimated_value > 0 && <p className="text-xs text-slate-400 mt-0.5">{p.estimated_value.toLocaleString("fr-FR")} €</p>}
+              </div>
+              <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${STAGE_COLORS[p.stage] || "bg-slate-100 text-slate-600"}`}>{p.stage}</span>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mb-2">
+              {p.city && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{p.city}</span>}
+              {p.sector && <span>{p.sector}</span>}
+            </div>
+            {p.contact_name && <p className="text-xs text-slate-600">{p.contact_name}{p.contact_email && ` · ${p.contact_email}`}</p>}
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50">
+              <span className="text-xs text-slate-400">
+                {p.last_contact_date ? format(new Date(p.last_contact_date), "d MMM yyyy", { locale: fr }) : "No contact"}
+              </span>
+              {p.closing_probability > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-12 h-1.5 bg-slate-100 rounded-full">
+                    <div className="h-1.5 bg-emerald-500 rounded-full" style={{ width: `${p.closing_probability}%` }} />
+                  </div>
+                  <span className="text-xs text-slate-500">{p.closing_probability}%</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table — hidden on small screens */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
         <table className="w-full min-w-[700px]">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/50">
@@ -167,7 +203,7 @@ export default function Pipeline() {
                 <td className="px-3 py-3">
                   <button
                     onClick={(e) => quickDelete(e, p.id)}
-                    className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all"
+                    className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all p-1"
                   >
                     <X className="w-4 h-4" />
                   </button>

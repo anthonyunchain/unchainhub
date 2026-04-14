@@ -124,7 +124,7 @@ export default function Dashboard() {
                 total posts planned
               </p>
             </div>
-            <div className="grid grid-cols-4 gap-2 mt-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-5">
               {[
                 { label: 'Shot',       value: shot },
                 { label: 'In Editing', value: inProgress },

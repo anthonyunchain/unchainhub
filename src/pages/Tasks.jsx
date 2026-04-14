@@ -202,7 +202,8 @@ export default function Tasks() {
       </PageHeader>
 
       {/* Filtres statut */}
-      <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-0.5 scrollbar-none">
+      <div className="relative mb-3">
+      <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
         <button
           onClick={() => setActiveStatus("all")}
           className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeStatus === "all" ? "bg-slate-800 text-white" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"}`}>
@@ -224,6 +225,15 @@ export default function Tasks() {
 
       {/* Filtres client + catégorie */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-0.5 scrollbar-none">
+        {/* end status filter buttons */}
+      </div>
+      {/* right fade hint */}
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--bg)] to-transparent" />
+      </div>
+
+      {/* Filtres client + catégorie */}
+      <div className="relative mb-6">
+      <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
         {taskClients.length > 0 && <>
           <span className="shrink-0 text-xs text-slate-400 font-medium">Client:</span>
           <button
@@ -281,6 +291,9 @@ export default function Tasks() {
             </button>
           )}
         </>}
+      </div>
+      {/* right fade hint */}
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--bg)] to-transparent" />
       </div>
 
       {/* Liste */}

@@ -59,14 +59,14 @@ export default function CaptionsTab({ items = [] }) {
       {/* Filters */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <Select value={filterClient} onValueChange={setFilterClient}>
-          <SelectTrigger className="w-44 h-9 text-sm"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-44 h-9 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All clients</SelectItem>
             {clients.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-36 h-9 text-sm"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-36 h-9 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All types</SelectItem>
             <SelectItem value="Reel">Reel</SelectItem>

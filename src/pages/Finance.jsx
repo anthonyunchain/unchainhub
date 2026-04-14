@@ -62,7 +62,8 @@ export default function Finance() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
           <h3 className="text-sm font-semibold text-slate-900 mb-4">Revenue vs Expenses</h3>
-          <ResponsiveContainer width="100%" height={280}>
+          <div className="h-[200px] md:h-[280px]">
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#94a3b8" }} />
@@ -73,11 +74,13 @@ export default function Finance() {
               <Bar dataKey="expenses" fill="#f43f5e" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
           <h3 className="text-sm font-semibold text-slate-900 mb-4">Cash flow evolution</h3>
-          <ResponsiveContainer width="100%" height={280}>
+          <div className="h-[200px] md:h-[280px]">
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={cashData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#94a3b8" }} />
@@ -87,6 +90,7 @@ export default function Finance() {
               <Line type="monotone" dataKey="margin" stroke="#8b5cf6" strokeWidth={2} strokeDasharray="5 5" />
             </LineChart>
           </ResponsiveContainer>
+          </div>
         </div>
       </div>
 

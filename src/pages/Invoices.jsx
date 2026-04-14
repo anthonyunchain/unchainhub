@@ -135,8 +135,53 @@ export default function Invoices() {
         <div className="bg-white rounded-xl border border-slate-100 p-5"><p className="text-xs text-slate-400 uppercase">Overdue</p><p className="text-xl font-bold text-red-600 mt-1">{totalLate.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p></div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+      {/* Mobile card list */}
+      <div className="md:hidden space-y-3">
+        {paginated.length === 0 && (
+          <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-sm text-slate-400">No invoices</div>
+        )}
+        {paginated.map(inv => (
+          <div key={inv.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 cursor-pointer active:bg-slate-50" onClick={() => openEdit(inv)}>
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-800 truncate">{inv.client_name || "—"}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{inv.invoice_number}</p>
+              </div>
+              <span className={`shrink-0 text-xs font-medium ${statusStyle(inv.status)}`}>{inv.status}</span>
+            </div>
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50">
+              <span className="text-xs text-slate-400">
+                {inv.issue_date ? format(new Date(inv.issue_date), "dd/MM/yyyy") : "—"}
+                {inv.due_date ? ` → ${format(new Date(inv.due_date), "dd/MM/yyyy")}` : ""}
+              </span>
+              <div className="flex items-center gap-2">
+                {(inv.file_urls || []).length > 0 && (
+                  <a href={inv.file_urls[0]} target="_blank" rel="noopener noreferrer" className="text-brand" onClick={e => e.stopPropagation()}>
+                    <FileText className="w-4 h-4" />
+                  </a>
+                )}
+                <span className="text-sm font-semibold text-slate-800">
+                  {(inv.total_with_tax || inv.total_amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                </span>
+                <button
+                  onClick={e => { e.stopPropagation(); togglePaid(inv); }}
+                  title={inv.status === "Payée" ? "Mark unpaid" : "Mark paid"}
+                  className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 ${
+                    inv.status === "Payée"
+                      ? "border-blue-500 bg-blue-500 text-white"
+                      : "border-slate-200 bg-white text-transparent hover:border-blue-400"
+                  }`}
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
         <table className="w-full min-w-[750px]">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/50">

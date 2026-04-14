@@ -49,7 +49,37 @@ export default function Contracts() {
         </Button>
       </PageHeader>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+      {/* Mobile card list */}
+      <div className="md:hidden space-y-3">
+        {contracts.length === 0 && (
+          <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-sm text-slate-400">No contracts</div>
+        )}
+        {contracts.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map(c => (
+          <div key={c.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 cursor-pointer active:bg-slate-50" onClick={() => openEdit(c)}>
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-sm font-semibold text-slate-800 truncate">{c.title}</span>
+              </div>
+              <StatusBadge status={c.status} />
+            </div>
+            <p className="text-xs text-slate-500 mb-2 ml-6">{c.client_name}</p>
+            <div className="flex items-center justify-between ml-6">
+              <span className="text-xs font-medium text-slate-700">{c.monthly_amount ? `${c.monthly_amount.toLocaleString("fr-FR")} €/mois` : "—"}</span>
+              <span className="text-xs text-slate-400">
+                {c.start_date ? format(new Date(c.start_date), "d MMM yy", { locale: fr }) : ""}
+                {c.end_date ? ` – ${format(new Date(c.end_date), "d MMM yy", { locale: fr })}` : ""}
+              </span>
+            </div>
+            {c.file_url && (
+              <a href={c.file_url} target="_blank" rel="noopener noreferrer" className="text-brand text-xs hover:underline ml-6 mt-1 block" onClick={e => e.stopPropagation()}>View file</a>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
         <table className="w-full min-w-[600px]">
           <thead><tr className="border-b border-slate-100 bg-slate-50/50">
             <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Contract</th>

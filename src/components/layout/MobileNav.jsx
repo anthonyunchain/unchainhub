@@ -43,8 +43,10 @@ export default function MobileNav() {
     <>
       {/* ── Liquid glass bottom nav ── */}
       <nav
-        className="fixed left-4 right-4 z-50 flex md:hidden items-center"
+        className="fixed z-50 flex md:hidden items-center"
         style={{
+          left: 'max(16px, env(safe-area-inset-left))',
+          right: 'max(16px, env(safe-area-inset-right))',
           bottom: `calc(12px + env(safe-area-inset-bottom))`,
           height: 64,
           borderRadius: 28,
@@ -153,8 +155,10 @@ export default function MobileNav() {
 
           {/* Glass sheet */}
           <div
-            className="fixed left-4 right-4 z-40 md:hidden"
+            className="fixed z-40 md:hidden"
             style={{
+              left: 'max(16px, env(safe-area-inset-left))',
+              right: 'max(16px, env(safe-area-inset-right))',
               bottom: `calc(88px + env(safe-area-inset-bottom))`,
               borderRadius: 24,
               background: 'rgba(255,255,255,0.88)',
@@ -162,7 +166,10 @@ export default function MobileNav() {
               WebkitBackdropFilter: 'blur(28px) saturate(180%)',
               border: '1px solid rgba(255,255,255,0.95)',
               boxShadow: '0 16px 48px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.08)',
-              padding: '20px 16px 16px',
+              paddingTop: '20px',
+              paddingBottom: '16px',
+              paddingLeft: 'max(16px, env(safe-area-inset-left))',
+              paddingRight: 'max(16px, env(safe-area-inset-right))',
             }}
           >
             {/* Top specular strip */}

@@ -15,8 +15,8 @@ export default function AppLayout() {
           position: 'relative',
           zIndex: 1,
           maxWidth: '100%',
-          paddingLeft: '16px',
-          paddingRight: '16px',
+          paddingLeft: 'max(16px, env(safe-area-inset-left))',
+          paddingRight: 'max(16px, env(safe-area-inset-right))',
           paddingTop: 'max(24px, env(safe-area-inset-top))',
         }}
         className="pb-36 md:pb-8 sm:px-5"
