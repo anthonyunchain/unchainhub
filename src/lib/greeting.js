@@ -36,6 +36,29 @@ const GREETINGS = {
   ],
 };
 
+const GREETINGS_FI = {
+  morning: [
+    "Hyvää huomenta, {name} ☀️",
+    "Hyvää huomenta, {name}",
+  ],
+  day: [
+    "Hyvää päivää, {name} ☀️",
+    "Hyvää päivää, {name}",
+  ],
+  afternoon: [
+    "Hyvää iltapäivää, {name} 🌿",
+    "Hyvää iltapäivää, {name}",
+  ],
+  evening: [
+    "Hyvää iltaa, {name} ✨",
+    "Hyvää iltaa, {name}",
+  ],
+  night: [
+    "Hyvää yötä, {name} 🌙",
+    "Hyvää yötä, {name}",
+  ],
+};
+
 function getPeriod(hour) {
   if (hour >= 4 && hour < 9)   return "morning";
   if (hour >= 9 && hour < 13)  return "day";
@@ -44,12 +67,12 @@ function getPeriod(hour) {
   return "night";
 }
 
-export function getGreeting(name) {
+export function getGreeting(name, lang = "en") {
   const now = new Date();
   const hour = now.getHours();
   const period = getPeriod(hour);
-  const list = GREETINGS[period];
-  // Stable within the day: pick based on day-of-year so it doesn't change per reload
+  const map = lang === "fi" ? GREETINGS_FI : GREETINGS;
+  const list = map[period];
   const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
   const template = list[dayOfYear % list.length];
   return template.replace("{name}", name);

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { base44, supabase } from "@/api/base44Client";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay } from "date-fns";
-import { enUS } from "date-fns/locale";
+import { enUS, fi as fiFns } from "date-fns/locale";
 import { getGreeting } from "@/lib/greeting";
 import { useTheme } from "@/lib/useTheme";
 import {
@@ -11,6 +11,150 @@ import {
   Linkedin, Globe, Download, Receipt, ClipboardList, CheckCircle2, Save
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+
+// ── Translations ───────────────────────────────────────────────────────────
+const TRANSLATIONS = {
+  en: {
+    dashboard: "Dashboard",
+    brief: "Monthly Brief",
+    briefShort: "Brief",
+    reports: "Reports",
+    admin: "Admin",
+    viewsThisMonth: "Views this month",
+    postsPublished: "Posts published",
+    editorialCalendarPdf: "Editorial Calendar PDF",
+    viewsLast6Months: "Views — last 6 months",
+    pendingInvoices: "Pending invoices",
+    due: "Due",
+    briefTitle: "Monthly brief",
+    briefIntro: "Fill in the key info about next month so we can build your content calendar. The more detail, the better!",
+    briefSubmitted: "Brief submitted — thank you! You can still update it below.",
+    saveDraft: "Save draft",
+    saved: "Saved",
+    submitBrief: "Submit brief",
+    submitting: "Submitting…",
+    submitted: "Submitted",
+    keyDates: "Key dates & events",
+    campaigns: "Campaigns & promotions",
+    themes: "Main themes / topics",
+    products: "Products / services to highlight",
+    notes: "Additional notes",
+    keyDatesPlaceholder: "Product launches, seasonal events, campaigns, holidays…",
+    campaignsPlaceholder: "Ongoing promotions, partnerships, discount periods…",
+    themesPlaceholder: "Topics you want to cover, content pillars for the month…",
+    productsPlaceholder: "What you want to put forward this month…",
+    notesPlaceholder: "Tone, constraints, anything else we should know…",
+    views: "Views",
+    reach: "Reach",
+    followers: "Followers",
+    likes: "Likes",
+    postsThisMonth: "Posts this month",
+    plannedTotal: (n) => `${n} planned total`,
+    viewsOver12Months: "Views over 12 months",
+    byPlatform: "By platform",
+    viewsLabel: "views",
+    followersLabel: "followers",
+    contracts: "Contracts",
+    invoices: "Invoices",
+    noContracts: "No contracts found",
+    noInvoices: "No invoices found",
+    perMonth: "/ month",
+    issued: "Issued",
+    dueDate: "Due",
+    paidDate: "Paid",
+    contractStatuses: { "Actif": "Active", "Signé": "Signed", "Brouillon": "Draft", "Terminé": "Completed", "Résilié": "Terminated" },
+    invoiceStatuses: { "Payée": "Paid", "En attente": "Pending", "En retard": "Overdue", "Brouillon": "Draft", "Annulée": "Cancelled" },
+    lightMode: "Light mode",
+    darkMode: "Dark mode",
+    settings: "Settings",
+    logout: "Logout",
+    accountSettings: "Account settings",
+    changeEmail: "Change email",
+    emailPlaceholder: "new@email.com",
+    updateEmail: "Update email",
+    changePassword: "Change password",
+    newPassword: "New password",
+    confirmPassword: "Confirm password",
+    updatePassword: "Update password",
+    close: "Close",
+    confirmationEmailSent: "Confirmation email sent.",
+    passwordUpdated: "Password updated.",
+    passwordsDontMatch: "Passwords don't match.",
+    minChars: "Min 6 characters.",
+    weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+    total: "total",
+  },
+  fi: {
+    dashboard: "Hallintapaneeli",
+    brief: "Kuukausibrief",
+    briefShort: "Brief",
+    reports: "Raportit",
+    admin: "Ylläpito",
+    viewsThisMonth: "Näyttökerrat tässä kuussa",
+    postsPublished: "Julkaistut julkaisut",
+    editorialCalendarPdf: "Sisältökalenteri (PDF)",
+    viewsLast6Months: "Näyttökerrat – viimeiset 6 kuukautta",
+    pendingInvoices: "Avoimet laskut",
+    due: "Eräpäivä",
+    briefTitle: "Kuukausitiedote",
+    briefIntro: "Täytä seuraavan kuukauden tärkeimmät tiedot, jotta voimme rakentaa sisältökalenterisi. Mitä enemmän yksityiskohtia, sitä parempi!",
+    briefSubmitted: "Tiedote lähetetty, kiitos! Voit vielä päivittää sitä alla.",
+    saveDraft: "Tallenna luonnos",
+    saved: "Tallennettu",
+    submitBrief: "Lähetä tiedote",
+    submitting: "Lähetetään…",
+    submitted: "Lähetetty",
+    keyDates: "Tärkeät päivämäärät ja tapahtumat",
+    campaigns: "Kampanjat",
+    themes: "Keskeiset teemat / aiheet",
+    products: "Kuukauden tuotteet / palvelut",
+    notes: "Lisähuomiot",
+    keyDatesPlaceholder: "Tuotelanseeraukset, kausiluontoiset tapahtumat, kampanjat, lomapäivät…",
+    campaignsPlaceholder: "Käynnissä olevat kampanjat, yhteistyöt, alennusjaksot…",
+    themesPlaceholder: "Aiheet, joita haluatte käsitellä, kuukauden sisältöpilarit…",
+    productsPlaceholder: "Mitä haluatte nostaa esiin tässä kuussa…",
+    notesPlaceholder: "Sävy, rajoitukset, muuta huomionarvoista…",
+    views: "Näyttökerrat",
+    reach: "Tavoittavuus",
+    followers: "Seuraajat",
+    likes: "Tykkäykset",
+    postsThisMonth: "Julkaisut tässä kuussa",
+    plannedTotal: (n) => `${n} suunniteltu yhteensä`,
+    viewsOver12Months: "Näyttökerrat viimeisen 12 kuukauden ajalta",
+    byPlatform: "Alustajako",
+    viewsLabel: "näyttöä",
+    followersLabel: "seuraajaa",
+    contracts: "Sopimukset",
+    invoices: "Laskut",
+    noContracts: "Ei sopimuksia",
+    noInvoices: "Ei laskuja",
+    perMonth: "/ kk",
+    issued: "Laadittu",
+    dueDate: "Eräpäivä",
+    paidDate: "Maksettu",
+    contractStatuses: { "Actif": "Aktiivinen", "Signé": "Allekirjoitettu", "Brouillon": "Luonnos", "Terminé": "Päättynyt", "Résilié": "Irtisanottu" },
+    invoiceStatuses: { "Payée": "Maksettu", "En attente": "Odottaa", "En retard": "Myöhässä", "Brouillon": "Luonnos", "Annulée": "Peruutettu" },
+    lightMode: "Vaalea tila",
+    darkMode: "Tumma tila",
+    settings: "Asetukset",
+    logout: "Kirjaudu ulos",
+    accountSettings: "Tiliasetukset",
+    changeEmail: "Vaihda sähköposti",
+    emailPlaceholder: "uusi@sahkoposti.fi",
+    updateEmail: "Päivitä sähköposti",
+    changePassword: "Vaihda salasana",
+    newPassword: "Uusi salasana",
+    confirmPassword: "Vahvista salasana",
+    updatePassword: "Päivitä salasana",
+    close: "Sulje",
+    confirmationEmailSent: "Vahvistussähköposti lähetetty.",
+    passwordUpdated: "Salasana päivitetty.",
+    passwordsDontMatch: "Salasanat eivät täsmää.",
+    minChars: "Vähintään 6 merkkiä.",
+    weekdays: ["Ma", "Ti", "Ke", "To", "Pe"],
+    total: "yhteensä",
+  },
+};
 
 // ── helpers ────────────────────────────────────────────────────────────────
 const TYPE_COLOR = {
@@ -34,6 +178,16 @@ const PLATFORM_ICON = {
   LinkedIn:  <Linkedin className="w-3 h-3" />,
 };
 
+function capitalizeFirst(str) {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function fmtDate(date, fmt, locale) {
+  const s = format(date, fmt, { locale });
+  return capitalizeFirst(s);
+}
+
 function KpiCard({ label, value, icon: Icon, color = "#2A69FF" }) {
   return (
     <div className="rounded-2xl p-5 flex flex-col gap-2" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
@@ -49,17 +203,15 @@ function KpiCard({ label, value, icon: Icon, color = "#2A69FF" }) {
 }
 
 // ── Dashboard tab ──────────────────────────────────────────────────────────
-function DashboardTab({ client, stats, content, contracts, invoices, calendarPdfs }) {
+function DashboardTab({ client, stats, content, contracts, invoices, calendarPdfs, tr, dateLocale }) {
   const { dark } = useTheme();
   const [calCurrentDate, setCalCurrentDate] = useState(new Date());
   const currentMonth = format(new Date(), "yyyy-MM");
   const monthStats = stats.filter(s => s.period === currentMonth);
   const totalViews = monthStats.reduce((s, r) => s + (r.views || 0), 0);
-  const totalFollowers = monthStats.reduce((s, r) => s + (r.followers_gained || 0), 0);
   const monthContent = content.filter(c => c.scheduled_date?.startsWith(currentMonth));
   const published = monthContent.filter(c => c.status === "Publié").length;
 
-  // Chart: last 6 months
   const chartData = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date();
@@ -67,37 +219,29 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
     const period = format(d, "yyyy-MM");
     const s = stats.filter(x => x.period === period);
     chartData.push({
-      month: format(d, "MMM", { locale: enUS }),
+      month: fmtDate(d, "MMM", dateLocale),
       views: s.reduce((a, x) => a + (x.views || 0), 0),
       followers: s.reduce((a, x) => a + (x.followers_gained || 0), 0),
     });
   }
 
-  // Recent unpaid invoices
   const unpaidInvoices = invoices.filter(i => i.status !== "Payée").slice(0, 3);
-  // Active contract
-  const activeContract = contracts.find(c => c.status === "Actif" || c.status === "Signé");
 
   return (
     <div className="space-y-4">
-      {/* KPIs + Calendar shortcut — same grid */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        <KpiCard label="Views this month" value={totalViews.toLocaleString()} icon={Eye} color="#2A69FF" />
-        <KpiCard label="Posts published" value={published} icon={TrendingUp} color="#10B981" />
+        <KpiCard label={tr.viewsThisMonth} value={totalViews.toLocaleString()} icon={Eye} color="#2A69FF" />
+        <KpiCard label={tr.postsPublished} value={published} icon={TrendingUp} color="#10B981" />
         {(() => {
           const calMonthKey = format(calCurrentDate, "yyyy-MM");
           const monthPdf = Array.isArray(calendarPdfs) ? calendarPdfs.find(p => p.month === calMonthKey) : null;
-          const monthLabel = format(calCurrentDate, "MMMM yyyy", { locale: enUS });
+          const monthLabel = fmtDate(calCurrentDate, "MMMM yyyy", dateLocale);
           return monthPdf ? (
-            <a
-              href={monthPdf.url}
-              target="_blank"
-              rel="noopener noreferrer"
+            <a href={monthPdf.url} target="_blank" rel="noopener noreferrer"
               className="col-span-2 lg:col-span-1 rounded-2xl p-5 flex flex-col gap-2 transition-all hover:opacity-90"
-              style={{ background: '#2A69FF', textDecoration: 'none', boxShadow: '0 4px 24px rgba(42,105,255,0.25)' }}
-            >
+              style={{ background: '#2A69FF', textDecoration: 'none', boxShadow: '0 4px 24px rgba(42,105,255,0.25)' }}>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-white/70 uppercase tracking-wider">Editorial Calendar PDF</span>
+                <span className="text-xs font-mono text-white/70 uppercase tracking-wider">{tr.editorialCalendarPdf}</span>
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
                   <Download className="w-4 h-4 text-white" />
                 </div>
@@ -105,12 +249,10 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
               <p className="text-3xl font-extrabold text-white tracking-tight">{monthLabel}</p>
             </a>
           ) : (
-            <div
-              className="col-span-2 lg:col-span-1 rounded-2xl p-5 flex flex-col gap-2"
-              style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}
-            >
+            <div className="col-span-2 lg:col-span-1 rounded-2xl p-5 flex flex-col gap-2"
+              style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Editorial Calendar PDF</span>
+                <span className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{tr.editorialCalendarPdf}</span>
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'var(--divider)' }}>
                   <Calendar className="w-4 h-4" style={{ color: 'var(--muted)' }} />
                 </div>
@@ -121,10 +263,9 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
         })()}
       </div>
 
-      {/* Chart */}
       {chartData.some(d => d.views > 0) && (
         <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-          <p className="text-xs font-mono uppercase tracking-wider mb-4" style={{ color: 'var(--muted)' }}>Views — last 6 months</p>
+          <p className="text-xs font-mono uppercase tracking-wider mb-4" style={{ color: 'var(--muted)' }}>{tr.viewsLast6Months}</p>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={chartData} barSize={20}>
               <CartesianGrid strokeDasharray="3 3" stroke={dark ? '#21262D' : '#f0f2f5'} />
@@ -137,16 +278,15 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
         </div>
       )}
 
-      {/* Pending invoices */}
       {unpaidInvoices.length > 0 && (
         <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-          <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>Pending invoices</p>
+          <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>{tr.pendingInvoices}</p>
           <div className="space-y-2">
             {unpaidInvoices.map(inv => (
               <div key={inv.id} className="flex items-center justify-between py-1.5 last:border-0" style={{ borderBottom: '1px solid var(--divider)' }}>
                 <div>
                   <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{inv.invoice_number || "Invoice"}</p>
-                  {inv.due_date && <p className="text-[10px]" style={{ color: 'var(--muted)' }}>Due {format(new Date(inv.due_date), "d MMM yyyy", { locale: enUS })}</p>}
+                  {inv.due_date && <p className="text-[10px]" style={{ color: 'var(--muted)' }}>{tr.due} {fmtDate(new Date(inv.due_date), "d MMM yyyy", dateLocale)}</p>}
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{(inv.total_with_tax || inv.total_amount || 0).toLocaleString("fr-FR")} €</p>
@@ -158,18 +298,16 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
         </div>
       )}
 
-      {/* Editorial calendar */}
-      <CalendarTab content={content} calendarPdfs={calendarPdfs} currentDate={calCurrentDate} setCurrentDate={setCalCurrentDate} />
-
+      <CalendarTab content={content} calendarPdfs={calendarPdfs} currentDate={calCurrentDate} setCurrentDate={setCalCurrentDate} tr={tr} dateLocale={dateLocale} />
     </div>
   );
 }
 
 // ── Calendar tab ───────────────────────────────────────────────────────────
-function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, setCurrentDate: externalSetDate }) {
+function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, setCurrentDate: externalSetDate, tr, dateLocale }) {
   const { dark } = useTheme();
   const [internalDate, setInternalDate] = useState(new Date());
-  const [dayPage, setDayPage] = useState(0); // 0=Mon-Wed, 1=Wed-Fri
+  const [dayPage, setDayPage] = useState(0);
   const touchStartX = useRef(null);
   const currentDate = externalDate ?? internalDate;
   const setCurrentDate = externalSetDate ?? setInternalDate;
@@ -179,15 +317,13 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const startPad = getDay(monthStart) === 0 ? 6 : getDay(monthStart) - 1;
 
-  // Build flat grid (pad nulls + days + trailing nulls), then group into weeks of 7
   const calDays7 = [...Array(startPad).fill(null), ...days];
   while (calDays7.length % 7 !== 0) calDays7.push(null);
   const calWeeks = [];
   for (let i = 0; i < calDays7.length; i += 7) calWeeks.push(calDays7.slice(i, i + 7));
 
-  // Weekdays only (cols 0-4 = Mon-Fri), strip Sat/Sun
-  const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-  const calDays5 = calWeeks.flatMap(week => week.slice(0, 5)); // Mon–Fri only
+  const WEEKDAY_LABELS = tr?.weekdays || ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  const calDays5 = calWeeks.flatMap(week => week.slice(0, 5));
 
   const contentByDay = {};
   content.forEach(c => {
@@ -201,7 +337,6 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
     c.scheduled_date && c.scheduled_date.startsWith(format(currentDate, "yyyy-MM"))
   );
 
-  // Mobile: 2 pages — Mon/Tue/Wed ↔ Wed/Thu/Fri (overlap Wed like admin)
   const mobileColSets = [[0, 1, 2], [2, 3, 4]];
   const mobileColIdx = mobileColSets[dayPage];
   const mobileHeaders = mobileColIdx.map(i => WEEKDAY_LABELS[i]);
@@ -220,7 +355,6 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
     setDayPage(0);
   };
 
-  // Shared day cell renderer
   const DayCell = ({ day, compact = false }) => {
     const maxItems = compact ? 4 : 3;
     if (!day) return (
@@ -247,22 +381,22 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
     );
   };
 
+  const totalLabel = tr?.total || "total";
+
   return (
     <div className="space-y-4">
-      {/* Month nav */}
       <div className="flex items-center gap-3 mb-2">
         <button onClick={() => shiftMonth(-1)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <ChevronLeft style={{ width: 16, height: 16, color: 'var(--muted)' }} />
         </button>
         <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', flex: 1, textAlign: 'center', textTransform: 'capitalize' }}>
-          {format(currentDate, "MMMM yyyy", { locale: enUS })}
+          {fmtDate(currentDate, "MMMM yyyy", dateLocale)}
         </span>
         <button onClick={() => shiftMonth(1)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <ChevronRight style={{ width: 16, height: 16, color: 'var(--muted)' }} />
         </button>
       </div>
 
-      {/* Stats row */}
       <div className="flex gap-3 flex-wrap">
         {["Reel", "Story", "Carousel", "Post"].map(t => {
           const count = monthContent.filter(c => c.post_type === t).length;
@@ -274,14 +408,11 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
           );
         })}
         <div className="text-[11px] font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-500">
-          {monthContent.length} total
+          {monthContent.length} {totalLabel}
         </div>
       </div>
 
-      {/* Calendar grid */}
       <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-
-        {/* ── Mobile: 3-col swipeable (Mon–Wed ↔ Wed–Fri) ── */}
         <div className="sm:hidden" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
           <div className="grid grid-cols-3" style={{ borderBottom: '1px solid var(--divider)' }}>
             {mobileHeaders.map(d => (
@@ -299,7 +430,6 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
           </div>
         </div>
 
-        {/* ── Desktop: 5-col Mon–Fri ── */}
         <div className="hidden sm:block">
           <div className="grid grid-cols-5" style={{ borderBottom: '1px solid var(--divider)' }}>
             {WEEKDAY_LABELS.map(d => (
@@ -310,14 +440,13 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
             {calDays5.map((day, i) => <DayCell key={day ? format(day, "yyyy-MM-dd") : `pad-${i}`} day={day} />)}
           </div>
         </div>
-
       </div>
     </div>
   );
 }
 
 // ── Reports tab ────────────────────────────────────────────────────────────
-function ReportsTab({ stats, content }) {
+function ReportsTab({ stats, content, tr, dateLocale }) {
   const { dark } = useTheme();
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
 
@@ -344,7 +473,7 @@ function ReportsTab({ stats, content }) {
     const d = new Date(period + "-01");
     const s = stats.filter(x => x.period === period);
     return {
-      month: format(d, "MMM", { locale: enUS }),
+      month: fmtDate(d, "MMM", dateLocale),
       views: s.reduce((a, x) => a + (x.views || 0), 0),
       followers: s.reduce((a, x) => a + (x.followers_gained || 0), 0),
       reach: s.reduce((a, x) => a + (x.reach || 0), 0),
@@ -355,59 +484,54 @@ function ReportsTab({ stats, content }) {
 
   return (
     <div className="space-y-4">
-      {/* Month nav */}
       <div className="flex items-center gap-3 mb-2">
         <button onClick={() => shiftMonth(-1)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <ChevronLeft style={{ width: 16, height: 16, color: 'var(--muted)' }} />
         </button>
         <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', flex: 1, textAlign: 'center', textTransform: 'capitalize' }}>
-          {format(new Date(selectedMonth + "-01"), "MMMM yyyy", { locale: enUS })}
+          {fmtDate(new Date(selectedMonth + "-01"), "MMMM yyyy", dateLocale)}
         </span>
         <button onClick={() => shiftMonth(1)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <ChevronRight style={{ width: 16, height: 16, color: 'var(--muted)' }} />
         </button>
       </div>
 
-      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3">
-        <KpiCard label="Views" value={totalViews.toLocaleString()} icon={Eye} color="#2A69FF" />
-        <KpiCard label="Reach" value={totalReach.toLocaleString()} icon={Globe} color="#8B5CF6" />
-        <KpiCard label="Followers" value={`+${totalFollowers}`} icon={Users} color="#10B981" />
-        <KpiCard label="Likes" value={totalLikes.toLocaleString()} icon={TrendingUp} color="#F59E0B" />
+        <KpiCard label={tr.views} value={totalViews.toLocaleString()} icon={Eye} color="#2A69FF" />
+        <KpiCard label={tr.reach} value={totalReach.toLocaleString()} icon={Globe} color="#8B5CF6" />
+        <KpiCard label={tr.followers} value={`+${totalFollowers}`} icon={Users} color="#10B981" />
+        <KpiCard label={tr.likes} value={totalLikes.toLocaleString()} icon={TrendingUp} color="#F59E0B" />
       </div>
 
-      {/* Content published */}
       <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-        <p className="text-xs font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>Posts this month</p>
+        <p className="text-xs font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>{tr.postsThisMonth}</p>
         <p className="text-3xl font-extrabold" style={{ color: 'var(--ink)' }}>{monthContent.filter(c => c.status === "Publié").length}</p>
-        <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{monthContent.length} planned total</p>
+        <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{tr.plannedTotal(monthContent.length)}</p>
       </div>
 
-      {/* Chart */}
       <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-        <p className="text-xs font-mono uppercase tracking-wider mb-4" style={{ color: 'var(--muted)' }}>Views over 12 months</p>
+        <p className="text-xs font-mono uppercase tracking-wider mb-4" style={{ color: 'var(--muted)' }}>{tr.viewsOver12Months}</p>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={chartData} barSize={14}>
             <CartesianGrid strokeDasharray="3 3" stroke={dark ? '#21262D' : '#f0f2f5'} />
             <XAxis dataKey="month" tick={{ fontSize: 10, fill: dark ? '#7d8fa3' : '#8A9BAD' }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 10, fill: dark ? '#7d8fa3' : '#8A9BAD' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={{ borderRadius: 12, border: 'none', background: dark ? '#1e2736' : '#fff', color: dark ? '#e6edf3' : '#0D1B2A', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', fontSize: 11 }} />
-            <Bar dataKey="views" fill="#2A69FF" radius={[4, 4, 0, 0]} name="Views" />
+            <Bar dataKey="views" fill="#2A69FF" radius={[4, 4, 0, 0]} name={tr.views} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Per-platform breakdown */}
       {monthStats.length > 1 && (
         <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-          <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>By platform</p>
+          <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>{tr.byPlatform}</p>
           <div className="space-y-2">
             {monthStats.map(s => (
               <div key={s.id} className="flex items-center justify-between">
                 <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{s.platform || "All"}</span>
                 <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--muted)' }}>
-                  <span>{(s.views || 0).toLocaleString()} views</span>
-                  <span>+{s.followers_gained || 0} followers</span>
+                  <span>{(s.views || 0).toLocaleString()} {tr.viewsLabel}</span>
+                  <span>+{s.followers_gained || 0} {tr.followersLabel}</span>
                 </div>
               </div>
             ))}
@@ -419,7 +543,7 @@ function ReportsTab({ stats, content }) {
 }
 
 // ── Contracts tab ──────────────────────────────────────────────────────────
-function ContractsTab({ contracts, contractDocuments }) {
+function ContractsTab({ contracts, contractDocuments, tr, dateLocale }) {
   const STATUS_COLOR = {
     "Actif": "bg-emerald-100 text-emerald-700",
     "Signé": "bg-blue-100 text-blue-700",
@@ -428,15 +552,10 @@ function ContractsTab({ contracts, contractDocuments }) {
     "Résilié": "bg-red-100 text-red-600",
   };
 
-  const STATUS_LABEL = {
-    "Actif": "Active", "Signé": "Signed", "Brouillon": "Draft",
-    "Terminé": "Completed", "Résilié": "Terminated",
-  };
-
   if (!contracts.length && !contractDocuments.length) return (
     <div className="text-center py-20 text-slate-400">
       <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
-      <p className="text-sm">No contracts found</p>
+      <p className="text-sm">{tr.noContracts}</p>
     </div>
   );
 
@@ -448,18 +567,18 @@ function ContractsTab({ contracts, contractDocuments }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${STATUS_COLOR[c.status] || "bg-slate-100 text-slate-500"}`}>
-                  {STATUS_LABEL[c.status] || c.status}
+                  {tr.contractStatuses[c.status] || c.status}
                 </span>
               </div>
               <p className="text-base font-bold" style={{ color: 'var(--ink)' }}>{c.title || "Contract"}</p>
               {c.start_date && (
                 <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-                  {format(new Date(c.start_date), "d MMM yyyy", { locale: enUS })}
-                  {c.end_date && ` → ${format(new Date(c.end_date), "d MMM yyyy", { locale: enUS })}`}
+                  {fmtDate(new Date(c.start_date), "d MMM yyyy", dateLocale)}
+                  {c.end_date && ` → ${fmtDate(new Date(c.end_date), "d MMM yyyy", dateLocale)}`}
                 </p>
               )}
               {c.monthly_amount > 0 && (
-                <p className="text-sm font-semibold mt-2" style={{ color: 'var(--ink)' }}>{c.monthly_amount.toLocaleString("fr-FR")} € / month</p>
+                <p className="text-sm font-semibold mt-2" style={{ color: 'var(--ink)' }}>{c.monthly_amount.toLocaleString("fr-FR")} € {tr.perMonth}</p>
               )}
               {c.notes && <p className="text-xs mt-2 leading-relaxed" style={{ color: 'var(--muted)' }}>{c.notes}</p>}
             </div>
@@ -482,7 +601,7 @@ function ContractsTab({ contracts, contractDocuments }) {
 }
 
 // ── Invoices tab ───────────────────────────────────────────────────────────
-function InvoicesTab({ invoices }) {
+function InvoicesTab({ invoices, tr, dateLocale }) {
   const STATUS_COLOR = {
     "Payée": "bg-emerald-100 text-emerald-700",
     "En attente": "bg-amber-100 text-amber-700",
@@ -491,15 +610,10 @@ function InvoicesTab({ invoices }) {
     "Annulée": "bg-slate-100 text-slate-400",
   };
 
-  const STATUS_LABEL = {
-    "Payée": "Paid", "En attente": "Pending",
-    "En retard": "Overdue", "Brouillon": "Draft", "Annulée": "Cancelled",
-  };
-
   if (!invoices.length) return (
     <div className="text-center py-20 text-slate-400">
       <Receipt className="w-12 h-12 mx-auto mb-3 opacity-20" />
-      <p className="text-sm">No invoices found</p>
+      <p className="text-sm">{tr.noInvoices}</p>
     </div>
   );
 
@@ -511,7 +625,7 @@ function InvoicesTab({ invoices }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${STATUS_COLOR[inv.status] || "bg-slate-100 text-slate-500"}`}>
-                  {STATUS_LABEL[inv.status] || inv.status}
+                  {tr.invoiceStatuses[inv.status] || inv.status}
                 </span>
                 {inv.invoice_number && (
                   <span className="text-[10px] font-mono" style={{ color: 'var(--muted)' }}>{inv.invoice_number}</span>
@@ -522,9 +636,9 @@ function InvoicesTab({ invoices }) {
               </p>
               {inv.description && <p className="text-xs mt-1 line-clamp-2" style={{ color: 'var(--muted)' }}>{inv.description}</p>}
               <div className="flex items-center gap-3 mt-2 text-[10px]" style={{ color: 'var(--muted)' }}>
-                {inv.issue_date && <span>Issued {format(new Date(inv.issue_date), "d MMM yyyy", { locale: enUS })}</span>}
-                {inv.due_date && <span>· Due {format(new Date(inv.due_date), "d MMM yyyy", { locale: enUS })}</span>}
-                {inv.paid_date && <span>· Paid {format(new Date(inv.paid_date), "d MMM yyyy", { locale: enUS })}</span>}
+                {inv.issue_date && <span>{tr.issued} {fmtDate(new Date(inv.issue_date), "d MMM yyyy", dateLocale)}</span>}
+                {inv.due_date && <span>· {tr.dueDate} {fmtDate(new Date(inv.due_date), "d MMM yyyy", dateLocale)}</span>}
+                {inv.paid_date && <span>· {tr.paidDate} {fmtDate(new Date(inv.paid_date), "d MMM yyyy", dateLocale)}</span>}
               </div>
             </div>
           </div>
@@ -534,24 +648,24 @@ function InvoicesTab({ invoices }) {
   );
 }
 
-// ── Admin tab (contracts + invoices) ──────────────────────────────────────
-function AdminTab({ contracts, contractDocuments, invoices }) {
+// ── Admin tab ──────────────────────────────────────────────────────────────
+function AdminTab({ contracts, contractDocuments, invoices, tr, dateLocale }) {
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>Contracts</p>
-        <ContractsTab contracts={contracts} contractDocuments={contractDocuments} />
+        <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>{tr.contracts}</p>
+        <ContractsTab contracts={contracts} contractDocuments={contractDocuments} tr={tr} dateLocale={dateLocale} />
       </div>
       <div>
-        <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>Invoices</p>
-        <InvoicesTab invoices={invoices} />
+        <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>{tr.invoices}</p>
+        <InvoicesTab invoices={invoices} tr={tr} dateLocale={dateLocale} />
       </div>
     </div>
   );
 }
 
 // ── Settings dialog ────────────────────────────────────────────────────────
-function SettingsDialog({ open, onClose }) {
+function SettingsDialog({ open, onClose, tr }) {
   const [email, setEmail] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
@@ -561,15 +675,15 @@ function SettingsDialog({ open, onClose }) {
   const updateEmail = async () => {
     if (!email) return;
     const { error } = await supabase.auth.updateUser({ email });
-    setEmailMsg(error ? error.message : "Confirmation email sent.");
+    setEmailMsg(error ? error.message : tr.confirmationEmailSent);
     if (!error) setEmail("");
   };
 
   const updatePw = async () => {
-    if (newPw !== confirmPw) { setPwMsg("Passwords don't match."); return; }
-    if (newPw.length < 6) { setPwMsg("Min 6 characters."); return; }
+    if (newPw !== confirmPw) { setPwMsg(tr.passwordsDontMatch); return; }
+    if (newPw.length < 6) { setPwMsg(tr.minChars); return; }
     const { error } = await supabase.auth.updateUser({ password: newPw });
-    setPwMsg(error ? error.message : "Password updated.");
+    setPwMsg(error ? error.message : tr.passwordUpdated);
     if (!error) { setNewPw(""); setConfirmPw(""); }
   };
 
@@ -578,39 +692,31 @@ function SettingsDialog({ open, onClose }) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm z-10 p-6 space-y-5">
-        <h2 className="text-lg font-bold text-slate-800">Account settings</h2>
+        <h2 className="text-lg font-bold text-slate-800">{tr.accountSettings}</h2>
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Change email</p>
-          <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="new@email.com"
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{tr.changeEmail}</p>
+          <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder={tr.emailPlaceholder}
             className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400" />
-          {emailMsg && <p className={`text-xs px-3 py-2 rounded-lg ${emailMsg.includes("sent") ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>{emailMsg}</p>}
-          <button onClick={updateEmail} disabled={!email} className="w-full bg-[#2A69FF] text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50">Update email</button>
+          {emailMsg && <p className={`text-xs px-3 py-2 rounded-lg ${emailMsg.includes("sent") || emailMsg.includes("lähetetty") ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>{emailMsg}</p>}
+          <button onClick={updateEmail} disabled={!email} className="w-full bg-[#2A69FF] text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50">{tr.updateEmail}</button>
         </div>
         <div className="space-y-2 pt-2 border-t border-slate-100">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Change password</p>
-          <input value={newPw} onChange={e => setNewPw(e.target.value)} type="password" placeholder="New password"
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{tr.changePassword}</p>
+          <input value={newPw} onChange={e => setNewPw(e.target.value)} type="password" placeholder={tr.newPassword}
             className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400" />
-          <input value={confirmPw} onChange={e => setConfirmPw(e.target.value)} type="password" placeholder="Confirm password"
+          <input value={confirmPw} onChange={e => setConfirmPw(e.target.value)} type="password" placeholder={tr.confirmPassword}
             className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400" />
-          {pwMsg && <p className={`text-xs px-3 py-2 rounded-lg ${pwMsg.includes("updated") ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>{pwMsg}</p>}
-          <button onClick={updatePw} disabled={!newPw || !confirmPw} className="w-full bg-slate-800 text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50">Update password</button>
+          {pwMsg && <p className={`text-xs px-3 py-2 rounded-lg ${pwMsg.includes("updated") || pwMsg.includes("päivitetty") ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>{pwMsg}</p>}
+          <button onClick={updatePw} disabled={!newPw || !confirmPw} className="w-full bg-slate-800 text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50">{tr.updatePassword}</button>
         </div>
-        <button onClick={onClose} className="w-full text-sm text-slate-400 hover:text-slate-600 py-1">Close</button>
+        <button onClick={onClose} className="w-full text-sm text-slate-400 hover:text-slate-600 py-1">{tr.close}</button>
       </div>
     </div>
   );
 }
 
 // ── Monthly Brief form ──────────────────────────────────────────────────────
-const BRIEF_FIELDS = [
-  { key: "key_events", label: "Key dates & events",           placeholder: "Product launches, seasonal events, campaigns, holidays…" },
-  { key: "campaigns",  label: "Campaigns & promotions",       placeholder: "Ongoing promotions, partnerships, discount periods…" },
-  { key: "themes",     label: "Main themes / topics",         placeholder: "Topics you want to cover, content pillars for the month…" },
-  { key: "products",   label: "Products / services to highlight", placeholder: "What you want to put forward this month…" },
-  { key: "notes",      label: "Additional notes",             placeholder: "Tone, constraints, anything else we should know…" },
-];
-
-function BriefTab({ clientName }) {
+function BriefTab({ clientName, tr, dateLocale }) {
   const nextMonth = format(addMonths(new Date(), 1), "yyyy-MM");
   const [month, setMonth] = useState(nextMonth);
   const [form, setForm] = useState({ key_events: "", campaigns: "", themes: "", products: "", notes: "" });
@@ -627,7 +733,6 @@ function BriefTab({ clientName }) {
     setMonth(format(d, "yyyy-MM"));
   };
 
-  // Load existing brief for this month
   useEffect(() => {
     if (!clientName) return;
     setLoading(true);
@@ -677,13 +782,20 @@ function BriefTab({ clientName }) {
     }
   };
 
-  const monthLabel = format(new Date(month + "-01"), "MMMM yyyy", { locale: enUS });
+  const briefFields = [
+    { key: "key_events", label: tr.keyDates,   placeholder: tr.keyDatesPlaceholder },
+    { key: "campaigns",  label: tr.campaigns,  placeholder: tr.campaignsPlaceholder },
+    { key: "themes",     label: tr.themes,     placeholder: tr.themesPlaceholder },
+    { key: "products",   label: tr.products,   placeholder: tr.productsPlaceholder },
+    { key: "notes",      label: tr.notes,      placeholder: tr.notesPlaceholder },
+  ];
+
+  const monthLabel = fmtDate(new Date(month + "-01"), "MMMM yyyy", dateLocale);
   const isNextMonth = month === nextMonth;
   const isFuture = month >= nextMonth;
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
-      {/* Month nav */}
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => shiftMonth(-1)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <ChevronLeft style={{ width: 16, height: 16, color: 'var(--muted)' }} />
@@ -694,21 +806,17 @@ function BriefTab({ clientName }) {
         </button>
       </div>
 
-      {/* Status banner */}
       {submitted && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 12, background: '#ecfdf5', border: '1px solid #6ee7b7', marginBottom: 16 }}>
           <CheckCircle2 style={{ width: 16, height: 16, color: '#059669' }} />
-          <p style={{ fontSize: 13, fontWeight: 600, color: '#059669', margin: 0 }}>Brief submitted — thank you! You can still update it below.</p>
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#059669', margin: 0 }}>{tr.briefSubmitted}</p>
         </div>
       )}
 
-      {/* Intro card — next month only */}
       {isNextMonth && !submitted && (
         <div style={{ background: 'var(--card)', border: '1px solid var(--divider)', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
-          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--ink)', margin: '0 0 4px 0' }}>Monthly brief — {monthLabel}</p>
-          <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
-            Fill in the key info about next month so we can build your content calendar. The more detail, the better!
-          </p>
+          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--ink)', margin: '0 0 4px 0' }}>{tr.briefTitle} — {monthLabel}</p>
+          <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>{tr.briefIntro}</p>
         </div>
       )}
 
@@ -718,7 +826,7 @@ function BriefTab({ clientName }) {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {BRIEF_FIELDS.map(f => (
+          {briefFields.map(f => (
             <div key={f.key} style={{ background: 'var(--card)', border: '1px solid var(--divider)', borderRadius: 16, padding: '14px 16px' }}>
               <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>{f.label}</p>
               <textarea
@@ -726,11 +834,7 @@ function BriefTab({ clientName }) {
                 onChange={e => setForm(v => ({ ...v, [f.key]: e.target.value }))}
                 placeholder={f.placeholder}
                 rows={3}
-                style={{
-                  width: '100%', background: 'transparent', border: 'none', outline: 'none',
-                  fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, resize: 'none',
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                }}
+                style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, resize: 'none', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               />
             </div>
           ))}
@@ -742,35 +846,17 @@ function BriefTab({ clientName }) {
           )}
 
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <button
-              onClick={() => handleSave(false)}
-              disabled={saving}
-              style={{
-                flex: 1, height: 44, borderRadius: 12, border: '1px solid var(--divider)',
-                background: 'var(--card)', fontSize: 13, fontWeight: 600,
-                color: saved ? '#059669' : 'var(--ink)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}
-            >
-              {saved ? <><CheckCircle2 style={{ width: 15, height: 15 }} /> Saved</> : <><Save style={{ width: 15, height: 15 }} /> Save draft</>}
+            <button onClick={() => handleSave(false)} disabled={saving}
+              style={{ flex: 1, height: 44, borderRadius: 12, border: '1px solid var(--divider)', background: 'var(--card)', fontSize: 13, fontWeight: 600, color: saved ? '#059669' : 'var(--ink)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              {saved ? <><CheckCircle2 style={{ width: 15, height: 15 }} /> {tr.saved}</> : <><Save style={{ width: 15, height: 15 }} /> {tr.saveDraft}</>}
             </button>
             {isFuture && (
-              <button
-                onClick={() => handleSave(true)}
-                disabled={saving || submitted}
-                style={{
-                  flex: 2, height: 44, borderRadius: 12, border: 'none',
-                  background: submitted ? '#d1fae5' : 'var(--brand)',
-                  fontSize: 13, fontWeight: 700,
-                  color: submitted ? '#059669' : '#fff', cursor: submitted ? 'default' : 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  opacity: saving ? 0.6 : 1,
-                }}
-              >
+              <button onClick={() => handleSave(true)} disabled={saving || submitted}
+                style={{ flex: 2, height: 44, borderRadius: 12, border: 'none', background: submitted ? '#d1fae5' : 'var(--brand)', fontSize: 13, fontWeight: 700, color: submitted ? '#059669' : '#fff', cursor: submitted ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: saving ? 0.6 : 1 }}>
                 {submitted
-                  ? <><CheckCircle2 style={{ width: 15, height: 15 }} /> Submitted</>
-                  : saving ? "Submitting…"
-                  : <><CheckCircle2 style={{ width: 15, height: 15 }} /> Submit brief</>
+                  ? <><CheckCircle2 style={{ width: 15, height: 15 }} /> {tr.submitted}</>
+                  : saving ? tr.submitting
+                  : <><CheckCircle2 style={{ width: 15, height: 15 }} /> {tr.submitBrief}</>
                 }
               </button>
             )}
@@ -782,13 +868,6 @@ function BriefTab({ clientName }) {
 }
 
 // ── Main portal ────────────────────────────────────────────────────────────
-const TABS = [
-  { key: "dashboard", label: "Dashboard",    icon: LayoutDashboard },
-  { key: "brief",     label: "Monthly Brief", icon: ClipboardList },
-  { key: "reports",   label: "Reports",       icon: BarChart2 },
-  { key: "admin",     label: "Admin",         icon: Settings },
-];
-
 export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [clientRecord, setClientRecord] = useState(null);
@@ -802,8 +881,18 @@ export default function ClientPortal() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [navVisible, setNavVisible] = useState(true);
+  const [lang, setLang] = useState(() => localStorage.getItem("cp_lang") || "en");
   const lastScrollY = useRef(0);
   const { dark, toggle } = useTheme();
+
+  const tr = TRANSLATIONS[lang] || TRANSLATIONS.en;
+  const dateLocale = lang === "fi" ? fiFns : enUS;
+
+  const toggleLang = () => {
+    const next = lang === "en" ? "fi" : "en";
+    setLang(next);
+    localStorage.setItem("cp_lang", next);
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -818,17 +907,15 @@ export default function ClientPortal() {
   }, []);
 
   const clientName = clientRecord?.company_name || user?.user_metadata?.company_name || user?.email?.split("@")[0] || "";
-  const greeting = useMemo(() => getGreeting(clientName.split(" ")[0] || ""), [clientName]);
+  const greeting = useMemo(() => getGreeting(clientName.split(" ")[0] || "", lang), [clientName, lang]);
 
   useEffect(() => {
     (async () => {
       try {
-        // Get current user
         const { data: { user: authUser } } = await supabase.auth.getUser();
         if (!authUser) throw new Error("Not authenticated");
         setUser(authUser);
 
-        // Find client record linked to this user (try portal_user_id first, fall back to email)
         let { data: clientRows } = await supabase
           .from("clients")
           .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs, contract_documents")
@@ -847,16 +934,11 @@ export default function ClientPortal() {
         const client = clientRows?.[0] || null;
         setClientRecord(client);
 
-        if (!client?.company_name) {
-          // No client record linked — show empty portal
-          setLoading(false);
-          return;
-        }
+        if (!client?.company_name) { setLoading(false); return; }
 
         const cName = client.company_name;
         const cId = client.id;
 
-        // Fetch all data in parallel, filtered by client_name OR client_id
         const [contentRes, contractsRes, invoicesRes, statsRes] = await Promise.all([
           supabase
             .from("editorial_content")
@@ -909,6 +991,13 @@ export default function ClientPortal() {
 
   const initials = clientName?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "CL";
 
+  const TABS = [
+    { key: "dashboard", label: tr.dashboard,  icon: LayoutDashboard },
+    { key: "brief",     label: tr.brief,       icon: ClipboardList },
+    { key: "reports",   label: tr.reports,     icon: BarChart2 },
+    { key: "admin",     label: tr.admin,       icon: Settings },
+  ];
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1 }}>
       {/* Topbar */}
@@ -924,7 +1013,7 @@ export default function ClientPortal() {
 
           {/* Desktop tabs */}
           <div className="hidden md:flex items-center gap-1 p-1" style={{ background: 'var(--card)', borderRadius: 'var(--pill-radius)', boxShadow: 'var(--card-shadow)', border: '1px solid var(--divider)' }}>
-            {TABS.map((t, i) => {
+            {TABS.map((t) => {
               const isAdmin = t.key === "admin";
               return (
                 <button key={t.key} onClick={() => setActiveTab(t.key)}
@@ -944,55 +1033,82 @@ export default function ClientPortal() {
             })}
           </div>
 
-          {/* Avatar */}
-          <div className="relative shrink-0">
-            <button onClick={() => setMenuOpen(v => !v)}
-              style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--brand)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{initials}</span>
+          {/* Language toggle + Avatar */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Language toggle */}
+            <button
+              onClick={toggleLang}
+              style={{
+                height: 28, paddingLeft: 10, paddingRight: 10,
+                borderRadius: 8,
+                border: '1px solid var(--divider)',
+                background: 'var(--card)',
+                fontSize: 11, fontWeight: 700,
+                fontFamily: "'DM Mono', monospace",
+                color: 'var(--muted)',
+                cursor: 'pointer',
+                letterSpacing: '0.05em',
+                transition: 'all 150ms',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--brand)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--divider)'; }}
+            >
+              {lang === "en" ? "FI" : "EN"}
             </button>
-            {menuOpen && (
-              <div style={{ position: 'fixed', top: 72, right: 20, background: 'var(--card)', borderRadius: 20, boxShadow: 'var(--card-shadow-hover)', border: '1px solid var(--divider)', zIndex: 9999, minWidth: 200 }}
-                onClick={() => setMenuOpen(false)}>
-                <div style={{ padding: '12px 0' }}>
-                  <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--divider)' }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{clientName}</p>
-                    <p style={{ fontSize: 10, color: 'var(--muted)', margin: '4px 0 0 0', fontFamily: "'DM Mono', monospace" }}>{user?.email}</p>
+
+            {/* Avatar */}
+            <div className="relative">
+              <button onClick={() => setMenuOpen(v => !v)}
+                style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--brand)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{initials}</span>
+              </button>
+              {menuOpen && (
+                <div style={{ position: 'fixed', top: 72, right: 20, background: 'var(--card)', borderRadius: 20, boxShadow: 'var(--card-shadow-hover)', border: '1px solid var(--divider)', zIndex: 9999, minWidth: 200 }}
+                  onClick={() => setMenuOpen(false)}>
+                  <div style={{ padding: '12px 0' }}>
+                    <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--divider)' }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{clientName}</p>
+                      <p style={{ fontSize: 10, color: 'var(--muted)', margin: '4px 0 0 0', fontFamily: "'DM Mono', monospace" }}>{user?.email}</p>
+                    </div>
+                    <button onClick={toggle}
+                      style={{ width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {dark ? <Sun style={{ width: 14, height: 14 }} /> : <Moon style={{ width: 14, height: 14 }} />}
+                        {dark ? tr.lightMode : tr.darkMode}
+                      </span>
+                      <span style={{ width: 32, height: 18, borderRadius: 9, background: dark ? 'var(--brand)' : 'var(--subtle)', position: 'relative', flexShrink: 0 }}>
+                        <span style={{ position: 'absolute', top: 2, left: dark ? 16 : 2, width: 14, height: 14, borderRadius: '50%', background: '#fff', transition: 'left 200ms' }} />
+                      </span>
+                    </button>
+                    <button onClick={() => setSettingsOpen(true)}
+                      style={{ width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink)' }}>
+                      <Settings style={{ width: 14, height: 14 }} /> {tr.settings}
+                    </button>
+                    <button onClick={() => base44.auth.logout()}
+                      style={{ width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 13, color: '#E8421A', borderTop: '1px solid var(--divider)' }}>
+                      <LogOut style={{ width: 14, height: 14 }} /> {tr.logout}
+                    </button>
                   </div>
-                  <button onClick={toggle}
-                    style={{ width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      {dark ? <Sun style={{ width: 14, height: 14 }} /> : <Moon style={{ width: 14, height: 14 }} />}
-                      {dark ? "Light mode" : "Dark mode"}
-                    </span>
-                    <span style={{ width: 32, height: 18, borderRadius: 9, background: dark ? 'var(--brand)' : 'var(--subtle)', position: 'relative', flexShrink: 0 }}>
-                      <span style={{ position: 'absolute', top: 2, left: dark ? 16 : 2, width: 14, height: 14, borderRadius: '50%', background: '#fff', transition: 'left 200ms' }} />
-                    </span>
-                  </button>
-                  <button onClick={() => setSettingsOpen(true)}
-                    style={{ width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink)' }}>
-                    <Settings style={{ width: 14, height: 14 }} /> Settings
-                  </button>
-                  <button onClick={() => base44.auth.logout()}
-                    style={{ width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 13, color: '#E8421A', borderTop: '1px solid var(--divider)' }}>
-                    <LogOut style={{ width: 14, height: 14 }} /> Logout
-                  </button>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="px-4 sm:px-5 pb-36 md:pb-8 mx-auto" style={{ maxWidth: 1400 }}>
-        {/* Greeting — dashboard only */}
+        {/* Greeting */}
         {activeTab === "dashboard" && (
           <div className="mb-5">
             <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.5px', margin: 0 }}>
               {greeting}
             </h2>
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)', marginTop: 6, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              {format(new Date(), "EEEE, d MMMM yyyy", { locale: enUS })}
+              {lang === "fi"
+                ? capitalizeFirst(format(new Date(), "EEEE, d. MMMM yyyy", { locale: fiFns }))
+                : format(new Date(), "EEEE, d MMMM yyyy", { locale: enUS })
+              }
             </p>
           </div>
         )}
@@ -1008,31 +1124,27 @@ export default function ClientPortal() {
           </div>
         )}
 
-        {activeTab === "dashboard" && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} calendarPdfs={clientRecord?.editorial_calendar_pdfs || []} />}
-        {activeTab === "brief"     && <BriefTab clientName={clientName} />}
-        {activeTab === "reports"   && <ReportsTab stats={stats} content={content} />}
+        {activeTab === "dashboard" && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} calendarPdfs={clientRecord?.editorial_calendar_pdfs || []} tr={tr} dateLocale={dateLocale} />}
+        {activeTab === "brief"     && <BriefTab clientName={clientName} tr={tr} dateLocale={dateLocale} />}
+        {activeTab === "reports"   && <ReportsTab stats={stats} content={content} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "admin"     && (
           <div style={{ maxWidth: 640, margin: '0 auto' }}>
-            <AdminTab contracts={contracts} contractDocuments={clientRecord?.contract_documents || []} invoices={invoices} />
+            <AdminTab contracts={contracts} contractDocuments={clientRecord?.contract_documents || []} invoices={invoices} tr={tr} dateLocale={dateLocale} />
           </div>
         )}
       </div>
 
-      {/* Mobile bottom nav — liquid glass pill */}
+      {/* Mobile bottom nav */}
       <nav
         className="md:hidden fixed left-4 right-4 z-50 flex items-center"
         style={{
           bottom: `calc(12px + env(safe-area-inset-bottom))`,
           height: 64,
           borderRadius: 28,
-          background: dark
-            ? 'rgba(30,35,45,0.82)'
-            : 'rgba(255,255,255,0.82)',
+          background: dark ? 'rgba(30,35,45,0.82)' : 'rgba(255,255,255,0.82)',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          border: dark
-            ? '1px solid rgba(255,255,255,0.12)'
-            : '1px solid rgba(255,255,255,0.9)',
+          border: dark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(255,255,255,0.9)',
           boxShadow: dark
             ? '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)'
             : '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,1) inset',
@@ -1040,57 +1152,28 @@ export default function ClientPortal() {
           transition: 'transform 320ms cubic-bezier(0.4,0,0.2,1)',
         }}
       >
-        {/* Top specular shimmer */}
-        <div style={{
-          position: 'absolute', top: 0, left: '20%', right: '20%', height: 1,
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9) 40%, rgba(255,255,255,0.9) 60%, transparent)',
-          pointerEvents: 'none',
-        }} />
+        <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9) 40%, rgba(255,255,255,0.9) 60%, transparent)', pointerEvents: 'none' }} />
 
         {TABS.map(t => {
           const active = activeTab === t.key;
+          const shortLabel = t.key === "brief" ? tr.briefShort : t.label;
           return (
-            <button
-              key={t.key}
-              onClick={() => setActiveTab(t.key)}
+            <button key={t.key} onClick={() => setActiveTab(t.key)}
               className="flex-1 flex flex-col items-center justify-center gap-1 relative"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', height: '100%' }}
-            >
-              {/* Active glass bubble */}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', height: '100%' }}>
               {active && (
-                <div style={{
-                  position: 'absolute',
-                  width: 64, height: 52,
-                  borderRadius: 16,
-                  background: 'linear-gradient(160deg, #2A69FF 0%, #1a54e0 100%)',
-                  boxShadow: '0 4px 12px rgba(42,105,255,0.35)',
-                  top: '50%', transform: 'translateY(-50%)',
-                }} />
+                <div style={{ position: 'absolute', width: 64, height: 52, borderRadius: 16, background: 'linear-gradient(160deg, #2A69FF 0%, #1a54e0 100%)', boxShadow: '0 4px 12px rgba(42,105,255,0.35)', top: '50%', transform: 'translateY(-50%)' }} />
               )}
-              <t.icon
-                style={{
-                  width: 19, height: 19, position: 'relative', zIndex: 1,
-                  color: active ? '#fff' : dark ? 'rgba(255,255,255,0.4)' : 'rgba(30,40,70,0.5)',
-                  strokeWidth: active ? 2.2 : 1.8,
-                }}
-              />
-              <span style={{
-                fontSize: 9,
-                fontFamily: "'DM Mono', monospace",
-                fontWeight: 500,
-                letterSpacing: '0.04em',
-                position: 'relative', zIndex: 1,
-                color: active ? '#fff' : dark ? 'rgba(255,255,255,0.4)' : 'rgba(30,40,70,0.5)',
-                textTransform: 'uppercase',
-              }}>
-                {t.label === 'Monthly Brief' ? 'Brief' : t.label}
+              <t.icon style={{ width: 19, height: 19, position: 'relative', zIndex: 1, color: active ? '#fff' : dark ? 'rgba(255,255,255,0.4)' : 'rgba(30,40,70,0.5)', strokeWidth: active ? 2.2 : 1.8 }} />
+              <span style={{ fontSize: 9, fontFamily: "'DM Mono', monospace", fontWeight: 500, letterSpacing: '0.04em', position: 'relative', zIndex: 1, color: active ? '#fff' : dark ? 'rgba(255,255,255,0.4)' : 'rgba(30,40,70,0.5)', textTransform: 'uppercase' }}>
+                {shortLabel}
               </span>
             </button>
           );
         })}
       </nav>
 
-      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} tr={tr} />
     </div>
   );
 }
