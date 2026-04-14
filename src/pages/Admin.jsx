@@ -1450,7 +1450,7 @@ function AdminExpenses() {
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="px-4 text-sm font-medium text-slate-700 capitalize whitespace-nowrap">
+              <span className="text-sm font-medium text-slate-700 capitalize whitespace-nowrap text-center" style={{ width: 130 }}>
                 {label}
               </span>
               <button
