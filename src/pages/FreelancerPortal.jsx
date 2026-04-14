@@ -765,41 +765,84 @@ function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded, o
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Total</p><p className="text-lg font-bold text-slate-900 mt-1">{total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p></div>
-        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Paid</p><p className="text-lg font-bold text-emerald-600 mt-1">{paid.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p></div>
-        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"><p className="text-xs text-slate-400 uppercase">Pending</p><p className="text-lg font-bold text-amber-600 mt-1">{pending.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p></div>
+      {/* KPI cards */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="bg-white rounded-xl border border-slate-100 p-3 sm:p-4 shadow-sm">
+          <p className="text-[10px] sm:text-xs text-slate-400 uppercase font-medium">Total</p>
+          <p className="text-base sm:text-lg font-bold text-slate-900 mt-1">{total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-100 p-3 sm:p-4 shadow-sm">
+          <p className="text-[10px] sm:text-xs text-slate-400 uppercase font-medium">Paid</p>
+          <p className="text-base sm:text-lg font-bold text-emerald-600 mt-1">{paid.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-100 p-3 sm:p-4 shadow-sm">
+          <p className="text-[10px] sm:text-xs text-slate-400 uppercase font-medium">Pending</p>
+          <p className="text-base sm:text-lg font-bold text-amber-600 mt-1">{pending.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-        <table className="w-full">
-          <thead><tr className="border-b border-slate-100 bg-slate-50">
-            <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Mission</th>
-            <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Client</th>
-            <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Date</th>
-            <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Status</th>
-            <th className="text-right text-xs font-medium text-slate-400 px-5 py-3">Amount</th>
-            <th className="px-5 py-3"></th>
-          </tr></thead>
-          <tbody>
-            {payments.length === 0 && (
-              <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-400">
-                No invoices yet — <button onClick={openNew} className="text-brand hover:underline font-medium">submit your first one</button>
-              </td></tr>
-            )}
-            {payments.map(p => (
-              <tr key={p.id} className="border-b border-slate-50">
-                <td className="px-5 py-3 text-sm font-medium text-slate-800">{p.mission || p.description || "—"}</td>
-                <td className="px-5 py-3 text-sm text-slate-500">{p.client_name || "—"}</td>
-                <td className="px-5 py-3 text-sm text-slate-500">{p.date ? format(new Date(p.date), "d MMM yyyy", { locale: enUS }) : "—"}</td>
-                <td className="px-5 py-3"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}>{p.status}</span></td>
-                <td className="px-5 py-3 text-sm font-semibold text-right text-slate-800">{p.amount ? `${parseFloat(p.amount).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €` : "—"}</td>
-                <td className="px-5 py-3">{p.invoice_url && <a href={p.invoice_url} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline text-xs flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> PDF</a>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Empty state */}
+      {payments.length === 0 && (
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-5 py-10 text-center text-sm text-slate-400">
+          No invoices yet — <button onClick={openNew} className="text-brand hover:underline font-medium">submit your first one</button>
+        </div>
+      )}
+
+      {/* ── Mobile: card list ── */}
+      {payments.length > 0 && (
+        <div className="sm:hidden space-y-3">
+          {payments.map(p => (
+            <div key={p.id} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <p className="text-sm font-semibold text-slate-800 leading-snug flex-1">{p.mission || p.description || "—"}</p>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}>{p.status}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  {p.client_name && <p className="text-xs text-slate-500">{p.client_name}</p>}
+                  {p.date && <p className="text-xs text-slate-400">{format(new Date(p.date), "d MMM yyyy", { locale: enUS })}</p>}
+                </div>
+                <div className="flex items-center gap-3">
+                  {p.amount ? <p className="text-sm font-bold text-slate-800">{parseFloat(p.amount).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p> : <p className="text-sm text-slate-400">—</p>}
+                  {p.invoice_url && (
+                    <a href={p.invoice_url} target="_blank" rel="noopener noreferrer" className="text-brand flex items-center gap-1 text-xs font-medium">
+                      <FileText className="w-3.5 h-3.5" /> PDF
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Desktop: table ── */}
+      {payments.length > 0 && (
+        <div className="hidden sm:block bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+          <table className="w-full">
+            <thead><tr className="border-b border-slate-100 bg-slate-50">
+              <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Mission</th>
+              <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Client</th>
+              <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Date</th>
+              <th className="text-left text-xs font-medium text-slate-400 px-5 py-3">Status</th>
+              <th className="text-right text-xs font-medium text-slate-400 px-5 py-3">Amount</th>
+              <th className="px-5 py-3"></th>
+            </tr></thead>
+            <tbody>
+              {payments.map(p => (
+                <tr key={p.id} className="border-b border-slate-50">
+                  <td className="px-5 py-3 text-sm font-medium text-slate-800">{p.mission || p.description || "—"}</td>
+                  <td className="px-5 py-3 text-sm text-slate-500">{p.client_name || "—"}</td>
+                  <td className="px-5 py-3 text-sm text-slate-500">{p.date ? format(new Date(p.date), "d MMM yyyy", { locale: enUS }) : "—"}</td>
+                  <td className="px-5 py-3"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[p.status] || "bg-slate-100 text-slate-600"}`}>{p.status}</span></td>
+                  <td className="px-5 py-3 text-sm font-semibold text-right text-slate-800">{p.amount ? `${parseFloat(p.amount).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €` : "—"}</td>
+                  <td className="px-5 py-3">{p.invoice_url && <a href={p.invoice_url} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline text-xs flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> PDF</a>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Submit dialog */}
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setError(null); }}>
