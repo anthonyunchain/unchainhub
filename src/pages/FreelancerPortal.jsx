@@ -1132,7 +1132,7 @@ export default function FreelancerPortal() {
                 ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas' }] : []),
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
-                { id: 'invoices', label: 'Invoices' },
+                { id: 'invoices', label: 'Admin' },
               ].filter(item => !getHiddenNav(profile).includes(item.id)).map(item => {
                 const isActive = activeTab === item.id;
                 return (
@@ -1295,7 +1295,7 @@ export default function FreelancerPortal() {
             { id: "todo",       label: "My To-Do", Icon: ListTodo },
             { id: "tasks",      label: "Tasks",    Icon: ClipboardList },
             { id: "myprojects", label: "Projects", Icon: Briefcase },
-            { id: "invoices",   label: "Invoices", Icon: FileText },
+            { id: "invoices",   label: "Admin", Icon: FileText },
           ] : [
             { id: "dashboard",  label: "Home",      Icon: LayoutDashboard },
             { id: "myprojects", label: "Projects",  Icon: Briefcase },

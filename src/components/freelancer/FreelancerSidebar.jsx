@@ -16,7 +16,7 @@ const DEFAULT_NAV = [
   { id: "projects",      label: "Editorial",         icon: "FolderOpen" },
   { id: "tools",         label: "Tools",             icon: "Wrench" },
   { id: "meetings",      label: "Meetings",          icon: "CalendarDays" },
-  { id: "invoices",      label: "Invoices",          icon: "FileText" },
+  { id: "invoices",      label: "Admin",             icon: "FileText" },
   { id: "profile",       label: "Profile",           icon: "User" },
 ];
 
