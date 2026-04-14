@@ -1442,7 +1442,7 @@ function AdminExpenses() {
           const canPrev = idx < allMonths.length - 1;
           const canNext = idx > 0;
           return (
-            <div className="inline-flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden">
+            <div className="inline-flex self-start items-center bg-white border border-slate-200 rounded-xl overflow-hidden">
               <button
                 onClick={() => canPrev && setFilterMonth(allMonths[idx + 1])}
                 disabled={!canPrev}
