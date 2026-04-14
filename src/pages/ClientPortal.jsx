@@ -198,13 +198,6 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
           {format(currentDate, "MMMM yyyy", { locale: enUS })}
         </h2>
         <div className="flex items-center gap-2">
-          {monthPdf && (
-            <a href={monthPdf.url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ background: '#2A69FF' }}>
-              <Download className="w-3 h-3" /> PDF
-            </a>
-          )}
           <div className="flex items-center gap-1">
             <button onClick={() => setCurrentDate(d => subMonths(d, 1))} className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
               <ChevronLeft className="w-4 h-4 text-slate-500" />
