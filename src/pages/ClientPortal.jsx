@@ -86,7 +86,7 @@ const TRANSLATIONS = {
   },
   fi: {
     dashboard: "Hallintapaneeli",
-    brief: "Kuukausibrief",
+    brief: "Yhteenveto",
     briefShort: "Brief",
     reports: "Raportit",
     admin: "Ylläpito",
