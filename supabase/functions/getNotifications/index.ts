@@ -1,13 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders(req) });
   }
 
   try {
@@ -18,12 +15,12 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
     }
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
     }
 
     // Check if admin
@@ -48,7 +45,7 @@ Deno.serve(async (req) => {
         .eq('email', user.email);
       recipientId = freelancers?.[0]?.id || null;
       if (!recipientId) {
-        return Response.json({ notifications: [] }, { headers: corsHeaders });
+        return Response.json({ notifications: [] }, { headers: corsHeaders(req) });
       }
     }
 
@@ -64,7 +61,7 @@ Deno.serve(async (req) => {
 
     const { data: notifications, error } = await query;
     if (error) {
-      return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
+      return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
     }
 
     // Normalize date field
@@ -73,9 +70,9 @@ Deno.serve(async (req) => {
       created_date: n.created_at,
     }));
 
-    return Response.json({ notifications: mapped }, { headers: corsHeaders });
+    return Response.json({ notifications: mapped }, { headers: corsHeaders(req) });
 
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
+    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
   }
 });

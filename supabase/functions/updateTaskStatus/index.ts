@@ -1,13 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders(req) });
   }
 
   try {
@@ -18,7 +15,7 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
     }
 
     // Use user-scoped client to verify the caller's JWT
@@ -29,12 +26,12 @@ Deno.serve(async (req) => {
     );
     const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
     if (authError || !user) {
-      return Response.json({ error: 'Unauthorized', detail: authError?.message }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized', detail: authError?.message }, { status: 401, headers: corsHeaders(req) });
     }
 
     const { task_id, status } = await req.json();
     if (!task_id || !status) {
-      return Response.json({ error: 'task_id and status are required' }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: 'task_id and status are required' }, { status: 400, headers: corsHeaders(req) });
     }
 
     // Verify the task is assigned to this user's freelancer record
@@ -45,7 +42,7 @@ Deno.serve(async (req) => {
 
     const freelancer = freelancers?.[0];
     if (!freelancer) {
-      return Response.json({ error: 'Not a freelancer' }, { status: 403, headers: corsHeaders });
+      return Response.json({ error: 'Not a freelancer' }, { status: 403, headers: corsHeaders(req) });
     }
 
     // Fetch the task to verify ownership
@@ -56,7 +53,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (taskErr || !task) {
-      return Response.json({ error: 'Task not found' }, { status: 404, headers: corsHeaders });
+      return Response.json({ error: 'Task not found' }, { status: 404, headers: corsHeaders(req) });
     }
 
     const name = freelancer.name?.toLowerCase().trim();
@@ -64,7 +61,7 @@ Deno.serve(async (req) => {
     const isAssignedByName = name && task.assigned_to?.toLowerCase().trim() === name;
 
     if (!isAssignedById && !isAssignedByName) {
-      return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+      return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders(req) });
     }
 
     const { error: updateErr } = await supabaseAdmin
@@ -73,13 +70,13 @@ Deno.serve(async (req) => {
       .eq('id', task_id);
 
     if (updateErr) {
-      return Response.json({ error: updateErr.message }, { status: 500, headers: corsHeaders });
+      return Response.json({ error: updateErr.message }, { status: 500, headers: corsHeaders(req) });
     }
 
-    return Response.json({ success: true }, { headers: corsHeaders });
+    return Response.json({ success: true }, { headers: corsHeaders(req) });
 
   } catch (error) {
     console.error('[updateTaskStatus] CATCH:', error?.message, error);
-    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
+    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
   }
 });

@@ -1,12 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
 
   try {
     const supabaseAdmin = createClient(
@@ -14,32 +10,23 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Verify caller is admin — decode JWT locally to avoid gateway issues
+    // Verify caller via Supabase SDK (not manual JWT decode)
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return Response.json({ error: 'Unauthorized' }, { headers: corsHeaders });
+    if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
 
     const token = authHeader.replace('Bearer ', '');
-    let callerId: string | null = null;
-    try {
-      const parts = token.split('.');
-      if (parts.length === 3) {
-        const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
-        const payload = JSON.parse(atob(padded));
-        callerId = payload.sub || null;
-      }
-    } catch { /* invalid token */ }
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !user) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
 
-    if (!callerId) return Response.json({ error: 'Unauthorized' }, { headers: corsHeaders });
-
-    const { data: callerProfile } = await supabaseAdmin.from('profiles').select('role').eq('id', callerId).single();
-    if (callerProfile?.role !== 'admin') return Response.json({ error: 'Forbidden: admin only' }, { headers: corsHeaders });
+    // Admin-only
+    const { data: callerProfile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+    if (callerProfile?.role !== 'admin') return Response.json({ error: 'Forbidden: admin only' }, { status: 403, headers: corsHeaders(req) });
 
     const { email, company_name, client_id } = await req.json();
-    if (!email || typeof email !== 'string') return Response.json({ error: 'Email is required' }, { headers: corsHeaders });
+    if (!email || typeof email !== 'string') return Response.json({ error: 'Email is required' }, { status: 400, headers: corsHeaders(req) });
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return Response.json({ error: 'Invalid email address' }, { headers: corsHeaders });
+    if (!emailRegex.test(email)) return Response.json({ error: 'Invalid email address' }, { status: 400, headers: corsHeaders(req) });
 
     // Try to invite the user
     const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
@@ -65,7 +52,7 @@ Deno.serve(async (req) => {
         userId = adminData?.users?.[0]?.id || null;
 
         if (!userId) {
-          return Response.json({ error: inviteError.message }, { headers: corsHeaders });
+          return Response.json({ error: inviteError.message }, { status: 400, headers: corsHeaders(req) });
         }
 
         // Send them a password reset email so they can access the portal
@@ -73,7 +60,7 @@ Deno.serve(async (req) => {
         await supabaseAdmin.auth.resetPasswordForEmail(email).catch(() => {});
 
       } else {
-        return Response.json({ error: inviteError.message }, { headers: corsHeaders });
+        return Response.json({ error: inviteError.message }, { status: 400, headers: corsHeaders(req) });
       }
     } else {
       userId = inviteData?.user?.id || null;
@@ -95,8 +82,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ success: true }, { headers: corsHeaders });
+    return Response.json({ success: true }, { headers: corsHeaders(req) });
   } catch (error) {
-    return Response.json({ error: error.message }, { headers: corsHeaders });
+    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
   }
 });

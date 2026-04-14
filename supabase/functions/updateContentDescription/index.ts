@@ -1,13 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders(req) });
   }
 
   try {
@@ -18,12 +15,12 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
     }
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
     }
 
     // Check caller role
@@ -46,18 +43,18 @@ Deno.serve(async (req) => {
 
       freelancerProfile = freelancers?.[0] || null;
       if (!freelancerProfile) {
-        return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+        return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders(req) });
       }
     }
 
     const { content_id, description } = await req.json();
     if (!content_id) {
-      return Response.json({ error: 'content_id required' }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: 'content_id required' }, { status: 400, headers: corsHeaders(req) });
     }
 
     // Sanitize description length
     if (typeof description !== 'string' || description.length > 5000) {
-      return Response.json({ error: 'Invalid description' }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: 'Invalid description' }, { status: 400, headers: corsHeaders(req) });
     }
 
     if (!isAdmin) {
@@ -69,7 +66,7 @@ Deno.serve(async (req) => {
         .single();
 
       if (!content) {
-        return Response.json({ error: 'Content not found' }, { status: 404, headers: corsHeaders });
+        return Response.json({ error: 'Content not found' }, { status: 404, headers: corsHeaders(req) });
       }
 
       // Verify the client has editorial_visible = true
@@ -81,7 +78,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (!visibleClient) {
-        return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+        return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders(req) });
       }
 
       // Verify this freelancer is the assigned editor (by ID or by name fallback)
@@ -90,7 +87,7 @@ Deno.serve(async (req) => {
         content.assigned_editor_name?.toLowerCase().trim() === freelancerProfile!.name.toLowerCase().trim();
 
       if (!assignedById && !assignedByName) {
-        return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+        return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders(req) });
       }
     }
 
@@ -101,8 +98,8 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
-    return Response.json({ success: true }, { headers: corsHeaders });
+    return Response.json({ success: true }, { headers: corsHeaders(req) });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
+    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
   }
 });

@@ -1,9 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 function generatePassword(): string {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -11,7 +7,7 @@ function generatePassword(): string {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
 
   try {
     const supabaseAdmin = createClient(
@@ -19,46 +15,36 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Verify caller is admin — decode JWT manually
+    // Verify caller via Supabase SDK (not manual JWT decode)
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return Response.json({ error: 'Unauthorized' }, { headers: corsHeaders });
+    if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
 
     const token = authHeader.replace('Bearer ', '');
-    let callerId: string | null = null;
-    try {
-      const parts = token.split('.');
-      if (parts.length === 3) {
-        const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
-        const payload = JSON.parse(atob(padded));
-        callerId = payload.sub || null;
-      }
-    } catch { /* invalid token */ }
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !user) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
 
-    if (!callerId) return Response.json({ error: 'Unauthorized' }, { headers: corsHeaders });
-
-    const { data: callerProfile } = await supabaseAdmin.from('profiles').select('role').eq('id', callerId).single();
-    if (callerProfile?.role !== 'admin') return Response.json({ error: 'Forbidden: admin only' }, { headers: corsHeaders });
+    // Admin-only
+    const { data: callerProfile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+    if (callerProfile?.role !== 'admin') return Response.json({ error: 'Forbidden: admin only' }, { status: 403, headers: corsHeaders(req) });
 
     const { email, company_name, client_id, password: inputPassword } = await req.json();
-    if (!email || typeof email !== 'string') return Response.json({ error: 'Email is required' }, { headers: corsHeaders });
+    if (!email || typeof email !== 'string') return Response.json({ error: 'Email is required' }, { status: 400, headers: corsHeaders(req) });
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return Response.json({ error: 'Invalid email address' }, { headers: corsHeaders });
+    if (!emailRegex.test(email)) return Response.json({ error: 'Invalid email address' }, { status: 400, headers: corsHeaders(req) });
 
     const password = inputPassword || generatePassword();
 
-    // Find existing user by paginating through all users
-    let existingUserId: string | null = null;
-    let page = 1;
-    while (true) {
-      const { data: listData, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
-      if (listErr || !listData?.users?.length) break;
-      const found = listData.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-      if (found) { existingUserId = found.id; break; }
-      if (listData.users.length < 1000) break;
-      page++;
-    }
+    // Look up existing user by email via admin REST API (no full user list scan)
+    const adminUrl = `${Deno.env.get('SUPABASE_URL')}/auth/v1/admin/users?email=${encodeURIComponent(email)}&page=1&per_page=1`;
+    const adminResp = await fetch(adminUrl, {
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        'apikey': Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      }
+    });
+    const adminData = await adminResp.json();
+    const existingUserId: string | null = adminData?.users?.[0]?.id || null;
 
     let userId: string;
 
@@ -68,7 +54,7 @@ Deno.serve(async (req) => {
         password,
         email_confirm: true,
       });
-      if (updateErr) return Response.json({ error: updateErr.message }, { headers: corsHeaders });
+      if (updateErr) return Response.json({ error: updateErr.message }, { status: 400, headers: corsHeaders(req) });
       userId = existingUserId;
     } else {
       // Create new user
@@ -78,7 +64,7 @@ Deno.serve(async (req) => {
         email_confirm: true,
         user_metadata: { company_name, role: 'client' },
       });
-      if (createErr) return Response.json({ error: createErr.message }, { headers: corsHeaders });
+      if (createErr) return Response.json({ error: createErr.message }, { status: 400, headers: corsHeaders(req) });
       userId = createData.user.id;
     }
 
@@ -94,8 +80,8 @@ Deno.serve(async (req) => {
       await supabaseAdmin.from('clients').update({ portal_user_id: userId }).eq('id', client_id);
     }
 
-    return Response.json({ success: true, password, email }, { headers: corsHeaders });
+    return Response.json({ success: true, password, email }, { headers: corsHeaders(req) });
   } catch (error) {
-    return Response.json({ error: error.message }, { headers: corsHeaders });
+    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
   }
 });

@@ -1,13 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders(req) });
   }
 
   try {
@@ -18,19 +15,29 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
     }
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
+    }
+
+    // Only admins can send notifications
+    const { data: callerProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    if (callerProfile?.role !== 'admin') {
+      return Response.json({ error: 'Forbidden: admin only' }, { status: 403, headers: corsHeaders(req) });
     }
 
     const body = await req.json();
     const { recipient_id, title, message, type = 'message' } = body;
 
     if (!recipient_id || !title || !message) {
-      return Response.json({ error: 'Missing required fields: recipient_id, title, message' }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: 'Missing required fields: recipient_id, title, message' }, { status: 400, headers: corsHeaders(req) });
     }
 
     const { data: notification, error } = await supabaseAdmin
@@ -48,12 +55,12 @@ Deno.serve(async (req) => {
       .single();
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
+      return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
     }
 
-    return Response.json({ success: true, notification }, { headers: corsHeaders });
+    return Response.json({ success: true, notification }, { headers: corsHeaders(req) });
 
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
+    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
   }
 });

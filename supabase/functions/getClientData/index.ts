@@ -1,12 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
 
   try {
     const supabaseAdmin = createClient(
@@ -15,20 +12,20 @@ Deno.serve(async (req) => {
     );
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+    if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+    if (authErr || !user) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
 
     // Verify client role
     const { data: profile } = await supabaseAdmin.from('profiles').select('role, full_name').eq('id', user.id).single();
-    if (profile?.role !== 'client') return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+    if (profile?.role !== 'client') return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders(req) });
 
     // Find client record by email
     const { data: clients } = await supabaseAdmin.from('clients').select('*').eq('contact_email', user.email);
     const client = clients?.[0];
-    if (!client) return Response.json({ error: 'No client record found for this email' }, { status: 404, headers: corsHeaders });
+    if (!client) return Response.json({ error: 'No client record found for this email' }, { status: 404, headers: corsHeaders(req) });
 
     const companyName = client.company_name;
 
@@ -58,9 +55,9 @@ Deno.serve(async (req) => {
       content: contentRes.data || [],
       stats: statsRes.data || [],
       contracts: contractsRes.data || [],
-    }, { headers: corsHeaders });
+    }, { headers: corsHeaders(req) });
 
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
+    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
   }
 });

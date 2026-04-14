@@ -1,13 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders(req) });
   }
 
   try {
@@ -19,13 +16,13 @@ Deno.serve(async (req) => {
     // Verify the caller is authenticated
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
     }
 
     // Verify the caller is an admin — only admins can create users
@@ -36,20 +33,20 @@ Deno.serve(async (req) => {
       .single();
 
     if (callerProfile?.role !== 'admin') {
-      return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+      return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders(req) });
     }
 
     const body = await req.json();
     const { email, password, full_name, role } = body;
 
     if (!email || !password) {
-      return Response.json({ error: 'email and password are required' }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: 'email and password are required' }, { status: 400, headers: corsHeaders(req) });
     }
 
     // Prevent creating admin accounts unless caller is explicitly authorized
     const allowedRoles = ['user', 'freelancer', 'admin'];
     if (role && !allowedRoles.includes(role)) {
-      return Response.json({ error: 'Invalid role' }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: 'Invalid role' }, { status: 400, headers: corsHeaders(req) });
     }
 
     // Create the auth user
@@ -61,7 +58,7 @@ Deno.serve(async (req) => {
     });
 
     if (createErr) {
-      return Response.json({ error: createErr.message }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: createErr.message }, { status: 400, headers: corsHeaders(req) });
     }
 
     const userId = authData.user.id;
@@ -72,7 +69,7 @@ Deno.serve(async (req) => {
       .upsert({ id: userId, full_name: full_name || '', role: role || 'user' });
 
     if (profileError) {
-      return Response.json({ error: profileError.message }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: profileError.message }, { status: 400, headers: corsHeaders(req) });
     }
 
     // If freelancer, also create an entry in the freelancers table
@@ -84,8 +81,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    return Response.json({ success: true, user: { id: userId, email, full_name, role } }, { headers: corsHeaders });
+    return Response.json({ success: true, user: { id: userId, email, full_name, role } }, { headers: corsHeaders(req) });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
+    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
   }
 });

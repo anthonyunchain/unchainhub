@@ -6,15 +6,14 @@ const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// ─── SESSION CACHE ─────────────────────────────────────────────────────────
-// Cache the session at module level so it's always available for edge function calls
-let _cachedAccessToken = null;
-supabase.auth.getSession().then(({ data: { session } }) => {
-  if (session?.access_token) _cachedAccessToken = session.access_token;
-});
-supabase.auth.onAuthStateChange((_event, session) => {
-  _cachedAccessToken = session?.access_token || null;
-});
+// ─── SESSION HELPER ────────────────────────────────────────────────────────
+// Always fetch a fresh token — avoids stale/expired tokens being reused.
+// supabase.auth.getSession() returns a cached but auto-refreshed session,
+// so this is fast (no network round-trip when the token is still valid).
+async function getFreshToken() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token || null;
+}
 
 
 // ─── MAPPING : nom d'entité Base44 → nom de table Supabase ────────────────
@@ -163,14 +162,7 @@ const auth = {
 
 const functions = {
   async invoke(name, payload = {}) {
-    // Use cached token (set by onAuthStateChange), fallback to getSession
-    let accessToken = _cachedAccessToken;
-    if (!accessToken) {
-      const { data: { session } } = await supabase.auth.getSession();
-      accessToken = session?.access_token || null;
-    }
-
-    console.log(`[invoke:${name}] cachedToken=${_cachedAccessToken ? 'YES' : 'NO'} finalToken=${accessToken ? 'YES' : 'NO'} url=${supabaseUrl ? 'OK' : 'MISSING'} key=${supabaseKey ? 'OK' : 'MISSING'}`);
+    const accessToken = await getFreshToken();
 
     const url = `${supabaseUrl}/functions/v1/${name}`;
     const res = await fetch(url, {

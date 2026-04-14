@@ -1,13 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders(req) });
   }
 
   try {
@@ -19,12 +16,12 @@ Deno.serve(async (req) => {
     // Verify caller is admin
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
     }
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
     }
 
     const { data: profile } = await supabaseAdmin
@@ -34,22 +31,22 @@ Deno.serve(async (req) => {
       .single();
 
     if (profile?.role !== 'admin') {
-      return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+      return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders(req) });
     }
 
     const { projectId } = await req.json();
     if (!projectId) {
-      return Response.json({ error: 'Missing projectId' }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: 'Missing projectId' }, { status: 400, headers: corsHeaders(req) });
     }
 
     const { error } = await supabaseAdmin.from('projects').delete().eq('id', projectId);
     if (error) {
-      return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
+      return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
     }
 
-    return Response.json({ success: true }, { headers: corsHeaders });
+    return Response.json({ success: true }, { headers: corsHeaders(req) });
 
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
+    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
   }
 });

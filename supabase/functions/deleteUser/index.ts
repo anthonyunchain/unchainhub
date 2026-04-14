@@ -1,13 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders(req) });
   }
 
   try {
@@ -19,13 +16,13 @@ Deno.serve(async (req) => {
     // Verify the caller is authenticated
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
     }
 
     // Only admins can delete users
@@ -36,30 +33,30 @@ Deno.serve(async (req) => {
       .single();
 
     if (callerProfile?.role !== 'admin') {
-      return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
+      return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders(req) });
     }
 
     const { user_id } = await req.json();
     if (!user_id) {
-      return Response.json({ error: 'user_id is required' }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: 'user_id is required' }, { status: 400, headers: corsHeaders(req) });
     }
 
     // Prevent self-deletion
     if (user_id === user.id) {
-      return Response.json({ error: 'Cannot delete your own account' }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: 'Cannot delete your own account' }, { status: 400, headers: corsHeaders(req) });
     }
 
     // Delete from auth (cascades to profiles via DB trigger if set, else delete manually)
     const { error: deleteErr } = await supabaseAdmin.auth.admin.deleteUser(user_id);
     if (deleteErr) {
-      return Response.json({ error: deleteErr.message }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: deleteErr.message }, { status: 400, headers: corsHeaders(req) });
     }
 
     // Also remove from profiles table (in case no cascade)
     await supabaseAdmin.from('profiles').delete().eq('id', user_id);
 
-    return Response.json({ success: true }, { headers: corsHeaders });
+    return Response.json({ success: true }, { headers: corsHeaders(req) });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
+    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
   }
 });

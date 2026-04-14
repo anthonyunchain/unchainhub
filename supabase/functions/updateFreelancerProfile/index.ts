@@ -1,9 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 // Fields a freelancer is allowed to update on their own profile
 const ALLOWED_FIELDS = ['name', 'role', 'status', 'notes', 'phone', 'avatar_url', 'specialties'];
@@ -11,7 +8,7 @@ const ALLOWED_STATUSES = ['Actif', 'Indisponible'];
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders(req) });
   }
 
   try {
@@ -23,12 +20,12 @@ Deno.serve(async (req) => {
     // Verify JWT
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return Response.json({ error: 'Unauthorized' }, { headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { headers: corsHeaders(req) });
     }
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) {
-      return Response.json({ error: 'Unauthorized' }, { headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized' }, { headers: corsHeaders(req) });
     }
 
     // Resolve freelancer ID from JWT email — never trust client-provided ID
@@ -40,7 +37,7 @@ Deno.serve(async (req) => {
 
     const freelancerId = freelancers?.[0]?.id;
     if (!freelancerId) {
-      return Response.json({ error: 'No freelancer profile found for this account.' }, { headers: corsHeaders });
+      return Response.json({ error: 'No freelancer profile found for this account.' }, { headers: corsHeaders(req) });
     }
 
     const body = await req.json();
@@ -54,12 +51,12 @@ Deno.serve(async (req) => {
     }
 
     if (Object.keys(updates).length === 0) {
-      return Response.json({ error: 'No valid fields to update' }, { headers: corsHeaders });
+      return Response.json({ error: 'No valid fields to update' }, { headers: corsHeaders(req) });
     }
 
     // Validate status if provided
     if (updates.status && !ALLOWED_STATUSES.includes(updates.status as string)) {
-      return Response.json({ error: 'Invalid status value' }, { headers: corsHeaders });
+      return Response.json({ error: 'Invalid status value' }, { headers: corsHeaders(req) });
     }
 
     // Update only this freelancer's own record (ID resolved from JWT, not from client)
@@ -71,12 +68,12 @@ Deno.serve(async (req) => {
       .single();
 
     if (updateError) {
-      return Response.json({ error: updateError.message }, { headers: corsHeaders });
+      return Response.json({ error: updateError.message }, { headers: corsHeaders(req) });
     }
 
-    return Response.json({ success: true, profile: updated }, { headers: corsHeaders });
+    return Response.json({ success: true, profile: updated }, { headers: corsHeaders(req) });
 
   } catch (error) {
-    return Response.json({ error: error.message }, { headers: corsHeaders });
+    return Response.json({ error: error.message }, { headers: corsHeaders(req) });
   }
 });
