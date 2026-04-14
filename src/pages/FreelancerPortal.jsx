@@ -1056,7 +1056,7 @@ export default function FreelancerPortal() {
       case "dashboard": return <DashboardTab tasks={tasks} projects={editorialProjects} freelancerName={freelancerName} freelancerFirstName={freelancerFirstName} onTabChange={setActiveTab} userId={user?.id} />;
       case "todo": return <PersonalTasksTab userId={user?.id} newTrigger={todoNewTrigger} />;
       case "tasks": return <TasksTabComponent tasks={tasks} onUpdateTask={handleUpdateTask} />;
-      case "myprojects": return <FreelancerProjects projects={myProjects} onRefresh={handleProjectUpdate} freelancerName={freelancerName} />;
+      case "myprojects": return <FreelancerProjects projects={myProjects} editorialItems={editorialProjects} onRefresh={handleProjectUpdate} freelancerName={freelancerName} />;
       case "projects": return <ProjectsTab projects={[...editorialProjects, ...visibleCalendars.filter(vc => !editorialProjects.find(ep => ep.id === vc.id))]} />;
       case "captions": return <CaptionsTab items={[...editorialProjects, ...visibleCalendars.filter(vc => !editorialProjects.find(ep => ep.id === vc.id))]} />;
       case "calendar": return <CalendarsTab visibleCalendars={visibleCalendars} />;

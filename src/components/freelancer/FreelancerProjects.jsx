@@ -4,7 +4,7 @@ import { format, isPast, differenceInHours, differenceInDays } from "date-fns";
 import { enUS } from "date-fns/locale";
 import {
   CheckCircle2, XCircle, Truck, MessageSquare, ChevronDown,
-  Clock, AlertTriangle, FolderOpen, MoreHorizontal, ExternalLink
+  Clock, AlertTriangle, FolderOpen, MoreHorizontal, ExternalLink, Clapperboard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -297,10 +297,72 @@ function urgencyScore(p) {
   return 6;
 }
 
-export default function FreelancerProjects({ projects, onRefresh, freelancerName }) {
+const EDITING_STATUS_LABEL = {
+  "Non assigné": "Unassigned",
+  "En attente d'acceptation": "Pending acceptance",
+  "À faire": "To do",
+  "En cours de montage": "In progress",
+  "En attente de retour": "Awaiting feedback",
+  "Terminé": "Done",
+};
+
+const EDITING_STATUS_COLOR = {
+  "Non assigné":               "bg-slate-100 text-slate-500",
+  "En attente d'acceptation":  "bg-amber-100 text-amber-700",
+  "À faire":                   "bg-blue-100 text-blue-700",
+  "En cours de montage":       "bg-indigo-100 text-indigo-700",
+  "En attente de retour":      "bg-violet-100 text-violet-700",
+  "Terminé":                   "bg-emerald-100 text-emerald-700",
+};
+
+function EditorialCard({ item }) {
+  const isDone = item.editing_status === "Terminé";
+  const statusLabel = EDITING_STATUS_LABEL[item.editing_status] || item.editing_status || "—";
+  const statusColor = EDITING_STATUS_COLOR[item.editing_status] || "bg-slate-100 text-slate-500";
+  const date = item.scheduled_date ? format(new Date(item.scheduled_date), "d MMM yyyy", { locale: enUS }) : null;
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <Clapperboard className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Video editing</span>
+          </div>
+          <p className="text-base font-bold text-slate-800 leading-tight">{item.title}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{item.client_name}{item.post_type ? ` · ${item.post_type}` : ""}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {date && <span className="text-[11px] text-slate-400">{date}</span>}
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor}`}>{statusLabel}</span>
+        {item.editing_instructions && (
+          <p className="text-xs text-slate-400 truncate max-w-[200px]">{item.editing_instructions}</p>
+        )}
+      </div>
+      {item.editing_files?.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {item.editing_files.map((url, i) => (
+            <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[11px] text-[#2A69FF] bg-blue-50 px-2 py-1 rounded-lg hover:underline">
+              <ExternalLink className="w-3 h-3" /> Reference file {i + 1}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function FreelancerProjects({ projects, editorialItems = [], onRefresh, freelancerName }) {
   const [showDone, setShowDone] = useState(false);
 
-  if (projects.length === 0) return (
+  const activeEditorial = editorialItems.filter(p => p.editing_status !== "Terminé");
+  const doneEditorial = editorialItems.filter(p => p.editing_status === "Terminé");
+
+  if (projects.length === 0 && editorialItems.length === 0) return (
     <div className="text-center py-20 text-slate-400">
       <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-20" />
       <p className="text-sm font-medium">No projects assigned yet</p>
@@ -312,21 +374,26 @@ export default function FreelancerProjects({ projects, onRefresh, freelancerName
 
   return (
     <div className="space-y-3">
+      {activeEditorial.map(p => (
+        <EditorialCard key={p.id} item={p} />
+      ))}
+
       {active.map(p => (
         <ProjectCard key={p.id} project={p} onAction={onRefresh} freelancerName={freelancerName} />
       ))}
 
-      {done.length > 0 && (
+      {(done.length > 0 || doneEditorial.length > 0) && (
         <div>
           <button
             onClick={() => setShowDone(v => !v)}
             className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 font-medium uppercase tracking-wider py-2 transition-colors"
           >
             <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showDone ? "rotate-180" : ""}`} />
-            Completed ({done.length})
+            Completed ({done.length + doneEditorial.length})
           </button>
           {showDone && (
             <div className="space-y-3 mt-1 opacity-60">
+              {doneEditorial.map(p => <EditorialCard key={p.id} item={p} />)}
               {done.map(p => <ProjectCard key={p.id} project={p} onAction={onRefresh} freelancerName={freelancerName} />)}
             </div>
           )}
