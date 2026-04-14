@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { base44, supabase } from "@/api/base44Client";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -169,6 +169,8 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
 function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, setCurrentDate: externalSetDate }) {
   const { dark } = useTheme();
   const [internalDate, setInternalDate] = useState(new Date());
+  const [dayPage, setDayPage] = useState(0); // 0=Mon-Wed, 1=Wed-Fri, 2=Fri-Sun
+  const touchStartX = useRef(null);
   const currentDate = externalDate ?? internalDate;
   const setCurrentDate = externalSetDate ?? setInternalDate;
 
@@ -176,6 +178,13 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
   const monthEnd = endOfMonth(currentDate);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const startPad = getDay(monthStart) === 0 ? 6 : getDay(monthStart) - 1;
+
+  // Build flat grid (pad nulls + days + trailing nulls to fill last week)
+  const calDays = [...Array(startPad).fill(null), ...days];
+  while (calDays.length % 7 !== 0) calDays.push(null);
+  // Group into weeks of 7 (Mon–Sun)
+  const calWeeks = [];
+  for (let i = 0; i < calDays.length; i += 7) calWeeks.push(calDays.slice(i, i + 7));
 
   const contentByDay = {};
   content.forEach(c => {
@@ -189,20 +198,63 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
     c.scheduled_date && c.scheduled_date.startsWith(format(currentDate, "yyyy-MM"))
   );
 
-  const currentMonthKey = format(currentDate, "yyyy-MM");
-  const monthPdf = Array.isArray(calendarPdfs) ? calendarPdfs.find(p => p.month === currentMonthKey) : null;
+  // Mobile: 3 pages — overlap on transition day like admin
+  const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const mobileColSets = [[0, 1, 2], [2, 3, 4], [4, 5, 6]];
+  const mobileColIdx = mobileColSets[dayPage];
+  const mobileHeaders = mobileColIdx.map(i => DAY_LABELS[i]);
+  const mobileCells = calWeeks.flatMap(week => mobileColIdx.map(i => week[i] ?? null));
+
+  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const onTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 40) setDayPage(p => Math.min(2, Math.max(0, p + (dx < 0 ? 1 : -1))));
+    touchStartX.current = null;
+  };
+
+  const shiftMonth = (dir) => {
+    setCurrentDate(d => dir > 0 ? addMonths(d, 1) : subMonths(d, 1));
+    setDayPage(0);
+  };
+
+  // Shared day cell renderer
+  const DayCell = ({ day, extraCols = 7 }) => {
+    if (!day) return (
+      <div style={{ borderBottom: '1px solid var(--divider)', borderRight: '1px solid var(--divider)', background: dark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)', minHeight: extraCols === 3 ? 100 : 110, padding: 4 }} />
+    );
+    const key = format(day, "yyyy-MM-dd");
+    const items = contentByDay[key] || [];
+    const isToday = isSameDay(day, new Date());
+    return (
+      <div key={key} style={{ borderBottom: '1px solid var(--divider)', borderRight: '1px solid var(--divider)', background: isToday ? (dark ? 'rgba(77,142,255,0.08)' : 'rgba(42,105,255,0.04)') : 'transparent', minHeight: extraCols === 3 ? 100 : 110, padding: extraCols === 3 ? '6px 8px' : '6px' }}>
+        <span className={`text-[11px] font-semibold inline-flex items-center justify-center w-5 h-5 rounded-full mb-1 ${isToday ? "bg-[#2A69FF] text-white" : ""}`}
+          style={!isToday ? { color: 'var(--muted)' } : {}}>
+          {format(day, "d")}
+        </span>
+        <div className="space-y-0.5">
+          {items.slice(0, extraCols === 3 ? 4 : 3).map(c => (
+            <div key={c.id} className={`text-[9px] font-semibold px-1.5 py-0.5 rounded truncate ${TYPE_COLOR[c.post_type] || "bg-slate-100 text-slate-500"}`}>
+              {c.title || c.post_type}
+            </div>
+          ))}
+          {items.length > (extraCols === 3 ? 4 : 3) && <div className="text-[9px] px-1" style={{ color: 'var(--muted)' }}>+{items.length - (extraCols === 3 ? 4 : 3)}</div>}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-4">
       {/* Month nav */}
       <div className="flex items-center gap-3 mb-2">
-        <button onClick={() => setCurrentDate(d => subMonths(d, 1))} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <button onClick={() => shiftMonth(-1)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <ChevronLeft style={{ width: 16, height: 16, color: 'var(--muted)' }} />
         </button>
         <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', flex: 1, textAlign: 'center', textTransform: 'capitalize' }}>
           {format(currentDate, "MMMM yyyy", { locale: enUS })}
         </span>
-        <button onClick={() => setCurrentDate(d => addMonths(d, 1))} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <button onClick={() => shiftMonth(1)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <ChevronRight style={{ width: 16, height: 16, color: 'var(--muted)' }} />
         </button>
       </div>
@@ -225,41 +277,43 @@ function CalendarTab({ content, calendarPdfs = [], currentDate: externalDate, se
 
       {/* Calendar grid */}
       <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-        {/* Day headers */}
-        <div className="grid grid-cols-7" style={{ borderBottom: '1px solid var(--divider)' }}>
-          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
-            <div key={d} className="text-center text-[10px] font-mono py-2 uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{d}</div>
-          ))}
+
+        {/* ── Mobile: 3-col swipeable ── */}
+        <div className="sm:hidden" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+          {/* Day headers */}
+          <div className="grid grid-cols-3" style={{ borderBottom: '1px solid var(--divider)' }}>
+            {mobileHeaders.map(d => (
+              <div key={d} className="text-center text-[10px] font-mono py-2 uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{d}</div>
+            ))}
+          </div>
+          {/* Cells */}
+          <div className="grid grid-cols-3">
+            {mobileCells.map((day, i) => <DayCell key={day ? format(day, "yyyy-MM-dd") : `m-pad-${i}`} day={day} extraCols={3} />)}
+          </div>
+          {/* Dot nav */}
+          <div className="flex justify-center gap-1.5 py-2.5">
+            {[0, 1, 2].map(p => (
+              <button key={p} onClick={() => setDayPage(p)}
+                style={{ height: 6, borderRadius: 3, border: 'none', cursor: 'pointer', transition: 'all 200ms', width: dayPage === p ? 12 : 6, background: dayPage === p ? 'var(--brand)' : 'var(--divider)' }} />
+            ))}
+          </div>
         </div>
 
-        {/* Cells */}
-        <div className="grid grid-cols-7">
-          {Array(startPad).fill(null).map((_, i) => (
-            <div key={`pad-${i}`} className="min-h-[110px] p-1" style={{ borderBottom: '1px solid var(--divider)', borderRight: '1px solid var(--divider)', background: dark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)' }} />
-          ))}
-          {days.map(day => {
-            const key = format(day, "yyyy-MM-dd");
-            const items = contentByDay[key] || [];
-            const isToday = isSameDay(day, new Date());
-            return (
-              <div key={key} className="min-h-[110px] p-1.5" style={{ borderBottom: '1px solid var(--divider)', borderRight: '1px solid var(--divider)', background: isToday ? (dark ? 'rgba(77,142,255,0.08)' : 'rgba(42,105,255,0.04)') : 'transparent' }}>
-                <span className={`text-[11px] font-semibold inline-flex items-center justify-center w-5 h-5 rounded-full mb-1 ${
-                  isToday ? "bg-[#2A69FF] text-white" : ""
-                }`} style={!isToday ? { color: 'var(--muted)' } : {}}>{format(day, "d")}</span>
-                <div className="space-y-0.5">
-                  {items.slice(0, 3).map(c => (
-                    <div key={c.id} className={`text-[9px] font-semibold px-1.5 py-0.5 rounded truncate ${TYPE_COLOR[c.post_type] || "bg-slate-100 text-slate-500"}`}>
-                      {c.title || c.post_type}
-                    </div>
-                  ))}
-                  {items.length > 3 && <div className="text-[9px] text-slate-400 px-1">+{items.length - 3}</div>}
-                </div>
-              </div>
-            );
-          })}
+        {/* ── Desktop: 7-col ── */}
+        <div className="hidden sm:block">
+          {/* Day headers */}
+          <div className="grid grid-cols-7" style={{ borderBottom: '1px solid var(--divider)' }}>
+            {DAY_LABELS.map(d => (
+              <div key={d} className="text-center text-[10px] font-mono py-2 uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{d}</div>
+            ))}
+          </div>
+          {/* Cells */}
+          <div className="grid grid-cols-7">
+            {calDays.map((day, i) => <DayCell key={day ? format(day, "yyyy-MM-dd") : `pad-${i}`} day={day} extraCols={7} />)}
+          </div>
         </div>
+
       </div>
-
     </div>
   );
 }
