@@ -15,11 +15,11 @@ export default function AppLayout() {
           position: 'relative',
           zIndex: 1,
           maxWidth: '100%',
-          paddingLeft: '20px',
-          paddingRight: '20px',
-          paddingTop: 'max(28px, env(safe-area-inset-top))',
+          paddingLeft: '16px',
+          paddingRight: '16px',
+          paddingTop: 'max(24px, env(safe-area-inset-top))',
         }}
-        className="pb-28 md:pb-5"
+        className="pb-28 md:pb-8 sm:px-5"
       >
         <Topbar />
         <main>

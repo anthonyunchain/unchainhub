@@ -42,17 +42,17 @@ export default function Dashboard() {
   const { data: content = [] } = useQuery({ queryKey: ["content-dash"], queryFn: () => base44.entities.EditorialContent.list() });
 
   const currentMonth = format(new Date(), "yyyy-MM");
-  
+
   const activeClients = clients.filter(c => c.status === "Actif").length;
   const openDeals = prospects.filter(p => !["Signé", "Perdu"].includes(p.stage)).length;
-  
+
   const thisMonthContent = content.filter(c => c.scheduled_date?.startsWith(currentMonth));
   const totalContent = thisMonthContent.length;
   const published = thisMonthContent.filter(c => c.status === "Publié").length;
   const inProgress = thisMonthContent.filter(c => c.status === "En cours").length;
   const scheduled = thisMonthContent.filter(c => c.status === "Planifié").length;
   const shot = thisMonthContent.filter(c => c.post_type === "Reel" || c.post_type === "Story").length;
-  
+
   const upcomingContent = content
     .filter(c => c.status === "Planifié" || c.status === "En cours")
     .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))
@@ -64,77 +64,104 @@ export default function Dashboard() {
   const totalFollowers = thisMonthStats.reduce((s, r) => s + (r.followers_gained || 0), 0);
 
   return (
-    <div style={{ minHeight: 'calc(100vh - 120px)', display: 'flex', alignItems: 'center' }}>
-    <div className="mx-auto space-y-4 w-full" style={{ maxWidth: '1400px' }}>
-      {/* Greeting */}
+    <div className="w-full mx-auto space-y-4" style={{ maxWidth: '1400px' }}>
+
+      {/* ── Greeting ── */}
       <div>
-        <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '28px', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.5px' }}>
+        <h2
+          style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: 'clamp(20px, 5.5vw, 28px)',
+            fontWeight: 700,
+            color: 'var(--ink)',
+            letterSpacing: '-0.5px',
+            margin: 0,
+            lineHeight: 1.2,
+          }}
+        >
           {greeting}
         </h2>
-        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginTop: 6, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+        <p style={{
+          fontFamily: "'DM Mono', monospace",
+          fontSize: '11px',
+          color: 'var(--muted)',
+          marginTop: 6,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+        }}>
           {format(new Date(), "EEEE, d MMMM yyyy", { locale: enUS })}
         </p>
       </div>
 
-      <div className="space-y-3">
-
       {/* ── Row 1: Hero + 4 KPIs ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-1">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
         {/* Hero Content Overview */}
         <Link to="/Reports" style={{ textDecoration: 'none' }}>
           <div style={{
             ...CARD,
             background: 'linear-gradient(145deg, #1a3a8f 0%, #2A69FF 60%, #5b8fff 100%)',
-            display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-            height: '100%', minHeight: 220,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
           }}>
             <div>
               <span style={{ ...LABEL, color: 'rgba(255,255,255,0.55)', marginBottom: 8 }}>This Month</span>
-              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '52px', fontWeight: 800, color: '#fff', letterSpacing: '-3px', lineHeight: 1.05 }}>
+              <p
+                className="text-[42px] sm:text-[52px]"
+                style={{
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontWeight: 800,
+                  color: '#fff',
+                  letterSpacing: '-3px',
+                  lineHeight: 1.05,
+                  margin: 0,
+                }}
+              >
                 {totalContent}
               </p>
               <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.60)', marginTop: 6 }}>
                 total posts planned
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
+            <div className="grid grid-cols-4 gap-2 mt-5">
               {[
-                { label: 'Shot', value: shot },
+                { label: 'Shot',       value: shot },
                 { label: 'In Editing', value: inProgress },
-                { label: 'Scheduled', value: scheduled },
-                { label: 'Published', value: published },
+                { label: 'Scheduled',  value: scheduled },
+                { label: 'Published',  value: published },
               ].map(s => (
-                <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 12px' }}>
-                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '18px', fontWeight: 700, color: '#fff' }}>{s.value}</p>
-                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{s.label}</p>
+                <div key={s.label} style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{s.value}</p>
+                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.55)', marginTop: 3 }}>{s.label}</p>
                 </div>
               ))}
             </div>
             <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <FileBarChart style={{ width: 13, height: 13, color: 'rgba(255,255,255,0.55)' }} />
+              <FileBarChart style={{ width: 13, height: 13, color: 'rgba(255,255,255,0.55)', flexShrink: 0 }} />
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'rgba(255,255,255,0.55)' }}>View full reports →</span>
             </div>
           </div>
         </Link>
 
-        {/* 2×2 KPI grid — equal row heights */}
-        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3" style={{ gridTemplateRows: '1fr 1fr' }}>
-          <KpiCard title="Active clients" value={activeClients} icon={Users} tint="blue" />
-          <KpiCard title="Open deals" value={openDeals} icon={Kanban} tint="purple" />
+        {/* 2×2 KPI grid */}
+        <div className="lg:col-span-2 grid grid-cols-2 gap-3">
+          <KpiCard title="Active clients"   value={activeClients}                      icon={Users}  tint="blue"   />
+          <KpiCard title="Open deals"       value={openDeals}                          icon={Kanban} tint="purple" />
           <Link to="/Reports" style={{ textDecoration: 'none', display: 'block' }}>
-            <KpiCard title="Views this month" value={totalViews30d.toLocaleString("fr-FR")} icon={Eye} tint="green" />
+            <KpiCard title="Views this month" value={totalViews30d.toLocaleString("fr-FR")} icon={Eye}    tint="green"  />
           </Link>
-          <KpiCard title="Followers gained" value={`+${totalFollowers}`} icon={Users} tint="amber" />
+          <KpiCard title="Followers gained" value={`+${totalFollowers}`}               icon={Users}  tint="amber"  />
         </div>
       </div>
 
       {/* ── Row 2: Editorial + Upcoming + Today's Tasks ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-1" style={{ alignItems: 'stretch' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
         {/* Editorial Calendars */}
         <div
-          style={{ ...CARD, display: 'flex', flexDirection: 'column', height: 'clamp(320px, 50vw, 420px)', overflow: 'hidden' }}
+          style={{ ...CARD, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          className="h-auto lg:h-[420px]"
           onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
           onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
@@ -171,7 +198,8 @@ export default function Dashboard() {
 
         {/* Upcoming Content */}
         <div
-          style={{ ...CARD, display: 'flex', flexDirection: 'column', height: 'clamp(320px, 50vw, 420px)', overflow: 'hidden' }}
+          style={{ ...CARD, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          className="h-auto lg:h-[420px]"
           onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
           onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
@@ -194,13 +222,11 @@ export default function Dashboard() {
         </div>
 
         {/* Today's Tasks */}
-        <div style={{ height: 'clamp(320px, 50vw, 420px)' }}>
+        <div className="h-auto lg:h-[420px]">
           <TodayTasksWidget />
         </div>
 
       </div>
-      </div>
-    </div>
     </div>
   );
 }
