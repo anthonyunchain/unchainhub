@@ -1381,9 +1381,17 @@ function AdminExpenses() {
   const openEdit = (e) => { setData({ ...e }); setMutError(null); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
 
-  // Build sorted list of unique months present in expenses
-  const availableMonths = [...new Set(expenses.map(e => e.date?.slice(0, 7)).filter(Boolean))]
-    .sort((a, b) => b.localeCompare(a));
+  // All months from Feb 2025 to current month
+  const allMonths = (() => {
+    const months = [];
+    const start = new Date(2025, 1, 1); // Feb 2025
+    const now = new Date();
+    const end = new Date(now.getFullYear(), now.getMonth(), 1);
+    for (let d = new Date(end); d >= start; d.setMonth(d.getMonth() - 1)) {
+      months.push(format(new Date(d), 'yyyy-MM'));
+    }
+    return months;
+  })();
 
   const filtered = expenses.filter(e => {
     if (filterCat !== "all" && e.category !== filterCat) return false;
@@ -1427,28 +1435,28 @@ function AdminExpenses() {
       {/* Filters */}
       <div className="flex flex-col gap-3 mb-4">
         {/* Month navigator */}
-        {availableMonths.length > 0 && (() => {
-          const idx = filterMonth ? availableMonths.indexOf(filterMonth) : 0;
-          const currentMonth = availableMonths[idx] || availableMonths[0];
-          const label = format(new Date(currentMonth + '-01'), 'MMMM yyyy', { locale: enUS });
-          const canPrev = idx < availableMonths.length - 1;
+        {(() => {
+          const idx = allMonths.indexOf(filterMonth);
+          const current = filterMonth || allMonths[0];
+          const label = format(new Date(current + '-01'), 'MMMM yyyy', { locale: enUS });
+          const canPrev = idx < allMonths.length - 1;
           const canNext = idx > 0;
           return (
-            <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden w-full">
+            <div className="inline-flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden">
               <button
-                onClick={() => canPrev && setFilterMonth(availableMonths[idx + 1])}
+                onClick={() => canPrev && setFilterMonth(allMonths[idx + 1])}
                 disabled={!canPrev}
-                className="h-9 w-10 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-r border-slate-100"
+                className="h-9 w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-r border-slate-100"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="flex-1 text-center text-sm font-medium text-slate-700 capitalize">
+              <span className="px-4 text-sm font-medium text-slate-700 capitalize whitespace-nowrap">
                 {label}
               </span>
               <button
-                onClick={() => canNext && setFilterMonth(availableMonths[idx - 1])}
+                onClick={() => canNext && setFilterMonth(allMonths[idx - 1])}
                 disabled={!canNext}
-                className="h-9 w-10 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-l border-slate-100"
+                className="h-9 w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-l border-slate-100"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
