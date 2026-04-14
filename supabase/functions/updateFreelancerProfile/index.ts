@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { corsHeaders } from '../_shared/cors.ts';
+import { verifyAuth } from '../_shared/auth.ts';
 
 // Fields a freelancer is allowed to update on their own profile
 const ALLOWED_FIELDS = ['name', 'role', 'status', 'notes', 'phone', 'avatar_url', 'specialties'];
@@ -17,16 +18,9 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Verify JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return Response.json({ error: 'Unauthorized' }, { headers: corsHeaders(req) });
-    }
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) {
-      return Response.json({ error: 'Unauthorized' }, { headers: corsHeaders(req) });
-    }
+    const authResult = await verifyAuth(req, supabaseAdmin);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult as { user: any };
 
     // Resolve freelancer ID from JWT email — never trust client-provided ID
     const { data: freelancers } = await supabaseAdmin

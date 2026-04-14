@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { verifyAuth, verifyAdmin } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -11,16 +12,9 @@ Deno.serve(async (req) => {
     );
 
     // Verify caller via Supabase SDK (not manual JWT decode)
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(req) });
-
-    // Admin-only
-    const { data: callerProfile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
-    if (callerProfile?.role !== 'admin') return Response.json({ error: 'Forbidden: admin only' }, { status: 403, headers: corsHeaders(req) });
+    const adminResult = await verifyAdmin(req, supabaseAdmin);
+    if (adminResult instanceof Response) return adminResult;
+    const { user } = adminResult as { user: any; profile: any };
 
     const { email, company_name, client_id } = await req.json();
     if (!email || typeof email !== 'string') return Response.json({ error: 'Email is required' }, { status: 400, headers: corsHeaders(req) });

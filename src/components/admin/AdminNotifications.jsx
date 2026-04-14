@@ -10,18 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 
-const TYPE_ICONS = {
-  project_assigned: "📋",
-  project_accepted: "✅",
-  project_declined: "❌",
-  project_delivered: "📦",
-  project_completed: "🏆",
-  revision_requested: "🔄",
-  clarification_requested: "💬",
-  deadline_warning: "⏰",
-  availability_reminder: "📅",
-  message: "💬",
-};
+import { NOTIFICATION_TYPE_ICONS as TYPE_ICONS } from "@/lib/notificationIcons";
 
 const NOTIFICATION_TYPES = [
   { value: "message", label: "Message" },

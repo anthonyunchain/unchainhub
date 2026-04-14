@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { corsHeaders } from '../_shared/cors.ts';
+import { verifyAuth } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -15,14 +16,9 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
     );
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return respond({ error: 'No auth header' });
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: authData, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !authData?.user) return respond({ error: 'Unauthorized: ' + (authErr?.message || 'no user') });
-
-    const user = authData.user;
+    const authResult = await verifyAuth(req, supabaseAdmin);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult as { user: any };
     const body = await req.json();
     const { action, project_id, reason, message, delivery_url } = body;
 

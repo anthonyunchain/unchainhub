@@ -1,19 +1,7 @@
 import { Bell, Check, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-
-const TYPE_ICONS = {
-  project_assigned: "📋",
-  project_accepted: "✅",
-  project_declined: "❌",
-  project_delivered: "📦",
-  project_completed: "🏆",
-  revision_requested: "🔄",
-  clarification_requested: "💬",
-  deadline_warning: "⏰",
-  availability_reminder: "📅",
-  message: "💬",
-};
+import { NOTIFICATION_TYPE_ICONS as TYPE_ICONS } from "@/lib/notificationIcons";
 
 export default function NotificationsPanel({ notifications = [], loading = false, onMarkRead, onMarkAllRead, onDelete, onAccept, onDecline }) {
   const unread = notifications.filter((n) => !n.is_read).length;
