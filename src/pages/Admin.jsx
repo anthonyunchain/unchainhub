@@ -1381,6 +1381,10 @@ function AdminExpenses() {
   const openEdit = (e) => { setData({ ...e }); setMutError(null); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
 
+  // Build sorted list of unique months present in expenses
+  const availableMonths = [...new Set(expenses.map(e => e.date?.slice(0, 7)).filter(Boolean))]
+    .sort((a, b) => b.localeCompare(a));
+
   const filtered = expenses.filter(e => {
     if (filterCat !== "all" && e.category !== filterCat) return false;
     if (filterMonth && !e.date?.startsWith(filterMonth)) return false;
@@ -1421,20 +1425,55 @@ function AdminExpenses() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        <Input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
-          className="h-8 text-xs w-40" placeholder="Filter by month" />
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
-          className="h-8 text-xs px-3 rounded-lg border border-slate-200 bg-white text-slate-700">
-          <option value="all">All categories</option>
-          {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        {(filterMonth || filterCat !== "all") && (
-          <button onClick={() => { setFilterMonth(""); setFilterCat("all"); }}
-            className="h-8 px-3 text-xs text-slate-400 hover:text-slate-600 border border-slate-200 rounded-lg bg-white">
-            Clear
-          </button>
+      <div className="flex flex-col gap-3 mb-4">
+        {/* Month pills */}
+        {availableMonths.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setFilterMonth("")}
+              className="h-8 px-4 text-xs font-medium rounded-full border transition-all"
+              style={{
+                background: !filterMonth ? 'var(--brand)' : '#fff',
+                color: !filterMonth ? '#fff' : 'var(--muted)',
+                borderColor: !filterMonth ? 'var(--brand)' : '#e2e8f0',
+              }}
+            >
+              All
+            </button>
+            {availableMonths.map(m => {
+              const active = filterMonth === m;
+              const label = format(new Date(m + '-01'), 'MMM yyyy', { locale: enUS });
+              return (
+                <button
+                  key={m}
+                  onClick={() => setFilterMonth(active ? "" : m)}
+                  className="h-8 px-4 text-xs font-medium rounded-full border transition-all"
+                  style={{
+                    background: active ? 'var(--brand)' : '#fff',
+                    color: active ? '#fff' : 'var(--muted)',
+                    borderColor: active ? 'var(--brand)' : '#e2e8f0',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         )}
+        {/* Category filter */}
+        <div className="flex gap-2 flex-wrap items-center">
+          <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+            className="h-8 text-xs px-3 rounded-lg border border-slate-200 bg-white text-slate-700">
+            <option value="all">All categories</option>
+            {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          {(filterMonth || filterCat !== "all") && (
+            <button onClick={() => { setFilterMonth(""); setFilterCat("all"); }}
+              className="h-8 px-3 text-xs text-slate-400 hover:text-slate-600 border border-slate-200 rounded-lg bg-white">
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
