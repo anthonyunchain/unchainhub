@@ -34,16 +34,21 @@ export default function LoginPage() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      position: 'fixed',
+      inset: 0,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       background: '#EEF0F5',
+      padding: '16px',
+      paddingTop: 'max(16px, env(safe-area-inset-top))',
+      paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+      overflow: 'hidden',
     }}>
       <div style={{
         background: '#ffffff',
-        borderRadius: 16,
-        padding: '40px 36px',
+        borderRadius: 20,
+        padding: '36px 28px',
         width: '100%',
         maxWidth: 380,
         border: '1px solid #e0e0e0',
