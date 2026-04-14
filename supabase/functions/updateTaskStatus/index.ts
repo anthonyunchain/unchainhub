@@ -16,15 +16,20 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Verify caller via Supabase auth
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
     }
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    // Use user-scoped client to verify the caller's JWT
+    const supabaseUser = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
     if (authError || !user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: 'Unauthorized', detail: authError?.message }, { status: 401, headers: corsHeaders });
     }
 
     const { task_id, status } = await req.json();
