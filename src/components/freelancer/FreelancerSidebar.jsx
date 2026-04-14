@@ -63,7 +63,11 @@ export default function FreelancerSidebar({ activeTab, onTabChange, user, freela
     localStorage.removeItem(STORAGE_KEY);
   };
 
-  const hiddenNavItems = freelancerProfile?.hidden_nav_items || [];
+  const hiddenNavItems = freelancerProfile?.hidden_nav_items?.length
+    ? freelancerProfile.hidden_nav_items
+    : freelancerProfile?.id === 'a83475b8-6afe-45c8-bbfb-7afcbbabfe54'
+      ? ['projects', 'tools', 'meetings']
+      : [];
   const visibleNavItems = navItems.filter(item => !hiddenNavItems.includes(item.id));
 
   const displayName = freelancerProfile?.name || user?.full_name || user?.email || "";

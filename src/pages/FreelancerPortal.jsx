@@ -1128,7 +1128,14 @@ export default function FreelancerPortal() {
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
                 { id: 'invoices', label: 'Invoices' },
-              ].filter(item => !(profile?.hidden_nav_items || []).includes(item.id)).map(item => {
+              ].filter(item => {
+                const hidden = profile?.hidden_nav_items?.length
+                  ? profile.hidden_nav_items
+                  : profile?.id === 'a83475b8-6afe-45c8-bbfb-7afcbbabfe54'
+                    ? ['projects', 'tools', 'meetings']
+                    : [];
+                return !hidden.includes(item.id);
+              }).map(item => {
                 const isActive = activeTab === item.id;
                 return (
                   <button
@@ -1376,7 +1383,14 @@ export default function FreelancerPortal() {
                   { id: 'tools',     label: 'Tools',     Icon: Wrench },
                   { id: 'meetings',  label: 'Meetings',  Icon: CalendarDays },
                   { id: 'contract',  label: 'Contract',  Icon: FileCheck },
-                ].filter(item => !(profile?.hidden_nav_items || []).includes(item.id)).map(({ id, label, Icon }) => {
+                ].filter(item => {
+                  const hidden = profile?.hidden_nav_items?.length
+                    ? profile.hidden_nav_items
+                    : profile?.id === 'a83475b8-6afe-45c8-bbfb-7afcbbabfe54'
+                      ? ['projects', 'tools', 'meetings']
+                      : [];
+                  return !hidden.includes(item.id);
+                }).map(({ id, label, Icon }) => {
                   const isActive = activeTab === id;
                   return (
                     <button key={id}
