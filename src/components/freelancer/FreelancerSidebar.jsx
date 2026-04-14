@@ -32,9 +32,12 @@ function loadOrder() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      const ids = parsed.map(i => i.id);
+      // Always use labels/icons from DEFAULT_NAV so label changes take effect immediately
+      const navMap = Object.fromEntries(DEFAULT_NAV.map(i => [i.id, i]));
+      const merged = parsed.map(i => navMap[i.id] || i).filter(i => navMap[i.id]);
+      const ids = merged.map(i => i.id);
       const missing = DEFAULT_NAV.filter(i => !ids.includes(i.id));
-      return [...parsed, ...missing];
+      return [...merged, ...missing];
     }
   } catch {}
   return DEFAULT_NAV;

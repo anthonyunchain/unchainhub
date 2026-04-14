@@ -1300,7 +1300,7 @@ export default function FreelancerPortal() {
             { id: "dashboard",  label: "Home",      Icon: LayoutDashboard },
             { id: "myprojects", label: "Projects",  Icon: Briefcase },
             { id: "projects",   label: "Editorial", Icon: CalendarDays },
-            { id: "invoices",   label: "Invoices",  Icon: FileText },
+            { id: "invoices",   label: "Admin",     Icon: FileText },
           ]).map(({ id, label, Icon }) => {
             const isActive = activeTab === id;
             return (
