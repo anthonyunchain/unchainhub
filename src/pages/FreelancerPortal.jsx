@@ -1035,7 +1035,11 @@ export default function FreelancerPortal() {
 
   const handleUpdateTask = async (task, updates) => {
     if (updates.status) {
-      await supabase.functions.invoke('updateTaskStatus', { body: { task_id: task.id, status: updates.status } });
+      const { data: { session } } = await supabase.auth.getSession();
+      await supabase.functions.invoke('updateTaskStatus', {
+        body: { task_id: task.id, status: updates.status },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
     }
     const res = await base44.functions.invoke('getFreelancerData', {});
     setFreelancerData(res.data);
