@@ -408,6 +408,7 @@ function AdminTasks() {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(null);
   const [activeStatus, setActiveStatus] = useState("all");
+  const [activeAssignee, setActiveAssignee] = useState("all");
   const qc = useQueryClient();
 
   const { data: tasks = [], error: tasksError } = useQuery({
@@ -470,7 +471,10 @@ function AdminTasks() {
     if (b.due_date) return 1;
     return new Date(b.created_at) - new Date(a.created_at);
   });
-  const filtered = activeStatus === "all" ? tasks : tasks.filter(t => t.status === activeStatus);
+  const assignees = [...new Set(tasks.map(t => t.assigned_to).filter(Boolean))].sort();
+  const filtered = tasks
+    .filter(t => activeStatus === "all" || t.status === activeStatus)
+    .filter(t => activeAssignee === "all" || t.assigned_to === activeAssignee);
   const pending = sortByUrgency(filtered.filter(t => t.status !== "Terminé"));
   const done = sortByUrgency(filtered.filter(t => t.status === "Terminé"));
   return (
@@ -480,7 +484,7 @@ function AdminTasks() {
           <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" />New task</Button>
         </PageHeader>
       </div>
-      <div className="flex items-center gap-2 mb-6 flex-wrap max-w-2xl mx-auto">
+      <div className="flex items-center gap-2 mb-3 flex-wrap max-w-2xl mx-auto">
         <button
           onClick={() => setActiveStatus("all")}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeStatus === "all" ? "bg-slate-800 text-white" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"}`}>
@@ -497,6 +501,26 @@ function AdminTasks() {
           </button>
         ))}
       </div>
+      {assignees.length > 0 && (
+        <div className="hidden md:flex items-center gap-2 mb-6 flex-wrap max-w-2xl mx-auto">
+          <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mr-1">Assigné</span>
+          <button
+            onClick={() => setActiveAssignee("all")}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${activeAssignee === "all" ? "bg-violet-600 text-white" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"}`}>
+            <UserIcon className="w-3 h-3" />Tous
+          </button>
+          {assignees.map(a => (
+            <button
+              key={a}
+              onClick={() => setActiveAssignee(a)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${activeAssignee === a ? "bg-violet-50 text-violet-700 ring-1 ring-violet-300" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"}`}>
+              <UserIcon className="w-3 h-3" />{a}
+              <span className="text-xs opacity-60">{tasks.filter(t => t.assigned_to === a).length}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {assignees.length === 0 && <div className="mb-6" />}
       <div className="space-y-2 max-w-2xl mx-auto">
         {pending.length === 0 && done.length === 0 && <p className="text-center text-slate-400 py-10 text-sm">No admin tasks</p>}
         {[...pending, ...done].map((t) => (
@@ -511,6 +535,7 @@ function AdminTasks() {
                 <span className="text-[10px] text-slate-400">{PRIORITY_LABEL[t.priority] || t.priority}</span>
                 {t.category && <span className="text-[10px] text-slate-400">{t.category}</span>}
                 {t.due_date && <span className="text-[10px] text-slate-400">· {format(new Date(t.due_date), "d MMM", { locale: enUS })}</span>}
+                {t.assigned_to && <span className="text-[10px] text-violet-500 flex items-center gap-0.5"><UserIcon className="w-2.5 h-2.5" />{t.assigned_to}</span>}
               </div>
             </div>
           </div>
