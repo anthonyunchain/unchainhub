@@ -7,9 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X, CheckSquare, Square } from "lucide-react";
+import { Plus, X, CheckSquare, Square, UserCheck } from "lucide-react";
 
 export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
+  const [currentUserName, setCurrentUserName] = useState("");
+
+  useEffect(() => {
+    base44.auth.me().then(u => setCurrentUserName(u?.full_name || u?.email || "")).catch(() => {});
+  }, []);
+
   const { data: clients = [] } = useQuery({
     queryKey: ["clients-active"],
     queryFn: () => base44.entities.Client.filter({ status: "Actif" }),
@@ -132,12 +138,24 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
           {/* Assigné + Client */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Assigned to</Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label>Assigned to</Label>
+                {currentUserName && data.assigned_to !== currentUserName && (
+                  <button
+                    type="button"
+                    onClick={() => setData(d => ({ ...d, assigned_to: currentUserName, assigned_freelancer_id: "_me" }))}
+                    className="flex items-center gap-1 text-[10px] font-medium text-[#2A69FF] hover:underline">
+                    <UserCheck className="w-3 h-3" />Me
+                  </button>
+                )}
+              </div>
               <Select
-                value={data.assigned_freelancer_id || "_none"}
+                value={data.assigned_freelancer_id || (data.assigned_to === currentUserName && currentUserName ? "_me" : "_none")}
                 onValueChange={v => {
                   if (v === "_none") {
                     setData(d => ({ ...d, assigned_to: "", assigned_freelancer_id: "" }));
+                  } else if (v === "_me") {
+                    setData(d => ({ ...d, assigned_to: currentUserName, assigned_freelancer_id: "_me" }));
                   } else {
                     const f = freelancers.find(f => f.id === v);
                     setData(d => ({ ...d, assigned_to: f?.name || "", assigned_freelancer_id: v }));
@@ -147,6 +165,9 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                 <SelectTrigger><SelectValue placeholder="Nobody" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_none">Nobody</SelectItem>
+                  {currentUserName && (
+                    <SelectItem value="_me">👤 {currentUserName} (me)</SelectItem>
+                  )}
                   {freelancers.map(f => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.name} {f.role ? `· ${f.role}` : ""}
