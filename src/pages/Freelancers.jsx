@@ -595,7 +595,7 @@ export default function Freelancers() {
 
         {/* Payments card */}
         <div
-          style={{ ...CARD, background: '#F0FAF5' }}
+          style={{ ...CARD, background: 'var(--card-green)' }}
           onClick={() => setSection('payments')}
           onMouseEnter={hoverOn} onMouseLeave={hoverOff}
         >
@@ -603,8 +603,8 @@ export default function Freelancers() {
           <p style={{ ...VAL, color: 'var(--success)', marginTop: 8 }}>{totalAllPaid.toLocaleString('fr-FR')} €</p>
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginTop: 6 }}>{payments.length} total payment{payments.length !== 1 ? 's' : ''}</p>
           <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', background: '#E8F5EE', color: '#1A5C33', padding: '4px 10px', borderRadius: 100 }}>{payments.filter(p => p.status === 'Paid').length} paid</span>
-            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', background: '#FFF8E6', color: '#9A6700', padding: '4px 10px', borderRadius: 100 }}>{pendingPayments.length} pending</span>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', background: 'var(--success-bg)', color: 'var(--success-text)', padding: '4px 10px', borderRadius: 100 }}>{payments.filter(p => p.status === 'Paid').length} paid</span>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', background: 'var(--warning-bg)', color: 'var(--warning-text)', padding: '4px 10px', borderRadius: 100 }}>{pendingPayments.length} pending</span>
           </div>
           <div style={{ marginTop: 16 }}>
             {payments.slice(0, 3).map((p, i) => (
@@ -618,7 +618,7 @@ export default function Freelancers() {
 
         {/* Pending card */}
         <div
-          style={{ ...CARD, background: '#FFFBF0' }}
+          style={{ ...CARD, background: 'var(--card-amber)' }}
           onClick={() => setSection('payments')}
           onMouseEnter={hoverOn} onMouseLeave={hoverOff}
         >
@@ -627,7 +627,7 @@ export default function Freelancers() {
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginTop: 6 }}>{pendingPayments.length} payment{pendingPayments.length !== 1 ? 's' : ''} to process</p>
           <div style={{ marginTop: 16 }}>
             {pendingPayments.slice(0, 3).map((p, i) => (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: i < 2 ? '1px solid rgba(0,0,0,0.06)' : 'none' }}>
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: i < 2 ? '1px solid var(--divider)' : 'none' }}>
                 <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '12px', color: 'var(--ink)', fontWeight: 500 }}>{p.freelancer_name}</span>
                 <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--warning)', fontWeight: 600 }}>{(p.amount || 0).toLocaleString('fr-FR')} €</span>
               </div>
