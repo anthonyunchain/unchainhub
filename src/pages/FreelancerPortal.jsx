@@ -1128,7 +1128,7 @@ export default function FreelancerPortal() {
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
                 { id: 'invoices', label: 'Invoices' },
-              ].map(item => {
+              ].filter(item => !(profile?.hidden_nav_items || []).includes(item.id)).map(item => {
                 const isActive = activeTab === item.id;
                 return (
                   <button
@@ -1376,7 +1376,7 @@ export default function FreelancerPortal() {
                   { id: 'tools',     label: 'Tools',     Icon: Wrench },
                   { id: 'meetings',  label: 'Meetings',  Icon: CalendarDays },
                   { id: 'contract',  label: 'Contract',  Icon: FileCheck },
-                ].map(({ id, label, Icon }) => {
+                ].filter(item => !(profile?.hidden_nav_items || []).includes(item.id)).map(({ id, label, Icon }) => {
                   const isActive = activeTab === id;
                   return (
                     <button key={id}

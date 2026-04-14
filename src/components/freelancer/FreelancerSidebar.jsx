@@ -63,6 +63,9 @@ export default function FreelancerSidebar({ activeTab, onTabChange, user, freela
     localStorage.removeItem(STORAGE_KEY);
   };
 
+  const hiddenNavItems = freelancerProfile?.hidden_nav_items || [];
+  const visibleNavItems = navItems.filter(item => !hiddenNavItems.includes(item.id));
+
   const displayName = freelancerProfile?.name || user?.full_name || user?.email || "";
   const initials = displayName?.charAt(0)?.toUpperCase() || "?";
   const isAvailable = freelancerProfile?.status === "Actif";
@@ -112,7 +115,7 @@ export default function FreelancerSidebar({ activeTab, onTabChange, user, freela
             <Droppable droppableId="freelancer-nav">
               {(provided) => (
                 <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-1">
-                  {navItems.map((item, index) => {
+                  {visibleNavItems.map((item, index) => {
                     const Icon = ICON_MAP[item.icon];
                     return (
                       <Draggable key={item.id} draggableId={item.id} index={index}>
@@ -142,7 +145,7 @@ export default function FreelancerSidebar({ activeTab, onTabChange, user, freela
           </DragDropContext>
         ) : (
           <div className="space-y-1">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const Icon = ICON_MAP[item.icon];
               const isActive = activeTab === item.id;
               const badge = item.id === "notifications" && unreadCount > 0 ? unreadCount : null;
