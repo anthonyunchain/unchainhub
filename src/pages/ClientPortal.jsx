@@ -801,7 +801,21 @@ export default function ClientPortal() {
   const [error, setError] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [navVisible, setNavVisible] = useState(true);
+  const lastScrollY = useRef(0);
   const { dark, toggle } = useTheme();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const current = window.scrollY;
+      const diff = current - lastScrollY.current;
+      if (diff > 6) setNavVisible(false);
+      else if (diff < -4) setNavVisible(true);
+      lastScrollY.current = current;
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const clientName = clientRecord?.company_name || user?.user_metadata?.company_name || user?.email?.split("@")[0] || "";
   const greeting = useMemo(() => getGreeting(clientName.split(" ")[0] || ""), [clientName]);
@@ -1022,6 +1036,8 @@ export default function ClientPortal() {
           boxShadow: dark
             ? '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)'
             : '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,1) inset',
+          transform: navVisible ? 'translateY(0)' : 'translateY(calc(100% + 20px))',
+          transition: 'transform 320ms cubic-bezier(0.4,0,0.2,1)',
         }}
       >
         {/* Top specular shimmer */}
@@ -1044,7 +1060,7 @@ export default function ClientPortal() {
               {active && (
                 <div style={{
                   position: 'absolute',
-                  width: 56, height: 52,
+                  width: 64, height: 52,
                   borderRadius: 16,
                   background: 'linear-gradient(160deg, #2A69FF 0%, #1a54e0 100%)',
                   boxShadow: '0 4px 12px rgba(42,105,255,0.35)',
