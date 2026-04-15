@@ -11,7 +11,7 @@ ALTER TABLE tasks ADD CONSTRAINT tasks_category_check
   CHECK (category IN (
     -- new canonical values
     'Design', 'Video Editing', 'Analytics', 'Administrative',
-    'Posting', 'Update', 'Personal', 'Web',
+    'Posting', 'Update', 'Personal', 'Web', 'Merch',
     -- legacy values (kept for backward compatibility)
     'Commercial', 'Contenu', 'Administratif', 'Montage', 'Vie perso', 'Autre'
   ));

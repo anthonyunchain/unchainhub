@@ -8,6 +8,7 @@ const CATEGORY_LABEL = {
   "Design": "Design",
   "Video Editing": "Video Editing",
   "Web": "Web",
+  "Merch": "Merch",
   "Analytics": "Analytics",
   "Administrative": "Administrative",
   "Posting": "Posting",

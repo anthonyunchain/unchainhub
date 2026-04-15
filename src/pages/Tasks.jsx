@@ -37,6 +37,7 @@ const CATEGORY_LABEL = {
   "Design": "Design",
   "Video Editing": "Video Editing",
   "Web": "Web",
+  "Merch": "Merch",
   "Analytics": "Analytics",
   "Administrative": "Administrative",
   "Posting": "Posting",
@@ -273,7 +274,7 @@ export default function Tasks() {
           Personal
           <span className="text-[10px] opacity-70">{tasks.filter(t => t.category === "Personal" || t.category === "Vie perso").length}</span>
         </button>
-        {["Design", "Video Editing", "Web", "Analytics", "Administrative", "Posting", "Update"].filter(k => tasks.some(t => t.category === k)).map((k) =>
+        {["Design", "Video Editing", "Web", "Merch", "Analytics", "Administrative", "Posting", "Update"].filter(k => tasks.some(t => t.category === k)).map((k) =>
           <button
             key={k}
             onClick={() => setActiveCategory(activeCategory === k ? "all" : k)}
