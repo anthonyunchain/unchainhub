@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format, isPast, isToday, isTomorrow } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square, MessageCircle, Send } from "lucide-react";
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square, MessageCircle, Send, X } from "lucide-react";
 import { TASK_STATUS_CONFIG as STATUS_CONFIG, TASK_STATUS_LABEL as STATUS_LABEL } from "@/lib/taskStatus";
 
 const CATEGORY_LABEL = {
@@ -33,13 +33,17 @@ function TaskRow({ task, onUpdateTask }) {
   const [expanded, setExpanded] = useState(false);
   const [noteDraft, setNoteDraft] = useState(task.freelancer_note || "");
   const [savingNote, setSavingNote] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const cfg = STATUS_CONFIG[task.status] || STATUS_CONFIG["Non commencé"];
   const doneCount = (task.checklist || []).filter(c => c.done).length;
   const totalCount = (task.checklist || []).length;
   const isDone = task.status === "Terminé";
-  // Note UI is always available — accordion always openable
-  const hasDetails = true;
   const hasNote = !!(task.freelancer_note && task.freelancer_note.trim());
+  const hasReply = !!(task.admin_reply && task.admin_reply.trim());
+  const unreadReply =
+    hasReply && (!task.freelancer_note_updated_at || !task.admin_reply_at ||
+      new Date(task.admin_reply_at) > new Date(task.freelancer_note_updated_at));
+  const hasDetails = task.description || task.blocking_reason || task.notes || totalCount > 0;
   const noteDirty = (noteDraft || "").trim() !== (task.freelancer_note || "").trim();
 
   const saveNote = async () => {
@@ -94,11 +98,6 @@ function TaskRow({ task, onUpdateTask }) {
               {totalCount > 0 && (
                 <span className="text-[10px] text-slate-400">{doneCount}/{totalCount} subtasks</span>
               )}
-              {hasNote && (
-                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full font-medium">
-                  <MessageCircle className="w-3 h-3" /> Note sent
-                </span>
-              )}
             </div>
             {/* Progress bar */}
             {totalCount > 0 && (
@@ -109,6 +108,24 @@ function TaskRow({ task, onUpdateTask }) {
               </div>
             )}
           </div>
+
+          {/* Note chat icon */}
+          <button
+            onClick={e => { e.stopPropagation(); setChatOpen(true); }}
+            title={hasReply ? "Conversation with Anthony" : "Leave a note for Anthony"}
+            className={`relative shrink-0 rounded-full p-1.5 transition-colors ${
+              unreadReply
+                ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                : hasNote
+                  ? "text-amber-600 bg-amber-50 hover:bg-amber-100"
+                  : "text-slate-300 hover:text-slate-500 hover:bg-slate-50"
+            }`}
+          >
+            <MessageCircle className="w-4 h-4" />
+            {unreadReply && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white" />
+            )}
+          </button>
 
           {/* Expand toggle */}
           {hasDetails && (
@@ -150,48 +167,81 @@ function TaskRow({ task, onUpdateTask }) {
               {task.notes}
             </div>
           )}
+        </div>
+      )}
 
-          {/* Freelancer note ↔ admin thread */}
-          <div className="space-y-1.5">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <MessageCircle className="w-3 h-3" /> Note for Anthony
-            </p>
-
-            {/* Anthony's reply */}
-            {task.admin_reply && (
-              <div className="rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-2">
-                <p className="text-[10px] font-medium text-blue-700 uppercase tracking-wider mb-0.5">
-                  {task.admin_reply_author || "Anthony"}
-                  {task.admin_reply_at && (
-                    <span className="ml-1.5 text-slate-400 normal-case tracking-normal font-normal">
-                      · {format(new Date(task.admin_reply_at), "d MMM yyyy HH:mm", { locale: enUS })}
-                    </span>
-                  )}
-                </p>
-                <p className="text-xs text-slate-700 whitespace-pre-wrap">{task.admin_reply}</p>
+      {/* Conversation modal */}
+      {chatOpen && (
+        <div
+          onClick={() => setChatOpen(false)}
+          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Conversation with Anthony</p>
+                <p className="text-sm font-semibold text-slate-800 truncate">{task.title}</p>
               </div>
-            )}
-
-            <textarea
-              value={noteDraft}
-              onChange={e => setNoteDraft(e.target.value)}
-              rows={2}
-              placeholder="Ask a question or leave a note…"
-              className="w-full text-xs rounded-lg border border-slate-200 bg-white px-2.5 py-2 outline-none focus:border-blue-400 resize-none"
-            />
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] text-slate-400">
-                {task.freelancer_note_updated_at
-                  ? `Last sent ${format(new Date(task.freelancer_note_updated_at), "d MMM yyyy HH:mm", { locale: enUS })}`
-                  : "Anthony gets notified when you send a note"}
-              </span>
-              <button
-                onClick={saveNote}
-                disabled={!noteDirty || savingNote}
-                className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Send className="w-3 h-3" /> {savingNote ? "Sending…" : hasNote ? "Update note" : "Send note"}
+              <button onClick={() => setChatOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
               </button>
+            </div>
+
+            <div className="px-4 py-3 space-y-2 max-h-[50vh] overflow-y-auto">
+              {hasNote && (
+                <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                  <p className="text-[10px] font-medium text-amber-700 uppercase tracking-wider mb-0.5">
+                    You
+                    {task.freelancer_note_updated_at && (
+                      <span className="ml-1.5 text-slate-400 normal-case tracking-normal font-normal">
+                        · {format(new Date(task.freelancer_note_updated_at), "d MMM yyyy HH:mm", { locale: enUS })}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-slate-700 whitespace-pre-wrap">{task.freelancer_note}</p>
+                </div>
+              )}
+              {hasReply && (
+                <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2">
+                  <p className="text-[10px] font-medium text-blue-700 uppercase tracking-wider mb-0.5">
+                    {task.admin_reply_author || "Anthony"}
+                    {task.admin_reply_at && (
+                      <span className="ml-1.5 text-slate-400 normal-case tracking-normal font-normal">
+                        · {format(new Date(task.admin_reply_at), "d MMM yyyy HH:mm", { locale: enUS })}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-slate-700 whitespace-pre-wrap">{task.admin_reply}</p>
+                </div>
+              )}
+              {!hasNote && !hasReply && (
+                <p className="text-xs text-slate-400 italic text-center py-4">
+                  No messages yet. Send a note to Anthony below.
+                </p>
+              )}
+            </div>
+
+            <div className="border-t border-slate-100 px-4 py-3 space-y-2 bg-slate-50/50">
+              <textarea
+                value={noteDraft}
+                onChange={e => setNoteDraft(e.target.value)}
+                rows={3}
+                placeholder="Ask a question or leave a note…"
+                className="w-full text-sm rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none focus:border-blue-400 resize-none"
+              />
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] text-slate-400">Anthony gets notified when you send.</span>
+                <button
+                  onClick={saveNote}
+                  disabled={!noteDirty || savingNote}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Send className="w-3.5 h-3.5" /> {savingNote ? "Sending…" : hasNote ? "Update note" : "Send note"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

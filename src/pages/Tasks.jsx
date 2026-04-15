@@ -149,6 +149,7 @@ export default function Tasks() {
   const [activeClient, setActiveClient] = useState("all");
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeAssignee, setActiveAssignee] = useState("all");
+  const [onlyWithNotes, setOnlyWithNotes] = useState(false);
   const [mutError, setMutError] = useState(null);
   const qc = useQueryClient();
 
@@ -199,7 +200,15 @@ export default function Tasks() {
 
   const taskAssignees = [...new Set(tasks.map((t) => t.assigned_to).filter(Boolean))].sort();
 
+  const noteNeedingAttention = (t) =>
+    !!(t.freelancer_note && t.freelancer_note.trim()) &&
+    (!t.admin_reply || !t.admin_reply.trim() ||
+      (t.freelancer_note_updated_at && t.admin_reply_at && new Date(t.freelancer_note_updated_at) > new Date(t.admin_reply_at)));
+
+  const unansweredNotesCount = tasks.filter(noteNeedingAttention).length;
+
   const filtered = tasks
+    .filter((t) => !onlyWithNotes || noteNeedingAttention(t))
     .filter((t) => activeStatus === "all" || t.status === activeStatus)
     .filter((t) => activeClient === "all" || t.client_name === activeClient)
     .filter((t) => activeCategory === "all" || t.category === activeCategory || (activeCategory === "Personal" && t.category === "Vie perso"))
@@ -217,9 +226,27 @@ export default function Tasks() {
   return (
     <div className="mx-auto px-4 md:px-6" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Tasks" subtitle="Team task management">
-        <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
-          <Plus className="w-4 h-4 mr-1" /> New task
-        </Button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setOnlyWithNotes(v => !v)}
+            className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium transition-all border ${
+              onlyWithNotes
+                ? "bg-amber-500 text-white border-amber-500"
+                : "bg-white text-amber-700 border-amber-200 hover:bg-amber-50"
+            }`}
+          >
+            <MessageCircle className="w-4 h-4" />
+            {onlyWithNotes ? "Showing notes" : "Notes to answer"}
+            {unansweredNotesCount > 0 && (
+              <span className={`ml-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${onlyWithNotes ? "bg-white/25" : "bg-amber-100 text-amber-700"}`}>
+                {unansweredNotesCount}
+              </span>
+            )}
+          </button>
+          <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
+            <Plus className="w-4 h-4 mr-1" /> New task
+          </Button>
+        </div>
       </PageHeader>
 
       {/* Filtres statut */}

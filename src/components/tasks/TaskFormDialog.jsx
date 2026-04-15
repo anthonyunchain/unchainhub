@@ -50,16 +50,25 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
     setSendingReply(true);
     try {
       const now = new Date().toISOString();
-      await supabase.from('tasks').update({
+      const { error: updErr } = await supabase.from('tasks').update({
         admin_reply: replyDraft.trim(),
         admin_reply_at: now,
         admin_reply_author: currentUserName || null,
       }).eq('id', task.id);
+      if (updErr) throw updErr;
 
-      // Notify the assigned freelancer
-      if (task.assigned_freelancer_id) {
-        await supabase.from('notifications').insert({
-          recipient_id: task.assigned_freelancer_id,
+      // Resolve freelancer id: prefer the column, fall back to matching assigned_to against the freelancer list
+      let freelancerId = task.assigned_freelancer_id || data.assigned_freelancer_id;
+      if ((!freelancerId || freelancerId === "_me" || freelancerId === "_none") && data.assigned_to) {
+        const match = freelancers.find(
+          f => (f.name || "").toLowerCase().trim() === (data.assigned_to || "").toLowerCase().trim()
+        );
+        if (match) freelancerId = match.id;
+      }
+
+      if (freelancerId) {
+        const { error: notifErr } = await supabase.from('notifications').insert({
+          recipient_id: freelancerId,
           title: `${currentUserName || 'Admin'} replied · ${task.title}`,
           message: replyDraft.trim().slice(0, 200),
           type: 'message',
@@ -67,6 +76,9 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
           action_required: false,
           created_at: now,
         });
+        if (notifErr) console.error('admin-reply notification insert failed:', notifErr);
+      } else {
+        console.warn('admin reply saved but no freelancer id resolved — freelancer not notified');
       }
 
       setData(d => ({ ...d, admin_reply: replyDraft.trim(), admin_reply_at: now, admin_reply_author: currentUserName || null }));
