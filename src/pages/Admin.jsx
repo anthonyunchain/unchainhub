@@ -25,6 +25,28 @@ import { enUS } from "date-fns/locale";
 import { useAuth } from "@/lib/AuthContext";
 
 
+// ─── SENSITIVE VALUE (hover / tap to reveal) ─────────────────────────────────
+function Sensitive({ children, mask = "••••", className = "" }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+      onClick={() => setShow(v => !v)}
+      onFocus={() => setShow(true)}
+      onBlur={() => setShow(false)}
+      tabIndex={0}
+      role="button"
+      aria-label={show ? "Hide value" : "Reveal value"}
+      title={show ? "" : "Hover or tap to reveal"}
+      className={`inline-block cursor-pointer select-none transition-all ${show ? "" : "tracking-wider"} ${className}`}
+    >
+      {show ? children : mask}
+    </span>
+  );
+}
+
+
 // ─── BOARD MEETINGS ─────────────────────────────────────────────────────────
 function BoardMeetings() {
   const [open, setOpen] = useState(false);
@@ -320,7 +342,7 @@ function Shareholders() {
         </div>
         <div className="bg-white rounded-xl border border-slate-100 p-4">
           <p className="text-xs text-slate-400 uppercase tracking-wider">Capital invested</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{totalInvested.toLocaleString("fr-FR")} €</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1"><Sensitive>{totalInvested.toLocaleString("fr-FR")} €</Sensitive></p>
         </div>
       </div>
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
@@ -349,7 +371,7 @@ function Shareholders() {
                     <span className="text-xs text-slate-600">{s.share_percentage || 0}%</span>
                   </div>
                 </td>
-                <td className="px-5 py-3 text-sm text-slate-700">{s.investment_amount ? `${s.investment_amount.toLocaleString("fr-FR")} €` : "—"}</td>
+                <td className="px-5 py-3 text-sm text-slate-700" onClick={(e) => e.stopPropagation()}>{s.investment_amount ? <Sensitive>{s.investment_amount.toLocaleString("fr-FR")} €</Sensitive> : "—"}</td>
                 <td className="px-5 py-3 text-xs text-slate-500">{s.share_class}</td>
               </tr>
             ))}
@@ -659,12 +681,12 @@ function ShareholderSalaries() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-slate-100 p-4 md:col-span-2">
           <p className="text-xs text-slate-400 uppercase tracking-wider">Total paid</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{grandTotal.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1"><Sensitive>{grandTotal.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive></p>
         </div>
         {totalByShareholder.map(s => (
           <div key={s.name} className="bg-white rounded-xl border border-slate-100 p-4">
             <p className="text-xs text-slate-400 uppercase tracking-wider truncate">{s.name}</p>
-            <p className="text-xl font-bold text-slate-800 mt-1">{s.total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+            <p className="text-xl font-bold text-slate-800 mt-1"><Sensitive>{s.total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive></p>
           </div>
         ))}
       </div>
@@ -688,7 +710,7 @@ function ShareholderSalaries() {
                 <td className="px-5 py-3 text-sm text-slate-500">{s.role || "—"}</td>
                 <td className="px-5 py-3 text-sm text-slate-500">{s.period || "—"}</td>
                 <td className="px-5 py-3"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${TYPE_COLORS[s.type] || "bg-slate-100 text-slate-600"}`}>{s.type}</span></td>
-                <td className="px-5 py-3 text-sm font-semibold text-right text-slate-800">{(s.amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</td>
+                <td className="px-5 py-3 text-sm font-semibold text-right text-slate-800" onClick={(e) => e.stopPropagation()}><Sensitive>{(s.amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive></td>
               </tr>
             ))}
           </tbody>
@@ -1302,11 +1324,11 @@ function Subscriptions() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
           <p className="text-xs text-slate-400 uppercase">Monthly total</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{totalMonthly.toLocaleString("fr-FR")} €</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1"><Sensitive>{totalMonthly.toLocaleString("fr-FR")} €</Sensitive></p>
         </div>
         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
           <p className="text-xs text-slate-400 uppercase">Annual total</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{totalAnnual.toLocaleString("fr-FR")} €</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1"><Sensitive>{totalAnnual.toLocaleString("fr-FR")} €</Sensitive></p>
         </div>
         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
           <p className="text-xs text-slate-400 uppercase">Active subs</p>
@@ -1334,13 +1356,13 @@ function Subscriptions() {
                 <td className="px-5 py-3 text-slate-500">{s.category}</td>
                 <td className="px-5 py-3 text-slate-500">{s.renewal_date ? format(new Date(s.renewal_date), "d MMM yyyy", { locale: enUS }) : "—"}</td>
                 <td className="px-5 py-3"><span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS_SUB[s.status] || "bg-slate-100 text-slate-600"}`}>{s.status}</span></td>
-                <td className="px-5 py-3 text-right font-semibold text-slate-800">{(s.amount || 0).toLocaleString("fr-FR")} €</td>
+                <td className="px-5 py-3 text-right font-semibold text-slate-800" onClick={(e) => e.stopPropagation()}><Sensitive>{(s.amount || 0).toLocaleString("fr-FR")} €</Sensitive></td>
               </tr>
             ))}
             {activeSubs.length > 0 && (
               <tr className="bg-slate-50 border-t-2 border-slate-200">
                 <td colSpan={4} className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Total actif</td>
-                <td className="px-5 py-3 text-right font-bold text-slate-900">{totalMonthly.toLocaleString("fr-FR")} € / mo</td>
+                <td className="px-5 py-3 text-right font-bold text-slate-900"><Sensitive>{totalMonthly.toLocaleString("fr-FR")} €</Sensitive> / mo</td>
               </tr>
             )}
           </tbody>
@@ -1686,12 +1708,12 @@ function AdminExpenses() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 col-span-2 sm:col-span-1">
           <p className="text-xs text-slate-400 mb-1">Total</p>
-          <p className="text-2xl font-bold text-slate-800">{total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+          <p className="text-2xl font-bold text-slate-800"><Sensitive>{total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive></p>
         </div>
         {byCategory.slice(0, 3).map(({ cat, total: t }) => (
           <div key={cat} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
             <p className="text-xs text-slate-400 mb-1">{cat}</p>
-            <p className="text-lg font-semibold text-slate-700">{t.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
+            <p className="text-lg font-semibold text-slate-700"><Sensitive>{t.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive></p>
           </div>
         ))}
       </div>
@@ -1774,8 +1796,8 @@ function AdminExpenses() {
                   <td className="px-5 py-3.5">
                     <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">{e.category || "—"}</span>
                   </td>
-                  <td className="px-5 py-3.5 text-right font-semibold text-slate-800 whitespace-nowrap">
-                    {(parseFloat(e.amount) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                  <td className="px-5 py-3.5 text-right font-semibold text-slate-800 whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
+                    <Sensitive>{(parseFloat(e.amount) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive>
                   </td>
                   <td className="px-5 py-3.5 text-center">
                     {e.receipt_url
@@ -2012,7 +2034,7 @@ export default function Admin() {
                       <SelectContent>
                         {navItems.map(item => (
                           <SelectItem key={item.id} value={item.id} className="text-sm py-2.5">
-                            {item.label}{badges[item.id] ? ` · ${badges[item.id]}` : ''}
+                            {item.label}{badges[item.id] ? (item.id === 'salaries' ? <> · <Sensitive mask="••••">{badges[item.id]}</Sensitive></> : ` · ${badges[item.id]}`) : ''}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -2041,7 +2063,7 @@ export default function Admin() {
                           {badges[item.id] && (
                             <span className={`relative z-10 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
                               isActive ? 'bg-blue-100 text-[#2A69FF]' : 'bg-slate-100 text-slate-500'
-                            }`}>{badges[item.id]}</span>
+                            }`}>{item.id === 'salaries' ? <Sensitive mask="••••">{badges[item.id]}</Sensitive> : badges[item.id]}</span>
                           )}
                         </button>
                       );
