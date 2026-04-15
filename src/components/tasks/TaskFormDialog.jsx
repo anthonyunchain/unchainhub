@@ -26,7 +26,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
     queryFn: () => base44.entities.Freelancer.list(),
   });
   const empty = {
-    title: "", description: "", status: "Non commencé", priority: "Normale",
+    title: "", description: "", status: "Non commencé",
     due_date: "", assigned_to: "", client_name: "", category: "Update",
     blocking_reason: "", checklist: [], notes: ""
   };
@@ -85,32 +85,18 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
             <Textarea value={data.description || ""} onChange={e => set("description", e.target.value)} rows={2} placeholder="Task details..." />
           </div>
 
-          {/* Statut + Priorité */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Status</Label>
-              <Select value={data.status} onValueChange={v => set("status", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Non commencé">Not started</SelectItem>
-                  <SelectItem value="En cours">In progress</SelectItem>
-                  <SelectItem value="Terminé">Done</SelectItem>
-                  <SelectItem value="Bloqué">Blocked</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Priority</Label>
-              <Select value={data.priority} onValueChange={v => set("priority", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Basse">🔵 Low</SelectItem>
-                  <SelectItem value="Normale">🟢 Normal</SelectItem>
-                  <SelectItem value="Haute">🟠 High</SelectItem>
-                  <SelectItem value="Urgente">🔴 Urgent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Statut */}
+          <div>
+            <Label>Status</Label>
+            <Select value={data.status} onValueChange={v => set("status", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Non commencé">Not started</SelectItem>
+                <SelectItem value="En cours">In progress</SelectItem>
+                <SelectItem value="Terminé">Done</SelectItem>
+                <SelectItem value="Bloqué">Blocked</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Date + Catégorie */}

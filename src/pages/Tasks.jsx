@@ -7,7 +7,6 @@ const toTaskPayload = (d) => ({
   title: d.title,
   description: d.description || null,
   status: d.status || "Non commencé",
-  priority: d.priority || "Normale",
   category: d.category || "Update",
   client_name: d.client_name || null,
   assigned_to: d.assigned_to || null,
@@ -32,14 +31,6 @@ const STATUS_CONFIG = {
 const STATUS_LABEL = {
   "Non commencé": "Not started", "En cours": "In progress",
   "Terminé": "Done", "Bloqué": "Blocked"
-};
-
-const PRIORITY_DOT = {
-  "Basse": "🔵", "Normale": "🟢", "Haute": "🟠", "Urgente": "🔴"
-};
-
-const PRIORITY_LABEL = {
-  "Basse": "Low", "Normale": "Normal", "Haute": "High", "Urgente": "Urgent"
 };
 
 const CATEGORY_LABEL = {
@@ -105,7 +96,6 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
           <p className="text-xs text-slate-400 line-clamp-1">{task.description}</p>
           }
           <div className="flex flex-wrap items-center gap-1.5">
-            {task.priority && <span className="text-[10px]">{PRIORITY_DOT[task.priority]} {PRIORITY_LABEL[task.priority] || task.priority}</span>}
             {task.category && <span className={`text-[10px] px-1.5 py-0.5 rounded ${CATEGORY_STYLE[task.category] || "text-slate-400 bg-slate-50"}`}>{CATEGORY_LABEL[task.category] || task.category}</span>}
             {task.client_name &&
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">{task.client_name}</span>

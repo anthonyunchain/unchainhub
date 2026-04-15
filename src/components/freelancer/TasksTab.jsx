@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format, isPast, isToday, isTomorrow } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square } from "lucide-react";
-import { TASK_STATUS_CONFIG as STATUS_CONFIG, TASK_STATUS_LABEL as STATUS_LABEL, TASK_PRIORITY_LABEL as PRIORITY_LABEL, TASK_PRIORITY_COLOR as PRIORITY_COLOR } from "@/lib/taskStatus";
+import { TASK_STATUS_CONFIG as STATUS_CONFIG, TASK_STATUS_LABEL as STATUS_LABEL } from "@/lib/taskStatus";
 
 const CATEGORY_LABEL = {
   "Design": "Design",
@@ -17,7 +17,6 @@ const CATEGORY_LABEL = {
   "Montage": "Video Editing", "Vie perso": "Personal", "Autre": "Other",
 };
 
-const PRIORITIES = ["Urgente", "Haute", "Normale", "Basse"];
 
 function DueBadge({ task }) {
   if (!task.due_date || task.status === "Terminé") return null;
@@ -72,9 +71,6 @@ function TaskRow({ task, onUpdateTask }) {
             </p>
             <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cfg.color}`}>{STATUS_LABEL[task.status] || task.status}</span>
-              {task.priority && (
-                <span className={`text-[10px] font-medium ${PRIORITY_COLOR[task.priority] || ""}`}>{PRIORITY_LABEL[task.priority] || task.priority}</span>
-              )}
               {task.client_name && (
                 <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-medium">{task.client_name}</span>
               )}
@@ -139,45 +135,25 @@ function TaskRow({ task, onUpdateTask }) {
   );
 }
 
-const PRIORITY_ORDER = { "Urgente": 0, "Haute": 1, "Normale": 2, "Basse": 3 };
-const STATUS_ORDER = { "En cours": 0, "Bloqué": 1, "Non commencé": 2, "Terminé": 3 };
-
 export default function TasksTab({ tasks, onUpdateTask }) {
   const [filterClient, setFilterClient] = useState("all");
-  const [filterPriority, setFilterPriority] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
-  const sortBy = "deadline";
 
   const clients = [...new Set(tasks.map(t => t.client_name).filter(Boolean))];
   const categories = [...new Set(tasks.map(t => t.category).filter(Boolean))];
-  const priorities = PRIORITIES.filter(p => tasks.some(t => t.priority === p));
 
   const filtered = tasks
     .filter(t => filterClient === "all" || t.client_name === filterClient)
-    .filter(t => filterPriority === "all" || t.priority === filterPriority)
     .filter(t => filterCategory === "all" || t.category === filterCategory || (filterCategory === "Personal" && t.category === "Vie perso"))
     .sort((a, b) => {
-      if (sortBy === "deadline") {
-        if (!a.due_date && !b.due_date) return 0;
-        if (!a.due_date) return 1;
-        if (!b.due_date) return -1;
-        return new Date(a.due_date) - new Date(b.due_date);
-      }
-      if (sortBy === "priority") return (PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2);
-      if (sortBy === "client") return (a.client_name || "").localeCompare(b.client_name || "");
-      if (sortBy === "status") return (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
-      return 0;
+      if (!a.due_date && !b.due_date) return 0;
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+      return new Date(a.due_date) - new Date(b.due_date);
     });
 
   const pending = filtered.filter(t => t.status !== "Terminé");
   const done = filtered.filter(t => t.status === "Terminé");
-
-  const PRIORITY_BTN = {
-    "Urgente": { off: "bg-red-50 text-red-700 hover:bg-red-100", on: "bg-red-600 text-white" },
-    "Haute":   { off: "bg-amber-50 text-amber-700 hover:bg-amber-100", on: "bg-amber-500 text-white" },
-    "Normale": { off: "bg-blue-50 text-blue-700 hover:bg-blue-100", on: "bg-blue-600 text-white" },
-    "Basse":   { off: "bg-slate-100 text-slate-500 hover:bg-slate-200", on: "bg-slate-600 text-white" },
-  };
 
   const FilterGroup = ({ label, children }) => (
     <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
@@ -204,29 +180,6 @@ export default function TasksTab({ tasks, onUpdateTask }) {
               {c}
             </button>
           )}
-        </FilterGroup>
-      )}
-
-      {priorities.length > 0 && (
-        <FilterGroup label="Urgency:">
-          <button
-            onClick={() => setFilterPriority("all")}
-            className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${filterPriority === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
-            All
-          </button>
-          {priorities.map(p => {
-            const btn = PRIORITY_BTN[p] || PRIORITY_BTN["Normale"];
-            const active = filterPriority === p;
-            return (
-              <button
-                key={p}
-                onClick={() => setFilterPriority(active ? "all" : p)}
-                className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${active ? btn.on : btn.off}`}>
-                {PRIORITY_LABEL[p] || p}
-                <span className="ml-1 text-[10px] opacity-70">{tasks.filter(t => t.priority === p).length}</span>
-              </button>
-            );
-          })}
         </FilterGroup>
       )}
 

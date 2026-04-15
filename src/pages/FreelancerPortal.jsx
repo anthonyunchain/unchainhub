@@ -117,15 +117,6 @@ function DashboardTab({ tasks, projects, payments, freelancerName, freelancerFir
           {nextTask ? (
             <>
               <div style={{ margin: '16px 0 8px' }}>
-                {nextTask.priority && (
-                  <span style={{
-                    display: 'inline-block', marginBottom: 8,
-                    fontFamily: "'DM Mono', monospace", fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase',
-                    color: '#fff', background: 'rgba(255,255,255,0.18)', borderRadius: 6, padding: '3px 8px',
-                  }}>
-                    {nextTask.priority}
-                  </span>
-                )}
                 <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '18px', fontWeight: 700, color: '#fff', lineHeight: 1.3, margin: 0 }}>
                   {nextTask.title}
                 </p>
@@ -157,15 +148,10 @@ function DashboardTab({ tasks, projects, payments, freelancerName, freelancerFir
             ) : (
               todayTasks.map(task => (
                 <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--divider)' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: priColor[task.priority] || '#94a3b8' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: '#94a3b8' }} />
                   <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 600, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
                     {task.title}
                   </p>
-                  {task.priority && (
-                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'var(--muted)', flexShrink: 0 }}>
-                      {task.priority}
-                    </span>
-                  )}
                 </div>
               ))
             )}
