@@ -544,12 +544,15 @@ function AdminTasks() {
               </div>
             </div>
             <button
+              type="button"
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => handleQuickDelete(e, t)}
               disabled={deleteMut.isPending}
               title="Delete task"
-              className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0 disabled:opacity-50"
+              aria-label="Delete task"
+              className="relative z-10 p-2 -m-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-4 h-4 pointer-events-none" />
             </button>
           </div>
         ))}
