@@ -51,12 +51,21 @@ Deno.serve(async (req) => {
     if (body.update_task_id && (body.update_task_status || typeof body.update_task_freelancer_note === 'string')) {
       const { data: taskCheck } = await supabaseAdmin
         .from('tasks')
-        .select('id, assigned_to, title')
+        .select('id, assigned_to, assigned_freelancer_id, title')
         .eq('id', body.update_task_id)
         .single();
 
-      const taskBelongsToFreelancer =
+      const nameMatch =
         name && taskCheck?.assigned_to?.toLowerCase().trim() === name.toLowerCase();
+      const idMatch =
+        taskCheck?.assigned_freelancer_id && taskCheck.assigned_freelancer_id === fId;
+      const taskBelongsToFreelancer = nameMatch || idMatch;
+      console.log('[getFreelancerData] note update auth check', {
+        taskId: body.update_task_id,
+        nameMatch,
+        idMatch,
+        belongs: taskBelongsToFreelancer,
+      });
 
       if (taskBelongsToFreelancer) {
         const updatePayload: Record<string, unknown> = {};
@@ -75,10 +84,14 @@ Deno.serve(async (req) => {
 
         // Notify admins when a freelancer posts a note/question
         if (typeof body.update_task_freelancer_note === 'string' && body.update_task_freelancer_note.trim()) {
-          const { data: admins } = await supabaseAdmin
+          const { data: admins, error: adminErr } = await supabaseAdmin
             .from('profiles')
             .select('id')
             .eq('role', 'admin');
+          console.log('[getFreelancerData] admin lookup', {
+            count: admins?.length || 0,
+            err: adminErr?.message,
+          });
           const noteText = body.update_task_freelancer_note.trim();
           const snippet = noteText.length > 160 ? noteText.slice(0, 160) + '…' : noteText;
           const rows = (admins || []).map((a: { id: string }) => ({
@@ -91,7 +104,8 @@ Deno.serve(async (req) => {
             created_at: new Date().toISOString(),
           }));
           if (rows.length > 0) {
-            await supabaseAdmin.from('notifications').insert(rows);
+            const { error: notifErr } = await supabaseAdmin.from('notifications').insert(rows);
+            if (notifErr) console.error('[getFreelancerData] notifications insert error', notifErr);
           }
         }
       }
