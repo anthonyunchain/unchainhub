@@ -48,10 +48,10 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
 
     // If a task update is requested, verify the task belongs to this freelancer first
-    if (body.update_task_id && (body.update_task_status || typeof body.update_task_freelancer_note === 'string')) {
+    if (body.update_task_id && (body.update_task_status || typeof body.append_task_note === 'string')) {
       const { data: taskCheck } = await supabaseAdmin
         .from('tasks')
-        .select('id, assigned_to, assigned_freelancer_id, title')
+        .select('id, assigned_to, assigned_freelancer_id, title, note_thread')
         .eq('id', body.update_task_id)
         .single();
 
@@ -60,43 +60,44 @@ Deno.serve(async (req) => {
       const idMatch =
         taskCheck?.assigned_freelancer_id && taskCheck.assigned_freelancer_id === fId;
       const taskBelongsToFreelancer = nameMatch || idMatch;
-      console.log('[getFreelancerData] note update auth check', {
-        taskId: body.update_task_id,
-        nameMatch,
-        idMatch,
-        belongs: taskBelongsToFreelancer,
-      });
 
       if (taskBelongsToFreelancer) {
-        const updatePayload: Record<string, unknown> = {};
-        if (body.update_task_status) updatePayload.status = body.update_task_status;
-        if (typeof body.update_task_freelancer_note === 'string') {
-          updatePayload.freelancer_note = body.update_task_freelancer_note.trim() || null;
-          updatePayload.freelancer_note_updated_at = new Date().toISOString();
-        }
-
-        if (Object.keys(updatePayload).length > 0) {
+        // Status update
+        if (body.update_task_status) {
           await supabaseAdmin
             .from('tasks')
-            .update(updatePayload)
+            .update({ status: body.update_task_status })
             .eq('id', body.update_task_id);
         }
 
-        // Notify admins when a freelancer posts a note/question
-        if (typeof body.update_task_freelancer_note === 'string' && body.update_task_freelancer_note.trim()) {
+        // Append a new message to the note thread
+        if (typeof body.append_task_note === 'string' && body.append_task_note.trim()) {
+          const text = body.append_task_note.trim();
+          const newMessage = {
+            id: crypto.randomUUID(),
+            author_role: 'freelancer',
+            author_name: name || 'Freelancer',
+            text,
+            created_at: new Date().toISOString(),
+          };
+          const existingThread = Array.isArray(taskCheck?.note_thread) ? taskCheck.note_thread : [];
+          const nextThread = [...existingThread, newMessage];
+
+          await supabaseAdmin
+            .from('tasks')
+            .update({ note_thread: nextThread })
+            .eq('id', body.update_task_id);
+
+          // Notify admins
           const { data: admins, error: adminErr } = await supabaseAdmin
             .from('profiles')
             .select('id')
             .eq('role', 'admin');
-          console.log('[getFreelancerData] admin lookup', {
-            count: admins?.length || 0,
-            err: adminErr?.message,
-          });
-          const noteText = body.update_task_freelancer_note.trim();
-          const snippet = noteText.length > 160 ? noteText.slice(0, 160) + '…' : noteText;
+          if (adminErr) console.error('[getFreelancerData] admin lookup error', adminErr);
+          const snippet = text.length > 160 ? text.slice(0, 160) + '…' : text;
           const rows = (admins || []).map((a: { id: string }) => ({
             recipient_id: a.id,
-            title: `Note from ${name || 'freelancer'} · ${taskCheck?.title || 'task'}`,
+            title: `${name || 'Freelancer'} · ${taskCheck?.title || 'task'}`,
             message: snippet,
             type: 'message',
             is_read: false,

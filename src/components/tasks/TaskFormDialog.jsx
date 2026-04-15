@@ -35,30 +35,40 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
 
   const [data, setData] = useState(task || empty);
   const [newCheck, setNewCheck] = useState("");
-  const [replyDraft, setReplyDraft] = useState("");
-  const [sendingReply, setSendingReply] = useState(false);
+  const [messageDraft, setMessageDraft] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   useEffect(() => {
     setData(task || empty);
     setNewCheck("");
-    setReplyDraft(task?.admin_reply || "");
+    setMessageDraft("");
   }, [task, open]);
 
-  const sendAdminReply = async () => {
+  const thread = Array.isArray(data.note_thread) ? data.note_thread : [];
+
+  const sendAdminMessage = async () => {
     if (!task?.id) return;
-    if (!replyDraft.trim()) return;
-    setSendingReply(true);
+    const text = messageDraft.trim();
+    if (!text) return;
+    setSendingMessage(true);
     try {
       const now = new Date().toISOString();
-      const { error: updErr } = await supabase.from('tasks').update({
-        admin_reply: replyDraft.trim(),
-        admin_reply_at: now,
-        admin_reply_author: currentUserName || null,
-      }).eq('id', task.id);
+      const newMessage = {
+        id: (crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`),
+        author_role: "admin",
+        author_name: currentUserName || "Admin",
+        text,
+        created_at: now,
+      };
+      const nextThread = [...thread, newMessage];
+
+      const { error: updErr } = await supabase.from('tasks')
+        .update({ note_thread: nextThread })
+        .eq('id', task.id);
       if (updErr) throw updErr;
 
-      // Resolve freelancer id: prefer the column, fall back to matching assigned_to against the freelancer list
-      let freelancerId = task.assigned_freelancer_id || data.assigned_freelancer_id;
+      // Resolve freelancer id: prefer the column, fall back to matching assigned_to
+      let freelancerId = data.assigned_freelancer_id || task.assigned_freelancer_id;
       if ((!freelancerId || freelancerId === "_me" || freelancerId === "_none") && data.assigned_to) {
         const match = freelancers.find(
           f => (f.name || "").toLowerCase().trim() === (data.assigned_to || "").toLowerCase().trim()
@@ -69,23 +79,22 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
       if (freelancerId) {
         const { error: notifErr } = await supabase.from('notifications').insert({
           recipient_id: freelancerId,
-          title: `${currentUserName || 'Admin'} replied · ${task.title}`,
-          message: replyDraft.trim().slice(0, 200),
+          title: `${currentUserName || 'Admin'} · ${task.title}`,
+          message: text.length > 200 ? text.slice(0, 200) + '…' : text,
           type: 'message',
           is_read: false,
           action_required: false,
           created_at: now,
         });
         if (notifErr) console.error('admin-reply notification insert failed:', notifErr);
-      } else {
-        console.warn('admin reply saved but no freelancer id resolved — freelancer not notified');
       }
 
-      setData(d => ({ ...d, admin_reply: replyDraft.trim(), admin_reply_at: now, admin_reply_author: currentUserName || null }));
+      setData(d => ({ ...d, note_thread: nextThread }));
+      setMessageDraft("");
     } catch (e) {
-      alert('Failed to send reply: ' + (e?.message || e));
+      alert('Failed to send message: ' + (e?.message || e));
     } finally {
-      setSendingReply(false);
+      setSendingMessage(false);
     }
   };
 
@@ -277,66 +286,68 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
             <Textarea value={data.notes || ""} onChange={e => set("notes", e.target.value)} rows={2} placeholder="Notes..." />
           </div>
 
-          {/* Freelancer ↔ admin note thread */}
-          {task?.id && (data.freelancer_note || data.admin_reply || data.assigned_freelancer_id) && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3 space-y-2">
-              <Label className="flex items-center gap-1.5 text-amber-800">
-                <MessageCircle className="w-3.5 h-3.5" /> Conversation with {data.assigned_to || "the freelancer"}
+          {/* Conversation thread (freelancer ↔ admin) */}
+          {task?.id && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-slate-600">
+                <MessageCircle className="w-3.5 h-3.5" /> Conversation
+                {data.assigned_to && <span className="text-slate-400 font-normal">· with {data.assigned_to}</span>}
               </Label>
 
-              {data.freelancer_note ? (
-                <div className="rounded-md bg-white border border-amber-200 p-2.5">
-                  <p className="text-[10px] font-medium text-amber-700 uppercase tracking-wider mb-1">
-                    {data.assigned_to || "Freelancer"}
-                    {data.freelancer_note_updated_at && (
-                      <span className="ml-1.5 text-slate-400 normal-case tracking-normal font-normal">
-                        · {format(new Date(data.freelancer_note_updated_at), "d MMM yyyy HH:mm", { locale: enUS })}
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-slate-700 whitespace-pre-wrap">{data.freelancer_note}</p>
-                </div>
+              {thread.length === 0 ? (
+                <p className="text-[11px] text-slate-400 italic">No messages yet.</p>
               ) : (
-                <p className="text-[11px] text-slate-500 italic">No note from the freelancer yet.</p>
-              )}
-
-              {data.admin_reply && (
-                <div className="rounded-md bg-white border border-blue-200 p-2.5">
-                  <p className="text-[10px] font-medium text-blue-700 uppercase tracking-wider mb-1">
-                    {data.admin_reply_author || "You"}
-                    {data.admin_reply_at && (
-                      <span className="ml-1.5 text-slate-400 normal-case tracking-normal font-normal">
-                        · {format(new Date(data.admin_reply_at), "d MMM yyyy HH:mm", { locale: enUS })}
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-slate-700 whitespace-pre-wrap">{data.admin_reply}</p>
+                <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                  {thread.map(m => {
+                    const fromAdmin = m.author_role === "admin";
+                    return (
+                      <div
+                        key={m.id}
+                        className={`rounded-md border px-2.5 py-1.5 ${
+                          fromAdmin
+                            ? "bg-blue-50 border-blue-200 ml-6"
+                            : "bg-amber-50 border-amber-200"
+                        }`}
+                      >
+                        <p className={`text-[10px] font-medium uppercase tracking-wider mb-0.5 ${fromAdmin ? "text-blue-700" : "text-amber-700"}`}>
+                          {fromAdmin ? (m.author_name || "You") : (m.author_name || data.assigned_to || "Freelancer")}
+                          {m.created_at && (
+                            <span className="ml-1.5 text-slate-400 normal-case tracking-normal font-normal">
+                              · {format(new Date(m.created_at), "d MMM yyyy HH:mm", { locale: enUS })}
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs text-slate-700 whitespace-pre-wrap">{m.text}</p>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
-              <div className="space-y-1.5">
+              <div className="flex items-start gap-2">
                 <Textarea
-                  value={replyDraft}
-                  onChange={e => setReplyDraft(e.target.value)}
+                  value={messageDraft}
+                  onChange={e => setMessageDraft(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault();
+                      sendAdminMessage();
+                    }
+                  }}
                   rows={2}
-                  placeholder={data.admin_reply ? "Update your reply…" : "Reply to the freelancer…"}
+                  placeholder="Write a message…"
+                  className="flex-1 text-sm"
                 />
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] text-slate-400">
-                    {data.assigned_freelancer_id
-                      ? "The freelancer will get notified."
-                      : "Assign a freelancer first to notify them."}
-                  </span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={sendAdminReply}
-                    disabled={sendingReply || !replyDraft.trim() || replyDraft.trim() === (data.admin_reply || "").trim()}
-                  >
-                    <Send className="w-3.5 h-3.5 mr-1" />
-                    {sendingReply ? "Sending…" : data.admin_reply ? "Update reply" : "Send reply"}
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={sendAdminMessage}
+                  disabled={sendingMessage || !messageDraft.trim()}
+                  className="shrink-0"
+                >
+                  <Send className="w-3.5 h-3.5 mr-1" />
+                  {sendingMessage ? "…" : "Send"}
+                </Button>
               </div>
             </div>
           )}

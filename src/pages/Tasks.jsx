@@ -64,6 +64,11 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
   const doneCount = (task.checklist || []).filter((c) => c.done).length;
   const totalCount = (task.checklist || []).length;
 
+  const thread = Array.isArray(task.note_thread) ? task.note_thread : [];
+  const hasMessages = thread.length > 0;
+  const lastMessage = hasMessages ? thread[thread.length - 1] : null;
+  const lastFromFreelancer = lastMessage?.author_role === "freelancer";
+
   const dueBadge = () => {
     if (!task.due_date) return null;
     const d = new Date(task.due_date);
@@ -91,6 +96,19 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${cfg.color}`}>
             {STATUS_LABEL[task.status] || task.status}
           </span>
+          {hasMessages && (
+            <span
+              title={lastFromFreelancer ? `Note from ${task.assigned_to || "freelancer"}` : "Conversation"}
+              className={`relative shrink-0 inline-flex items-center justify-center rounded-full p-1 ${
+                lastFromFreelancer ? "text-amber-600 bg-amber-50" : "text-blue-600 bg-blue-50"
+              }`}
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              {lastFromFreelancer && (
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-red-500 ring-1 ring-white" />
+              )}
+            </span>
+          )}
           <button
             onClick={(e) => {e.stopPropagation();onDelete(task.id);}}
             className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all shrink-0">
@@ -112,22 +130,6 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
           <p className="text-[10px] text-red-500 flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" /> {task.blocking_reason}
           </p>
-          }
-          {task.freelancer_note &&
-          <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-start gap-1.5">
-            <MessageCircle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-600" />
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-[10px] uppercase tracking-wider text-amber-700 mb-0.5">
-                Note from {task.assigned_to || "freelancer"}
-              </p>
-              <p className="whitespace-pre-wrap">{task.freelancer_note}</p>
-              {task.admin_reply && (
-                <p className="mt-1.5 pt-1.5 border-t border-amber-200 text-[11px] text-slate-700">
-                  <span className="font-medium text-slate-600">You: </span>{task.admin_reply}
-                </p>
-              )}
-            </div>
-          </div>
           }
           {totalCount > 0 &&
           <div className="flex items-center gap-1.5">
@@ -200,10 +202,11 @@ export default function Tasks() {
 
   const taskAssignees = [...new Set(tasks.map((t) => t.assigned_to).filter(Boolean))].sort();
 
-  const noteNeedingAttention = (t) =>
-    !!(t.freelancer_note && t.freelancer_note.trim()) &&
-    (!t.admin_reply || !t.admin_reply.trim() ||
-      (t.freelancer_note_updated_at && t.admin_reply_at && new Date(t.freelancer_note_updated_at) > new Date(t.admin_reply_at)));
+  const noteNeedingAttention = (t) => {
+    const thread = Array.isArray(t.note_thread) ? t.note_thread : [];
+    if (thread.length === 0) return false;
+    return thread[thread.length - 1]?.author_role === "freelancer";
+  };
 
   const unansweredNotesCount = tasks.filter(noteNeedingAttention).length;
 

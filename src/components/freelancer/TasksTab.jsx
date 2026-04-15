@@ -31,27 +31,29 @@ function DueBadge({ task }) {
 
 function TaskRow({ task, onUpdateTask }) {
   const [expanded, setExpanded] = useState(false);
-  const [noteDraft, setNoteDraft] = useState(task.freelancer_note || "");
-  const [savingNote, setSavingNote] = useState(false);
+  const [messageDraft, setMessageDraft] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const cfg = STATUS_CONFIG[task.status] || STATUS_CONFIG["Non commencé"];
   const doneCount = (task.checklist || []).filter(c => c.done).length;
   const totalCount = (task.checklist || []).length;
   const isDone = task.status === "Terminé";
-  const hasNote = !!(task.freelancer_note && task.freelancer_note.trim());
-  const hasReply = !!(task.admin_reply && task.admin_reply.trim());
-  const unreadReply =
-    hasReply && (!task.freelancer_note_updated_at || !task.admin_reply_at ||
-      new Date(task.admin_reply_at) > new Date(task.freelancer_note_updated_at));
-  const hasDetails = task.description || task.blocking_reason || task.notes || totalCount > 0;
-  const noteDirty = (noteDraft || "").trim() !== (task.freelancer_note || "").trim();
 
-  const saveNote = async () => {
-    setSavingNote(true);
+  const thread = Array.isArray(task.note_thread) ? task.note_thread : [];
+  const hasMessages = thread.length > 0;
+  const lastMessage = hasMessages ? thread[thread.length - 1] : null;
+  const lastFromAdmin = lastMessage?.author_role === "admin";
+  const hasDetails = task.description || task.blocking_reason || task.notes || totalCount > 0;
+
+  const sendMessage = async () => {
+    const text = messageDraft.trim();
+    if (!text) return;
+    setSendingMessage(true);
     try {
-      await onUpdateTask(task, { freelancer_note: noteDraft });
+      await onUpdateTask(task, { append_note: text });
+      setMessageDraft("");
     } finally {
-      setSavingNote(false);
+      setSendingMessage(false);
     }
   };
 
@@ -112,17 +114,17 @@ function TaskRow({ task, onUpdateTask }) {
           {/* Note chat icon */}
           <button
             onClick={e => { e.stopPropagation(); setChatOpen(true); }}
-            title={hasReply ? "Conversation with Anthony" : "Leave a note for Anthony"}
+            title={hasMessages ? "Conversation with Anthony" : "Leave a note for Anthony"}
             className={`relative shrink-0 rounded-full p-1.5 transition-colors ${
-              unreadReply
+              lastFromAdmin
                 ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
-                : hasNote
+                : hasMessages
                   ? "text-amber-600 bg-amber-50 hover:bg-amber-100"
                   : "text-slate-300 hover:text-slate-500 hover:bg-slate-50"
             }`}
           >
             <MessageCircle className="w-4 h-4" />
-            {unreadReply && (
+            {lastFromAdmin && (
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white" />
             )}
           </button>
@@ -191,55 +193,59 @@ function TaskRow({ task, onUpdateTask }) {
             </div>
 
             <div className="px-4 py-3 space-y-2 max-h-[50vh] overflow-y-auto">
-              {hasNote && (
-                <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
-                  <p className="text-[10px] font-medium text-amber-700 uppercase tracking-wider mb-0.5">
-                    You
-                    {task.freelancer_note_updated_at && (
-                      <span className="ml-1.5 text-slate-400 normal-case tracking-normal font-normal">
-                        · {format(new Date(task.freelancer_note_updated_at), "d MMM yyyy HH:mm", { locale: enUS })}
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-slate-700 whitespace-pre-wrap">{task.freelancer_note}</p>
-                </div>
-              )}
-              {hasReply && (
-                <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2">
-                  <p className="text-[10px] font-medium text-blue-700 uppercase tracking-wider mb-0.5">
-                    {task.admin_reply_author || "Anthony"}
-                    {task.admin_reply_at && (
-                      <span className="ml-1.5 text-slate-400 normal-case tracking-normal font-normal">
-                        · {format(new Date(task.admin_reply_at), "d MMM yyyy HH:mm", { locale: enUS })}
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-slate-700 whitespace-pre-wrap">{task.admin_reply}</p>
-                </div>
-              )}
-              {!hasNote && !hasReply && (
+              {thread.length === 0 ? (
                 <p className="text-xs text-slate-400 italic text-center py-4">
                   No messages yet. Send a note to Anthony below.
                 </p>
+              ) : (
+                thread.map(m => {
+                  const fromAdmin = m.author_role === "admin";
+                  return (
+                    <div
+                      key={m.id}
+                      className={`rounded-lg px-3 py-2 border ${
+                        fromAdmin
+                          ? "bg-blue-50 border-blue-200"
+                          : "bg-amber-50 border-amber-200 ml-6"
+                      }`}
+                    >
+                      <p className={`text-[10px] font-medium uppercase tracking-wider mb-0.5 ${fromAdmin ? "text-blue-700" : "text-amber-700"}`}>
+                        {fromAdmin ? (m.author_name || "Anthony") : "You"}
+                        {m.created_at && (
+                          <span className="ml-1.5 text-slate-400 normal-case tracking-normal font-normal">
+                            · {format(new Date(m.created_at), "d MMM yyyy HH:mm", { locale: enUS })}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-slate-700 whitespace-pre-wrap">{m.text}</p>
+                    </div>
+                  );
+                })
               )}
             </div>
 
             <div className="border-t border-slate-100 px-4 py-3 space-y-2 bg-slate-50/50">
               <textarea
-                value={noteDraft}
-                onChange={e => setNoteDraft(e.target.value)}
+                value={messageDraft}
+                onChange={e => setMessageDraft(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }}
                 rows={3}
-                placeholder="Ask a question or leave a note…"
+                placeholder="Write a message…"
                 className="w-full text-sm rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none focus:border-blue-400 resize-none"
               />
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[10px] text-slate-400">Anthony gets notified when you send.</span>
                 <button
-                  onClick={saveNote}
-                  disabled={!noteDirty || savingNote}
+                  onClick={sendMessage}
+                  disabled={!messageDraft.trim() || sendingMessage}
                   className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Send className="w-3.5 h-3.5" /> {savingNote ? "Sending…" : hasNote ? "Update note" : "Send note"}
+                  <Send className="w-3.5 h-3.5" /> {sendingMessage ? "Sending…" : "Send"}
                 </button>
               </div>
             </div>
