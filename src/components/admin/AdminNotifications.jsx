@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { base44, supabase } from "@/api/base44Client";
 import { format } from "date-fns";
-import { Bell, Check, Plus, Send, X } from "lucide-react";
+import { Bell, Check, Plus, Send, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
