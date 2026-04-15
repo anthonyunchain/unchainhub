@@ -81,9 +81,13 @@ Deno.serve(async (req) => {
     ] = await Promise.all([
       // Tasks by freelancer ID
       supabaseAdmin.from('tasks').select('*').eq('assigned_freelancer_id', fId).order('due_date', { ascending: false }),
-      // Tasks by name fallback (only rows NOT already matched by ID)
-      name
-        ? supabaseAdmin.from('tasks').select('*').eq('assigned_to', name).neq('assigned_freelancer_id', fId).order('due_date', { ascending: false }).limit(100)
+      // Tasks by name or email fallback (only rows NOT already matched by ID)
+      (name || user.email)
+        ? supabaseAdmin.from('tasks').select('*')
+            .or(`assigned_to.ilike.${name || ''},assigned_to.ilike.${user.email || ''}`)
+            .neq('assigned_freelancer_id', fId)
+            .order('due_date', { ascending: false })
+            .limit(100)
         : Promise.resolve({ data: [] }),
       // Editorial content (filtered to this freelancer's clients)
       supabaseAdmin.from('editorial_content').select('*').or(`assigned_editor_id.eq.${fId},assigned_editor_name.ilike.${name}`).order('scheduled_date', { ascending: false }).limit(300),
