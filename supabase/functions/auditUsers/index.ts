@@ -45,6 +45,12 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Email is in freelancers table but role is not freelancer — corrupted account
+      if (freelancerEmails.has(email) && profile.role !== 'freelancer') {
+        orphans.push({ id: user.id, email: user.email, full_name: profile.full_name, role: profile.role, reason: `Freelancer email but role is "${profile.role}" — account was corrupted` });
+        continue;
+      }
+
       // Role = freelancer but not in freelancers table
       if (profile.role === 'freelancer' && !freelancerEmails.has(email)) {
         orphans.push({ id: user.id, email: user.email, full_name: profile.full_name, role: profile.role, reason: 'Freelancer role but not in freelancers table' });
