@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Upload, X, ExternalLink, Users, CalendarDays, Wrench, Briefcase, Bell, FileText, Check } from "lucide-react";
+import { Plus, Trash2, Upload, X, ExternalLink, Users, CalendarDays, Wrench, Briefcase, Bell, FileText, Check, Eye, EyeOff, LayoutDashboard } from "lucide-react";
+import { FREELANCER_NAV_ITEMS } from "@/lib/navConfig";
 import AdminProjects from "@/components/admin/AdminProjects";
 import AdminNotifications from "@/components/admin/AdminNotifications";
 import FreelancerProfileCard from "@/components/freelancer/FreelancerProfileCard";
@@ -168,6 +169,46 @@ function FreelancerProfiles() {
                   The freelancer will only see the selected calendars.
                 </p>
               </div>
+
+              {/* Page access — per-freelancer sidebar visibility */}
+              {data.id && (
+                <div>
+                  <Label className="flex items-center gap-2 mb-2">
+                    <LayoutDashboard className="w-3.5 h-3.5 text-slate-400" />
+                    Page access
+                    <span className="ml-auto text-[10px] text-slate-400 font-normal">
+                      {FREELANCER_NAV_ITEMS.length - (data.hidden_nav_items?.length || 0)} / {FREELANCER_NAV_ITEMS.length} visible
+                    </span>
+                  </Label>
+                  <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1">
+                    {FREELANCER_NAV_ITEMS.map(item => {
+                      const hidden = (data.hidden_nav_items || []).includes(item.id);
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            const current = data.hidden_nav_items || [];
+                            const next = hidden ? current.filter(x => x !== item.id) : [...current, item.id];
+                            setData({ ...data, hidden_nav_items: next });
+                          }}
+                          className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-xs transition-all ${
+                            hidden
+                              ? "bg-slate-50 border-slate-200 text-slate-400"
+                              : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                          }`}
+                        >
+                          <span className={hidden ? "line-through truncate" : "font-medium truncate"}>{item.label}</span>
+                          {hidden ? <EyeOff className="w-3.5 h-3.5 shrink-0" /> : <Eye className="w-3.5 h-3.5 shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1.5">
+                    Green = visible in their sidebar. Grey = hidden.
+                  </p>
+                </div>
+              )}
 
               {data.email && !data.id && (
                 <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700">
