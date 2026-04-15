@@ -27,16 +27,12 @@ Deno.serve(async (req) => {
 
     const password = inputPassword || generatePassword();
 
-    // Look up existing user by email via admin REST API
-    const adminUrl = `${Deno.env.get('SUPABASE_URL')}/auth/v1/admin/users?email=${encodeURIComponent(email)}&page=1&per_page=1`;
-    const adminResp = await fetch(adminUrl, {
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-        'apikey': Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      }
-    });
-    const adminData = await adminResp.json();
-    const existingUserId: string | null = adminData?.users?.[0]?.id || null;
+    // Look up existing user by email — fetch all and filter client-side
+    // (the ?email= query param on the admin API does NOT filter reliably)
+    const { data: { users: allUsers }, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+    if (listErr) return Response.json({ error: listErr.message }, { status: 400, headers: corsHeaders(req) });
+    const existingUser = allUsers.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    const existingUserId: string | null = existingUser?.id || null;
 
     let userId: string;
 
