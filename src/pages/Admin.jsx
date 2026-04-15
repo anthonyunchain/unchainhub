@@ -724,6 +724,7 @@ function UserManagement() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email: "", client_id: "" });
   const [inviting, setInviting] = useState(false);
@@ -820,9 +821,10 @@ function UserManagement() {
   };
 
   const [deletingUserId, setDeletingUserId] = useState(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
 
-  const handleDeleteUser = async (userId, name) => {
-    if (!confirm(`Delete user "${name}"? This cannot be undone.`)) return;
+  const handleDeleteUser = async (userId) => {
+    setConfirmingDeleteId(null);
     setDeletingUserId(userId);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -886,14 +888,32 @@ function UserManagement() {
                 </td>
                 <td className="px-5 py-3 text-xs text-slate-400 font-mono">{p.id}</td>
                 <td className="px-5 py-3 text-right">
-                  <button
-                    onClick={() => handleDeleteUser(p.id, p.full_name || p.id)}
-                    disabled={deletingUserId === p.id}
-                    className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
-                    title="Delete user"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {confirmingDeleteId === p.id ? (
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setConfirmingDeleteId(null)}
+                        className="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 rounded"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(p.id)}
+                        disabled={deletingUserId === p.id}
+                        className="px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded disabled:opacity-40"
+                      >
+                        {deletingUserId === p.id ? "Deleting…" : "Confirm"}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmingDeleteId(p.id)}
+                      disabled={deletingUserId === p.id}
+                      className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
+                      title="Delete user"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -980,12 +1000,23 @@ function UserManagement() {
             </div>
             <div>
               <Label>Password *</Label>
-              <Input
-                type="password"
-                value={form.password}
-                onChange={e => setForm({ ...form, password: e.target.value })}
-                placeholder="Minimum 6 characters"
-              />
+              <div className="relative mt-1">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={e => setForm({ ...form, password: e.target.value })}
+                  placeholder="Minimum 6 characters"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
             {error && <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
             {success && <p className="text-sm text-emerald-600 bg-emerald-50 rounded-lg px-3 py-2">{success}</p>}
