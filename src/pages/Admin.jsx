@@ -822,6 +822,11 @@ function UserManagement() {
 
   const [deletingUserId, setDeletingUserId] = useState(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
+  const [resetPwdUserId, setResetPwdUserId] = useState(null);
+  const [resetPwdValue, setResetPwdValue] = useState("");
+  const [showResetPwd, setShowResetPwd] = useState(false);
+  const [settingPwd, setSettingPwd] = useState(false);
+  const [resetPwdMsg, setResetPwdMsg] = useState(null);
 
   const handleDeleteUser = async (userId) => {
     setConfirmingDeleteId(null);
@@ -843,6 +848,30 @@ function UserManagement() {
       alert("Error deleting user: " + (e.message || "Unknown error"));
     } finally {
       setDeletingUserId(null);
+    }
+  };
+
+  const handleSetPassword = async () => {
+    if (!resetPwdUserId || !resetPwdValue) return;
+    setSettingPwd(true);
+    setResetPwdMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error: fnError } = await supabase.functions.invoke("setUserPassword", {
+        body: { user_id: resetPwdUserId, password: resetPwdValue },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (fnError) {
+        let msg = fnError.message;
+        try { const body = await fnError.context.json(); msg = body?.error || msg; } catch {}
+        throw new Error(msg);
+      }
+      if (data?.error) throw new Error(data.error);
+      setResetPwdMsg({ ok: true, text: "Mot de passe mis à jour." });
+    } catch (e) {
+      setResetPwdMsg({ ok: false, text: e.message || "Erreur." });
+    } finally {
+      setSettingPwd(false);
     }
   };
 
@@ -888,6 +917,13 @@ function UserManagement() {
                 </td>
                 <td className="px-5 py-3 text-xs text-slate-400 font-mono">{p.id}</td>
                 <td className="px-5 py-3 text-right">
+                  <button
+                    onClick={() => { setResetPwdUserId(p.id); setResetPwdValue(""); setShowResetPwd(false); setResetPwdMsg(null); }}
+                    className="p-1.5 rounded-lg text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-colors mr-1"
+                    title="Reset password"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                  </button>
                   {confirmingDeleteId === p.id ? (
                     <div className="flex items-center justify-end gap-1">
                       <button
@@ -960,6 +996,50 @@ function UserManagement() {
               <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
               <Button onClick={handleInvite} disabled={inviting || !inviteForm.email || !inviteForm.client_id || !invitePassword} className="bg-brand hover:bg-brand/90 text-brand-foreground">
                 <KeyRound className="w-4 h-4 mr-1.5" />{inviting ? "Creating..." : "Create account"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!resetPwdUserId} onOpenChange={(o) => { if (!o) { setResetPwdUserId(null); setResetPwdMsg(null); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><KeyRound className="w-4 h-4 text-blue-500" />Reset password</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-xs text-slate-400 font-mono">{resetPwdUserId}</p>
+            <div>
+              <Label>New password *</Label>
+              <div className="relative mt-1">
+                <Input
+                  type={showResetPwd ? "text" : "password"}
+                  value={resetPwdValue}
+                  onChange={e => setResetPwdValue(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowResetPwd(v => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  tabIndex={-1}
+                >
+                  {showResetPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            {resetPwdMsg && (
+              <p className={`text-sm px-3 py-2 rounded-lg ${resetPwdMsg.ok ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
+                {resetPwdMsg.text}
+              </p>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => { setResetPwdUserId(null); setResetPwdMsg(null); }}>Close</Button>
+              <Button
+                onClick={handleSetPassword}
+                disabled={settingPwd || !resetPwdValue}
+                className="bg-brand hover:bg-brand/90 text-brand-foreground"
+              >
+                {settingPwd ? "Saving…" : "Update password"}
               </Button>
             </div>
           </div>
