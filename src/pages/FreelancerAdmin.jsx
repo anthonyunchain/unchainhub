@@ -23,14 +23,15 @@ function FreelancerProfiles() {
   const [data, setData] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const qc = useQueryClient();
 
   const { data: freelancers = [] } = useQuery({ queryKey: ["freelancers"], queryFn: () => base44.entities.Freelancer.list() });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.filter({ status: "Actif" }) });
 
-  const createMut = useMutation({ mutationFn: (d) => base44.entities.Freelancer.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); }, onError: (e) => alert("Create error: " + (e?.message || e)) });
-  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); }, onError: (e) => alert("Update error: " + (e?.message || e)) });
-  const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Freelancer.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancers"] }), onError: (e) => alert("Delete error: " + (e?.message || e)) });
+  const createMut = useMutation({ mutationFn: (d) => base44.entities.Freelancer.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setSaveError(null); setOpen(false); }, onError: (e) => setSaveError("Create error: " + (e?.message || String(e))) });
+  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setSaveError(null); setOpen(false); }, onError: (e) => setSaveError("Update error: " + (e?.message || String(e))) });
+  const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Freelancer.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancers"] }), onError: (e) => setSaveError("Delete error: " + (e?.message || String(e))) });
 
   const empty = { first_name: "", last_name: "", name: "", email: "", phone: "", role: "", status: "Actif", notes: "", contract_url: "", editorial_client_names: [] };
 
@@ -41,8 +42,8 @@ function FreelancerProfiles() {
       : [...current, clientName];
     setData(d => ({ ...d, editorial_client_names: updated }));
   };
-  const openNew = () => { setData({ ...empty }); setOpen(true); };
-  const openEdit = (f) => { setData({ ...f, first_name: f.first_name || "", last_name: f.last_name || "" }); setOpen(true); };
+  const openNew = () => { setData({ ...empty }); setSaveError(null); setOpen(true); };
+  const openEdit = (f) => { setData({ ...f, first_name: f.first_name || "", last_name: f.last_name || "" }); setSaveError(null); setOpen(true); };
   const buildPayload = (d) => {
     const first = (d.first_name || "").trim();
     const last = (d.last_name || "").trim();
@@ -215,6 +216,12 @@ function FreelancerProfiles() {
               {data.email && !data.id && (
                 <div className="md:col-span-2 bg-blue-50 rounded-lg p-3 text-xs text-blue-700">
                   💡 After saving, send an invitation to <strong>{data.email}</strong> so they can access the portal.
+                </div>
+              )}
+
+              {saveError && (
+                <div className="md:col-span-2 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg px-3 py-2">
+                  {saveError}
                 </div>
               )}
 
