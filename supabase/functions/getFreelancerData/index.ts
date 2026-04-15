@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
-import { verifyAuth, verifyAdmin } from '../_shared/auth.ts';
+import { verifyAuth } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -41,22 +41,22 @@ Deno.serve(async (req) => {
     }
 
     const fId = freelancerProfile.id;
-    const name = freelancerProfile.name?.toLowerCase().trim() || '';
+    // name is used for case-insensitive matching against assigned_to
+    const name = freelancerProfile.name?.trim() || '';
 
-    // Parse body — no side-effects here anymore (task updates use updateTaskStatus function)
+    // Parse body for optional task status update
     const body = await req.json().catch(() => ({}));
 
     // If a task update is requested, verify the task belongs to this freelancer first
     if (body.update_task_id && body.update_task_status) {
       const { data: taskCheck } = await supabaseAdmin
         .from('tasks')
-        .select('id, assigned_freelancer_id, assigned_to')
+        .select('id, assigned_to')
         .eq('id', body.update_task_id)
         .single();
 
       const taskBelongsToFreelancer =
-        taskCheck?.assigned_freelancer_id === fId ||
-        (name && taskCheck?.assigned_to?.toLowerCase().trim() === name);
+        name && taskCheck?.assigned_to?.toLowerCase().trim() === name.toLowerCase();
 
       if (taskBelongsToFreelancer) {
         await supabaseAdmin
@@ -66,10 +66,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── Fetch all data in parallel, filtering by ID in the DB ───────────────
+    // ── Fetch all data ───────────────────────────────────────────────────────
     const [
-      tasksByIDRes,
-      tasksByNameRes,
+      tasksRes,
       editorialRes,
       meetingsByIDRes,
       meetingsByNameRes,
@@ -79,42 +78,53 @@ Deno.serve(async (req) => {
       projectsByNameRes,
       toolsRes,
     ] = await Promise.all([
-      // Tasks by freelancer ID
-      supabaseAdmin.from('tasks').select('*').eq('assigned_freelancer_id', fId).order('due_date', { ascending: false }),
-      // Tasks by name fallback — only tasks with no assigned_freelancer_id set
-      // (.neq would exclude NULLs in PostgreSQL, so we use .is.null explicitly)
+      // Tasks by freelancer name (case-insensitive)
       name
         ? supabaseAdmin.from('tasks').select('*')
             .ilike('assigned_to', name)
-            .is('assigned_freelancer_id', null)
             .order('due_date', { ascending: false })
-            .limit(100)
+            .limit(200)
         : Promise.resolve({ data: [] }),
-      // Editorial content (filtered to this freelancer's clients)
-      supabaseAdmin.from('editorial_content').select('*').or(`assigned_editor_id.eq.${fId},assigned_editor_name.ilike.${name}`).order('scheduled_date', { ascending: false }).limit(300),
+      // Editorial content
+      supabaseAdmin.from('editorial_content').select('*')
+        .or(`assigned_editor_id.eq.${fId},assigned_editor_name.ilike.${name}`)
+        .order('scheduled_date', { ascending: false })
+        .limit(300),
       // Meetings by ID
       supabaseAdmin.from('freelancer_meetings').select('*').eq('freelancer_id', fId).order('date', { ascending: false }),
       // Meetings by name fallback
       name
-        ? supabaseAdmin.from('freelancer_meetings').select('*').eq('freelancer_name', name).neq('freelancer_id', fId).order('date', { ascending: false }).limit(100)
+        ? supabaseAdmin.from('freelancer_meetings').select('*')
+            .ilike('freelancer_name', name)
+            .neq('freelancer_id', fId)
+            .order('date', { ascending: false })
+            .limit(100)
         : Promise.resolve({ data: [] }),
       // Payments by ID
       supabaseAdmin.from('freelancer_payments').select('*').eq('freelancer_id', fId).order('date', { ascending: false }),
       // Payments by name fallback
       name
-        ? supabaseAdmin.from('freelancer_payments').select('*').eq('freelancer_name', name).neq('freelancer_id', fId).order('date', { ascending: false }).limit(100)
+        ? supabaseAdmin.from('freelancer_payments').select('*')
+            .ilike('freelancer_name', name)
+            .neq('freelancer_id', fId)
+            .order('date', { ascending: false })
+            .limit(100)
         : Promise.resolve({ data: [] }),
       // Assigned projects by ID
       supabaseAdmin.from('projects').select('*').eq('freelancer_id', fId).order('updated_at', { ascending: false }),
       // Assigned projects by name fallback
       name
-        ? supabaseAdmin.from('projects').select('*').eq('freelancer_name', name).neq('freelancer_id', fId).order('updated_at', { ascending: false }).limit(50)
+        ? supabaseAdmin.from('projects').select('*')
+            .ilike('freelancer_name', name)
+            .neq('freelancer_id', fId)
+            .order('updated_at', { ascending: false })
+            .limit(50)
         : Promise.resolve({ data: [] }),
-      // Tools (shared / not per-freelancer)
+      // Tools (shared)
       supabaseAdmin.from('freelancer_tools').select('*').order('order', { ascending: false }).limit(50),
     ]);
 
-    const tasks = [...(tasksByIDRes.data || []), ...(tasksByNameRes.data || [])];
+    const tasks = tasksRes.data || [];
     const editorialProjects = editorialRes.data || [];
     const meetings = [...(meetingsByIDRes.data || []), ...(meetingsByNameRes.data || [])];
     const payments = [...(paymentsByIDRes.data || []), ...(paymentsByNameRes.data || [])];
@@ -133,6 +143,8 @@ Deno.serve(async (req) => {
         .limit(300);
       visibleCalendars = visCalData || [];
     }
+
+    console.log(`[getFreelancerData] freelancer=${name} tasks=${tasks.length}`);
 
     return Response.json({
       profile: freelancerProfile,

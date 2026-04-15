@@ -11,7 +11,6 @@ const toTaskPayload = (d) => ({
   category: d.category || "Autre",
   client_name: d.client_name || null,
   assigned_to: d.assigned_to || null,
-  assigned_freelancer_id: (d.assigned_freelancer_id && d.assigned_freelancer_id !== "_me") ? d.assigned_freelancer_id : null,
   due_date: d.due_date || null,
   checklist: d.checklist || [],
   notes: d.notes || null,
