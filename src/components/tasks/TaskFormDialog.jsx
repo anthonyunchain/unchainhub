@@ -27,7 +27,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
   });
   const empty = {
     title: "", description: "", status: "Non commencé", priority: "Normale",
-    due_date: "", assigned_to: "", client_name: "", category: "Autre",
+    due_date: "", assigned_to: "", client_name: "", category: "Update",
     blocking_reason: "", checklist: [], notes: ""
   };
 
@@ -124,12 +124,13 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
               <Select value={data.category} onValueChange={v => set("category", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Commercial">Commercial</SelectItem>
-                  <SelectItem value="Contenu">Content</SelectItem>
-                  <SelectItem value="Administratif">Administrative</SelectItem>
-                  <SelectItem value="Montage">Editing</SelectItem>
-                  <SelectItem value="Vie perso">Personal</SelectItem>
-                  <SelectItem value="Autre">Other</SelectItem>
+                  <SelectItem value="Design">Design</SelectItem>
+                  <SelectItem value="Video Editing">Video Editing</SelectItem>
+                  <SelectItem value="Analytics">Analytics</SelectItem>
+                  <SelectItem value="Administrative">Administrative</SelectItem>
+                  <SelectItem value="Posting">Posting</SelectItem>
+                  <SelectItem value="Update">Update</SelectItem>
+                  <SelectItem value="Personal">Personal</SelectItem>
                 </SelectContent>
               </Select>
             </div>

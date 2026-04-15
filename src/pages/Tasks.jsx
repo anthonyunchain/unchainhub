@@ -8,7 +8,7 @@ const toTaskPayload = (d) => ({
   description: d.description || null,
   status: d.status || "Non commencé",
   priority: d.priority || "Normale",
-  category: d.category || "Autre",
+  category: d.category || "Update",
   client_name: d.client_name || null,
   assigned_to: d.assigned_to || null,
   due_date: d.due_date || null,
@@ -43,11 +43,20 @@ const PRIORITY_LABEL = {
 };
 
 const CATEGORY_LABEL = {
-  "Commercial": "Commercial", "Contenu": "Content", "Administratif": "Admin",
-  "Montage": "Editing", "Vie perso": "Personal", "Autre": "Other"
+  "Design": "Design",
+  "Video Editing": "Video Editing",
+  "Analytics": "Analytics",
+  "Administrative": "Administrative",
+  "Posting": "Posting",
+  "Update": "Update",
+  "Personal": "Personal",
+  // legacy values (still displayed if present in DB)
+  "Commercial": "Commercial", "Contenu": "Content", "Administratif": "Administrative",
+  "Montage": "Video Editing", "Vie perso": "Personal", "Autre": "Other"
 };
 
 const CATEGORY_STYLE = {
+  "Personal": "bg-purple-50 text-purple-600",
   "Vie perso": "bg-purple-50 text-purple-600"
 };
 
@@ -181,7 +190,7 @@ export default function Tasks() {
   const filtered = tasks
     .filter((t) => activeStatus === "all" || t.status === activeStatus)
     .filter((t) => activeClient === "all" || t.client_name === activeClient)
-    .filter((t) => activeCategory === "all" || t.category === activeCategory)
+    .filter((t) => activeCategory === "all" || t.category === activeCategory || (activeCategory === "Personal" && t.category === "Vie perso"))
     .filter((t) => activeAssignee === "all" || t.assigned_to === activeAssignee)
     .sort((a, b) => {
       if (a.due_date && b.due_date) return new Date(a.due_date) - new Date(b.due_date);
@@ -258,18 +267,18 @@ export default function Tasks() {
           All
         </button>
         <button
-          onClick={() => setActiveCategory(activeCategory === "Vie perso" ? "all" : "Vie perso")}
-          className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeCategory === "Vie perso" ? "bg-purple-600 text-white" : "bg-purple-50 text-purple-700 hover:bg-purple-100"}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${activeCategory === "Vie perso" ? "bg-white" : "bg-purple-400"}`} />
+          onClick={() => setActiveCategory(activeCategory === "Personal" ? "all" : "Personal")}
+          className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeCategory === "Personal" ? "bg-purple-600 text-white" : "bg-purple-50 text-purple-700 hover:bg-purple-100"}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${activeCategory === "Personal" ? "bg-white" : "bg-purple-400"}`} />
           Personal
-          <span className="text-[10px] opacity-70">{tasks.filter(t => t.category === "Vie perso").length}</span>
+          <span className="text-[10px] opacity-70">{tasks.filter(t => t.category === "Personal" || t.category === "Vie perso").length}</span>
         </button>
-        {Object.entries(CATEGORY_LABEL).filter(([k]) => k !== "Vie perso" && tasks.some(t => t.category === k)).map(([k, label]) =>
+        {["Design", "Video Editing", "Analytics", "Administrative", "Posting", "Update"].filter(k => tasks.some(t => t.category === k)).map((k) =>
           <button
             key={k}
             onClick={() => setActiveCategory(activeCategory === k ? "all" : k)}
             className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeCategory === k ? "bg-slate-700 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
-            {label}
+            {CATEGORY_LABEL[k] || k}
             <span className="ml-1 text-[10px] opacity-60">{tasks.filter(t => t.category === k).length}</span>
           </button>
         )}

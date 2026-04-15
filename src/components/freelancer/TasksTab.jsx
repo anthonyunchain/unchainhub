@@ -1,9 +1,23 @@
 import { useState } from "react";
 import { format, isPast, isToday, isTomorrow } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square, SlidersHorizontal } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square } from "lucide-react";
 import { TASK_STATUS_CONFIG as STATUS_CONFIG, TASK_STATUS_LABEL as STATUS_LABEL, TASK_PRIORITY_LABEL as PRIORITY_LABEL, TASK_PRIORITY_COLOR as PRIORITY_COLOR } from "@/lib/taskStatus";
+
+const CATEGORY_LABEL = {
+  "Design": "Design",
+  "Video Editing": "Video Editing",
+  "Analytics": "Analytics",
+  "Administrative": "Administrative",
+  "Posting": "Posting",
+  "Update": "Update",
+  "Personal": "Personal",
+  // legacy
+  "Commercial": "Commercial", "Contenu": "Content", "Administratif": "Administrative",
+  "Montage": "Video Editing", "Vie perso": "Personal", "Autre": "Other",
+};
+
+const PRIORITIES = ["Urgente", "Haute", "Normale", "Basse"];
 
 function DueBadge({ task }) {
   if (!task.due_date || task.status === "Terminé") return null;
@@ -31,11 +45,14 @@ function TaskRow({ task, onUpdateTask }) {
 
   return (
     <div className={`bg-white rounded-xl border transition-all ${isDone ? "border-slate-100 opacity-70" : "border-slate-100 hover:border-slate-200"} shadow-sm overflow-hidden`}>
-      <div className="p-4">
+      <div
+        className={`p-4 ${hasDetails ? "cursor-pointer" : ""}`}
+        onClick={() => { if (hasDetails) setExpanded(v => !v); }}
+      >
         <div className="flex items-start gap-3">
           {/* Checkbox */}
           <button
-            onClick={cycleStatus}
+            onClick={e => { e.stopPropagation(); cycleStatus(); }}
             className="shrink-0 mt-0.5 transition-colors"
           >
             {isDone
@@ -78,7 +95,7 @@ function TaskRow({ task, onUpdateTask }) {
 
           {/* Expand toggle */}
           {hasDetails && (
-            <button onClick={() => setExpanded(v => !v)} className="shrink-0 text-slate-300 hover:text-slate-500 transition-colors">
+            <button onClick={e => { e.stopPropagation(); setExpanded(v => !v); }} className="shrink-0 text-slate-300 hover:text-slate-500 transition-colors">
               {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
           )}
@@ -122,27 +139,23 @@ function TaskRow({ task, onUpdateTask }) {
   );
 }
 
-const SORT_OPTIONS = [
-  { value: "deadline", label: "Deadline" },
-  { value: "priority", label: "Priority" },
-  { value: "client", label: "Client" },
-  { value: "status", label: "Status" },
-];
-
 const PRIORITY_ORDER = { "Urgente": 0, "Haute": 1, "Normale": 2, "Basse": 3 };
 const STATUS_ORDER = { "En cours": 0, "Bloqué": 1, "Non commencé": 2, "Terminé": 3 };
 
 export default function TasksTab({ tasks, onUpdateTask }) {
   const [filterClient, setFilterClient] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [sortBy, setSortBy] = useState("deadline");
-  const [showFilters, setShowFilters] = useState(false);
+  const [filterPriority, setFilterPriority] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const sortBy = "deadline";
 
   const clients = [...new Set(tasks.map(t => t.client_name).filter(Boolean))];
+  const categories = [...new Set(tasks.map(t => t.category).filter(Boolean))];
+  const priorities = PRIORITIES.filter(p => tasks.some(t => t.priority === p));
 
   const filtered = tasks
     .filter(t => filterClient === "all" || t.client_name === filterClient)
-    .filter(t => filterStatus === "all" || t.status === filterStatus)
+    .filter(t => filterPriority === "all" || t.priority === filterPriority)
+    .filter(t => filterCategory === "all" || t.category === filterCategory || (filterCategory === "Personal" && t.category === "Vie perso"))
     .sort((a, b) => {
       if (sortBy === "deadline") {
         if (!a.due_date && !b.due_date) return 0;
@@ -159,54 +172,93 @@ export default function TasksTab({ tasks, onUpdateTask }) {
   const pending = filtered.filter(t => t.status !== "Terminé");
   const done = filtered.filter(t => t.status === "Terminé");
 
+  const PRIORITY_BTN = {
+    "Urgente": { off: "bg-red-50 text-red-700 hover:bg-red-100", on: "bg-red-600 text-white" },
+    "Haute":   { off: "bg-amber-50 text-amber-700 hover:bg-amber-100", on: "bg-amber-500 text-white" },
+    "Normale": { off: "bg-blue-50 text-blue-700 hover:bg-blue-100", on: "bg-blue-600 text-white" },
+    "Basse":   { off: "bg-slate-100 text-slate-500 hover:bg-slate-200", on: "bg-slate-600 text-white" },
+  };
+
+  const FilterGroup = ({ label, children }) => (
+    <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+      <span className="shrink-0 text-xs text-slate-400 font-medium">{label}</span>
+      {children}
+    </div>
+  );
+
   return (
-    <div className="space-y-4">
-      {/* Filters toggle */}
-      <div className="flex items-center justify-between gap-2">
-        <button
-          onClick={() => setShowFilters(v => !v)}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${showFilters ? "bg-slate-800 text-white border-slate-800" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"}`}
-        >
-          <SlidersHorizontal className="w-3.5 h-3.5" /> Filters & Sort
-        </button>
+    <div className="space-y-3">
+      {/* Filter buttons */}
+      {clients.length > 0 && (
+        <FilterGroup label="Client:">
+          <button
+            onClick={() => setFilterClient("all")}
+            className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${filterClient === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+            All
+          </button>
+          {clients.map(c =>
+            <button
+              key={c}
+              onClick={() => setFilterClient(filterClient === c ? "all" : c)}
+              className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${filterClient === c ? "bg-[#2A69FF] text-white" : "bg-blue-50 text-blue-700 hover:bg-blue-100"}`}>
+              {c}
+            </button>
+          )}
+        </FilterGroup>
+      )}
+
+      {priorities.length > 0 && (
+        <FilterGroup label="Urgency:">
+          <button
+            onClick={() => setFilterPriority("all")}
+            className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${filterPriority === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+            All
+          </button>
+          {priorities.map(p => {
+            const btn = PRIORITY_BTN[p] || PRIORITY_BTN["Normale"];
+            const active = filterPriority === p;
+            return (
+              <button
+                key={p}
+                onClick={() => setFilterPriority(active ? "all" : p)}
+                className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${active ? btn.on : btn.off}`}>
+                {PRIORITY_LABEL[p] || p}
+                <span className="ml-1 text-[10px] opacity-70">{tasks.filter(t => t.priority === p).length}</span>
+              </button>
+            );
+          })}
+        </FilterGroup>
+      )}
+
+      {categories.length > 0 && (
+        <FilterGroup label="Type:">
+          <button
+            onClick={() => setFilterCategory("all")}
+            className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${filterCategory === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+            All
+          </button>
+          {categories.map(c => {
+            const active = filterCategory === c;
+            const isPersonal = c === "Personal" || c === "Vie perso";
+            const base = isPersonal
+              ? (active ? "bg-purple-600 text-white" : "bg-purple-50 text-purple-700 hover:bg-purple-100")
+              : (active ? "bg-slate-700 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200");
+            return (
+              <button
+                key={c}
+                onClick={() => setFilterCategory(active ? "all" : c)}
+                className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${base}`}>
+                {CATEGORY_LABEL[c] || c}
+                <span className="ml-1 text-[10px] opacity-70">{tasks.filter(t => t.category === c).length}</span>
+              </button>
+            );
+          })}
+        </FilterGroup>
+      )}
+
+      <div className="flex items-center justify-end">
         <span className="text-xs text-slate-400">{pending.length} pending · {done.length} done</span>
       </div>
-
-      {showFilters && (
-        <div className="bg-white rounded-xl border border-slate-100 p-3 shadow-sm inline-flex flex-wrap gap-3">
-          <div>
-            <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Sort by</p>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="h-8 text-xs w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          {clients.length > 0 && (
-            <div>
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Client</p>
-              <Select value={filterClient} onValueChange={setFilterClient}>
-                <SelectTrigger className="h-8 text-xs w-40"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All clients</SelectItem>
-                  {clients.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <div>
-            <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Status</p>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="h-8 text-xs w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {Object.keys(STATUS_CONFIG).map(s => <SelectItem key={s} value={s}>{STATUS_LABEL[s] || s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )}
 
       {/* Pending tasks */}
       {pending.length === 0 && done.length === 0 && (
