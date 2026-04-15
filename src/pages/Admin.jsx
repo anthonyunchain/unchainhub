@@ -980,7 +980,7 @@ function UserManagement() {
             <p className="text-sm text-slate-500">Create an account with a password directly. Share it with the client via SMS or in person. Works even if the email is already registered.</p>
             <div>
               <Label>Client *</Label>
-              <Select value={inviteForm.client_id} onValueChange={v => setInviteForm({ ...inviteForm, client_id: v, email: clients.find(c => c.id === v)?.contact_email || inviteForm.email })}>
+              <Select value={inviteForm.client_id} onValueChange={v => setInviteForm({ ...inviteForm, client_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Select a client..." /></SelectTrigger>
                 <SelectContent>
                   {activeClients.map(c => <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>)}

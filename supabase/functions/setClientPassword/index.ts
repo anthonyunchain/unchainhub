@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
-import { verifyAuth, verifyAdmin } from '../_shared/auth.ts';
+import { verifyAdmin } from '../_shared/auth.ts';
 
 function generatePassword(): string {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -16,10 +16,8 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Verify caller via Supabase SDK (not manual JWT decode)
     const adminResult = await verifyAdmin(req, supabaseAdmin);
     if (adminResult instanceof Response) return adminResult;
-    const { user } = adminResult as { user: any; profile: any };
 
     const { email, company_name, client_id, password: inputPassword } = await req.json();
     if (!email || typeof email !== 'string') return Response.json({ error: 'Email is required' }, { status: 400, headers: corsHeaders(req) });
@@ -29,7 +27,7 @@ Deno.serve(async (req) => {
 
     const password = inputPassword || generatePassword();
 
-    // Look up existing user by email via admin REST API (no full user list scan)
+    // Look up existing user by email via admin REST API
     const adminUrl = `${Deno.env.get('SUPABASE_URL')}/auth/v1/admin/users?email=${encodeURIComponent(email)}&page=1&per_page=1`;
     const adminResp = await fetch(adminUrl, {
       headers: {
@@ -43,7 +41,21 @@ Deno.serve(async (req) => {
     let userId: string;
 
     if (existingUserId) {
-      // Update password for existing user
+      // SAFETY CHECK: never overwrite an admin or freelancer account
+      const { data: existingProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('role')
+        .eq('id', existingUserId)
+        .single();
+
+      const existingRole = existingProfile?.role;
+      if (existingRole && existingRole !== 'client') {
+        return Response.json({
+          error: `This email belongs to an existing ${existingRole} account. Use a different email for client portal access.`
+        }, { status: 400, headers: corsHeaders(req) });
+      }
+
+      // Safe to update — existing user is already a client (or has no profile yet)
       const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(existingUserId, {
         password,
         email_confirm: true,
