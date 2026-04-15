@@ -453,6 +453,11 @@ function AdminTasks() {
   const openEdit = (t) => { setData({ ...t }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
   const handleDelete = () => { if (data?.id && confirm("Delete this task?")) { deleteMut.mutate(data.id); setOpen(false); } };
+  const handleQuickDelete = (e, task) => {
+    e.stopPropagation();
+    if (!task?.id) return;
+    if (confirm(`Delete "${task.title}"?`)) deleteMut.mutate(task.id);
+  };
 
   const toggleStatus = (task) => {
     const next = task.status === "Terminé" ? "À faire" : "Terminé";
@@ -538,9 +543,18 @@ function AdminTasks() {
                 {t.assigned_to && <span className="text-[10px] text-violet-500 flex items-center gap-0.5"><UserIcon className="w-2.5 h-2.5" />{t.assigned_to}</span>}
               </div>
             </div>
+            <button
+              onClick={(e) => handleQuickDelete(e, t)}
+              disabled={deleteMut.isPending}
+              title="Delete task"
+              className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0 disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         ))}
       </div>
+      {mutError && !open && <p className="max-w-2xl mx-auto mt-3 text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{mutError}</p>}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
