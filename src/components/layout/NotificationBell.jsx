@@ -1,10 +1,80 @@
 import { useState, useEffect, useRef } from "react";
 import { Bell, Check, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { supabase } from "@/api/base44Client";
 
-export default function NotificationBell({ notifications = [], onMarkRead, onMarkAllRead, onDelete, onDeleteAll }) {
+export default function NotificationBell({
+  recipientId,
+  notifications: notificationsProp,
+  onMarkRead: onMarkReadProp,
+  onMarkAllRead: onMarkAllReadProp,
+  onDelete: onDeleteProp,
+  onDeleteAll: onDeleteAllProp,
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const [ownNotifs, setOwnNotifs] = useState([]);
+
+  // If a recipientId is passed, this component is self-loading (admin usage).
+  // Otherwise, the parent provides notifications + handlers (freelancer usage).
+  const selfManaged = !!recipientId && !notificationsProp;
+  const notifications = selfManaged ? ownNotifs : (notificationsProp || []);
+
+  useEffect(() => {
+    if (!selfManaged) return;
+    let cancelled = false;
+    supabase
+      .from('notifications')
+      .select('*')
+      .eq('recipient_id', recipientId)
+      .order('created_at', { ascending: false })
+      .limit(100)
+      .then(({ data }) => { if (!cancelled) setOwnNotifs(data || []); });
+    return () => { cancelled = true; };
+  }, [selfManaged, recipientId]);
+
+  // Real-time subscription (self-managed mode only)
+  useEffect(() => {
+    if (!selfManaged) return;
+    const channel = supabase
+      .channel(`notif-bell-${recipientId}-${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${recipientId}` },
+        (p) => setOwnNotifs(prev => [p.new, ...prev]))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${recipientId}` },
+        (p) => setOwnNotifs(prev => prev.map(n => n.id === p.new.id ? p.new : n)))
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${recipientId}` },
+        (p) => setOwnNotifs(prev => prev.filter(n => n.id !== p.old.id)))
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selfManaged, recipientId]);
+
+  const onMarkRead = selfManaged
+    ? async (id) => {
+        await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+        setOwnNotifs(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      }
+    : onMarkReadProp;
+
+  const onMarkAllRead = selfManaged
+    ? async () => {
+        await supabase.from('notifications').update({ is_read: true }).eq('recipient_id', recipientId).eq('is_read', false);
+        setOwnNotifs(prev => prev.map(n => ({ ...n, is_read: true })));
+      }
+    : onMarkAllReadProp;
+
+  const onDelete = selfManaged
+    ? async (id) => {
+        await supabase.from('notifications').delete().eq('id', id);
+        setOwnNotifs(prev => prev.filter(n => n.id !== id));
+      }
+    : onDeleteProp;
+
+  const onDeleteAll = selfManaged
+    ? async () => {
+        await supabase.from('notifications').delete().eq('recipient_id', recipientId);
+        setOwnNotifs([]);
+      }
+    : onDeleteAllProp;
 
   // Close on outside click
   useEffect(() => {
