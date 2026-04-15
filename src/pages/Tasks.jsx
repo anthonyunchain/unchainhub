@@ -10,6 +10,10 @@ const toTaskPayload = (d) => ({
   category: d.category || "Update",
   client_name: d.client_name || null,
   assigned_to: d.assigned_to || null,
+  assigned_freelancer_id:
+    d.assigned_freelancer_id && d.assigned_freelancer_id !== "_me" && d.assigned_freelancer_id !== "_none"
+      ? d.assigned_freelancer_id
+      : null,
   due_date: d.due_date || null,
   checklist: d.checklist || [],
   notes: d.notes || null,
@@ -113,8 +117,15 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
           <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-start gap-1.5">
             <MessageCircle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-600" />
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-[10px] uppercase tracking-wider text-amber-700 mb-0.5">Freelancer note</p>
+              <p className="font-medium text-[10px] uppercase tracking-wider text-amber-700 mb-0.5">
+                Note from {task.assigned_to || "freelancer"}
+              </p>
               <p className="whitespace-pre-wrap">{task.freelancer_note}</p>
+              {task.admin_reply && (
+                <p className="mt-1.5 pt-1.5 border-t border-amber-200 text-[11px] text-slate-700">
+                  <span className="font-medium text-slate-600">You: </span>{task.admin_reply}
+                </p>
+              )}
             </div>
           </div>
           }

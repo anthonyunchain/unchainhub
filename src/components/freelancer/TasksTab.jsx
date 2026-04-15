@@ -151,11 +151,27 @@ function TaskRow({ task, onUpdateTask }) {
             </div>
           )}
 
-          {/* Freelancer note → admin */}
+          {/* Freelancer note ↔ admin thread */}
           <div className="space-y-1.5">
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <MessageCircle className="w-3 h-3" /> Note for the admin
+              <MessageCircle className="w-3 h-3" /> Note for Anthony
             </p>
+
+            {/* Anthony's reply */}
+            {task.admin_reply && (
+              <div className="rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-2">
+                <p className="text-[10px] font-medium text-blue-700 uppercase tracking-wider mb-0.5">
+                  {task.admin_reply_author || "Anthony"}
+                  {task.admin_reply_at && (
+                    <span className="ml-1.5 text-slate-400 normal-case tracking-normal font-normal">
+                      · {format(new Date(task.admin_reply_at), "d MMM yyyy HH:mm", { locale: enUS })}
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-slate-700 whitespace-pre-wrap">{task.admin_reply}</p>
+              </div>
+            )}
+
             <textarea
               value={noteDraft}
               onChange={e => setNoteDraft(e.target.value)}
@@ -167,7 +183,7 @@ function TaskRow({ task, onUpdateTask }) {
               <span className="text-[10px] text-slate-400">
                 {task.freelancer_note_updated_at
                   ? `Last sent ${format(new Date(task.freelancer_note_updated_at), "d MMM yyyy HH:mm", { locale: enUS })}`
-                  : "Admins get notified when you send a note"}
+                  : "Anthony gets notified when you send a note"}
               </span>
               <button
                 onClick={saveNote}
