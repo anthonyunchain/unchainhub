@@ -830,10 +830,15 @@ function UserManagement() {
         body: { user_id: userId },
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
-      if (fnError || data?.error) throw new Error(data?.error || fnError?.message || "Error");
+      if (fnError) {
+        let msg = fnError.message;
+        try { const body = await fnError.context.json(); msg = body?.error || msg; } catch {}
+        throw new Error(msg);
+      }
+      if (data?.error) throw new Error(data.error);
       qc.invalidateQueries({ queryKey: ["profiles"] });
     } catch (e) {
-      alert("Error: " + (e.message || "Unknown error"));
+      alert("Error deleting user: " + (e.message || "Unknown error"));
     } finally {
       setDeletingUserId(null);
     }

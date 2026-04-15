@@ -28,14 +28,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Cannot delete your own account' }, { status: 400, headers: corsHeaders(req) });
     }
 
-    // Delete from auth (cascades to profiles via DB trigger if set, else delete manually)
+    // Delete profile first to avoid FK constraint issues (profiles.id → auth.users.id)
+    await supabaseAdmin.from('profiles').delete().eq('id', user_id);
+
+    // Then delete the auth user
     const { error: deleteErr } = await supabaseAdmin.auth.admin.deleteUser(user_id);
     if (deleteErr) {
       return Response.json({ error: deleteErr.message }, { status: 400, headers: corsHeaders(req) });
     }
-
-    // Also remove from profiles table (in case no cascade)
-    await supabaseAdmin.from('profiles').delete().eq('id', user_id);
 
     return Response.json({ success: true }, { headers: corsHeaders(req) });
   } catch (error) {
