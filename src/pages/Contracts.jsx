@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import StatusBadge from "../components/shared/StatusBadge";
+import Sensitive from "../components/shared/Sensitive";
 import { Button } from "@/components/ui/button";
 import { Plus, Upload, FileText } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -65,7 +66,7 @@ export default function Contracts() {
             </div>
             <p className="text-xs text-slate-500 mb-2 ml-6">{c.client_name}</p>
             <div className="flex items-center justify-between ml-6">
-              <span className="text-xs font-medium text-slate-700">{c.monthly_amount ? `${c.monthly_amount.toLocaleString("fr-FR")} €/mois` : "—"}</span>
+              <span className="text-xs font-medium text-slate-700">{c.monthly_amount ? <><Sensitive>{c.monthly_amount.toLocaleString("fr-FR")} €</Sensitive>/mois</> : "—"}</span>
               <span className="text-xs text-slate-400">
                 {c.start_date ? format(new Date(c.start_date), "d MMM yy", { locale: fr }) : ""}
                 {c.end_date ? ` – ${format(new Date(c.end_date), "d MMM yy", { locale: fr })}` : ""}
@@ -99,7 +100,7 @@ export default function Contracts() {
                   </div>
                 </td>
                 <td className="px-5 py-3 text-sm text-slate-600">{c.client_name}</td>
-                <td className="px-5 py-3 text-sm font-medium">{c.monthly_amount ? `${c.monthly_amount.toLocaleString("fr-FR")} €/mois` : "—"}</td>
+                <td className="px-5 py-3 text-sm font-medium" onClick={(e) => e.stopPropagation()}>{c.monthly_amount ? <><Sensitive>{c.monthly_amount.toLocaleString("fr-FR")} €</Sensitive>/mois</> : "—"}</td>
                 <td className="px-5 py-3 text-sm text-slate-500">
                   {c.start_date ? format(new Date(c.start_date), "d MMM yyyy", { locale: fr }) : "—"}
                   {c.end_date ? ` — ${format(new Date(c.end_date), "d MMM yyyy", { locale: fr })}` : ""}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
+import Sensitive from "../components/shared/Sensitive";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,7 +103,7 @@ export default function Services() {
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-lg font-bold text-slate-900">{(s.price || 0).toLocaleString("fr-FR")} €</span>
+              <span className="text-lg font-bold text-slate-900" onClick={e => e.stopPropagation()}><Sensitive>{(s.price || 0).toLocaleString("fr-FR")} €</Sensitive></span>
               <span className="text-xs text-slate-400">{s.price_type === "Mensuel" ? "/ month" : "one-time"}</span>
             </div>
             {s.includes?.length > 0 && (

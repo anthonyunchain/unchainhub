@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import KpiCard from "../components/shared/KpiCard";
+import Sensitive from "../components/shared/Sensitive";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format } from "date-fns";
@@ -53,10 +54,10 @@ export default function Finance() {
       <PageHeader title="Finance" subtitle="Financial overview — Unchain Studio Oy" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-5 mb-6">
-        <KpiCard title="Total revenue" value={`${totalRevenue.toLocaleString("en-US")} €`} icon={TrendingUp} color="emerald" />
-        <KpiCard title="Total expenses" value={`${totalExpenses.toLocaleString("en-US")} €`} icon={TrendingDown} color="rose" />
-        <KpiCard title="Net margin" value={`${margin.toLocaleString("en-US")} €`} subtitle={`${marginPct}% margin`} icon={PiggyBank} color="violet" />
-        <KpiCard title="Cash position" value={`${cumul.toLocaleString("en-US")} €`} icon={Wallet} color="blue" />
+        <KpiCard title="Total revenue" value={<Sensitive>{`${totalRevenue.toLocaleString("en-US")} €`}</Sensitive>} icon={TrendingUp} color="emerald" />
+        <KpiCard title="Total expenses" value={<Sensitive>{`${totalExpenses.toLocaleString("en-US")} €`}</Sensitive>} icon={TrendingDown} color="rose" />
+        <KpiCard title="Net margin" value={<Sensitive>{`${margin.toLocaleString("en-US")} €`}</Sensitive>} subtitle={`${marginPct}% margin`} icon={PiggyBank} color="violet" />
+        <KpiCard title="Cash position" value={<Sensitive>{`${cumul.toLocaleString("en-US")} €`}</Sensitive>} icon={Wallet} color="blue" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
@@ -104,11 +105,11 @@ export default function Finance() {
           </div>
           <div>
             <p className="text-xs text-slate-400 uppercase">Avg revenue / invoice</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{paidInvoices.length > 0 ? Math.round(totalRevenue / paidInvoices.length).toLocaleString("en-US") : 0} €</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1"><Sensitive>{paidInvoices.length > 0 ? Math.round(totalRevenue / paidInvoices.length).toLocaleString("en-US") : 0} €</Sensitive></p>
           </div>
           <div>
             <p className="text-xs text-slate-400 uppercase">Avg expense / project</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{paidPayments.length > 0 ? Math.round(totalExpenses / paidPayments.length).toLocaleString("en-US") : 0} €</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1"><Sensitive>{paidPayments.length > 0 ? Math.round(totalExpenses / paidPayments.length).toLocaleString("en-US") : 0} €</Sensitive></p>
           </div>
           <div>
             <p className="text-xs text-slate-400 uppercase">Overdue invoices</p>

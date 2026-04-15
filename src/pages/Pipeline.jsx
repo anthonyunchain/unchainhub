@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
+import Sensitive from "../components/shared/Sensitive";
 import { Button } from "@/components/ui/button";
 import { Plus, MapPin, Trash2, Settings, X, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -125,7 +126,7 @@ export default function Pipeline() {
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-800 truncate">{p.company_name}</p>
-                {p.estimated_value > 0 && <p className="text-xs text-slate-400 mt-0.5">{p.estimated_value.toLocaleString("fr-FR")} €</p>}
+                {p.estimated_value > 0 && <p className="text-xs text-slate-400 mt-0.5" onClick={e => e.stopPropagation()}><Sensitive>{p.estimated_value.toLocaleString("fr-FR")} €</Sensitive></p>}
               </div>
               <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${STAGE_COLORS[p.stage] || "bg-slate-100 text-slate-600"}`}>{p.stage}</span>
             </div>
@@ -174,7 +175,7 @@ export default function Pipeline() {
               <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50 group cursor-pointer" onClick={() => openEdit(p)}>
                 <td className="px-5 py-3">
                   <p className="text-sm font-medium text-slate-800">{p.company_name}</p>
-                  {p.estimated_value > 0 && <p className="text-xs text-slate-400">{p.estimated_value.toLocaleString("fr-FR")} €</p>}
+                  {p.estimated_value > 0 && <p className="text-xs text-slate-400" onClick={e => e.stopPropagation()}><Sensitive>{p.estimated_value.toLocaleString("fr-FR")} €</Sensitive></p>}
                 </td>
                 <td className="px-5 py-3">
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STAGE_COLORS[p.stage] || "bg-slate-100 text-slate-600"}`}>{p.stage}</span>

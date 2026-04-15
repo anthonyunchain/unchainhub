@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
+import Sensitive from "../components/shared/Sensitive";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Check, Upload, FileText, X, Paperclip } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -130,9 +131,9 @@ export default function Invoices() {
 
       {/* KPI */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-slate-100 p-5"><p className="text-xs text-slate-400 uppercase">Paid</p><p className="text-xl font-bold text-emerald-600 mt-1">{totalPaid.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p></div>
-        <div className="bg-white rounded-xl border border-slate-100 p-5"><p className="text-xs text-slate-400 uppercase">Pending</p><p className="text-xl font-bold text-blue-600 mt-1">{totalPending.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p></div>
-        <div className="bg-white rounded-xl border border-slate-100 p-5"><p className="text-xs text-slate-400 uppercase">Overdue</p><p className="text-xl font-bold text-red-600 mt-1">{totalLate.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p></div>
+        <div className="bg-white rounded-xl border border-slate-100 p-5"><p className="text-xs text-slate-400 uppercase">Paid</p><p className="text-xl font-bold text-emerald-600 mt-1"><Sensitive>{totalPaid.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive></p></div>
+        <div className="bg-white rounded-xl border border-slate-100 p-5"><p className="text-xs text-slate-400 uppercase">Pending</p><p className="text-xl font-bold text-blue-600 mt-1"><Sensitive>{totalPending.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive></p></div>
+        <div className="bg-white rounded-xl border border-slate-100 p-5"><p className="text-xs text-slate-400 uppercase">Overdue</p><p className="text-xl font-bold text-red-600 mt-1"><Sensitive>{totalLate.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive></p></div>
       </div>
 
       {/* Mobile card list */}
@@ -160,8 +161,8 @@ export default function Invoices() {
                     <FileText className="w-4 h-4" />
                   </a>
                 )}
-                <span className="text-sm font-semibold text-slate-800">
-                  {(inv.total_with_tax || inv.total_amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                <span className="text-sm font-semibold text-slate-800" onClick={e => e.stopPropagation()}>
+                  <Sensitive>{(inv.total_with_tax || inv.total_amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive>
                 </span>
                 <button
                   onClick={e => { e.stopPropagation(); togglePaid(inv); }}
@@ -223,11 +224,11 @@ export default function Invoices() {
                 <td className="px-5 py-3 text-sm text-slate-500">
                   {inv.due_date ? format(new Date(inv.due_date), "dd/MM/yyyy") : "—"}
                 </td>
-                <td className="px-5 py-3 text-sm text-right text-slate-600">
-                  {(inv.total_amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                <td className="px-5 py-3 text-sm text-right text-slate-600" onClick={e => e.stopPropagation()}>
+                  <Sensitive>{(inv.total_amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive>
                 </td>
-                <td className="px-5 py-3 text-sm font-medium text-right text-slate-800">
-                  {(inv.total_with_tax || inv.total_amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                <td className="px-5 py-3 text-sm font-medium text-right text-slate-800" onClick={e => e.stopPropagation()}>
+                  <Sensitive>{(inv.total_with_tax || inv.total_amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive>
                 </td>
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-1.5">

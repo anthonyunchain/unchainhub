@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
+import Sensitive from "../components/shared/Sensitive";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,28 +24,6 @@ import MonthlyBriefs from "../components/admin/MonthlyBriefs";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { useAuth } from "@/lib/AuthContext";
-
-
-// ─── SENSITIVE VALUE (hover / tap to reveal) ─────────────────────────────────
-function Sensitive({ children, mask = "••••", className = "" }) {
-  const [show, setShow] = useState(false);
-  return (
-    <span
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-      onClick={() => setShow(v => !v)}
-      onFocus={() => setShow(true)}
-      onBlur={() => setShow(false)}
-      tabIndex={0}
-      role="button"
-      aria-label={show ? "Hide value" : "Reveal value"}
-      title={show ? "" : "Hover or tap to reveal"}
-      className={`inline-block cursor-pointer select-none transition-all ${show ? "" : "tracking-wider"} ${className}`}
-    >
-      {show ? children : mask}
-    </span>
-  );
-}
 
 
 // ─── BOARD MEETINGS ─────────────────────────────────────────────────────────
