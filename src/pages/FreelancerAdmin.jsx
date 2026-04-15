@@ -27,9 +27,9 @@ function FreelancerProfiles() {
   const { data: freelancers = [] } = useQuery({ queryKey: ["freelancers"], queryFn: () => base44.entities.Freelancer.list() });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.filter({ status: "Actif" }) });
 
-  const createMut = useMutation({ mutationFn: (d) => base44.entities.Freelancer.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); }, onError: (e) => alert("Erreur création : " + (e?.message || e)) });
-  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); }, onError: (e) => alert("Erreur mise à jour : " + (e?.message || e)) });
-  const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Freelancer.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancers"] }), onError: (e) => alert("Erreur suppression : " + (e?.message || e)) });
+  const createMut = useMutation({ mutationFn: (d) => base44.entities.Freelancer.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); }, onError: (e) => alert("Create error: " + (e?.message || e)) });
+  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setOpen(false); }, onError: (e) => alert("Update error: " + (e?.message || e)) });
+  const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Freelancer.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancers"] }), onError: (e) => alert("Delete error: " + (e?.message || e)) });
 
   const empty = { first_name: "", last_name: "", name: "", email: "", phone: "", role: "", status: "Actif", notes: "", contract_url: "", editorial_client_names: [] };
 
@@ -65,8 +65,8 @@ function FreelancerProfiles() {
   const handleInvite = async (email, name) => {
     if (!email) return;
     const { data, error } = await supabase.functions.invoke('inviteFreelancer', { body: { email } });
-    if (error || data?.error) alert("Erreur invitation : " + (data?.error || error?.message));
-    else alert(`Invitation envoyée à ${name || email}`);
+    if (error || data?.error) alert("Invite error: " + (data?.error || error?.message));
+    else alert(`Invitation sent to ${name || email}`);
   };
 
   return (

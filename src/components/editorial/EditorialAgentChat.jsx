@@ -82,7 +82,7 @@ export default function EditorialAgentChat({ open, onOpenChange }) {
     setInitializing(true);
     const conv = await base44.agents.createConversation({
       agent_name: "editorial_calendar",
-      metadata: { name: "Calendrier éditorial" },
+      metadata: { name: "Editorial Calendar" },
     });
     setConversation(conv);
     setMessages(conv.messages || []);
@@ -103,23 +103,23 @@ export default function EditorialAgentChat({ open, onOpenChange }) {
         <DialogHeader className="px-6 py-4 border-b border-slate-100 shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Bot className="w-5 h-5 text-emerald-600" />
-            Agent Calendrier Éditorial
+            Editorial Calendar Agent
           </DialogTitle>
-          <p className="text-xs text-slate-400">Demandez à l'agent de générer un calendrier PDF pour un mois ou un client spécifique.</p>
+          <p className="text-xs text-slate-400">Ask the agent to generate a PDF calendar for a specific month or client.</p>
         </DialogHeader>
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-slate-50/50">
           {initializing && (
             <div className="flex items-center gap-2 text-slate-400 text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" /> Initialisation...
+              <Loader2 className="w-4 h-4 animate-spin" /> Initializing...
             </div>
           )}
           {!initializing && messages.length === 0 && (
             <div className="text-center text-slate-400 text-sm py-8">
               <Bot className="w-10 h-10 mx-auto mb-3 text-slate-200" />
-              <p>Bonjour ! Demandez-moi de créer un calendrier éditorial.</p>
-              <p className="text-xs mt-1">Ex: "Génère le calendrier de mars 2026" ou "Calendrier pour le client X"</p>
+              <p>Hello! Ask me to create an editorial calendar.</p>
+              <p className="text-xs mt-1">E.g. "Generate the March 2026 calendar" or "Calendar for client X"</p>
             </div>
           )}
           {messages.filter(m => m.role !== "system").map((msg, i) => (
@@ -144,7 +144,7 @@ export default function EditorialAgentChat({ open, onOpenChange }) {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
-            placeholder="Ex: Génère le calendrier de mars 2026..."
+            placeholder="E.g. Generate the March 2026 calendar..."
             className="flex-1"
             disabled={loading || initializing}
           />

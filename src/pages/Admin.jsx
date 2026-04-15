@@ -47,7 +47,7 @@ function BoardMeetings() {
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
 
   const handleDelete = () => {
-    if (data?.id && confirm("Supprimer cette réunion ?")) { deleteMut.mutate(data.id); setOpen(false); }
+    if (data?.id && confirm("Delete this meeting?")) { deleteMut.mutate(data.id); setOpen(false); }
   };
 
   const addAttendee = () => {
@@ -177,7 +177,7 @@ function LegalDocuments() {
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (d) => { setData({ ...d }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
-  const handleDelete = () => { if (data?.id && confirm("Supprimer ce document ?")) { deleteMut.mutate(data.id); setOpen(false); } };
+  const handleDelete = () => { if (data?.id && confirm("Delete this document?")) { deleteMut.mutate(data.id); setOpen(false); } };
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -298,7 +298,7 @@ function Shareholders() {
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (s) => { setData({ ...s }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
-  const handleDelete = () => { if (data?.id && confirm("Supprimer cet actionnaire ?")) { deleteMut.mutate(data.id); setOpen(false); } };
+  const handleDelete = () => { if (data?.id && confirm("Delete this shareholder?")) { deleteMut.mutate(data.id); setOpen(false); } };
 
   const totalShares = shareholders.reduce((s, sh) => s + (sh.shares || 0), 0);
   const totalInvested = shareholders.reduce((s, sh) => s + (sh.investment_amount || 0), 0);
@@ -452,7 +452,7 @@ function AdminTasks() {
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (t) => { setData({ ...t }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
-  const handleDelete = () => { if (data?.id && confirm("Supprimer cette tâche ?")) { deleteMut.mutate(data.id); setOpen(false); } };
+  const handleDelete = () => { if (data?.id && confirm("Delete this task?")) { deleteMut.mutate(data.id); setOpen(false); } };
 
   const toggleStatus = (task) => {
     const next = task.status === "Terminé" ? "À faire" : "Terminé";
@@ -608,7 +608,7 @@ function ShareholderSalaries() {
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (s) => { setData({ ...s }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
-  const handleDelete = () => { if (data?.id && confirm("Supprimer ce paiement ?")) { deleteMut.mutate(data.id); setOpen(false); } };
+  const handleDelete = () => { if (data?.id && confirm("Delete this payment?")) { deleteMut.mutate(data.id); setOpen(false); } };
 
   const totalByShareholder = shareholders.map(sh => ({
     name: sh.name,
@@ -805,16 +805,16 @@ function UserManagement() {
         },
       });
       if (fnError) {
-        let msg = fnError.message || "Erreur lors de la création.";
+        let msg = fnError.message || "Failed to create user.";
         try { const json = await fnError.context?.json(); if (json?.error) msg = json.error; } catch {}
         throw new Error(msg);
       }
       if (data?.error) throw new Error(data.error);
-      setSuccess("Utilisateur créé avec succès.");
+      setSuccess("User created successfully.");
       qc.invalidateQueries({ queryKey: ["profiles"] });
       setForm({ email: "", full_name: "", role: "user", password: "" });
     } catch (e) {
-      setError(e.message || "Erreur lors de la création.");
+      setError(e.message || "Failed to create user.");
     } finally {
       setSaving(false);
     }
@@ -867,9 +867,9 @@ function UserManagement() {
         throw new Error(msg);
       }
       if (data?.error) throw new Error(data.error);
-      setResetPwdMsg({ ok: true, text: "Mot de passe mis à jour." });
+      setResetPwdMsg({ ok: true, text: "Password updated." });
     } catch (e) {
-      setResetPwdMsg({ ok: false, text: e.message || "Erreur." });
+      setResetPwdMsg({ ok: false, text: e.message || "Error." });
     } finally {
       setSettingPwd(false);
     }
