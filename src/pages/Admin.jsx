@@ -747,21 +747,27 @@ function UserManagement() {
     setInviteOpen(true);
   };
 
-  const handleInvite = async () => {
+  const [inviteCanForce, setInviteCanForce] = useState(false);
+
+  const handleInvite = async (force = false) => {
     if (!inviteForm.email || !inviteForm.client_id) return;
     const client = clients.find(c => c.id === inviteForm.client_id);
     setInviting(true);
     setInviteMsg("");
+    setInviteCanForce(false);
     try {
       const { data } = await base44.functions.invoke('setClientPassword', {
-        email: inviteForm.email, company_name: client?.company_name, client_id: inviteForm.client_id, password: invitePassword,
+        email: inviteForm.email, company_name: client?.company_name, client_id: inviteForm.client_id, password: invitePassword, force,
       });
       if (data?.error) {
         setInviteMsg("Error: " + data.error);
+        if (data?.canForce) setInviteCanForce(true);
       } else {
         const confirmedPassword = data?.password || invitePassword;
         setInviteMsg(`✓ Account created.\n📧 ${inviteForm.email}\n🔑 ${confirmedPassword}`);
+        setInviteCanForce(false);
         qc.invalidateQueries({ queryKey: ["profiles"] });
+        qc.invalidateQueries({ queryKey: ["authUsers"] });
       }
     } catch (e) {
       setInviteMsg("Error: " + (e?.message || "Unknown error"));
@@ -1006,11 +1012,19 @@ function UserManagement() {
             {inviteMsg && (
               <div className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith('Error') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
                 {inviteMsg.split('\n').map((line, i) => <p key={i} className="font-mono">{line}</p>)}
+                {inviteCanForce && (
+                  <button
+                    onClick={() => handleInvite(true)}
+                    className="mt-2 text-xs font-semibold underline text-red-700 hover:text-red-900"
+                  >
+                    Override and convert to client account anyway
+                  </button>
+                )}
               </div>
             )}
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
-              <Button onClick={handleInvite} disabled={inviting || !inviteForm.email || !inviteForm.client_id || !invitePassword} className="bg-brand hover:bg-brand/90 text-brand-foreground">
+              <Button onClick={() => handleInvite(false)} disabled={inviting || !inviteForm.email || !inviteForm.client_id || !invitePassword} className="bg-brand hover:bg-brand/90 text-brand-foreground">
                 <KeyRound className="w-4 h-4 mr-1.5" />{inviting ? "Creating..." : "Create account"}
               </Button>
             </div>

@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const adminResult = await verifyAdmin(req, supabaseAdmin);
     if (adminResult instanceof Response) return adminResult;
 
-    const { email, company_name, client_id, password: inputPassword } = await req.json();
+    const { email, company_name, client_id, password: inputPassword, force } = await req.json();
     if (!email || typeof email !== 'string') return Response.json({ error: 'Email is required' }, { status: 400, headers: corsHeaders(req) });
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -41,7 +41,6 @@ Deno.serve(async (req) => {
     let userId: string;
 
     if (existingUserId) {
-      // SAFETY CHECK: never overwrite an admin or freelancer account
       const { data: existingProfile } = await supabaseAdmin
         .from('profiles')
         .select('role')
@@ -49,13 +48,22 @@ Deno.serve(async (req) => {
         .single();
 
       const existingRole = existingProfile?.role;
-      if (existingRole && existingRole !== 'client') {
+
+      // Hard block: never overwrite an admin account
+      if (existingRole === 'admin') {
         return Response.json({
-          error: `This email belongs to an existing ${existingRole} account. Use a different email for client portal access.`
+          error: 'This email belongs to an admin account. Cannot overwrite.'
         }, { status: 400, headers: corsHeaders(req) });
       }
 
-      // Safe to update — existing user is already a client (or has no profile yet)
+      // Soft block: warn if non-client, but allow override with force=true
+      if (existingRole && existingRole !== 'client' && !force) {
+        return Response.json({
+          error: `This email belongs to an existing ${existingRole} account.`,
+          canForce: true,
+        }, { status: 409, headers: corsHeaders(req) });
+      }
+
       const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(existingUserId, {
         password,
         email_confirm: true,
@@ -63,7 +71,6 @@ Deno.serve(async (req) => {
       if (updateErr) return Response.json({ error: updateErr.message }, { status: 400, headers: corsHeaders(req) });
       userId = existingUserId;
     } else {
-      // Create new user
       const { data: createData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
