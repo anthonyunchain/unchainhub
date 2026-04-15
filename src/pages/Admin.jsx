@@ -167,7 +167,7 @@ function LegalDocuments() {
   const [uploading, setUploading] = useState(false);
   const qc = useQueryClient();
 
-  const { data: docs = [] } = useQuery({ queryKey: ["legal-docs"], queryFn: () => base44.entities.LegalDocument.list("-created_date") });
+  const { data: docs = [] } = useQuery({ queryKey: ["legal-docs"], queryFn: () => base44.entities.LegalDocument.list("-created_at") });
 
   const createMut = useMutation({ mutationFn: (d) => base44.entities.LegalDocument.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["legal-docs"] }); setOpen(false); } });
   const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.LegalDocument.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["legal-docs"] }); setOpen(false); } });
@@ -409,6 +409,7 @@ function AdminTasks() {
   const [data, setData] = useState(null);
   const [activeStatus, setActiveStatus] = useState("all");
   const [activeAssignee, setActiveAssignee] = useState("all");
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const qc = useQueryClient();
 
   const { data: tasks = [], error: tasksError } = useQuery({
@@ -456,7 +457,13 @@ function AdminTasks() {
   const handleQuickDelete = (e, task) => {
     e.stopPropagation();
     if (!task?.id) return;
-    if (confirm(`Delete "${task.title}"?`)) deleteMut.mutate(task.id);
+    if (confirmDeleteId === task.id) {
+      deleteMut.mutate(task.id);
+      setConfirmDeleteId(null);
+    } else {
+      setConfirmDeleteId(task.id);
+      setTimeout(() => setConfirmDeleteId((cur) => (cur === task.id ? null : cur)), 3000);
+    }
   };
 
   const toggleStatus = (task) => {
@@ -548,11 +555,18 @@ function AdminTasks() {
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => handleQuickDelete(e, t)}
               disabled={deleteMut.isPending}
-              title="Delete task"
+              title={confirmDeleteId === t.id ? "Click again to confirm" : "Delete task"}
               aria-label="Delete task"
-              className="relative z-10 p-2 -m-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+              className={`relative z-10 p-2 -m-1 rounded-lg transition-colors shrink-0 disabled:opacity-50 cursor-pointer ${
+                confirmDeleteId === t.id
+                  ? "bg-red-500 text-white hover:bg-red-600"
+                  : "text-slate-400 hover:text-red-500 hover:bg-red-50 active:bg-red-100"
+              }`}
             >
-              <Trash2 className="w-4 h-4 pointer-events-none" />
+              {confirmDeleteId === t.id
+                ? <span className="text-[11px] font-semibold px-1 pointer-events-none">Confirm?</span>
+                : <Trash2 className="w-4 h-4 pointer-events-none" />
+              }
             </button>
           </div>
         ))}
@@ -1921,9 +1935,9 @@ export default function Admin() {
     setNavItems(items);
   };
 
-  const { data: tasks = [] } = useQuery({ queryKey: ["admin-tasks"], queryFn: () => base44.entities.AdminTask.list("-created_date") });
+  const { data: tasks = [] } = useQuery({ queryKey: ["admin-tasks"], queryFn: () => base44.entities.AdminTask.list("-created_at") });
   const { data: meetings = [] } = useQuery({ queryKey: ["board-meetings"], queryFn: () => base44.entities.BoardMeeting.list("-date") });
-  const { data: docs = [] } = useQuery({ queryKey: ["legal-docs"], queryFn: () => base44.entities.LegalDocument.list("-created_date") });
+  const { data: docs = [] } = useQuery({ queryKey: ["legal-docs"], queryFn: () => base44.entities.LegalDocument.list("-created_at") });
   const { data: shareholders = [] } = useQuery({ queryKey: ["shareholders"], queryFn: () => base44.entities.Shareholder.list() });
   const { data: salaries = [] } = useQuery({ queryKey: ["shareholder-salaries"], queryFn: () => base44.entities.ShareholderSalary.list("-date") });
 
