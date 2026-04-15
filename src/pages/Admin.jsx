@@ -779,6 +779,20 @@ function UserManagement() {
     },
   });
 
+  const { data: authUsers = [] } = useQuery({
+    queryKey: ["authUsers"],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke("listUsers", {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) return [];
+      return data?.users || [];
+    },
+  });
+
+  const emailById = Object.fromEntries(authUsers.map(u => [u.id, u.email]));
+
   const openNew = () => {
     setForm({ email: "", full_name: "", role: "user", password: "" });
     setError(null);
@@ -893,6 +907,7 @@ function UserManagement() {
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/50">
               <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Name</th>
+              <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Email</th>
               <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Role</th>
               <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">ID</th>
               <th className="px-5 py-3"></th>
@@ -910,6 +925,7 @@ function UserManagement() {
                 <td className="px-5 py-3">
                   <p className="text-sm font-medium text-slate-800">{p.full_name || "—"}</p>
                 </td>
+                <td className="px-5 py-3 text-sm text-slate-500">{emailById[p.id] || "—"}</td>
                 <td className="px-5 py-3">
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${ROLE_COLORS[p.role] || "bg-slate-100 text-slate-600"}`}>
                     {p.role || "user"}
@@ -1006,7 +1022,8 @@ function UserManagement() {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><KeyRound className="w-4 h-4 text-blue-500" />Reset password</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
-            <p className="text-xs text-slate-400 font-mono">{resetPwdUserId}</p>
+            <p className="text-xs text-slate-500 font-medium">{emailById[resetPwdUserId] || "—"}</p>
+            <p className="text-xs text-slate-300 font-mono">{resetPwdUserId}</p>
             <div>
               <Label>New password *</Label>
               <div className="relative mt-1">
