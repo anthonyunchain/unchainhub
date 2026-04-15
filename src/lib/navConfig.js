@@ -1,3 +1,18 @@
+// ─── FREELANCER NAV ITEMS (source of truth, used by sidebar + admin toggles) ──
+export const FREELANCER_NAV_ITEMS = [
+  { id: "dashboard",     label: "Dashboard" },
+  { id: "notifications", label: "Notifications" },
+  { id: "myprojects",    label: "My Projects" },
+  { id: "tasks",         label: "Tasks" },
+  { id: "todo",          label: "My To-Do" },
+  { id: "projects",      label: "Editorial" },
+  { id: "captions",      label: "Captions" },
+  { id: "tools",         label: "Tools" },
+  { id: "meetings",      label: "Meetings" },
+  { id: "invoices",      label: "Admin / Invoices" },
+  { id: "profile",       label: "Profile" },
+];
+
 // ─── PER-FREELANCER HIDDEN NAV ITEMS (fallback until DB migration is applied) ─
 export const HIDDEN_NAV_BY_ID = {
   'a83475b8-6afe-45c8-bbfb-7afcbbabfe54': ['projects', 'tools', 'meetings'], // Domnin

@@ -5,7 +5,8 @@ import PageHeader from "../components/shared/PageHeader";
 import StatusBadge from "../components/shared/StatusBadge";
 import FreelancerProfileCard from "@/components/freelancer/FreelancerProfileCard";
 import { Button } from "@/components/ui/button";
-import { Plus, UserCheck, Pencil, Upload, FileText, X, GripVertical, ArrowUpDown, Trash2 } from "lucide-react";
+import { Plus, UserCheck, Pencil, Upload, FileText, X, GripVertical, ArrowUpDown, Trash2, Eye, EyeOff } from "lucide-react";
+import { FREELANCER_NAV_ITEMS } from "@/lib/navConfig";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -169,6 +170,43 @@ export default function Freelancers() {
               <div><Label>Phone</Label><Input value={editFreelancer.phone || ""} onChange={e => setEditFreelancer({ ...editFreelancer, phone: e.target.value })} /></div>
             </div>
             <div><Label>Notes</Label><Textarea value={editFreelancer.notes || ""} onChange={e => setEditFreelancer({ ...editFreelancer, notes: e.target.value })} rows={3} /></div>
+
+            {editFreelancer.id && (
+              <div className="pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-xs font-semibold text-slate-700">Page access</Label>
+                  <span className="text-[10px] text-slate-400">
+                    {FREELANCER_NAV_ITEMS.length - (editFreelancer.hidden_nav_items?.length || 0)} / {FREELANCER_NAV_ITEMS.length} visible
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 mb-2">Toggle which pages this freelancer can see in their sidebar.</p>
+                <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto">
+                  {FREELANCER_NAV_ITEMS.map(item => {
+                    const hidden = (editFreelancer.hidden_nav_items || []).includes(item.id);
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          const current = editFreelancer.hidden_nav_items || [];
+                          const next = hidden ? current.filter(x => x !== item.id) : [...current, item.id];
+                          setEditFreelancer({ ...editFreelancer, hidden_nav_items: next });
+                        }}
+                        className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-xs transition-all ${
+                          hidden
+                            ? "bg-slate-50 border-slate-200 text-slate-400"
+                            : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                        }`}
+                      >
+                        <span className={hidden ? "line-through" : "font-medium"}>{item.label}</span>
+                        {hidden ? <EyeOff className="w-3.5 h-3.5 shrink-0" /> : <Eye className="w-3.5 h-3.5 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between items-center pt-2">
               {editFreelancer.id && (
                 confirmDelete === "freelancer" ? (
