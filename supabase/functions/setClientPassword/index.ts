@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         return Response.json({
           error: `This email belongs to an existing ${existingRole} account.`,
           canForce: true,
-        }, { status: 409, headers: corsHeaders(req) });
+        }, { status: 200, headers: corsHeaders(req) });
       }
 
       const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(existingUserId, {
