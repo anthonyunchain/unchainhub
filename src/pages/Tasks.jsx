@@ -16,7 +16,7 @@ const toTaskPayload = (d) => ({
 });
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, CheckSquare, Square, Trash2, AlertTriangle, Clock, CheckCircle2, Circle } from "lucide-react";
+import { Plus, CheckSquare, Square, Trash2, AlertTriangle, Clock, CheckCircle2, Circle, MessageCircle } from "lucide-react";
 import { format, isToday, isPast, isTomorrow } from "date-fns";
 import { enUS } from "date-fns/locale";
 import TaskFormDialog from "../components/tasks/TaskFormDialog";
@@ -36,6 +36,7 @@ const STATUS_LABEL = {
 const CATEGORY_LABEL = {
   "Design": "Design",
   "Video Editing": "Video Editing",
+  "Web": "Web",
   "Analytics": "Analytics",
   "Administrative": "Administrative",
   "Posting": "Posting",
@@ -106,6 +107,15 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
           <p className="text-[10px] text-red-500 flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" /> {task.blocking_reason}
           </p>
+          }
+          {task.freelancer_note &&
+          <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-start gap-1.5">
+            <MessageCircle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-600" />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-[10px] uppercase tracking-wider text-amber-700 mb-0.5">Freelancer note</p>
+              <p className="whitespace-pre-wrap">{task.freelancer_note}</p>
+            </div>
+          </div>
           }
           {totalCount > 0 &&
           <div className="flex items-center gap-1.5">
@@ -263,7 +273,7 @@ export default function Tasks() {
           Personal
           <span className="text-[10px] opacity-70">{tasks.filter(t => t.category === "Personal" || t.category === "Vie perso").length}</span>
         </button>
-        {["Design", "Video Editing", "Analytics", "Administrative", "Posting", "Update"].filter(k => tasks.some(t => t.category === k)).map((k) =>
+        {["Design", "Video Editing", "Web", "Analytics", "Administrative", "Posting", "Update"].filter(k => tasks.some(t => t.category === k)).map((k) =>
           <button
             key={k}
             onClick={() => setActiveCategory(activeCategory === k ? "all" : k)}

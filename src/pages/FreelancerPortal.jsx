@@ -1080,9 +1080,15 @@ export default function FreelancerPortal() {
       ...prev,
       tasks: (prev?.tasks || []).map(t => t.id === task.id ? { ...t, ...updates } : t),
     }));
-    const payload = updates.status
-      ? { update_task_id: task.id, update_task_status: updates.status }
-      : {};
+    const payload = {};
+    if (updates.status) {
+      payload.update_task_id = task.id;
+      payload.update_task_status = updates.status;
+    }
+    if (typeof updates.freelancer_note === 'string') {
+      payload.update_task_id = task.id;
+      payload.update_task_freelancer_note = updates.freelancer_note;
+    }
     const res = await base44.functions.invoke('getFreelancerData', payload);
     setFreelancerData(res.data);
   };

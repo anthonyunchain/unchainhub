@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { format, isPast, isToday, isTomorrow } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square } from "lucide-react";
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square, MessageCircle, Send } from "lucide-react";
 import { TASK_STATUS_CONFIG as STATUS_CONFIG, TASK_STATUS_LABEL as STATUS_LABEL } from "@/lib/taskStatus";
 
 const CATEGORY_LABEL = {
   "Design": "Design",
   "Video Editing": "Video Editing",
+  "Web": "Web",
   "Analytics": "Analytics",
   "Administrative": "Administrative",
   "Posting": "Posting",
@@ -29,11 +30,25 @@ function DueBadge({ task }) {
 
 function TaskRow({ task, onUpdateTask }) {
   const [expanded, setExpanded] = useState(false);
+  const [noteDraft, setNoteDraft] = useState(task.freelancer_note || "");
+  const [savingNote, setSavingNote] = useState(false);
   const cfg = STATUS_CONFIG[task.status] || STATUS_CONFIG["Non commencé"];
   const doneCount = (task.checklist || []).filter(c => c.done).length;
   const totalCount = (task.checklist || []).length;
   const isDone = task.status === "Terminé";
-  const hasDetails = task.description || task.blocking_reason || task.notes || totalCount > 0;
+  // Note UI is always available — accordion always openable
+  const hasDetails = true;
+  const hasNote = !!(task.freelancer_note && task.freelancer_note.trim());
+  const noteDirty = (noteDraft || "").trim() !== (task.freelancer_note || "").trim();
+
+  const saveNote = async () => {
+    setSavingNote(true);
+    try {
+      await onUpdateTask(task, { freelancer_note: noteDraft });
+    } finally {
+      setSavingNote(false);
+    }
+  };
 
   const cycleStatus = () => {
     const order = ["Non commencé", "En cours", "Terminé"];
@@ -77,6 +92,11 @@ function TaskRow({ task, onUpdateTask }) {
               <DueBadge task={task} />
               {totalCount > 0 && (
                 <span className="text-[10px] text-slate-400">{doneCount}/{totalCount} subtasks</span>
+              )}
+              {hasNote && (
+                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full font-medium">
+                  <MessageCircle className="w-3 h-3" /> Note sent
+                </span>
               )}
             </div>
             {/* Progress bar */}
@@ -129,6 +149,34 @@ function TaskRow({ task, onUpdateTask }) {
               {task.notes}
             </div>
           )}
+
+          {/* Freelancer note → admin */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <MessageCircle className="w-3 h-3" /> Note for the admin
+            </p>
+            <textarea
+              value={noteDraft}
+              onChange={e => setNoteDraft(e.target.value)}
+              rows={2}
+              placeholder="Ask a question or leave a note…"
+              className="w-full text-xs rounded-lg border border-slate-200 bg-white px-2.5 py-2 outline-none focus:border-blue-400 resize-none"
+            />
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] text-slate-400">
+                {task.freelancer_note_updated_at
+                  ? `Last sent ${format(new Date(task.freelancer_note_updated_at), "d MMM yyyy HH:mm", { locale: enUS })}`
+                  : "Admins get notified when you send a note"}
+              </span>
+              <button
+                onClick={saveNote}
+                disabled={!noteDirty || savingNote}
+                className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Send className="w-3 h-3" /> {savingNote ? "Sending…" : hasNote ? "Update note" : "Send note"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

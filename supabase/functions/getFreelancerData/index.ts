@@ -48,10 +48,10 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
 
     // If a task update is requested, verify the task belongs to this freelancer first
-    if (body.update_task_id && body.update_task_status) {
+    if (body.update_task_id && (body.update_task_status || typeof body.update_task_freelancer_note === 'string')) {
       const { data: taskCheck } = await supabaseAdmin
         .from('tasks')
-        .select('id, assigned_to')
+        .select('id, assigned_to, title')
         .eq('id', body.update_task_id)
         .single();
 
@@ -59,10 +59,41 @@ Deno.serve(async (req) => {
         name && taskCheck?.assigned_to?.toLowerCase().trim() === name.toLowerCase();
 
       if (taskBelongsToFreelancer) {
-        await supabaseAdmin
-          .from('tasks')
-          .update({ status: body.update_task_status })
-          .eq('id', body.update_task_id);
+        const updatePayload: Record<string, unknown> = {};
+        if (body.update_task_status) updatePayload.status = body.update_task_status;
+        if (typeof body.update_task_freelancer_note === 'string') {
+          updatePayload.freelancer_note = body.update_task_freelancer_note.trim() || null;
+          updatePayload.freelancer_note_updated_at = new Date().toISOString();
+        }
+
+        if (Object.keys(updatePayload).length > 0) {
+          await supabaseAdmin
+            .from('tasks')
+            .update(updatePayload)
+            .eq('id', body.update_task_id);
+        }
+
+        // Notify admins when a freelancer posts a note/question
+        if (typeof body.update_task_freelancer_note === 'string' && body.update_task_freelancer_note.trim()) {
+          const { data: admins } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('role', 'admin');
+          const noteText = body.update_task_freelancer_note.trim();
+          const snippet = noteText.length > 160 ? noteText.slice(0, 160) + '…' : noteText;
+          const rows = (admins || []).map((a: { id: string }) => ({
+            recipient_id: a.id,
+            title: `Note from ${name || 'freelancer'} · ${taskCheck?.title || 'task'}`,
+            message: snippet,
+            type: 'message',
+            is_read: false,
+            action_required: false,
+            created_at: new Date().toISOString(),
+          }));
+          if (rows.length > 0) {
+            await supabaseAdmin.from('notifications').insert(rows);
+          }
+        }
       }
     }
 
