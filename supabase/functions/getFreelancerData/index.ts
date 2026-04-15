@@ -81,11 +81,12 @@ Deno.serve(async (req) => {
     ] = await Promise.all([
       // Tasks by freelancer ID
       supabaseAdmin.from('tasks').select('*').eq('assigned_freelancer_id', fId).order('due_date', { ascending: false }),
-      // Tasks by name or email fallback (only rows NOT already matched by ID)
-      (name || user.email)
+      // Tasks by name fallback — only tasks with no assigned_freelancer_id set
+      // (.neq would exclude NULLs in PostgreSQL, so we use .is.null explicitly)
+      name
         ? supabaseAdmin.from('tasks').select('*')
-            .or(`assigned_to.ilike.${name || ''},assigned_to.ilike.${user.email || ''}`)
-            .neq('assigned_freelancer_id', fId)
+            .ilike('assigned_to', name)
+            .is('assigned_freelancer_id', null)
             .order('due_date', { ascending: false })
             .limit(100)
         : Promise.resolve({ data: [] }),
