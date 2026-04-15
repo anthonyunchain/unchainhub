@@ -90,7 +90,9 @@ Deno.serve(async (req) => {
             created_at: new Date().toISOString(),
           };
           const existingThread = Array.isArray(taskCheck?.note_thread) ? taskCheck.note_thread : [];
-          const nextThread = [...existingThread, newMessage];
+          const MAX_THREAD = 500;
+          const merged = [...existingThread, newMessage];
+          const nextThread = merged.length > MAX_THREAD ? merged.slice(merged.length - MAX_THREAD) : merged;
 
           await supabaseAdmin
             .from('tasks')

@@ -129,7 +129,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={`${hasConversation ? "!max-w-[98vw]" : "!max-w-2xl"} w-[98vw] !max-h-[94vh] h-[94vh] p-0 overflow-hidden flex flex-col`}
+        className={`${hasConversation ? "!max-w-[50vw]" : "!max-w-2xl"} w-[92vw] md:w-[50vw] !max-h-[50vh] h-[92vh] md:h-[50vh] p-0 overflow-hidden flex flex-col`}
       >
         <DialogHeader className="px-5 pt-4 pb-3 border-b border-slate-100 flex-shrink-0">
           <DialogTitle>{task?.id ? "Edit task" : "New task"}</DialogTitle>
