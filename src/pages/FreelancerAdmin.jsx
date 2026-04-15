@@ -87,136 +87,138 @@ function FreelancerProfiles() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:!max-w-4xl">
           <DialogHeader><DialogTitle>{data?.id ? "Edit freelancer" : "New freelancer"}</DialogTitle></DialogHeader>
           {data && (
-            <div className="space-y-4 mt-2">
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>First name *</Label><Input value={data.first_name || ""} onChange={e => setData({ ...data, first_name: e.target.value })} /></div>
-                <div><Label>Last name</Label><Input value={data.last_name || ""} onChange={e => setData({ ...data, last_name: e.target.value })} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Email</Label><Input value={data.email || ""} onChange={e => setData({ ...data, email: e.target.value })} /></div>
-                <div><Label>Phone</Label><Input value={data.phone || ""} onChange={e => setData({ ...data, phone: e.target.value })} placeholder="e.g. +33 6 12 34 56 78" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Role</Label><Input value={data.role || ""} onChange={e => setData({ ...data, role: e.target.value })} placeholder="e.g. Video editor" /></div>
-                <div><Label>Status</Label>
-                  <Select value={data.status} onValueChange={v => setData({ ...data, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Actif">Active</SelectItem>
-                      <SelectItem value="Indisponible">Unavailable</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              {/* ── Left column: identity ─────────────────────────────── */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>First name *</Label><Input value={data.first_name || ""} onChange={e => setData({ ...data, first_name: e.target.value })} /></div>
+                  <div><Label>Last name</Label><Input value={data.last_name || ""} onChange={e => setData({ ...data, last_name: e.target.value })} /></div>
                 </div>
-              </div>
-              <div>
-                <Label>Contract PDF</Label>
-                <div className="mt-1">
-                  {data.contract_url ? (
-                    <div className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg border border-slate-100 text-xs">
-                      <a href={data.contract_url} target="_blank" rel="noopener noreferrer" className="text-[#2A69FF] hover:underline flex items-center gap-1">
-                        <ExternalLink className="w-3 h-3" /> View contract
-                      </a>
-                      <button onClick={() => setData(d => ({ ...d, contract_url: "" }))} className="text-slate-300 hover:text-red-400">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className={`cursor-pointer inline-flex items-center gap-1.5 text-xs text-[#2A69FF] hover:underline ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
-                      <Upload className="w-3 h-3" />{uploading ? "Uploading..." : "Upload contract"}
-                      <input type="file" accept=".pdf" className="hidden" onChange={handleContractUpload} />
-                    </label>
-                  )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Email</Label><Input value={data.email || ""} onChange={e => setData({ ...data, email: e.target.value })} /></div>
+                  <div><Label>Phone</Label><Input value={data.phone || ""} onChange={e => setData({ ...data, phone: e.target.value })} placeholder="e.g. +33 6 12 34 56 78" /></div>
                 </div>
-              </div>
-              <div><Label>Notes</Label><Textarea value={data.notes || ""} onChange={e => setData({ ...data, notes: e.target.value })} rows={2} /></div>
-
-              {/* Editorial calendar visibility */}
-              <div>
-                <Label className="flex items-center gap-2 mb-2">
-                  <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
-                  Visible editorial calendars
-                </Label>
-                {clients.length === 0 ? (
-                  <p className="text-xs text-slate-400">No active clients</p>
-                ) : (
-                  <div className="grid grid-cols-1 gap-1.5 max-h-36 overflow-y-auto pr-1">
-                    {clients.map(c => {
-                      const isVisible = (data.editorial_client_names || []).includes(c.company_name);
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => toggleEditorialClient(c.company_name)}
-                          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
-                            isVisible
-                              ? 'border-blue-300 bg-blue-50 text-blue-800'
-                              : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${isVisible ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
-                            {isVisible && <Check className="w-2.5 h-2.5 text-white" />}
-                          </div>
-                          <span className="truncate">{c.company_name}</span>
-                        </button>
-                      );
-                    })}
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Role</Label><Input value={data.role || ""} onChange={e => setData({ ...data, role: e.target.value })} placeholder="e.g. Video editor" /></div>
+                  <div><Label>Status</Label>
+                    <Select value={data.status} onValueChange={v => setData({ ...data, status: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Actif">Active</SelectItem>
+                        <SelectItem value="Indisponible">Unavailable</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
-                <p className="text-[10px] text-slate-400 mt-1.5">
-                  The freelancer will only see the selected calendars.
-                </p>
+                </div>
+                <div>
+                  <Label>Contract PDF</Label>
+                  <div className="mt-1">
+                    {data.contract_url ? (
+                      <div className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg border border-slate-100 text-xs">
+                        <a href={data.contract_url} target="_blank" rel="noopener noreferrer" className="text-[#2A69FF] hover:underline flex items-center gap-1">
+                          <ExternalLink className="w-3 h-3" /> View contract
+                        </a>
+                        <button onClick={() => setData(d => ({ ...d, contract_url: "" }))} className="text-slate-300 hover:text-red-400">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className={`cursor-pointer inline-flex items-center gap-1.5 text-xs text-[#2A69FF] hover:underline ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+                        <Upload className="w-3 h-3" />{uploading ? "Uploading..." : "Upload contract"}
+                        <input type="file" accept=".pdf" className="hidden" onChange={handleContractUpload} />
+                      </label>
+                    )}
+                  </div>
+                </div>
+                <div><Label>Notes</Label><Textarea value={data.notes || ""} onChange={e => setData({ ...data, notes: e.target.value })} rows={2} /></div>
               </div>
 
-              {/* Page access — per-freelancer sidebar visibility */}
-              {data.id && (
+              {/* ── Right column: visibility toggles ──────────────────── */}
+              <div className="space-y-4">
+                {/* Editorial calendar visibility */}
                 <div>
                   <Label className="flex items-center gap-2 mb-2">
-                    <LayoutDashboard className="w-3.5 h-3.5 text-slate-400" />
-                    Page access
-                    <span className="ml-auto text-[10px] text-slate-400 font-normal">
-                      {FREELANCER_NAV_ITEMS.length - (data.hidden_nav_items?.length || 0)} / {FREELANCER_NAV_ITEMS.length} visible
-                    </span>
+                    <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+                    Visible editorial calendars
                   </Label>
-                  <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1">
-                    {FREELANCER_NAV_ITEMS.map(item => {
-                      const hidden = (data.hidden_nav_items || []).includes(item.id);
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            const current = data.hidden_nav_items || [];
-                            const next = hidden ? current.filter(x => x !== item.id) : [...current, item.id];
-                            setData({ ...data, hidden_nav_items: next });
-                          }}
-                          className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-xs transition-all ${
-                            hidden
-                              ? "bg-slate-50 border-slate-200 text-slate-400"
-                              : "bg-emerald-50 border-emerald-200 text-emerald-700"
-                          }`}
-                        >
-                          <span className={hidden ? "line-through truncate" : "font-medium truncate"}>{item.label}</span>
-                          {hidden ? <EyeOff className="w-3.5 h-3.5 shrink-0" /> : <Eye className="w-3.5 h-3.5 shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-1.5">
-                    Green = visible in their sidebar. Grey = hidden.
-                  </p>
+                  {clients.length === 0 ? (
+                    <p className="text-xs text-slate-400">No active clients</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {clients.map(c => {
+                        const isVisible = (data.editorial_client_names || []).includes(c.company_name);
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => toggleEditorialClient(c.company_name)}
+                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs text-left transition-colors ${
+                              isVisible
+                                ? 'border-blue-300 bg-blue-50 text-blue-800'
+                                : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                            }`}
+                          >
+                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${isVisible ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
+                              {isVisible && <Check className="w-2.5 h-2.5 text-white" />}
+                            </div>
+                            <span className="truncate">{c.company_name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-slate-400 mt-1.5">The freelancer will only see the selected calendars.</p>
                 </div>
-              )}
+
+                {/* Page access — per-freelancer sidebar visibility */}
+                {data.id && (
+                  <div>
+                    <Label className="flex items-center gap-2 mb-2">
+                      <LayoutDashboard className="w-3.5 h-3.5 text-slate-400" />
+                      Page access
+                      <span className="ml-auto text-[10px] text-slate-400 font-normal">
+                        {FREELANCER_NAV_ITEMS.length - (data.hidden_nav_items?.length || 0)} / {FREELANCER_NAV_ITEMS.length} visible
+                      </span>
+                    </Label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {FREELANCER_NAV_ITEMS.map(item => {
+                        const hidden = (data.hidden_nav_items || []).includes(item.id);
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              const current = data.hidden_nav_items || [];
+                              const next = hidden ? current.filter(x => x !== item.id) : [...current, item.id];
+                              setData({ ...data, hidden_nav_items: next });
+                            }}
+                            className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border text-xs transition-all ${
+                              hidden
+                                ? "bg-slate-50 border-slate-200 text-slate-400"
+                                : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                            }`}
+                          >
+                            <span className={hidden ? "line-through truncate" : "font-medium truncate"}>{item.label}</span>
+                            {hidden ? <EyeOff className="w-3.5 h-3.5 shrink-0" /> : <Eye className="w-3.5 h-3.5 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1.5">Green = visible. Grey = hidden.</p>
+                  </div>
+                )}
+              </div>
 
               {data.email && !data.id && (
-                <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700">
+                <div className="md:col-span-2 bg-blue-50 rounded-lg p-3 text-xs text-blue-700">
                   💡 After saving, send an invitation to <strong>{data.email}</strong> so they can access the portal.
                 </div>
               )}
 
-              <div className="flex justify-between items-center pt-2">
+              <div className="md:col-span-2 flex justify-between items-center pt-2 border-t border-slate-100">
                 {data.id ? (
                   <div className="flex gap-2">
                     {confirmDelete ? (
