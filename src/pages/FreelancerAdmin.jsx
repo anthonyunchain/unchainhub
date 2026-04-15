@@ -87,7 +87,7 @@ function FreelancerProfiles() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:!max-w-4xl">
+        <DialogContent className="sm:!max-w-6xl">
           <DialogHeader><DialogTitle>{data?.id ? "Edit freelancer" : "New freelancer"}</DialogTitle></DialogHeader>
           {data && (
             <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -147,7 +147,7 @@ function FreelancerProfiles() {
                   {clients.length === 0 ? (
                     <p className="text-xs text-slate-400">No active clients</p>
                   ) : (
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-2 gap-2">
                       {clients.map(c => {
                         const isVisible = (data.editorial_client_names || []).includes(c.company_name);
                         return (
@@ -155,14 +155,14 @@ function FreelancerProfiles() {
                             key={c.id}
                             type="button"
                             onClick={() => toggleEditorialClient(c.company_name)}
-                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs text-left transition-colors ${
+                            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border text-sm text-left transition-colors ${
                               isVisible
                                 ? 'border-blue-300 bg-blue-50 text-blue-800'
                                 : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
                             }`}
                           >
-                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${isVisible ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
-                              {isVisible && <Check className="w-2.5 h-2.5 text-white" />}
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${isVisible ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
+                              {isVisible && <Check className="w-3 h-3 text-white" />}
                             </div>
                             <span className="truncate">{c.company_name}</span>
                           </button>
@@ -183,7 +183,7 @@ function FreelancerProfiles() {
                         {FREELANCER_NAV_ITEMS.length - (data.hidden_nav_items?.length || 0)} / {FREELANCER_NAV_ITEMS.length} visible
                       </span>
                     </Label>
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-2 gap-2">
                       {FREELANCER_NAV_ITEMS.map(item => {
                         const hidden = (data.hidden_nav_items || []).includes(item.id);
                         return (
@@ -195,14 +195,14 @@ function FreelancerProfiles() {
                               const next = hidden ? current.filter(x => x !== item.id) : [...current, item.id];
                               setData({ ...data, hidden_nav_items: next });
                             }}
-                            className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border text-xs transition-all ${
+                            className={`flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-lg border text-sm transition-all ${
                               hidden
                                 ? "bg-slate-50 border-slate-200 text-slate-400"
                                 : "bg-emerald-50 border-emerald-200 text-emerald-700"
                             }`}
                           >
                             <span className={hidden ? "line-through truncate" : "font-medium truncate"}>{item.label}</span>
-                            {hidden ? <EyeOff className="w-3.5 h-3.5 shrink-0" /> : <Eye className="w-3.5 h-3.5 shrink-0" />}
+                            {hidden ? <EyeOff className="w-4 h-4 shrink-0" /> : <Eye className="w-4 h-4 shrink-0" />}
                           </button>
                         );
                       })}
