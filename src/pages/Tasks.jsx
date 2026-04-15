@@ -232,16 +232,17 @@ export default function Tasks() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setOnlyWithNotes(v => !v)}
-            className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium transition-all border ${
+            title={onlyWithNotes ? "Showing notes" : "Notes to answer"}
+            className={`inline-flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-lg text-sm font-medium transition-all border ${
               onlyWithNotes
                 ? "bg-amber-500 text-white border-amber-500"
                 : "bg-white text-amber-700 border-amber-200 hover:bg-amber-50"
             }`}
           >
             <MessageCircle className="w-4 h-4" />
-            {onlyWithNotes ? "Showing notes" : "Notes to answer"}
+            <span className="hidden sm:inline">{onlyWithNotes ? "Showing notes" : "Notes to answer"}</span>
             {unansweredNotesCount > 0 && (
-              <span className={`ml-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${onlyWithNotes ? "bg-white/25" : "bg-amber-100 text-amber-700"}`}>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${onlyWithNotes ? "bg-white/25" : "bg-amber-100 text-amber-700"}`}>
                 {unansweredNotesCount}
               </span>
             )}

@@ -227,7 +227,7 @@ function TaskRow({ task, onUpdateTask }) {
             <div className="border-t border-slate-100 px-4 py-3 space-y-2 bg-slate-50/50">
               <textarea
                 value={messageDraft}
-                onChange={e => setMessageDraft(e.target.value)}
+                onChange={e => setMessageDraft(e.target.value.slice(0, 5000))}
                 onKeyDown={e => {
                   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                     e.preventDefault();
@@ -235,6 +235,7 @@ function TaskRow({ task, onUpdateTask }) {
                   }
                 }}
                 rows={3}
+                maxLength={5000}
                 placeholder="Write a message…"
                 className="w-full text-sm rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none focus:border-blue-400 resize-none"
               />

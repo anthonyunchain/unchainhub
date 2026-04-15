@@ -124,13 +124,20 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
     "Haute": "text-amber-500", "Urgente": "text-red-500"
   };
 
+  const hasConversation = !!task?.id;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent
+        className={`${hasConversation ? "max-w-6xl" : "max-w-2xl"} w-[95vw] md:w-[95vw] h-[92vh] md:h-[88vh] p-0 overflow-hidden flex flex-col`}
+      >
+        <DialogHeader className="px-5 pt-4 pb-3 border-b border-slate-100 flex-shrink-0">
           <DialogTitle>{task?.id ? "Edit task" : "New task"}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 mt-2">
+
+        <div className={`flex-1 min-h-0 flex flex-col ${hasConversation ? "lg:flex-row" : ""}`}>
+          {/* LEFT — form fields */}
+          <div className={`flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-3 ${hasConversation ? "lg:border-r lg:border-slate-100" : ""}`}>
 
           {/* Titre */}
           <div>
@@ -144,22 +151,20 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
             <Textarea value={data.description || ""} onChange={e => set("description", e.target.value)} rows={2} placeholder="Task details..." />
           </div>
 
-          {/* Statut */}
-          <div>
-            <Label>Status</Label>
-            <Select value={data.status} onValueChange={v => set("status", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Non commencé">Not started</SelectItem>
-                <SelectItem value="En cours">In progress</SelectItem>
-                <SelectItem value="Terminé">Done</SelectItem>
-                <SelectItem value="Bloqué">Blocked</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Date + Catégorie */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Status + Due date + Category */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <Label>Status</Label>
+              <Select value={data.status} onValueChange={v => set("status", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Non commencé">Not started</SelectItem>
+                  <SelectItem value="En cours">In progress</SelectItem>
+                  <SelectItem value="Terminé">Done</SelectItem>
+                  <SelectItem value="Bloqué">Blocked</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Due date</Label>
               <Input type="date" value={data.due_date || ""} onChange={e => set("due_date", e.target.value)} />
@@ -184,7 +189,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
           </div>
 
           {/* Assigné + Client */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <div className="flex items-center justify-between mb-1">
                 <Label>Assigned to</Label>
@@ -285,20 +290,22 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
             <Label>Internal notes</Label>
             <Textarea value={data.notes || ""} onChange={e => set("notes", e.target.value)} rows={2} placeholder="Notes..." />
           </div>
+          </div>
+          {/* ─── end LEFT column ─── */}
 
-          {/* Conversation thread (freelancer ↔ admin) */}
-          {task?.id && (
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1.5 text-slate-600">
+          {/* RIGHT — conversation panel */}
+          {hasConversation && (
+            <div className="flex-1 min-h-0 flex flex-col px-5 py-4 bg-slate-50/40">
+              <Label className="flex items-center gap-1.5 text-slate-600 mb-2">
                 <MessageCircle className="w-3.5 h-3.5" /> Conversation
                 {data.assigned_to && <span className="text-slate-400 font-normal">· with {data.assigned_to}</span>}
               </Label>
 
-              {thread.length === 0 ? (
-                <p className="text-[11px] text-slate-400 italic">No messages yet.</p>
-              ) : (
-                <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-                  {thread.map(m => {
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1.5">
+                {thread.length === 0 ? (
+                  <p className="text-[11px] text-slate-400 italic">No messages yet.</p>
+                ) : (
+                  thread.map(m => {
                     const fromAdmin = m.author_role === "admin";
                     return (
                       <div
@@ -306,7 +313,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                         className={`rounded-md border px-2.5 py-1.5 ${
                           fromAdmin
                             ? "bg-blue-50 border-blue-200 ml-6"
-                            : "bg-amber-50 border-amber-200"
+                            : "bg-amber-50 border-amber-200 mr-6"
                         }`}
                       >
                         <p className={`text-[10px] font-medium uppercase tracking-wider mb-0.5 ${fromAdmin ? "text-blue-700" : "text-amber-700"}`}>
@@ -320,14 +327,14 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                         <p className="text-xs text-slate-700 whitespace-pre-wrap">{m.text}</p>
                       </div>
                     );
-                  })}
-                </div>
-              )}
+                  })
+                )}
+              </div>
 
-              <div className="flex items-start gap-2">
+              <div className="mt-2 flex items-start gap-2 flex-shrink-0">
                 <Textarea
                   value={messageDraft}
-                  onChange={e => setMessageDraft(e.target.value)}
+                  onChange={e => setMessageDraft(e.target.value.slice(0, 5000))}
                   onKeyDown={e => {
                     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                       e.preventDefault();
@@ -336,6 +343,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                   }}
                   rows={2}
                   placeholder="Write a message…"
+                  maxLength={5000}
                   className="flex-1 text-sm"
                 />
                 <Button
@@ -351,13 +359,14 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
               </div>
             </div>
           )}
+        </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!data.title.trim()}>
-              Save
-            </Button>
-          </div>
+        {/* Footer */}
+        <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-100 flex-shrink-0 bg-white">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!data.title.trim()}>
+            Save
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

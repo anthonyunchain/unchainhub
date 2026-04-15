@@ -72,7 +72,16 @@ Deno.serve(async (req) => {
 
         // Append a new message to the note thread
         if (typeof body.append_task_note === 'string' && body.append_task_note.trim()) {
-          const text = body.append_task_note.trim();
+          // Defensive cap: reject absurdly long payloads, truncate otherwise
+          const MAX_MSG_LEN = 5000;
+          const rawText = String(body.append_task_note).trim();
+          if (rawText.length > MAX_MSG_LEN * 2) {
+            return Response.json(
+              { error: 'Message too long' },
+              { status: 413, headers: corsHeaders(req) },
+            );
+          }
+          const text = rawText.slice(0, MAX_MSG_LEN);
           const newMessage = {
             id: crypto.randomUUID(),
             author_role: 'freelancer',
