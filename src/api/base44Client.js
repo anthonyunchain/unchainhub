@@ -102,10 +102,10 @@ function makeEntity(entityName) {
 
     // update(id, data)
     async update(id, data) {
-      const { id: _id, created_at, ...payload } = data;
+      const { id: _id, created_at, updated_at: _updated_at, ...payload } = data;
       const { data: row, error } = await supabase
         .from(table)
-        .update({ ...payload, updated_at: new Date().toISOString() })
+        .update(payload)
         .eq('id', id)
         .select()
         .single();
