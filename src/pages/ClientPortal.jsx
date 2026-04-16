@@ -1235,14 +1235,14 @@ export default function ClientPortal() {
 
         let { data: clientRows } = await supabase
           .from("clients")
-          .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs, contract_documents")
+          .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs, contract_documents, default_language")
           .eq("portal_user_id", authUser.id)
           .limit(1);
 
         if (!clientRows?.length) {
           const { data: emailRows } = await supabase
             .from("clients")
-            .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs, contract_documents")
+            .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs, contract_documents, default_language")
             .eq("contact_email", authUser.email)
             .limit(1);
           clientRows = emailRows;
@@ -1250,6 +1250,12 @@ export default function ClientPortal() {
 
         const client = clientRows?.[0] || null;
         setClientRecord(client);
+
+        // Apply client's default language on first visit (no manual override yet)
+        if (client?.default_language && !localStorage.getItem("cp_lang")) {
+          setLang(client.default_language);
+          localStorage.setItem("cp_lang", client.default_language);
+        }
 
         if (!client?.company_name) { setLoading(false); return; }
 

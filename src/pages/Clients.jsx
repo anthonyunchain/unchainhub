@@ -38,7 +38,7 @@ const STATUS_TRANSLATIONS = {
 const translateService = (s) => SERVICE_TRANSLATIONS[s] || s;
 const translateStatus = (s) => STATUS_TRANSLATIONS[s] || s;
 
-const emptyClient = { company_name: "", contact_name: "", contact_email: "", contact_phone: "", city: "Tampere", sector: "F&B", address: "", start_date: "", notes: "", status: "Actif", active_services: [] };
+const emptyClient = { company_name: "", contact_name: "", contact_email: "", contact_phone: "", city: "Tampere", sector: "F&B", address: "", start_date: "", notes: "", status: "Actif", active_services: [], default_language: "en" };
 
 export default function Clients() {
   const [search, setSearch] = useState("");
@@ -347,6 +347,17 @@ export default function Clients() {
               <div><Label>Address</Label><Input value={editData.address || ""} onChange={e => setEditData({ ...editData, address: e.target.value })} /></div>
               <div><Label>Start date</Label><Input type="date" value={editData.start_date || ""} onChange={e => setEditData({ ...editData, start_date: e.target.value })} /></div>
               <div><Label>Notes</Label><Textarea value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} rows={3} /></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Portal language</Label>
+                  <Select value={editData.default_language || "en"} onValueChange={v => setEditData({ ...editData, default_language: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="fi">Finnish</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
                 <input
                   type="checkbox"
