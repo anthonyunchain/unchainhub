@@ -196,6 +196,25 @@ function ProjectCard({ project, onAction, freelancerName }) {
           </div>
         )}
 
+        {/* Project URL */}
+        {project.url && (
+          <a href={project.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-brand hover:underline mb-3">
+            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{project.url}</span>
+          </a>
+        )}
+
+        {/* Project images */}
+        {Array.isArray(project.images) && project.images.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {project.images.map((url, i) => (
+              <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                <img src={url} alt="" className="w-20 h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90 transition-opacity" />
+              </a>
+            ))}
+          </div>
+        )}
+
         {/* Primary CTA */}
         <div className="flex items-center gap-2 mt-2">
           {isPending && (

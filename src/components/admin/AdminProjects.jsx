@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
-import { Plus, RotateCcw, CheckCircle2, RefreshCw, Trash2 } from "lucide-react";
+import { Plus, RotateCcw, CheckCircle2, RefreshCw, Trash2, ImagePlus, X, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +24,7 @@ const STATUS_CONFIG = {
 
 const PIPELINE_STATUSES = ["Unassigned", "Pending acceptance", "Accepted", "In progress", "Delivered", "Completed"];
 
-const emptyForm = { title: "", client_name: "", description: "", notes: "", freelancer_id: "", freelancer_name: "" };
+const emptyForm = { title: "", client_name: "", description: "", notes: "", freelancer_id: "", freelancer_name: "", url: "", images: [] };
 
 export default function AdminProjects() {
   const [view, setView] = useState("list");
@@ -39,6 +39,28 @@ export default function AdminProjects() {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [loading, setLoading] = useState(false);
+  const [uploadingImg, setUploadingImg] = useState(false);
+  const [uploadingEditImg, setUploadingEditImg] = useState(false);
+
+  const uploadImage = async (e, setter, currentImages) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const flag = setter === setForm ? setUploadingImg : setUploadingEditImg;
+    flag(true);
+    try {
+      const res = await base44.integrations.Core.UploadFile({ file });
+      setter(prev => ({ ...prev, images: [...(prev.images || []), res.file_url] }));
+    } catch (err) {
+      alert("Upload failed: " + (err?.message || err));
+    } finally {
+      flag(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeImage = (setter, idx) => {
+    setter(prev => ({ ...prev, images: (prev.images || []).filter((_, i) => i !== idx) }));
+  };
 
   const { data: projects = [], refetch } = useQuery({
     queryKey: ["projects"],
@@ -93,6 +115,8 @@ export default function AdminProjects() {
         status: form.freelancer_id ? "Pending acceptance" : "Unassigned",
         ...(form.description && { description: form.description }),
         ...(form.notes && { notes: form.notes }),
+        ...(form.url && { url: form.url }),
+        images: form.images || [],
         ...(form.freelancer_id && { freelancer_id: form.freelancer_id, freelancer_name: form.freelancer_name }),
       };
       await base44.entities.Project.create(payload);
@@ -377,7 +401,28 @@ export default function AdminProjects() {
               </Select>
             </div>
             <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>
+            <div><Label>URL</Label><Input value={form.url || ""} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://..." /></div>
             <div><Label>Notes</Label><Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Internal notes..." /></div>
+            {/* Images */}
+            <div>
+              <Label>Images</Label>
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                {(form.images || []).map((url, i) => (
+                  <div key={i} className="relative group">
+                    <a href={url} target="_blank" rel="noopener noreferrer">
+                      <img src={url} alt="" className="w-20 h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90" />
+                    </a>
+                    <button type="button" onClick={() => removeImage(setForm, i)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                <label className={`w-20 h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-slate-400 transition-colors ${uploadingImg ? "opacity-50 pointer-events-none" : ""}`}>
+                  {uploadingImg ? <Loader2 className="w-5 h-5 animate-spin text-slate-400" /> : <ImagePlus className="w-5 h-5 text-slate-400" />}
+                  <input type="file" accept="image/*" className="hidden" onChange={e => uploadImage(e, setForm)} />
+                </label>
+              </div>
+            </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
               <Button onClick={handleCreate} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!form.title || !form.client_name || loading}>
@@ -452,7 +497,28 @@ export default function AdminProjects() {
                 </div>
               </div>
               <div><Label>Description</Label><Textarea value={editingProject.description || ""} onChange={e => setEditingProject(p => ({ ...p, description: e.target.value }))} rows={3} /></div>
+              <div><Label>URL</Label><Input value={editingProject.url || ""} onChange={e => setEditingProject(p => ({ ...p, url: e.target.value }))} placeholder="https://..." /></div>
               <div><Label>Notes</Label><Input value={editingProject.notes || ""} onChange={e => setEditingProject(p => ({ ...p, notes: e.target.value }))} /></div>
+              {/* Images */}
+              <div>
+                <Label>Images</Label>
+                <div className="flex flex-wrap gap-2 mt-1.5">
+                  {(editingProject.images || []).map((url, i) => (
+                    <div key={i} className="relative group">
+                      <a href={url} target="_blank" rel="noopener noreferrer">
+                        <img src={url} alt="" className="w-20 h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90" />
+                      </a>
+                      <button type="button" onClick={() => removeImage(setEditingProject, i)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <label className={`w-20 h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-slate-400 transition-colors ${uploadingEditImg ? "opacity-50 pointer-events-none" : ""}`}>
+                    {uploadingEditImg ? <Loader2 className="w-5 h-5 animate-spin text-slate-400" /> : <ImagePlus className="w-5 h-5 text-slate-400" />}
+                    <input type="file" accept="image/*" className="hidden" onChange={e => uploadImage(e, setEditingProject)} />
+                  </label>
+                </div>
+              </div>
               {editingProject.delivery_url && (
                 <div className="p-3 bg-violet-50 rounded-lg border border-violet-100">
                   <p className="text-xs font-medium text-violet-700 mb-1">Delivery link</p>
