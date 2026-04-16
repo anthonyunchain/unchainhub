@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X, CheckSquare, Square, UserCheck, MessageCircle, Send, Trash2, ImagePlus, Loader2, ThumbsUp } from "lucide-react";
+import { Plus, X, UserCheck, MessageCircle, Send, Trash2, ImagePlus, Loader2, ThumbsUp } from "lucide-react";
 import TaskComments from "./TaskComments";
 
 export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
@@ -31,11 +31,10 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
   const empty = {
     title: "", description: "", status: "Non commencé",
     due_date: "", assigned_to: "", client_name: "", category: "Update",
-    blocking_reason: "", checklist: [], notes: ""
+    blocking_reason: ""
   };
 
   const [data, setData] = useState(task || empty);
-  const [newCheck, setNewCheck] = useState("");
   const [messageDraft, setMessageDraft] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [clearStep, setClearStep] = useState(0); // 0=idle, 1=first confirm, 2=second confirm
@@ -182,19 +181,6 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
 
   const set = (k, v) => setData(d => ({ ...d, [k]: v }));
 
-  const addCheck = () => {
-    if (!newCheck.trim()) return;
-    set("checklist", [...(data.checklist || []), { label: newCheck.trim(), done: false }]);
-    setNewCheck("");
-  };
-
-  const toggleCheck = (i) => {
-    const list = [...(data.checklist || [])];
-    list[i] = { ...list[i], done: !list[i].done };
-    set("checklist", list);
-  };
-
-  const removeCheck = (i) => set("checklist", (data.checklist || []).filter((_, idx) => idx !== i));
 
   const handleSave = () => {
     if (!data.title.trim()) return;
@@ -335,43 +321,8 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
             </div>
           )}
 
-          {/* Checklist + Notes side by side (only when editing) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {data.id && (
-              <>
-                <div>
-                  <Label>Subtasks</Label>
-                  <div className="space-y-1.5 mt-1.5">
-                    {(data.checklist || []).map((item, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <button onClick={() => toggleCheck(i)} className="text-slate-400 hover:text-emerald-500">
-                          {item.done ? <CheckSquare className="w-4 h-4 text-emerald-500" /> : <Square className="w-4 h-4" />}
-                        </button>
-                        <span className={`text-sm flex-1 ${item.done ? "line-through text-slate-400" : "text-slate-700"}`}>{item.label}</span>
-                        <button onClick={() => removeCheck(i)} className="text-slate-300 hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
-                      </div>
-                    ))}
-                    <div className="flex gap-2">
-                      <Input
-                        value={newCheck}
-                        onChange={e => setNewCheck(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addCheck())}
-                        placeholder="Add a subtask..."
-                        className="h-8 text-xs"
-                      />
-                      <Button type="button" variant="outline" size="sm" className="h-8" onClick={addCheck}>
-                        <Plus className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <Label>Internal notes</Label>
-                  <Textarea value={data.notes || ""} onChange={e => set("notes", e.target.value)} rows={4} placeholder="Notes..." />
-                </div>
-              </>
-            )}
-
+          {/* Task images */}
+          <div className="grid grid-cols-1 gap-3">
             {/* Task images */}
             <div className="col-span-full">
               <Label>Images</Label>
