@@ -259,23 +259,18 @@ function TaskRow({ task, onUpdateTask }) {
                           <img src={m.image_url} alt="" className="max-w-[180px] max-h-[120px] rounded-md border border-slate-200 object-cover hover:opacity-90" />
                         </a>
                       )}
-                      {/* Reactions */}
+                      {/* Reaction toggle */}
                       <div className="flex items-center gap-1 mt-1">
-                        {(m.reactions || []).map((r, ri) => (
-                          <span key={ri} className="text-[10px] bg-white/60 border border-slate-200 rounded-full px-1.5 py-0.5" title={r.user_name}>
-                            {r.emoji}
-                          </span>
-                        ))}
                         <button
                           onClick={() => onUpdateTask(task, { toggle_reaction_msg_id: m.id })}
-                          className={`p-0.5 rounded transition-colors ${
-                            m.reactions?.some(r => r.user_role === "freelancer")
-                              ? "text-amber-500"
-                              : "text-slate-300 hover:text-slate-500"
+                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border transition-colors ${
+                            (m.reactions || []).length > 0
+                              ? "bg-amber-50 border-amber-200 text-amber-600"
+                              : "border-transparent text-slate-300 hover:text-slate-500"
                           }`}
-                          title="React"
                         >
                           <ThumbsUp className="w-3 h-3" />
+                          {(m.reactions || []).length > 0 && <span>{m.reactions.length}</span>}
                         </button>
                       </div>
                     </div>
