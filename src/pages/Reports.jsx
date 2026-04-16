@@ -131,23 +131,45 @@ export default function Reports() {
   monthContent.forEach(c => { contentByClient[c.client_name] = (contentByClient[c.client_name] || 0) + 1; });
   const clientContentData = Object.entries(contentByClient).map(([name, value]) => ({ name, value }));
 
-  // Months for selector
-  const months = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    months.push(format(d, "yyyy-MM"));
-  }
+  // All months from Jan 2025 to current month (newest first)
+  const allReportMonths = (() => {
+    const ms = [];
+    const start = new Date(2025, 0, 1); // January 2025
+    const now = new Date();
+    const end = new Date(now.getFullYear(), now.getMonth(), 1);
+    for (let d = new Date(end); d >= start; d.setMonth(d.getMonth() - 1)) {
+      ms.push(format(new Date(d), 'yyyy-MM'));
+    }
+    return ms;
+  })();
+
+  const monthIdx = allReportMonths.indexOf(selectedMonth);
+  const canPrevMonth = monthIdx < allReportMonths.length - 1;
+  const canNextMonth = monthIdx > 0;
+  const monthLabel = format(new Date(selectedMonth + '-01'), 'MMMM yyyy', { locale: enUS });
 
   return (
     <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Reports" subtitle="Monthly reports">
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-48 h-9 text-sm"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {months.map(m => <SelectItem key={m} value={m}>{format(new Date(m + "-01"), "MMMM yyyy", { locale: enUS })}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="inline-flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <button
+            onClick={() => canPrevMonth && setSelectedMonth(allReportMonths[monthIdx + 1])}
+            disabled={!canPrevMonth}
+            className="h-9 w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-r border-slate-100"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-sm font-medium text-slate-700 capitalize whitespace-nowrap text-center" style={{ width: 150 }}>
+            {monthLabel}
+          </span>
+          <button
+            onClick={() => canNextMonth && setSelectedMonth(allReportMonths[monthIdx - 1])}
+            disabled={!canNextMonth}
+            className="h-9 w-9 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-l border-slate-100"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </PageHeader>
 
       <div style={{ position: 'relative' }}>
