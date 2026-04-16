@@ -296,6 +296,45 @@ export default function Shootings() {
         <span className="text-xs text-slate-400 ml-auto">{filtered.length} shooting{filtered.length !== 1 ? "s" : ""}</span>
       </div>
 
+      {/* Content needing a shooting */}
+      {(() => {
+        const linkedContentIds = new Set(contentLinks.map(c => c.content_id));
+        const TYPE_COLOR = { Reel: "bg-pink-100 text-pink-700", Story: "bg-amber-100 text-amber-700", Carousel: "bg-violet-100 text-violet-700", Post: "bg-blue-100 text-blue-700" };
+        const unlinked = editorial.filter(e => e.status !== "Publié" && !linkedContentIds.has(e.id));
+        if (unlinked.length === 0) return null;
+        const byClient = {};
+        unlinked.forEach(e => {
+          const k = e.client_name || "No client";
+          if (!byClient[k]) byClient[k] = [];
+          byClient[k].push(e);
+        });
+        return (
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Camera className="w-4 h-4 text-amber-600" />
+              <p className="text-sm font-semibold text-amber-800">Content needing a shooting</p>
+              <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full font-medium">{unlinked.length}</span>
+            </div>
+            <div className="space-y-3">
+              {Object.entries(byClient).sort(([a], [b]) => a.localeCompare(b)).map(([client, items]) => (
+                <div key={client}>
+                  <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider mb-1.5">{client}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {items.map(e => (
+                      <div key={e.id} className="flex items-center gap-1.5 bg-white rounded-lg border border-amber-100 px-2.5 py-1.5">
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${TYPE_COLOR[e.post_type] || "bg-slate-100 text-slate-500"}`}>{e.post_type}</span>
+                        <span className="text-xs text-slate-700 font-medium">{e.title || "Untitled"}</span>
+                        {e.scheduled_date && <span className="text-[10px] text-slate-400">{format(parseISO(e.scheduled_date), "d MMM", { locale: enUS })}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
           <Camera className="w-10 h-10 text-slate-200 mx-auto mb-3" />
