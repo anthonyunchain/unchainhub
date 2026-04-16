@@ -1937,70 +1937,63 @@ export default function Admin() {
   return (
     <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Administration" subtitle="Governance & operations" />
-      <div className="flex flex-col md:flex-row gap-4 md:gap-6" style={{ maxWidth: '100%' }}>
+      <div className="flex flex-col gap-4 md:gap-5" style={{ maxWidth: '100%' }}>
 
-        {/* ── Left sidebar ── */}
-        <div className="w-full md:w-52 md:shrink-0">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            {/* Mobile: grouped dropdown */}
-            <div className="md:hidden p-3">
-              <Select value={section} onValueChange={setSection}>
-                <SelectTrigger className="w-full h-11 text-sm font-semibold">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {NAV_SECTIONS.map(sec => (
-                    <SelectGroup key={sec.label}>
-                      <SelectLabel className="text-[10px] uppercase tracking-widest text-slate-400 font-medium">{sec.label}</SelectLabel>
-                      {sec.items.map(item => (
-                        <SelectItem key={item.id} value={item.id} className="text-sm py-2.5">
-                          {item.label}{badges[item.id] ? (item.id === 'salaries' ? <> · <Sensitive mask="••••">{badges[item.id]}</Sensitive></> : ` · ${badges[item.id]}`) : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
+        {/* ── Navigation panel ── */}
+        {/* Mobile: dropdown */}
+        <div className="md:hidden">
+          <Select value={section} onValueChange={setSection}>
+            <SelectTrigger className="w-full h-11 text-sm font-semibold bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {NAV_SECTIONS.map(sec => (
+                <SelectGroup key={sec.label}>
+                  <SelectLabel className="text-[10px] uppercase tracking-widest text-slate-400 font-medium">{sec.label}</SelectLabel>
+                  {sec.items.map(item => (
+                    <SelectItem key={item.id} value={item.id} className="text-sm py-2.5">
+                      {item.label}{badges[item.id] ? (item.id === 'salaries' ? <> · <Sensitive mask="••••">{badges[item.id]}</Sensitive></> : ` · ${badges[item.id]}`) : ''}
+                    </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Desktop: grouped vertical nav */}
-            <nav className="hidden md:block pb-2">
-              {NAV_SECTIONS.map((sec, si) => (
-                <div key={sec.label}>
-                  <p className={`text-[10px] font-medium text-slate-400 uppercase tracking-widest px-5 ${si === 0 ? 'pt-4' : 'pt-4'} pb-1`}>{sec.label}</p>
-                  {sec.items.map(item => {
-                    const isActive = section === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => setSection(item.id)}
-                        className="relative w-full flex items-center justify-between px-4 py-2 text-sm font-medium transition-colors duration-200"
-                        style={{ color: isActive ? '#2A69FF' : undefined }}
-                      >
-                        {isActive && (
-                          <motion.span
-                            layoutId="admin-nav-pill"
-                            className="absolute inset-0 bg-blue-50 rounded-none"
-                            style={{ borderLeft: '3px solid #2A69FF' }}
-                            transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                          />
-                        )}
-                        <span className={`relative z-10 ${isActive ? 'text-[#2A69FF] font-semibold' : 'text-slate-600 hover:text-slate-900'}`}>{item.label}</span>
-                        {badges[item.id] && (
-                          <span className={`relative z-10 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                            isActive ? 'bg-blue-100 text-[#2A69FF]' : 'bg-slate-100 text-slate-500'
-                          }`}>{item.id === 'salaries' ? <Sensitive mask="••••">{badges[item.id]}</Sensitive> : badges[item.id]}</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                </SelectGroup>
               ))}
-            </nav>
-          </div>
+            </SelectContent>
+          </Select>
+        </div>
+        {/* Desktop: horizontal grid panel */}
+        <div className="hidden md:grid grid-cols-4 gap-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+          {NAV_SECTIONS.map(sec => (
+            <div key={sec.label}>
+              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-2">{sec.label}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {sec.items.map(item => {
+                  const isActive = section === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setSection(item.id)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
+                        isActive
+                          ? 'bg-[#2A69FF] text-white shadow-sm'
+                          : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      {item.label}
+                      {badges[item.id] && (
+                        <span className={`text-[9px] font-semibold px-1 py-0.5 rounded-full leading-none ${
+                          isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-500'
+                        }`}>{item.id === 'salaries' ? <Sensitive mask="••">{badges[item.id]}</Sensitive> : badges[item.id]}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* ── Main content ── */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0">
           {section === 'tasks'        && <AdminTasks />}
           {section === 'meetings'     && <BoardMeetings />}
           {section === 'freelancer-meetings' && <MeetingsManagement />}
