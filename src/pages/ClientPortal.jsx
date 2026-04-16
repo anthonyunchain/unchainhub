@@ -30,6 +30,12 @@ const TRANSLATIONS = {
     approve: "Approve",
     decline: "Decline",
     pendingApproval: "Pending approval",
+    approved: "Approved",
+    declined: "Declined",
+    cancelled: "Cancelled",
+    cancel: "Cancel shooting",
+    yourNote: "Your note",
+    addNote: "Add a note (optional)...",
     viewsThisMonth: "Views this month",
     postsPublished: "Posts published",
     editorialCalendarPdf: "Editorial Calendar PDF",
@@ -109,6 +115,12 @@ const TRANSLATIONS = {
     approve: "Hyväksy",
     decline: "Hylkää",
     pendingApproval: "Odottaa hyväksyntää",
+    approved: "Hyväksytty",
+    declined: "Hylätty",
+    cancelled: "Peruutettu",
+    cancel: "Peruuta kuvaus",
+    yourNote: "Muistiinpanosi",
+    addNote: "Lisää muistiinpano (valinnainen)...",
     viewsThisMonth: "Näyttökerrat tässä kuussa",
     postsPublished: "Julkaistut julkaisut",
     editorialCalendarPdf: "Sisältökalenteri (PDF)",
@@ -387,12 +399,22 @@ function ClientShootingsTab({ clientName, tr }) {
     enabled: shootingIds.length > 0,
   });
 
-  const respond = async (shootingId, newStatus) => {
-    const { error } = await supabase
-      .from("shootings")
-      .update({ client_status: newStatus })
-      .eq("id", shootingId);
-    if (!error) qc.invalidateQueries({ queryKey: ["client-shootings-full"] });
+  const [respondingId, setRespondingId] = useState(null);
+
+  const respond = async (shootingId, newStatus, note) => {
+    setRespondingId(shootingId);
+    try {
+      await base44.functions.invoke("respondToShooting", {
+        shooting_id: shootingId,
+        client_status: newStatus,
+        client_note: note || null,
+      });
+      qc.invalidateQueries({ queryKey: ["client-shootings-full"] });
+    } catch (e) {
+      console.error("Failed to respond:", e);
+    } finally {
+      setRespondingId(null);
+    }
   };
 
   const upcoming = shootings.filter(s => s.status !== "Completed" && s.status !== "Cancelled");
@@ -412,7 +434,12 @@ function ClientShootingsTab({ clientName, tr }) {
 
   const ShootingCard = ({ s }) => {
     const crew = allCrew.filter(a => a.shooting_id === s.id);
-    const isPending = (s.client_status || "Pending") === "Pending";
+    const currentStatus = s.client_status || "Pending";
+    const isPending = currentStatus === "Pending";
+    const isApproved = currentStatus === "Approved";
+    const canAct = s.status !== "Completed" && s.status !== "Cancelled";
+    const [note, setNote] = useState("");
+    const isResponding = respondingId === s.id;
 
     return (
       <div style={{ background: 'var(--card)', borderRadius: 20, border: '1px solid var(--divider)', padding: '20px 24px', boxShadow: 'var(--card-shadow)' }}>
@@ -421,8 +448,8 @@ function ClientShootingsTab({ clientName, tr }) {
           <div>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[s.status] || "bg-slate-100 text-slate-500"}`}>{s.status}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${CLIENT_STATUS_BADGE[s.client_status || "Pending"]}`}>
-                {s.client_status === "Approved" ? tr.approve : s.client_status === "Declined" ? tr.decline : tr.pendingApproval}
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${CLIENT_STATUS_BADGE[currentStatus]}`}>
+                {currentStatus === "Approved" ? tr.approved || "Approved" : currentStatus === "Declined" ? tr.declined || "Declined" : currentStatus === "Cancelled" ? tr.cancelled || "Cancelled" : tr.pendingApproval}
               </span>
             </div>
             <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{s.title}</p>
@@ -458,21 +485,52 @@ function ClientShootingsTab({ clientName, tr }) {
             </div>
           )}
 
-          {/* Accept / Decline */}
-          {isPending && s.status !== "Completed" && s.status !== "Cancelled" && (
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={() => respond(s.id, "Approved")}
-                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, background: '#10B981', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-              >
-                <CheckCircle2 style={{ width: 16, height: 16 }} /> {tr.approve}
-              </button>
-              <button
-                onClick={() => respond(s.id, "Declined")}
-                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, background: 'transparent', color: '#EF4444', border: '1px solid #FCA5A5', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-              >
-                {tr.decline}
-              </button>
+          {/* Client note (existing) */}
+          {s.client_note && (
+            <div style={{ padding: '10px 14px', borderRadius: 12, background: dark ? 'rgba(42,105,255,0.08)' : '#F0F4FF', border: dark ? '1px solid rgba(42,105,255,0.15)' : '1px solid #DBEAFE' }}>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: dark ? '#93B4FF' : '#1E40AF' }}>
+                <strong>{tr.yourNote || "Your note"}:</strong> {s.client_note}
+              </p>
+            </div>
+          )}
+
+          {/* Action area: Approve/Decline (pending) or Cancel (approved) */}
+          {canAct && (isPending || isApproved) && (
+            <div className="pt-2 space-y-2">
+              <textarea
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                placeholder={tr.addNote || "Add a note (optional)..."}
+                rows={2}
+                style={{ width: '100%', fontSize: 12, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--bg)', padding: '8px 12px', outline: 'none', resize: 'none', fontFamily: "'DM Mono', monospace", color: 'var(--ink)' }}
+              />
+              {isPending && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => respond(s.id, "Approved", note)}
+                    disabled={isResponding}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, background: '#10B981', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", opacity: isResponding ? 0.5 : 1 }}
+                  >
+                    <CheckCircle2 style={{ width: 16, height: 16 }} /> {tr.approve}
+                  </button>
+                  <button
+                    onClick={() => respond(s.id, "Declined", note)}
+                    disabled={isResponding}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, background: 'transparent', color: '#EF4444', border: '1px solid #FCA5A5', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", opacity: isResponding ? 0.5 : 1 }}
+                  >
+                    {tr.decline}
+                  </button>
+                </div>
+              )}
+              {isApproved && (
+                <button
+                  onClick={() => respond(s.id, "Cancelled", note)}
+                  disabled={isResponding}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, background: 'transparent', color: '#EF4444', border: '1px solid #FCA5A5', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", opacity: isResponding ? 0.5 : 1 }}
+                >
+                  {tr.cancel || "Cancel shooting"}
+                </button>
+              )}
             </div>
           )}
         </div>

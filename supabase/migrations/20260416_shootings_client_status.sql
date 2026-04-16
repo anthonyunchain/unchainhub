@@ -1,5 +1,6 @@
--- Add client approval status to shootings
+-- Add client approval status and note to shootings
 ALTER TABLE shootings ADD COLUMN IF NOT EXISTS client_status text NOT NULL DEFAULT 'Pending';
+ALTER TABLE shootings ADD COLUMN IF NOT EXISTS client_note text;
 
 -- Allow clients to update client_status on their own shootings
 CREATE POLICY "shootings_client_update_status" ON shootings
