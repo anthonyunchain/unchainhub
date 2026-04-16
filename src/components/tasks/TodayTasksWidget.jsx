@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { CheckSquare, Square, Plus, AlertTriangle, ChevronRight } from "lucide-react";
@@ -8,7 +8,12 @@ import TaskFormDialog from "./TaskFormDialog";
 
 export default function TodayTasksWidget() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [currentUserName, setCurrentUserName] = useState("");
   const qc = useQueryClient();
+
+  useEffect(() => {
+    base44.auth.me().then(u => setCurrentUserName(u?.full_name || "")).catch(() => {});
+  }, []);
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks"],
@@ -28,6 +33,8 @@ export default function TodayTasksWidget() {
   const todayTasks = tasks.filter((t) => {
     if (t.status === "Terminé") return false;
     if (!t.due_date) return false;
+    // Only show tasks assigned to current admin
+    if (currentUserName && t.assigned_to && t.assigned_to.toLowerCase() !== currentUserName.toLowerCase()) return false;
     const d = new Date(t.due_date);
     return isToday(d) || isPast(d);
   });
