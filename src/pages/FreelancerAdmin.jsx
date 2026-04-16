@@ -260,7 +260,7 @@ function FreelancerProfiles() {
 }
 
 // ─── MEETINGS MANAGEMENT ──────────────────────────────────────────────────
-function MeetingsManagement() {
+export function MeetingsManagement() {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(null);
   const qc = useQueryClient();
@@ -723,7 +723,7 @@ export default function FreelancerAdmin() {
 
   return (
     <div className="mx-auto" style={{ maxWidth: '1400px' }}>
-      <PageHeader title="Freelancer Hub" subtitle="Projects, profiles, meetings and tools" />
+      <PageHeader title="Freelancer Hub" subtitle="Projects, profiles, notifications and tools" />
 
       {/* Bento Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
@@ -775,26 +775,6 @@ export default function FreelancerAdmin() {
           </div>
         </div>
 
-        {/* Meetings card */}
-        <div
-          style={{ ...CARD, background: '#F0F7FF' }}
-          onClick={() => setSection('meetings')}
-          onMouseEnter={hoverOn} onMouseLeave={hoverOff}
-        >
-          <p style={LABEL}>Meetings</p>
-          <p style={{ ...VAL, color: 'var(--brand)', marginTop: 8 }}>{meetings.length}</p>
-          {upcomingMeetings.length > 0 && (
-            <div style={{ marginTop: 16, padding: '10px 14px', background: 'rgba(42,105,255,0.08)', borderRadius: 12 }}>
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', color: 'var(--brand)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Next</p>
-              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>{upcomingMeetings[0].title}</p>
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)', marginTop: 2 }}>{upcomingMeetings[0].freelancer_name} · {upcomingMeetings[0].date}</p>
-            </div>
-          )}
-          {upcomingMeetings.length === 0 && (
-            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginTop: 12 }}>No upcoming meetings</p>
-          )}
-        </div>
-
         {/* Notifications card */}
         <div
           style={{ ...CARD }}
@@ -803,6 +783,19 @@ export default function FreelancerAdmin() {
         >
           <p style={LABEL}>Notifications</p>
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '12px', color: 'var(--muted)', marginTop: 12 }}>View & send notifications →</p>
+        </div>
+
+        {/* New Project shortcut */}
+        <div
+          style={{ ...CARD, background: 'linear-gradient(145deg, #F0F7FF 0%, #E8F0FE 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}
+          onClick={() => setSection('projects')}
+          onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+        >
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '22px', color: '#fff', fontWeight: 300, lineHeight: 1 }}>+</span>
+          </div>
+          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 600, color: 'var(--brand)' }}>New Project</p>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>Create & assign →</p>
         </div>
 
         {/* Tools card */}

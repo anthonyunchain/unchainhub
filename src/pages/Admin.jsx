@@ -21,6 +21,7 @@ import Pipeline from "./Pipeline";
 import Contracts from "./Contracts";
 import Ideas from "./Ideas";
 import MonthlyBriefs from "../components/admin/MonthlyBriefs";
+import { MeetingsManagement } from "./FreelancerAdmin";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { useAuth } from "@/lib/AuthContext";
@@ -1895,6 +1896,7 @@ const DEFAULT_NAV_ITEMS = [
   { id: 'salaries',      label: 'Salaries' },
   { id: 'contracts',     label: 'Contracts' },
   { id: 'meetings',      label: 'Board Meetings' },
+  { id: 'freelancer-meetings', label: 'Freelancer Meetings' },
   { id: 'legal',         label: 'Legal Docs' },
   { id: 'shareholders',  label: 'Shareholders' },
   { id: 'users',         label: 'Users' },
@@ -2058,6 +2060,7 @@ export default function Admin() {
         <div className="flex-1 min-w-0">
           {section === 'tasks'        && <AdminTasks />}
           {section === 'meetings'     && <BoardMeetings />}
+          {section === 'freelancer-meetings' && <MeetingsManagement />}
           {section === 'legal'        && <LegalDocuments />}
           {section === 'shareholders' && <Shareholders />}
           {section === 'salaries'     && <ShareholderSalaries />}
