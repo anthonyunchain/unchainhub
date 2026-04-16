@@ -148,11 +148,13 @@ export default function Dashboard() {
 
         {/* 2×2 KPI grid */}
         <div className="lg:col-span-2 grid grid-cols-2 gap-3">
-          <KpiCard title="Active clients"   value={activeClients}                      icon={Users}  tint="blue"   />
-          <Link to="/Pipeline" style={{ textDecoration: 'none', display: 'block' }}>
+          <Link to="/Clients" style={{ textDecoration: 'none', display: 'block' }}>
+            <KpiCard title="Active clients"   value={activeClients}                      icon={Users}  tint="blue"   />
+          </Link>
+          <Link to="/Admin?s=sales" style={{ textDecoration: 'none', display: 'block' }}>
             <KpiCard title="Open deals"       value={openDeals}                          icon={Kanban} tint="purple" />
           </Link>
-          <Link to="/Reports" style={{ textDecoration: 'none', display: 'block' }}>
+          <Link to="/Admin?s=analytics" style={{ textDecoration: 'none', display: 'block' }}>
             <KpiCard title="Views this month" value={totalViews30d.toLocaleString("fr-FR")} icon={Eye}    tint="green"  />
           </Link>
           <Link to="/Shootings" style={{ textDecoration: 'none', display: 'block' }}>
