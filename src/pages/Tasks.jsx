@@ -363,10 +363,6 @@ export default function Tasks() {
         })}
       </div>
 
-      {/* Filtres client + catégorie */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-0.5 scrollbar-none">
-        {/* end status filter buttons */}
-      </div>
       {/* right fade hint */}
       <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--bg)] to-transparent" />
       </div>
