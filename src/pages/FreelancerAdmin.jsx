@@ -452,6 +452,7 @@ function InvoicesManagement() {
   const [editData, setEditData] = useState(null);
   const [mutError, setMutError] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ["freelancer-payments"],
@@ -489,7 +490,8 @@ function InvoicesManagement() {
       const { error } = await supabase.from("freelancer_payments").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setDialogOpen(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setDialogOpen(false); setConfirmDelete(false); },
+    onError: (e) => setMutError(e.message),
   });
 
   const openNew = () => {
@@ -504,7 +506,7 @@ function InvoicesManagement() {
     setMutError(null);
     setDialogOpen(true);
   };
-  const openEdit = (p) => { setEditData({ ...p }); setMutError(null); setDialogOpen(true); };
+  const openEdit = (p) => { setEditData({ ...p }); setMutError(null); setConfirmDelete(false); setDialogOpen(true); };
   const handleSave = () => editData.id ? updateMut.mutate({ id: editData.id, d: editData }) : createMut.mutate(editData);
 
   const STATUS_COLORS = {
@@ -657,9 +659,17 @@ function InvoicesManagement() {
               </div>
               {mutError && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{mutError}</p>}
               <div className="flex justify-between items-center pt-2">
-                {editData.id
-                  ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={() => { if (confirm("Delete?")) deleteMut.mutate(editData.id); }}><Trash2 className="w-4 h-4 mr-1" />Delete</Button>
-                  : <div />}
+                {editData.id ? (
+                  confirmDelete ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-red-600">Confirm?</span>
+                      <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 text-xs" onClick={() => deleteMut.mutate(editData.id)} disabled={deleteMut.isPending}>Yes, delete</Button>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+                    </div>
+                  ) : (
+                    <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => setConfirmDelete(true)}><Trash2 className="w-4 h-4 mr-1" />Delete</Button>
+                  )
+                ) : <div />}
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
                   <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground"
