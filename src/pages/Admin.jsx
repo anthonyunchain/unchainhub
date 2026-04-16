@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Upload, X, ExternalLink, Trash2, GripVertical, Settings2, Check, Users, UserPlus, Send, Eye, EyeOff, CalendarDays, Shield, User as UserIcon, Building2, RefreshCw, Copy, KeyRound, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
@@ -1882,61 +1882,39 @@ function AdminExpenses() {
 }
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
-const DEFAULT_NAV_ITEMS = [
-  { id: 'tasks',         label: 'Admin Tasks' },
-  { id: 'briefs',        label: 'Monthly Briefs' },
-  { id: 'ideas',         label: 'Ideas' },
-  { id: 'analytics',     label: 'Analytics' },
-  { id: 'sales',         label: 'Pipeline' },
-  { id: 'finance',       label: 'Finance' },
-  { id: 'expenses',      label: 'Expenses' },
-  { id: 'services',      label: 'Services' },
-  { id: 'subscriptions', label: 'Subscriptions' },
-  { id: 'invoices',      label: 'Invoices' },
-  { id: 'salaries',      label: 'Salaries' },
-  { id: 'contracts',     label: 'Contracts' },
-  { id: 'meetings',      label: 'Board Meetings' },
-  { id: 'freelancer-meetings', label: 'Freelancer Meetings' },
-  { id: 'legal',         label: 'Legal Docs' },
-  { id: 'shareholders',  label: 'Shareholders' },
-  { id: 'users',         label: 'Users' },
-  { id: 'permissions',   label: 'Permissions' },
+const NAV_SECTIONS = [
+  { label: "Operations", items: [
+    { id: 'tasks',     label: 'Admin Tasks' },
+    { id: 'briefs',    label: 'Monthly Briefs' },
+    { id: 'ideas',     label: 'Ideas' },
+    { id: 'analytics', label: 'Analytics' },
+    { id: 'sales',     label: 'Pipeline' },
+  ]},
+  { label: "Finance", items: [
+    { id: 'finance',       label: 'Finance' },
+    { id: 'expenses',      label: 'Expenses' },
+    { id: 'invoices',      label: 'Invoices' },
+    { id: 'subscriptions', label: 'Subscriptions' },
+    { id: 'services',      label: 'Services' },
+    { id: 'salaries',      label: 'Salaries' },
+  ]},
+  { label: "Legal & Governance", items: [
+    { id: 'contracts',    label: 'Contracts' },
+    { id: 'legal',        label: 'Legal Docs' },
+    { id: 'meetings',     label: 'Board Meetings' },
+    { id: 'shareholders', label: 'Shareholders' },
+  ]},
+  { label: "Team", items: [
+    { id: 'freelancer-meetings', label: 'Freelancer Meetings' },
+    { id: 'users',               label: 'Users' },
+    { id: 'permissions',         label: 'Permissions' },
+  ]},
 ];
-
-const ADMIN_NAV_KEY = "admin_nav_order_v2";
-
-function loadAdminNav() {
-  try {
-    const saved = localStorage.getItem(ADMIN_NAV_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      const validIds = new Set(DEFAULT_NAV_ITEMS.map(i => i.id));
-      const filtered = parsed.filter(i => validIds.has(i.id));
-      const missing = DEFAULT_NAV_ITEMS.filter(i => !filtered.some(f => f.id === i.id));
-      return [...filtered, ...missing];
-    }
-  } catch {}
-  return DEFAULT_NAV_ITEMS;
-}
 
 export default function Admin() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [section, setSection] = useState(searchParams.get('s') || 'tasks');
-  const [navItems, setNavItems] = useState(loadAdminNav);
-  const [editingNav, setEditingNav] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem(ADMIN_NAV_KEY, JSON.stringify(navItems));
-  }, [navItems]);
-
-  const onDragEnd = (result) => {
-    if (!result.destination) return;
-    const items = Array.from(navItems);
-    const [moved] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, moved);
-    setNavItems(items);
-  };
 
   const { data: tasks = [] } = useQuery({ queryKey: ["admin-tasks"], queryFn: () => base44.entities.AdminTask.list("-created_at") });
   const { data: meetings = [] } = useQuery({ queryKey: ["board-meetings"], queryFn: () => base44.entities.BoardMeeting.list("-date") });
@@ -1964,95 +1942,60 @@ export default function Admin() {
         {/* ── Left sidebar ── */}
         <div className="w-full md:w-52 md:shrink-0">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="px-4 pt-4 pb-1 flex items-center justify-between">
-              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest px-1">Internal</p>
-              {editingNav ? (
-                <button onClick={() => setEditingNav(false)} className="flex items-center gap-1 text-[10px] font-semibold text-[#2A69FF] px-2 py-0.5 rounded-full bg-blue-50">
-                  <Check className="w-3 h-3" /> Done
-                </button>
-              ) : (
-                <button onClick={() => setEditingNav(true)} className="text-slate-300 hover:text-slate-500 transition-colors">
-                  <Settings2 className="w-3.5 h-3.5" />
-                </button>
-              )}
+            {/* Mobile: grouped dropdown */}
+            <div className="md:hidden p-3">
+              <Select value={section} onValueChange={setSection}>
+                <SelectTrigger className="w-full h-11 text-sm font-semibold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {NAV_SECTIONS.map(sec => (
+                    <SelectGroup key={sec.label}>
+                      <SelectLabel className="text-[10px] uppercase tracking-widest text-slate-400 font-medium">{sec.label}</SelectLabel>
+                      {sec.items.map(item => (
+                        <SelectItem key={item.id} value={item.id} className="text-sm py-2.5">
+                          {item.label}{badges[item.id] ? (item.id === 'salaries' ? <> · <Sensitive mask="••••">{badges[item.id]}</Sensitive></> : ` · ${badges[item.id]}`) : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <nav className="pb-3 relative">
-              {editingNav ? (
-                <DragDropContext onDragEnd={onDragEnd}>
-                  <Droppable droppableId="admin-nav">
-                    {(provided) => (
-                      <div ref={provided.innerRef} {...provided.droppableProps}>
-                        {navItems.map((item, index) => (
-                          <Draggable key={item.id} draggableId={item.id} index={index}>
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className="flex items-center gap-2 px-4 py-2.5 select-none"
-                                style={{ background: snapshot.isDragging ? '#f0f7ff' : 'transparent', ...provided.draggableProps.style }}
-                              >
-                                <div {...provided.dragHandleProps} className="text-slate-300 cursor-grab">
-                                  <GripVertical className="w-3.5 h-3.5" />
-                                </div>
-                                <span className="text-sm text-slate-500 truncate">{item.label}</span>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </DragDropContext>
-              ) : (
-                <>
-                  {/* Mobile: dropdown */}
-                  <div className="md:hidden p-3">
-                    <Select value={section} onValueChange={setSection}>
-                      <SelectTrigger className="w-full h-11 text-sm font-semibold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {navItems.map(item => (
-                          <SelectItem key={item.id} value={item.id} className="text-sm py-2.5">
-                            {item.label}{badges[item.id] ? (item.id === 'salaries' ? <> · <Sensitive mask="••••">{badges[item.id]}</Sensitive></> : ` · ${badges[item.id]}`) : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {/* Desktop: vertical nav */}
-                  <div className="hidden md:block">
-                    {navItems.map((item, idx) => {
-                      const isActive = section === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => setSection(item.id)}
-                          className="relative w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors duration-200"
-                          style={{ color: isActive ? '#2A69FF' : undefined }}
-                        >
-                          {isActive && (
-                            <motion.span
-                              layoutId="admin-nav-pill"
-                              className="absolute inset-0 bg-blue-50 rounded-none"
-                              style={{ borderLeft: '3px solid #2A69FF' }}
-                              transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                            />
-                          )}
-                          <span className={`relative z-10 ${isActive ? 'text-[#2A69FF] font-semibold' : 'text-slate-600 hover:text-slate-900'}`}>{item.label}</span>
-                          {badges[item.id] && (
-                            <span className={`relative z-10 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                              isActive ? 'bg-blue-100 text-[#2A69FF]' : 'bg-slate-100 text-slate-500'
-                            }`}>{item.id === 'salaries' ? <Sensitive mask="••••">{badges[item.id]}</Sensitive> : badges[item.id]}</span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-              </nav>
+            {/* Desktop: grouped vertical nav */}
+            <nav className="hidden md:block pb-2">
+              {NAV_SECTIONS.map((sec, si) => (
+                <div key={sec.label}>
+                  <p className={`text-[10px] font-medium text-slate-400 uppercase tracking-widest px-5 ${si === 0 ? 'pt-4' : 'pt-4'} pb-1`}>{sec.label}</p>
+                  {sec.items.map(item => {
+                    const isActive = section === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setSection(item.id)}
+                        className="relative w-full flex items-center justify-between px-4 py-2 text-sm font-medium transition-colors duration-200"
+                        style={{ color: isActive ? '#2A69FF' : undefined }}
+                      >
+                        {isActive && (
+                          <motion.span
+                            layoutId="admin-nav-pill"
+                            className="absolute inset-0 bg-blue-50 rounded-none"
+                            style={{ borderLeft: '3px solid #2A69FF' }}
+                            transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                          />
+                        )}
+                        <span className={`relative z-10 ${isActive ? 'text-[#2A69FF] font-semibold' : 'text-slate-600 hover:text-slate-900'}`}>{item.label}</span>
+                        {badges[item.id] && (
+                          <span className={`relative z-10 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                            isActive ? 'bg-blue-100 text-[#2A69FF]' : 'bg-slate-100 text-slate-500'
+                          }`}>{item.id === 'salaries' ? <Sensitive mask="••••">{badges[item.id]}</Sensitive> : badges[item.id]}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </nav>
           </div>
         </div>
 
