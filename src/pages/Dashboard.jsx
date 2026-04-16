@@ -99,7 +99,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
         {/* Hero Content Overview */}
-        <Link to="/Reports" style={{ textDecoration: 'none' }}>
+        <Link to="/Admin?s=analytics" style={{ textDecoration: 'none' }}>
           <div style={{
             ...CARD,
             background: 'linear-gradient(145deg, #1a3a8f 0%, #2A69FF 60%, #5b8fff 100%)',
