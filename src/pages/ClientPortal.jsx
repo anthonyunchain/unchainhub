@@ -1251,10 +1251,9 @@ export default function ClientPortal() {
         const client = clientRows?.[0] || null;
         setClientRecord(client);
 
-        // Apply client's default language on first visit (no manual override yet)
-        if (client?.default_language && !localStorage.getItem("cp_lang")) {
+        // Always apply client's default language on load
+        if (client?.default_language) {
           setLang(client.default_language);
-          localStorage.setItem("cp_lang", client.default_language);
         }
 
         if (!client?.company_name) { setLoading(false); return; }
