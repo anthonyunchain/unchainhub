@@ -937,6 +937,7 @@ export default function FreelancerPortal() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [todoNewTrigger, setTodoNewTrigger] = useState(0);
   const [invoiceOpenTrigger, setInvoiceOpenTrigger] = useState(0);
+  const [notesNewTrigger, setNotesNewTrigger] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
   const [navVisible, setNavVisible] = useState(true);
   const lastScrollY = useRef(0);
@@ -1138,7 +1139,7 @@ export default function FreelancerPortal() {
         onAccept={() => handleProjectUpdate()}
         onDecline={() => handleProjectUpdate()}
       />;
-      case "notes": return <Notes embedded />;
+      case "notes": return <Notes embedded autoNewTrigger={notesNewTrigger} />;
       default: return null;
     }
   };
@@ -1236,7 +1237,7 @@ export default function FreelancerPortal() {
               }}>
                 {format(new Date(), "EEE, MMM d", { locale: enUS })} · {time}
               </div>
-              <NotesFABFreelancer userId={user?.id} onOpenNotes={() => setActiveTab("notes")} />
+              <NotesFABFreelancer onNewNote={() => { setActiveTab("notes"); setNotesNewTrigger(n => n + 1); }} />
               <NotificationBell
                 notifications={notifications}
                 onMarkRead={notifMarkRead}
@@ -1255,7 +1256,7 @@ export default function FreelancerPortal() {
             {/* Mobile: time + bell + avatar menu */}
             <div className="flex md:hidden items-center gap-2">
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>{time}</div>
-              <NotesFABFreelancer userId={user?.id} onOpenNotes={() => setActiveTab("notes")} />
+              <NotesFABFreelancer onNewNote={() => { setActiveTab("notes"); setNotesNewTrigger(n => n + 1); }} />
               <NotificationBell
                 notifications={notifications}
                 onMarkRead={notifMarkRead}

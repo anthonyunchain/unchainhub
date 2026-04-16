@@ -1,13 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { base44, supabase } from "@/api/base44Client";
+import { base44 } from "@/api/base44Client";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { Menu, X } from "lucide-react";
 import UserMenu from "./UserMenu";
 import NotificationBell from "./NotificationBell";
 import NotesFAB from "../notes/NotesFAB";
-import { useQuery } from "@tanstack/react-query";
 
 const NAV_LINKS = [
   { path: "/Dashboard",      label: "Dashboard"  },
@@ -47,16 +46,6 @@ export default function Topbar() {
 
   const initials = userName?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "US";
   const today = format(new Date(), "EEE, MMM d", { locale: enUS });
-
-  const { data: recentNotes = [] } = useQuery({
-    queryKey: ["notes"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("notes").select("*").order("updated_at", { ascending: false }).limit(6);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!userId,
-  });
 
   return (
     <nav style={{ padding: '0 0 20px 0', position: 'relative', zIndex: 10 }}>
@@ -119,7 +108,7 @@ export default function Topbar() {
           }}>
             {today} · {time}
           </div>
-          <NotesFAB userId={userId} recentNotes={recentNotes} />
+          <NotesFAB />
           <NotificationBell recipientId={userId}  />
           <UserMenu userName={userName} userEmail={userEmail} initials={initials} />
         </div>
@@ -127,7 +116,7 @@ export default function Topbar() {
         {/* Mobile: time + bell + avatar */}
         <div className="flex md:hidden items-center gap-2">
           <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>{time}</div>
-          <NotesFAB userId={userId} recentNotes={recentNotes} />
+          <NotesFAB />
           <NotificationBell recipientId={userId}  />
           <UserMenu userName={userName} userEmail={userEmail} initials={initials} />
         </div>

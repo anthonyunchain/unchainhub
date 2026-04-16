@@ -23,7 +23,7 @@ const TAG_COLORS = ["#2A69FF", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4
 const CARD = { background: "var(--card)", borderRadius: "var(--card-radius)", boxShadow: "var(--card-shadow)" };
 const LABEL = { fontFamily: "'DM Mono', monospace", fontSize: "10px", fontWeight: 500, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.12em" };
 
-export default function Notes({ embedded = false }) {
+export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   const [searchParams] = useSearchParams();
   const qc = useQueryClient();
 
@@ -47,6 +47,22 @@ export default function Notes({ embedded = false }) {
   useEffect(() => {
     base44.auth.me().then(u => setCurrentUser(u)).catch(() => {});
   }, []);
+
+  // Open a blank new note when ?new=1 is in the URL or autoNewTrigger fires
+  const autoNewDoneRef = useRef(false);
+  useEffect(() => {
+    if (!currentUser) return;
+    const wantsNew = searchParams.get("new") === "1";
+    if (wantsNew && !autoNewDoneRef.current) {
+      autoNewDoneRef.current = true;
+      newNote();
+    }
+  }, [currentUser, searchParams]);
+
+  useEffect(() => {
+    if (!currentUser || autoNewTrigger === 0) return;
+    newNote();
+  }, [autoNewTrigger]);
 
   // ── Data queries ─────────────────────────────────────────────────────────
   const { data: notes = [] } = useQuery({
