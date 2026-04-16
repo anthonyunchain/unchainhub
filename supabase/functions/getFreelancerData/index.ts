@@ -82,13 +82,17 @@ Deno.serve(async (req) => {
             );
           }
           const text = rawText.slice(0, MAX_MSG_LEN);
-          const newMessage = {
+          const image_url = typeof body.append_note_image === 'string' && body.append_note_image.startsWith('http')
+            ? body.append_note_image
+            : null;
+          const newMessage: Record<string, unknown> = {
             id: crypto.randomUUID(),
             author_role: 'freelancer',
             author_name: name || 'Freelancer',
             text,
             created_at: new Date().toISOString(),
           };
+          if (image_url) newMessage.image_url = image_url;
           const existingThread = Array.isArray(taskCheck?.note_thread) ? taskCheck.note_thread : [];
           const MAX_THREAD = 500;
           const merged = [...existingThread, newMessage];

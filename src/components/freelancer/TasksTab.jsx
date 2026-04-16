@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { format, isPast, isToday, isTomorrow, isThisWeek, startOfDay } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square, MessageCircle, Send, X } from "lucide-react";
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square, MessageCircle, Send, X, ImagePlus, Loader2 } from "lucide-react";
 import { TASK_STATUS_CONFIG as STATUS_CONFIG, TASK_STATUS_LABEL as STATUS_LABEL } from "@/lib/taskStatus";
+import { base44 } from "@/api/base44Client";
 import TaskComments from "@/components/tasks/TaskComments";
 
 const CATEGORY_LABEL = {
@@ -34,6 +35,8 @@ function TaskRow({ task, onUpdateTask }) {
   const [messageDraft, setMessageDraft] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatImageFile, setChatImageFile] = useState(null);
+  const [chatImagePreview, setChatImagePreview] = useState(null);
   const cfg = STATUS_CONFIG[task.status] || STATUS_CONFIG["Non commencé"];
   const doneCount = (task.checklist || []).filter(c => c.done).length;
   const totalCount = (task.checklist || []).length;
@@ -47,14 +50,30 @@ function TaskRow({ task, onUpdateTask }) {
 
   const sendMessage = async () => {
     const text = messageDraft.trim();
-    if (!text) return;
+    if (!text && !chatImageFile) return;
     setSendingMessage(true);
     try {
-      await onUpdateTask(task, { append_note: text });
+      let image_url = null;
+      if (chatImageFile) {
+        const res = await base44.integrations.Core.UploadFile({ file: chatImageFile });
+        image_url = res.file_url;
+      }
+      await onUpdateTask(task, { append_note: text || " ", append_note_image: image_url });
       setMessageDraft("");
+      setChatImageFile(null);
+      setChatImagePreview(null);
     } finally {
       setSendingMessage(false);
     }
+  };
+
+  const handleChatImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setChatImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setChatImagePreview(ev.target.result);
+    reader.readAsDataURL(file);
   };
 
   const cycleStatus = () => {
@@ -221,7 +240,12 @@ function TaskRow({ task, onUpdateTask }) {
                           </span>
                         )}
                       </p>
-                      <p className="text-xs text-slate-700 whitespace-pre-wrap">{m.text}</p>
+                      {m.text && <p className="text-xs text-slate-700 whitespace-pre-wrap">{m.text}</p>}
+                      {m.image_url && (
+                        <a href={m.image_url} target="_blank" rel="noopener noreferrer" className="block mt-1">
+                          <img src={m.image_url} alt="" className="max-w-[180px] max-h-[120px] rounded-md border border-slate-200 object-cover hover:opacity-90" />
+                        </a>
+                      )}
                     </div>
                   );
                 })
@@ -229,6 +253,17 @@ function TaskRow({ task, onUpdateTask }) {
             </div>
 
             <div className="border-t border-slate-100 px-4 py-3 space-y-2 bg-slate-50/50">
+              {chatImagePreview && (
+                <div className="relative inline-block">
+                  <img src={chatImagePreview} alt="Preview" className="max-w-[80px] max-h-[50px] rounded-md border border-slate-200 object-cover" />
+                  <button
+                    onClick={() => { setChatImageFile(null); setChatImagePreview(null); }}
+                    className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              )}
               <textarea
                 value={messageDraft}
                 onChange={e => setMessageDraft(e.target.value.slice(0, 5000))}
@@ -244,13 +279,20 @@ function TaskRow({ task, onUpdateTask }) {
                 className="w-full text-sm rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none focus:border-blue-400 resize-none"
               />
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-slate-400">Anthony gets notified when you send.</span>
+                <div className="flex items-center gap-2">
+                  <label className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors" title="Attach image">
+                    <ImagePlus className="w-4 h-4" />
+                    <input type="file" accept="image/*" className="hidden" onChange={handleChatImageSelect} />
+                  </label>
+                  <span className="text-[10px] text-slate-400">Anthony gets notified.</span>
+                </div>
                 <button
                   onClick={sendMessage}
-                  disabled={!messageDraft.trim() || sendingMessage}
+                  disabled={(!messageDraft.trim() && !chatImageFile) || sendingMessage}
                   className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Send className="w-3.5 h-3.5" /> {sendingMessage ? "Sending…" : "Send"}
+                  {sendingMessage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  {sendingMessage ? "Sending…" : "Send"}
                 </button>
               </div>
             </div>

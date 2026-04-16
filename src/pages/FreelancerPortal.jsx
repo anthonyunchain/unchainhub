@@ -1088,6 +1088,9 @@ export default function FreelancerPortal() {
     if (typeof updates.append_note === 'string' && updates.append_note.trim()) {
       payload.update_task_id = task.id;
       payload.append_task_note = updates.append_note;
+      if (updates.append_note_image) {
+        payload.append_note_image = updates.append_note_image;
+      }
     }
     const res = await base44.functions.invoke('getFreelancerData', payload);
     setFreelancerData(res.data);

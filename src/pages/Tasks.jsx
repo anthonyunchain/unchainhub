@@ -17,6 +17,7 @@ const toTaskPayload = (d) => ({
   due_date: d.due_date || null,
   checklist: d.checklist || [],
   notes: d.notes || null,
+  images: d.images || [],
 });
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";

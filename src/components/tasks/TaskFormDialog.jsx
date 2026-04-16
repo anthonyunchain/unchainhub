@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X, CheckSquare, Square, UserCheck, MessageCircle, Send, Trash2 } from "lucide-react";
+import { Plus, X, CheckSquare, Square, UserCheck, MessageCircle, Send, Trash2, ImagePlus, Loader2 } from "lucide-react";
 import TaskComments from "./TaskComments";
 
 export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
@@ -39,12 +39,18 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
   const [messageDraft, setMessageDraft] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [clearStep, setClearStep] = useState(0); // 0=idle, 1=first confirm, 2=second confirm
+  const [convImageFile, setConvImageFile] = useState(null);
+  const [convImagePreview, setConvImagePreview] = useState(null);
+  const [uploadingConvImage, setUploadingConvImage] = useState(false);
+  const [uploadingTaskImage, setUploadingTaskImage] = useState(false);
 
   useEffect(() => {
     setData(task || empty);
     setNewCheck("");
     setMessageDraft("");
     setClearStep(0);
+    setConvImageFile(null);
+    setConvImagePreview(null);
   }, [task, open]);
 
   const thread = Array.isArray(data.note_thread) ? data.note_thread : [];
@@ -52,15 +58,23 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
   const sendAdminMessage = async () => {
     if (!task?.id) return;
     const text = messageDraft.trim();
-    if (!text) return;
+    if (!text && !convImageFile) return;
     setSendingMessage(true);
     try {
+      let image_url = null;
+      if (convImageFile) {
+        setUploadingConvImage(true);
+        const res = await base44.integrations.Core.UploadFile({ file: convImageFile });
+        image_url = res.file_url;
+        setUploadingConvImage(false);
+      }
       const now = new Date().toISOString();
       const newMessage = {
         id: (crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`),
         author_role: "admin",
         author_name: currentUserName || "Admin",
-        text,
+        text: text || "",
+        image_url,
         created_at: now,
       };
       const nextThread = [...thread, newMessage];
@@ -94,11 +108,42 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
 
       setData(d => ({ ...d, note_thread: nextThread }));
       setMessageDraft("");
+      setConvImageFile(null);
+      setConvImagePreview(null);
     } catch (e) {
+      setUploadingConvImage(false);
       alert('Failed to send message: ' + (e?.message || e));
     } finally {
       setSendingMessage(false);
     }
+  };
+
+  const handleConvImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setConvImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setConvImagePreview(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleTaskImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingTaskImage(true);
+    try {
+      const res = await base44.integrations.Core.UploadFile({ file });
+      set("images", [...(data.images || []), res.file_url]);
+    } catch (err) {
+      alert('Upload failed: ' + (err?.message || err));
+    } finally {
+      setUploadingTaskImage(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeTaskImage = (idx) => {
+    set("images", (data.images || []).filter((_, i) => i !== idx));
   };
 
   const set = (k, v) => setData(d => ({ ...d, [k]: v }));
@@ -289,12 +334,30 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
               <Textarea value={data.notes || ""} onChange={e => set("notes", e.target.value)} rows={4} placeholder="Notes..." />
             </div>
 
-            {/* Comments with images — only when editing */}
-            {task?.id && (
-              <div className="border-t border-slate-100 pt-3">
-                <TaskComments taskId={task.id} />
+            {/* Task images */}
+            <div className="col-span-full">
+              <Label>Images</Label>
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                {(data.images || []).map((url, i) => (
+                  <div key={i} className="relative group">
+                    <a href={url} target="_blank" rel="noopener noreferrer">
+                      <img src={url} alt="" className="w-20 h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => removeTaskImage(i)}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                <label className={`w-20 h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-slate-400 transition-colors ${uploadingTaskImage ? "opacity-50 pointer-events-none" : ""}`}>
+                  {uploadingTaskImage ? <Loader2 className="w-5 h-5 animate-spin text-slate-400" /> : <ImagePlus className="w-5 h-5 text-slate-400" />}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleTaskImageUpload} />
+                </label>
               </div>
-            )}
+            </div>
           </div>
           </div>
           {/* ─── end LEFT column ─── */}
@@ -384,38 +447,60 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                             </span>
                           )}
                         </p>
-                        <p className="text-xs text-slate-700 whitespace-pre-wrap">{m.text}</p>
+                        {m.text && <p className="text-xs text-slate-700 whitespace-pre-wrap">{m.text}</p>}
+                        {m.image_url && (
+                          <a href={m.image_url} target="_blank" rel="noopener noreferrer" className="block mt-1">
+                            <img src={m.image_url} alt="" className="max-w-[200px] max-h-[150px] rounded-md border border-slate-200 object-cover hover:opacity-90" />
+                          </a>
+                        )}
                       </div>
                     );
                   })
                 )}
               </div>
 
-              <div className="mt-2 flex items-start gap-2 flex-shrink-0">
-                <Textarea
-                  value={messageDraft}
-                  onChange={e => setMessageDraft(e.target.value.slice(0, 5000))}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                      e.preventDefault();
-                      sendAdminMessage();
-                    }
-                  }}
-                  rows={2}
-                  placeholder="Write a message…"
-                  maxLength={5000}
-                  className="flex-1 text-sm"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={sendAdminMessage}
-                  disabled={sendingMessage || !messageDraft.trim()}
-                  className="shrink-0"
-                >
-                  <Send className="w-3.5 h-3.5 mr-1" />
-                  {sendingMessage ? "…" : "Send"}
-                </Button>
+              <div className="mt-2 flex-shrink-0 space-y-2">
+                {convImagePreview && (
+                  <div className="relative inline-block">
+                    <img src={convImagePreview} alt="Preview" className="max-w-[100px] max-h-[60px] rounded-md border border-slate-200 object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setConvImageFile(null); setConvImagePreview(null); }}
+                      className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-start gap-2">
+                  <label className="shrink-0 mt-1 p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors" title="Attach image">
+                    <ImagePlus className="w-4 h-4" />
+                    <input type="file" accept="image/*" className="hidden" onChange={handleConvImageSelect} />
+                  </label>
+                  <Textarea
+                    value={messageDraft}
+                    onChange={e => setMessageDraft(e.target.value.slice(0, 5000))}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        sendAdminMessage();
+                      }
+                    }}
+                    rows={2}
+                    placeholder="Write a message…"
+                    maxLength={5000}
+                    className="flex-1 text-sm"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={sendAdminMessage}
+                    disabled={sendingMessage || (!messageDraft.trim() && !convImageFile)}
+                    className="shrink-0"
+                  >
+                    {sendingMessage || uploadingConvImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Send className="w-3.5 h-3.5 mr-1" />Send</>}
+                  </Button>
+                </div>
               </div>
             </div>
           )}
