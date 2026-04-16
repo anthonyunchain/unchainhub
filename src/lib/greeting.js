@@ -75,5 +75,6 @@ export function getGreeting(name, lang = "en") {
   const list = map[period];
   const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
   const template = list[dayOfYear % list.length];
+  if (!name) return template.replace(/,?\s*\{name\}/, "");
   return template.replace("{name}", name);
 }

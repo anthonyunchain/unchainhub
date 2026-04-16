@@ -1224,7 +1224,7 @@ export default function ClientPortal() {
   }, []);
 
   const clientName = clientRecord?.company_name || user?.user_metadata?.company_name || user?.email?.split("@")[0] || "";
-  const greeting = useMemo(() => getGreeting(clientName.split(" ")[0] || "", lang), [clientName, lang]);
+  const greeting = useMemo(() => getGreeting("", lang), [lang]);
 
   useEffect(() => {
     (async () => {
