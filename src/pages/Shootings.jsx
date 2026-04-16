@@ -311,7 +311,7 @@ export default function Shootings() {
       {/* Content needing a shooting — button */}
       {(() => {
         const linkedContentIds = new Set(contentLinks.map(c => c.content_id));
-        const unlinkedCount = editorial.filter(e => e.status !== "Publié" && !linkedContentIds.has(e.id)).length;
+        const unlinkedCount = editorial.filter(e => e.status !== "Publié" && e.needs_shooting !== false && !linkedContentIds.has(e.id)).length;
         if (unlinkedCount === 0) return null;
         return (
           <div className="mb-5">

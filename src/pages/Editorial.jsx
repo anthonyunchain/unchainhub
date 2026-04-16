@@ -103,7 +103,7 @@ export default function Editorial() {
 
   const openNew = (date) => {
     if (isReadOnly) return;
-    setEditData({ client_id: "", client_name: "", title: "", post_type: "Reel", scheduled_date: format(date || new Date(), "yyyy-MM-dd"), status: "Planifié", description: "", notes: "" });
+    setEditData({ client_id: "", client_name: "", title: "", post_type: "Reel", scheduled_date: format(date || new Date(), "yyyy-MM-dd"), status: "Planifié", description: "", notes: "", needs_shooting: true });
     setDialogOpen(true);
   };
   const openEdit = (c) => { 
@@ -607,6 +607,19 @@ export default function Editorial() {
                       <Input value={editData.drive_link || ""} onChange={e => setEditData({ ...editData, drive_link: e.target.value })} placeholder="https://drive.google.com/..." />
                     )}
                   </div>
+                  {/* Need a shooting switch */}
+                  {!isReadOnly && (
+                    <div className="flex items-center justify-between py-2">
+                      <Label className="text-sm text-slate-600">Need a shooting</Label>
+                      <button
+                        type="button"
+                        onClick={() => setEditData(d => ({ ...d, needs_shooting: !d.needs_shooting }))}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${editData.needs_shooting !== false ? "bg-brand" : "bg-slate-200"}`}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-0 transition-transform ${editData.needs_shooting !== false ? "translate-x-5" : "translate-x-0"}`} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* ── Right column — Montage ── */}

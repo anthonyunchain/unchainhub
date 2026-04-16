@@ -31,7 +31,7 @@ export default function ShootingsToOrganize() {
 
   const linkedIds = new Set(contentLinks.map(c => c.content_id));
   const unlinked = editorial
-    .filter(e => e.status !== "Publié" && !linkedIds.has(e.id))
+    .filter(e => e.status !== "Publié" && e.needs_shooting !== false && !linkedIds.has(e.id))
     .sort((a, b) => {
       // Sort by client, then by scheduled_date
       const clientCmp = (a.client_name || "").localeCompare(b.client_name || "");

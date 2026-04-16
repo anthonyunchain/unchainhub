@@ -63,7 +63,7 @@ export default function Dashboard() {
   const totalViews30d = thisMonthStats.reduce((s, r) => s + (r.views || 0), 0);
   const { data: shootingContentLinks = [] } = useQuery({ queryKey: ["shooting-content-dash"], queryFn: () => base44.entities.ShootingContent.list() });
   const linkedContentIds = new Set(shootingContentLinks.map(c => c.content_id));
-  const shootingsToOrganize = content.filter(c => c.status !== "Publié" && !linkedContentIds.has(c.id)).length;
+  const shootingsToOrganize = content.filter(c => c.status !== "Publié" && c.needs_shooting !== false && !linkedContentIds.has(c.id)).length;
 
   return (
     <div className="w-full mx-auto space-y-4" style={{ maxWidth: '1400px' }}>
