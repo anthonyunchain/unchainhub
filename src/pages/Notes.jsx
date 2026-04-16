@@ -38,12 +38,15 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   const [newTagInput, setNewTagInput]       = useState("");
   const [showNewTag, setShowNewTag]         = useState(false);
   const [showShare, setShowShare]           = useState(false);
-  const [deleteConfirm, setDeleteConfirm]   = useState(false);
+  const [undoStack, setUndoStack]           = useState([]); // deleted notes for Ctrl+Z
+  const [undoToast, setUndoToast]           = useState(false);
+  const [focusTitle, setFocusTitle]         = useState(false); // triggers title focus after render
 
   // Track last-saved snapshot to avoid redundant auto-saves
   const lastSavedRef  = useRef(null);
   const saveTimerRef  = useRef(null);
   const titleInputRef = useRef(null);
+  const undoToastTimer = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(u => setCurrentUser(u)).catch(() => {});
@@ -64,6 +67,14 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     if (!currentUser || autoNewTrigger === 0) return;
     newNote();
   }, [autoNewTrigger]);
+
+  // Focus title after render when flagged
+  useEffect(() => {
+    if (focusTitle) {
+      titleInputRef.current?.focus();
+      setFocusTitle(false);
+    }
+  }, [focusTitle]);
 
   // ── Data queries ─────────────────────────────────────────────────────────
   const { data: notes = [] } = useQuery({
@@ -160,10 +171,28 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
       setEditData(null);
       lastSavedRef.current = null;
       setMobileView("list");
-      setDeleteConfirm(false);
       setSaveStatus(null);
+      // Show undo toast for 5s
+      setUndoToast(true);
+      clearTimeout(undoToastTimer.current);
+      undoToastTimer.current = setTimeout(() => setUndoToast(false), 5000);
     },
     onError: (e) => setSaveError(e.message),
+  });
+
+  const restoreMut = useMutation({
+    mutationFn: async (note) => {
+      const { id: _id, created_at, updated_at, ...payload } = note;
+      const { data, error } = await supabase.from("notes").insert(payload).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (restored) => {
+      qc.invalidateQueries({ queryKey: ["notes"] });
+      setUndoStack(s => s.slice(0, -1));
+      setUndoToast(false);
+      openNote(restored);
+    },
   });
 
   const createTagMut = useMutation({
@@ -210,19 +239,32 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     return () => clearTimeout(saveTimerRef.current);
   }, [editData, currentUser]);
 
-  // ── Backspace to delete ───────────────────────────────────────────────────
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key !== "Backspace") return;
-      if (!selectedId || !editData?.id) return;
-      const tag = document.activeElement?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
-      e.preventDefault();
-      setDeleteConfirm(true);
+      // Backspace (outside inputs) → delete selected note immediately
+      if (e.key === "Backspace") {
+        if (!selectedId || !editData?.id) return;
+        const tag = document.activeElement?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
+        e.preventDefault();
+        setUndoStack(s => [...s, editData]);
+        deleteMut.mutate(editData.id);
+        return;
+      }
+      // Ctrl+Z → restore last deleted note
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        setUndoStack(s => {
+          if (!s.length) return s;
+          const note = s[s.length - 1];
+          restoreMut.mutate(note);
+          return s; // slice happens in onSuccess
+        });
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedId, editData?.id]);
+  }, [selectedId, editData]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const openNote = (note) => {
@@ -243,11 +285,10 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     setSelectedId(null);
     setEditData({ title: "", content: "", tags: [], shared_with: [], created_by: currentUser?.id });
     setSaveError(null);
-    setDeleteConfirm(false);
     setShowShare(false);
     setMobileView("editor");
     setSaveStatus(null);
-    setTimeout(() => titleInputRef.current?.focus(), 80);
+    setFocusTitle(true); // focus after React re-renders the input
   };
 
   const update = (field, value) => setEditData(prev => ({ ...prev, [field]: value }));
@@ -508,41 +549,23 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
             </button>
           )}
 
-          {/* Delete button (owner, existing note only) */}
+          {/* Delete button (owner, existing note only) — no confirmation, Ctrl+Z to undo */}
           {isOwner && editData.id && (
-            deleteConfirm ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "4px 10px" }}>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#ef4444" }}>Delete?</span>
-                <button
-                  onClick={() => deleteMut.mutate(editData.id)}
-                  disabled={deleteMut.isPending}
-                  style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#ef4444", fontWeight: 700 }}
-                >
-                  Yes
-                </button>
-                <button
-                  onClick={() => setDeleteConfirm(false)}
-                  style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--muted)" }}
-                >
-                  No
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setDeleteConfirm(true)}
-                title="Delete note (or press Backspace)"
-                style={{
-                  width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
-                  background: "var(--bg)", border: "1px solid var(--divider)",
-                  cursor: "pointer", color: "var(--muted)",
-                  transition: "all 150ms",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.borderColor = "#fecaca"; e.currentTarget.style.color = "#ef4444"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "var(--bg)"; e.currentTarget.style.borderColor = "var(--divider)"; e.currentTarget.style.color = "var(--muted)"; }}
-              >
-                <Trash2 style={{ width: 14, height: 14 }} />
-              </button>
-            )
+            <button
+              onClick={() => { setUndoStack(s => [...s, editData]); deleteMut.mutate(editData.id); }}
+              disabled={deleteMut.isPending}
+              title="Delete note (Backspace / Ctrl+Z to undo)"
+              style={{
+                width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+                background: "var(--bg)", border: "1px solid var(--divider)",
+                cursor: "pointer", color: "var(--muted)",
+                transition: "all 150ms",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.borderColor = "#fecaca"; e.currentTarget.style.color = "#ef4444"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "var(--bg)"; e.currentTarget.style.borderColor = "var(--divider)"; e.currentTarget.style.color = "var(--muted)"; }}
+            >
+              <Trash2 style={{ width: 14, height: 14 }} />
+            </button>
           )}
         </div>
       </div>
@@ -671,7 +694,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   const panelHeight = embedded ? "calc(100dvh - 200px)" : "calc(100dvh - 110px)";
 
   return (
-    <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+    <div style={{ maxWidth: 1400, margin: "0 auto", position: "relative" }}>
       {/* Desktop: 2-panel */}
       <div
         className="hidden md:grid"
@@ -685,6 +708,35 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
       <div className="flex md:hidden" style={{ height: panelHeight }}>
         {mobileView === "list" ? leftPanel : editorPanel}
       </div>
+
+      {/* Undo toast */}
+      {undoToast && undoStack.length > 0 && (
+        <div style={{
+          position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)",
+          background: "rgba(20,20,30,0.92)", color: "#fff",
+          borderRadius: 12, padding: "10px 18px",
+          display: "flex", alignItems: "center", gap: 12,
+          fontFamily: "'DM Mono', monospace", fontSize: 12,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+          zIndex: 9999, backdropFilter: "blur(8px)",
+          pointerEvents: "all",
+        }}>
+          <span style={{ opacity: 0.75 }}>Note deleted</span>
+          <button
+            onClick={() => {
+              const note = undoStack[undoStack.length - 1];
+              if (note) restoreMut.mutate(note);
+            }}
+            style={{
+              background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 7,
+              padding: "4px 10px", color: "#fff", cursor: "pointer",
+              fontSize: 11, fontWeight: 600, fontFamily: "'DM Mono', monospace",
+            }}
+          >
+            Ctrl+Z Undo
+          </button>
+        </div>
+      )}
     </div>
   );
 }
