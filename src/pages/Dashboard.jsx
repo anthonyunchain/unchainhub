@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Users, Kanban, Calendar, ArrowUpRight, FileBarChart, Eye } from "lucide-react";
+import { Users, Kanban, Calendar, ArrowUpRight, FileBarChart, Eye, Camera } from "lucide-react";
 import KpiCard from "../components/shared/KpiCard";
 import StatusBadge from "../components/shared/StatusBadge";
 import TodayTasksWidget from "../components/tasks/TodayTasksWidget";
@@ -61,7 +61,9 @@ export default function Dashboard() {
   const { data: clientStats = [] } = useQuery({ queryKey: ["client-stats-dash"], queryFn: () => base44.entities.ClientStats.list("-period") });
   const thisMonthStats = clientStats.filter(s => s.period === currentMonth);
   const totalViews30d = thisMonthStats.reduce((s, r) => s + (r.views || 0), 0);
-  const totalFollowers = thisMonthStats.reduce((s, r) => s + (r.followers_gained || 0), 0);
+  const { data: shootingContentLinks = [] } = useQuery({ queryKey: ["shooting-content-dash"], queryFn: () => base44.entities.ShootingContent.list() });
+  const linkedContentIds = new Set(shootingContentLinks.map(c => c.content_id));
+  const shootingsToOrganize = content.filter(c => c.status !== "Publié" && !linkedContentIds.has(c.id)).length;
 
   return (
     <div className="w-full mx-auto space-y-4" style={{ maxWidth: '1400px' }}>
@@ -151,7 +153,9 @@ export default function Dashboard() {
           <Link to="/Reports" style={{ textDecoration: 'none', display: 'block' }}>
             <KpiCard title="Views this month" value={totalViews30d.toLocaleString("fr-FR")} icon={Eye}    tint="green"  />
           </Link>
-          <KpiCard title="Followers gained" value={`+${totalFollowers}`}               icon={Users}  tint="amber"  />
+          <Link to="/Shootings" style={{ textDecoration: 'none', display: 'block' }}>
+            <KpiCard title="Shootings to organize" value={shootingsToOrganize} icon={Camera} tint="amber" />
+          </Link>
         </div>
       </div>
 
