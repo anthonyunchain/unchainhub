@@ -21,6 +21,15 @@ const TRANSLATIONS = {
     briefShort: "Brief",
     reports: "Reports",
     admin: "Admin",
+    shootings: "Shootings",
+    upcomingShootings: "Upcoming Shootings",
+    noUpcomingShootings: "No upcoming shootings",
+    noShootingsScheduled: "No shootings scheduled",
+    pastShootings: "Past shootings",
+    crew: "Crew",
+    approve: "Approve",
+    decline: "Decline",
+    pendingApproval: "Pending approval",
     viewsThisMonth: "Views this month",
     postsPublished: "Posts published",
     editorialCalendarPdf: "Editorial Calendar PDF",
@@ -91,6 +100,15 @@ const TRANSLATIONS = {
     briefShort: "Brief",
     reports: "Raportit",
     admin: "Ylläpito",
+    shootings: "Kuvaukset",
+    upcomingShootings: "Tulevat kuvaukset",
+    noUpcomingShootings: "Ei tulevia kuvauksia",
+    noShootingsScheduled: "Ei suunniteltuja kuvauksia",
+    pastShootings: "Menneet kuvaukset",
+    crew: "Tiimi",
+    approve: "Hyväksy",
+    decline: "Hylkää",
+    pendingApproval: "Odottaa hyväksyntää",
     viewsThisMonth: "Näyttökerrat tässä kuussa",
     postsPublished: "Julkaistut julkaisut",
     editorialCalendarPdf: "Sisältökalenteri (PDF)",
@@ -236,7 +254,7 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
     <div className="space-y-4">
       {/* Row 1: Upcoming Shootings | Download Calendar */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <ClientShootings clientName={client?.company_name} />
+        <ClientShootings clientName={client?.company_name} tr={tr} />
         {monthPdf ? (
           <a href={monthPdf.url} target="_blank" rel="noopener noreferrer"
             className="rounded-2xl p-5 flex flex-col justify-between gap-3 transition-all hover:opacity-90"
@@ -286,7 +304,7 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
 }
 
 // ── Client Shootings section ──────────────────────────────────────────────
-function ClientShootings({ clientName }) {
+function ClientShootings({ clientName, tr }) {
   const { data: shootings = [] } = useQuery({
     queryKey: ["client-shootings", clientName],
     queryFn: async () => {
@@ -308,11 +326,11 @@ function ClientShootings({ clientName }) {
     <div style={{ background: 'var(--card)', borderRadius: 20, border: '1px solid var(--divider)', padding: '20px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
       <div className="flex items-center gap-2 mb-3">
         <Camera style={{ width: 16, height: 16, color: 'var(--brand)' }} />
-        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Upcoming Shootings</p>
+        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{tr.upcomingShootings}</p>
         <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' }}>{upcoming.length}</span>
       </div>
       {upcoming.length === 0 ? (
-        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' }}>No upcoming shootings</p>
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' }}>{tr.noUpcomingShootings}</p>
       ) : (
         <div className="space-y-2">
           {upcoming.slice(0, 3).map(s => (
@@ -334,7 +352,7 @@ function ClientShootings({ clientName }) {
 }
 
 // ── Client Shootings tab (full page) ──────────────────────────────────────
-function ClientShootingsTab({ clientName }) {
+function ClientShootingsTab({ clientName, tr }) {
   const { dark } = useTheme();
   const qc = useQueryClient();
 
@@ -404,7 +422,7 @@ function ClientShootingsTab({ clientName }) {
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[s.status] || "bg-slate-100 text-slate-500"}`}>{s.status}</span>
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${CLIENT_STATUS_BADGE[s.client_status || "Pending"]}`}>
-                {s.client_status || "Pending approval"}
+                {s.client_status === "Approved" ? tr.approve : s.client_status === "Declined" ? tr.decline : tr.pendingApproval}
               </span>
             </div>
             <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{s.title}</p>
@@ -422,18 +440,10 @@ function ClientShootingsTab({ clientName }) {
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{s.description}</p>
           )}
 
-          {s.gear && (
-            <div style={{ padding: '10px 14px', borderRadius: 12, background: dark ? 'rgba(255,180,0,0.08)' : '#FFF8E8', border: dark ? '1px solid rgba(255,180,0,0.15)' : '1px solid #FDE68A' }}>
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: dark ? '#F59E0B' : '#92400E' }}>
-                <strong>Gear:</strong> {s.gear}
-              </p>
-            </div>
-          )}
-
           {/* Crew */}
           {crew.length > 0 && (
             <div>
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Crew</p>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{tr.crew}</p>
               <div className="flex flex-wrap gap-2">
                 {crew.map(a => (
                   <div key={a.id} className="flex items-center gap-2" style={{ padding: '6px 12px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--divider)' }}>
@@ -448,17 +458,6 @@ function ClientShootingsTab({ clientName }) {
             </div>
           )}
 
-          {/* Images */}
-          {(s.images || []).length > 0 && (
-            <div className="flex gap-2 flex-wrap">
-              {s.images.map((url, i) => (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                  <img src={url} alt="" style={{ width: 80, height: 80, borderRadius: 12, objectFit: 'cover', border: '1px solid var(--divider)' }} />
-                </a>
-              ))}
-            </div>
-          )}
-
           {/* Accept / Decline */}
           {isPending && s.status !== "Completed" && s.status !== "Cancelled" && (
             <div className="flex gap-2 pt-2">
@@ -466,13 +465,13 @@ function ClientShootingsTab({ clientName }) {
                 onClick={() => respond(s.id, "Approved")}
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, background: '#10B981', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               >
-                <CheckCircle2 style={{ width: 16, height: 16 }} /> Approve
+                <CheckCircle2 style={{ width: 16, height: 16 }} /> {tr.approve}
               </button>
               <button
                 onClick={() => respond(s.id, "Declined")}
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, background: 'transparent', color: '#EF4444', border: '1px solid #FCA5A5', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               >
-                Decline
+                {tr.decline}
               </button>
             </div>
           )}
@@ -485,7 +484,7 @@ function ClientShootingsTab({ clientName }) {
     return (
       <div className="text-center py-16">
         <Camera style={{ width: 40, height: 40, color: 'var(--muted)', opacity: 0.3, margin: '0 auto 12px' }} />
-        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: 'var(--muted)' }}>No shootings scheduled</p>
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: 'var(--muted)' }}>{tr.noShootingsScheduled}</p>
       </div>
     );
   }
@@ -500,7 +499,7 @@ function ClientShootingsTab({ clientName }) {
       {past.length > 0 && (
         <details className="group">
           <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 list-none py-2 select-none" style={{ color: 'var(--muted)', fontFamily: "'DM Mono', monospace" }}>
-            Past shootings ({past.length})
+            {tr.pastShootings} ({past.length})
           </summary>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 opacity-70">
             {past.map(s => <ShootingCard key={s.id} s={s} />)}
@@ -1201,7 +1200,7 @@ export default function ClientPortal() {
 
   const TABS = [
     { key: "dashboard", label: tr.dashboard,  icon: LayoutDashboard },
-    { key: "shootings", label: "Shootings",   icon: Camera },
+    { key: "shootings", label: tr.shootings,   icon: Camera },
     { key: "brief",     label: tr.brief,       icon: ClipboardList },
     { key: "reports",   label: tr.reports,     icon: BarChart2 },
     { key: "admin",     label: tr.admin,       icon: Settings },
@@ -1334,7 +1333,7 @@ export default function ClientPortal() {
         )}
 
         {activeTab === "dashboard" && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} calendarPdfs={clientRecord?.editorial_calendar_pdfs || []} tr={tr} dateLocale={dateLocale} />}
-        {activeTab === "shootings" && <ClientShootingsTab clientName={clientName} />}
+        {activeTab === "shootings" && <ClientShootingsTab clientName={clientName} tr={tr} />}
         {activeTab === "brief"     && <BriefTab clientName={clientName} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "reports"   && <ReportsTab stats={stats} content={content} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "admin"     && (
