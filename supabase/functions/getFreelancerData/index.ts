@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
 
     // If a task update is requested, verify the task belongs to this freelancer first
-    if (body.update_task_id && (body.update_task_status || typeof body.append_task_note === 'string')) {
+    if (body.update_task_id && (body.update_task_status || typeof body.append_task_note === 'string' || body.toggle_reaction_msg_id)) {
       const { data: taskCheck } = await supabaseAdmin
         .from('tasks')
         .select('id, assigned_to, assigned_freelancer_id, title, note_thread')
@@ -124,6 +124,47 @@ Deno.serve(async (req) => {
           if (rows.length > 0) {
             const { error: notifErr } = await supabaseAdmin.from('notifications').insert(rows);
             if (notifErr) console.error('[getFreelancerData] notifications insert error', notifErr);
+          }
+        }
+
+        // Toggle reaction on a message
+        if (body.toggle_reaction_msg_id) {
+          const existingThread = Array.isArray(taskCheck?.note_thread) ? taskCheck.note_thread : [];
+          const updatedThread = existingThread.map((m: Record<string, unknown>) => {
+            if (m.id !== body.toggle_reaction_msg_id) return m;
+            const reactions = Array.isArray(m.reactions) ? [...(m.reactions as unknown[])] : [];
+            const idx = reactions.findIndex((r: any) => r.user_role === 'freelancer');
+            if (idx >= 0) {
+              reactions.splice(idx, 1);
+            } else {
+              reactions.push({ emoji: '👍', user_name: name || 'Freelancer', user_role: 'freelancer' });
+            }
+            return { ...m, reactions };
+          });
+
+          await supabaseAdmin
+            .from('tasks')
+            .update({ note_thread: updatedThread })
+            .eq('id', body.update_task_id);
+
+          // Notify admins
+          const reactedMsg = updatedThread.find((m: any) => m.id === body.toggle_reaction_msg_id);
+          const hasReaction = reactedMsg?.reactions?.some((r: any) => r.user_role === 'freelancer');
+          if (hasReaction) {
+            const { data: admins } = await supabaseAdmin.from('profiles').select('id').eq('role', 'admin');
+            if (admins?.length) {
+              await supabaseAdmin.from('notifications').insert(
+                admins.map((a: { id: string }) => ({
+                  recipient_id: a.id,
+                  title: `👍 ${name || 'Freelancer'} reacted`,
+                  message: `${name || 'Freelancer'} reacted to a message in "${taskCheck?.title || 'task'}"`,
+                  type: 'reaction',
+                  is_read: false,
+                  action_required: false,
+                  created_at: new Date().toISOString(),
+                }))
+              );
+            }
           }
         }
       }

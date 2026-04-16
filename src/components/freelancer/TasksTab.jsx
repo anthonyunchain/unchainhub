@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format, isPast, isToday, isTomorrow, isThisWeek, startOfDay } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square, MessageCircle, Send, X, ImagePlus, Loader2 } from "lucide-react";
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square, MessageCircle, Send, X, ImagePlus, Loader2, ThumbsUp } from "lucide-react";
 import { TASK_STATUS_CONFIG as STATUS_CONFIG, TASK_STATUS_LABEL as STATUS_LABEL } from "@/lib/taskStatus";
 import { base44 } from "@/api/base44Client";
 import TaskComments from "@/components/tasks/TaskComments";
@@ -259,6 +259,25 @@ function TaskRow({ task, onUpdateTask }) {
                           <img src={m.image_url} alt="" className="max-w-[180px] max-h-[120px] rounded-md border border-slate-200 object-cover hover:opacity-90" />
                         </a>
                       )}
+                      {/* Reactions */}
+                      <div className="flex items-center gap-1 mt-1">
+                        {(m.reactions || []).map((r, ri) => (
+                          <span key={ri} className="text-[10px] bg-white/60 border border-slate-200 rounded-full px-1.5 py-0.5" title={r.user_name}>
+                            {r.emoji}
+                          </span>
+                        ))}
+                        <button
+                          onClick={() => onUpdateTask(task, { toggle_reaction_msg_id: m.id })}
+                          className={`p-0.5 rounded transition-colors ${
+                            m.reactions?.some(r => r.user_role === "freelancer")
+                              ? "text-amber-500"
+                              : "text-slate-300 hover:text-slate-500"
+                          }`}
+                          title="React"
+                        >
+                          <ThumbsUp className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })

@@ -1093,6 +1093,10 @@ export default function FreelancerPortal() {
         payload.append_note_image = updates.append_note_image;
       }
     }
+    if (updates.toggle_reaction_msg_id) {
+      payload.update_task_id = task.id;
+      payload.toggle_reaction_msg_id = updates.toggle_reaction_msg_id;
+    }
     const res = await base44.functions.invoke('getFreelancerData', payload);
     setFreelancerData(res.data);
   };

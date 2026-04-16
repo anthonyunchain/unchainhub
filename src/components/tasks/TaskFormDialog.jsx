@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X, CheckSquare, Square, UserCheck, MessageCircle, Send, Trash2, ImagePlus, Loader2 } from "lucide-react";
+import { Plus, X, CheckSquare, Square, UserCheck, MessageCircle, Send, Trash2, ImagePlus, Loader2, ThumbsUp } from "lucide-react";
 import TaskComments from "./TaskComments";
 
 export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
@@ -115,6 +115,40 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
       alert('Failed to send message: ' + (e?.message || e));
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  const toggleReaction = async (msgId) => {
+    if (!task?.id) return;
+    const userName = currentUserName || "Admin";
+    const updatedThread = thread.map(m => {
+      if (m.id !== msgId) return m;
+      const reactions = Array.isArray(m.reactions) ? [...m.reactions] : [];
+      const existing = reactions.findIndex(r => r.user_role === "admin");
+      if (existing >= 0) {
+        reactions.splice(existing, 1);
+      } else {
+        reactions.push({ emoji: "👍", user_name: userName, user_role: "admin" });
+      }
+      return { ...m, reactions };
+    });
+    setData(d => ({ ...d, note_thread: updatedThread }));
+    const { error } = await supabase.from('tasks').update({ note_thread: updatedThread }).eq('id', task.id);
+    if (error) console.error('Failed to save reaction:', error);
+
+    // Notify freelancer
+    const msg = updatedThread.find(m => m.id === msgId);
+    const hasReaction = msg?.reactions?.some(r => r.user_role === "admin");
+    if (hasReaction && data.assigned_freelancer_id && data.assigned_freelancer_id !== "_me") {
+      await supabase.from('notifications').insert({
+        recipient_id: data.assigned_freelancer_id,
+        title: `👍 ${userName} reacted`,
+        message: `${userName} reacted to a message in "${task.title}"`,
+        type: 'reaction',
+        is_read: false,
+        action_required: false,
+        created_at: new Date().toISOString(),
+      }).catch(() => {});
     }
   };
 
@@ -453,6 +487,26 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                             <img src={m.image_url} alt="" className="max-w-[200px] max-h-[150px] rounded-md border border-slate-200 object-cover hover:opacity-90" />
                           </a>
                         )}
+                        {/* Reactions */}
+                        <div className="flex items-center gap-1 mt-1">
+                          {(m.reactions || []).map((r, ri) => (
+                            <span key={ri} className="text-[10px] bg-white/60 border border-slate-200 rounded-full px-1.5 py-0.5" title={r.user_name}>
+                              {r.emoji}
+                            </span>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => toggleReaction(m.id)}
+                            className={`p-0.5 rounded transition-colors ${
+                              m.reactions?.some(r => r.user_role === "admin")
+                                ? "text-blue-500"
+                                : "text-slate-300 hover:text-slate-500"
+                            }`}
+                            title="React"
+                          >
+                            <ThumbsUp className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
                     );
                   })
