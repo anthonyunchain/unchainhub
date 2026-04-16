@@ -131,7 +131,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={`${hasConversation ? "!max-w-[50vw]" : "!max-w-2xl"} w-[92vw] md:w-[50vw] !max-h-[50vh] h-[92vh] md:h-[50vh] p-0 overflow-hidden flex flex-col`}
+        className={`${hasConversation ? "!max-w-[92vw]" : "!max-w-2xl"} w-[95vw] md:w-[92vw] !max-h-[85vh] h-[92vh] md:h-[85vh] p-0 overflow-hidden flex flex-col`}
       >
         <DialogHeader className="px-5 pt-4 pb-3 border-b border-slate-100 flex-shrink-0">
           <DialogTitle>{task?.id ? "Edit task" : "New task"}</DialogTitle>
@@ -139,7 +139,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
 
         <div className={`flex-1 min-h-0 flex flex-col ${hasConversation ? "lg:flex-row" : ""}`}>
           {/* LEFT — form fields */}
-          <div className={`flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-3 ${hasConversation ? "lg:border-r lg:border-slate-100" : ""}`}>
+          <div className={`min-h-0 overflow-y-auto px-6 py-5 space-y-3 ${hasConversation ? "lg:w-[60%] lg:border-r lg:border-slate-100 flex-shrink-0" : "flex-1"}`}>
 
           {/* Titre */}
           <div>
@@ -153,8 +153,8 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
             <Textarea value={data.description || ""} onChange={e => set("description", e.target.value)} rows={2} placeholder="Task details..." />
           </div>
 
-          {/* Status + Due date + Category */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Status + Due date + Category + Assigned + Client — compact row */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <div>
               <Label>Status</Label>
               <Select value={data.status} onValueChange={v => set("status", v)}>
@@ -188,10 +188,6 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          {/* Assigné + Client */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <div className="flex items-center justify-between mb-1">
                 <Label>Assigned to</Label>
@@ -259,38 +255,38 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
             </div>
           )}
 
-          {/* Checklist */}
-          <div>
-            <Label>Subtasks</Label>
-            <div className="space-y-1.5 mt-1.5">
-              {(data.checklist || []).map((item, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <button onClick={() => toggleCheck(i)} className="text-slate-400 hover:text-emerald-500">
-                    {item.done ? <CheckSquare className="w-4 h-4 text-emerald-500" /> : <Square className="w-4 h-4" />}
-                  </button>
-                  <span className={`text-sm flex-1 ${item.done ? "line-through text-slate-400" : "text-slate-700"}`}>{item.label}</span>
-                  <button onClick={() => removeCheck(i)} className="text-slate-300 hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
+          {/* Checklist + Notes side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div>
+              <Label>Subtasks</Label>
+              <div className="space-y-1.5 mt-1.5">
+                {(data.checklist || []).map((item, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <button onClick={() => toggleCheck(i)} className="text-slate-400 hover:text-emerald-500">
+                      {item.done ? <CheckSquare className="w-4 h-4 text-emerald-500" /> : <Square className="w-4 h-4" />}
+                    </button>
+                    <span className={`text-sm flex-1 ${item.done ? "line-through text-slate-400" : "text-slate-700"}`}>{item.label}</span>
+                    <button onClick={() => removeCheck(i)} className="text-slate-300 hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                ))}
+                <div className="flex gap-2">
+                  <Input
+                    value={newCheck}
+                    onChange={e => setNewCheck(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addCheck())}
+                    placeholder="Add a subtask..."
+                    className="h-8 text-xs"
+                  />
+                  <Button type="button" variant="outline" size="sm" className="h-8" onClick={addCheck}>
+                    <Plus className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
-              ))}
-              <div className="flex gap-2">
-                <Input
-                  value={newCheck}
-                  onChange={e => setNewCheck(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addCheck())}
-                  placeholder="Add a subtask..."
-                  className="h-8 text-xs"
-                />
-                <Button type="button" variant="outline" size="sm" className="h-8" onClick={addCheck}>
-                  <Plus className="w-3.5 h-3.5" />
-                </Button>
               </div>
             </div>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <Label>Internal notes</Label>
-            <Textarea value={data.notes || ""} onChange={e => set("notes", e.target.value)} rows={2} placeholder="Notes..." />
+            <div>
+              <Label>Internal notes</Label>
+              <Textarea value={data.notes || ""} onChange={e => set("notes", e.target.value)} rows={4} placeholder="Notes..." />
+            </div>
           </div>
           </div>
           {/* ─── end LEFT column ─── */}
