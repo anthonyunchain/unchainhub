@@ -364,7 +364,6 @@ export default function Tasks() {
       </div>
 
       {/* right fade hint */}
-      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--bg)] to-transparent" />
       </div>
 
       {/* Filtres client / assigned / catégorie — stacked */}
@@ -381,8 +380,7 @@ export default function Tasks() {
                   className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeClient === c ? "bg-[#2A69FF] text-white" : "bg-blue-50 text-blue-700 hover:bg-blue-100"}`}>{c}</button>
               )}
             </div>
-            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--bg)] to-transparent" />
-          </div>
+                </div>
         )}
         {/* Assigned */}
         {taskAssignees.length > 0 && (
@@ -398,8 +396,7 @@ export default function Tasks() {
                 </button>
               )}
             </div>
-            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--bg)] to-transparent" />
-          </div>
+                </div>
         )}
         {/* Category */}
         <div className="relative">
@@ -419,8 +416,7 @@ export default function Tasks() {
               </button>
             )}
           </div>
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--bg)] to-transparent" />
-        </div>
+            </div>
       </div>
 
       {/* Liste groupée par période */}
