@@ -367,69 +367,60 @@ export default function Tasks() {
       <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--bg)] to-transparent" />
       </div>
 
-      {/* Filtres client + catégorie */}
-      <div className="relative mb-6">
-      <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
-        {taskClients.length > 0 && <>
-          <span className="shrink-0 text-xs text-slate-400 font-medium">Client:</span>
-          <button
-            onClick={() => setActiveClient("all")}
-            className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeClient === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
-            All
-          </button>
-          {taskClients.map((c) =>
-            <button
-              key={c}
-              onClick={() => setActiveClient(activeClient === c ? "all" : c)}
-              className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeClient === c ? "bg-[#2A69FF] text-white" : "bg-blue-50 text-blue-700 hover:bg-blue-100"}`}>
-              {c}
-            </button>
-          )}
-          <span className="shrink-0 w-px h-4 bg-slate-200 mx-1" />
-        </>}
-        <span className="shrink-0 text-xs text-slate-400 font-medium">Category:</span>
-        <button
-          onClick={() => setActiveCategory("all")}
-          className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeCategory === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
-          All
-        </button>
-        <button
-          onClick={() => setActiveCategory(activeCategory === "Personal" ? "all" : "Personal")}
-          className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeCategory === "Personal" ? "bg-purple-600 text-white" : "bg-purple-50 text-purple-700 hover:bg-purple-100"}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${activeCategory === "Personal" ? "bg-white" : "bg-purple-400"}`} />
-          Personal
-          <span className="text-[10px] opacity-70">{tasks.filter(t => t.category === "Personal" || t.category === "Vie perso").length}</span>
-        </button>
-        {["Design", "Video Editing", "Web", "Merch", "Analytics", "Administrative", "Posting", "Update"].filter(k => tasks.some(t => t.category === k)).map((k) =>
-          <button
-            key={k}
-            onClick={() => setActiveCategory(activeCategory === k ? "all" : k)}
-            className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeCategory === k ? "bg-slate-700 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
-            {CATEGORY_LABEL[k] || k}
-            <span className="ml-1 text-[10px] opacity-60">{tasks.filter(t => t.category === k).length}</span>
-          </button>
+      {/* Filtres client / assigned / catégorie — stacked */}
+      <div className="space-y-2 mb-6">
+        {/* Client */}
+        {taskClients.length > 0 && (
+          <div className="relative">
+            <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+              <span className="shrink-0 text-xs text-slate-400 font-medium w-16">Client</span>
+              <button onClick={() => setActiveClient("all")}
+                className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeClient === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>All</button>
+              {taskClients.map((c) =>
+                <button key={c} onClick={() => setActiveClient(activeClient === c ? "all" : c)}
+                  className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeClient === c ? "bg-[#2A69FF] text-white" : "bg-blue-50 text-blue-700 hover:bg-blue-100"}`}>{c}</button>
+              )}
+            </div>
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--bg)] to-transparent" />
+          </div>
         )}
-        {taskAssignees.length > 0 && <>
-          <span className="shrink-0 w-px h-4 bg-slate-200 mx-1" />
-          <span className="shrink-0 text-xs text-slate-400 font-medium">Assigned:</span>
-          <button
-            onClick={() => setActiveAssignee("all")}
-            className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeAssignee === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
-            All
-          </button>
-          {taskAssignees.map((a) =>
-            <button
-              key={a}
-              onClick={() => setActiveAssignee(activeAssignee === a ? "all" : a)}
-              className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeAssignee === a ? "bg-violet-600 text-white" : "bg-violet-50 text-violet-700 hover:bg-violet-100"}`}>
-              {a}
-              <span className="ml-1 text-[10px] opacity-70">{tasks.filter(t => t.assigned_to === a).length}</span>
+        {/* Assigned */}
+        {taskAssignees.length > 0 && (
+          <div className="relative">
+            <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+              <span className="shrink-0 text-xs text-slate-400 font-medium w-16">Assigned</span>
+              <button onClick={() => setActiveAssignee("all")}
+                className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeAssignee === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>All</button>
+              {taskAssignees.map((a) =>
+                <button key={a} onClick={() => setActiveAssignee(activeAssignee === a ? "all" : a)}
+                  className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeAssignee === a ? "bg-violet-600 text-white" : "bg-violet-50 text-violet-700 hover:bg-violet-100"}`}>
+                  {a}<span className="ml-1 text-[10px] opacity-70">{tasks.filter(t => t.assigned_to === a).length}</span>
+                </button>
+              )}
+            </div>
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--bg)] to-transparent" />
+          </div>
+        )}
+        {/* Category */}
+        <div className="relative">
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+            <span className="shrink-0 text-xs text-slate-400 font-medium w-16">Category</span>
+            <button onClick={() => setActiveCategory("all")}
+              className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeCategory === "all" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>All</button>
+            <button onClick={() => setActiveCategory(activeCategory === "Personal" ? "all" : "Personal")}
+              className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeCategory === "Personal" ? "bg-purple-600 text-white" : "bg-purple-50 text-purple-700 hover:bg-purple-100"}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${activeCategory === "Personal" ? "bg-white" : "bg-purple-400"}`} />
+              Personal<span className="text-[10px] opacity-70">{tasks.filter(t => t.category === "Personal" || t.category === "Vie perso").length}</span>
             </button>
-          )}
-        </>}
-      </div>
-      {/* right fade hint */}
-      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--bg)] to-transparent" />
+            {["Design", "Video Editing", "Web", "Merch", "Analytics", "Administrative", "Posting", "Update"].filter(k => tasks.some(t => t.category === k)).map((k) =>
+              <button key={k} onClick={() => setActiveCategory(activeCategory === k ? "all" : k)}
+                className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeCategory === k ? "bg-slate-700 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+                {CATEGORY_LABEL[k] || k}<span className="ml-1 text-[10px] opacity-60">{tasks.filter(t => t.category === k).length}</span>
+              </button>
+            )}
+          </div>
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--bg)] to-transparent" />
+        </div>
       </div>
 
       {/* Liste groupée par période */}
