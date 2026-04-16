@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Eye, TrendingUp, ChevronLeft, ChevronRight, Upload } from "lucide-react";
+import { Plus, Trash2, Eye, TrendingUp, ChevronLeft, ChevronRight, Upload, Download } from "lucide-react";
 import StatsCsvImportDialog from "@/components/stats/StatsCsvImportDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -176,7 +176,8 @@ export default function Reports() {
 
       <div style={{ position: 'relative' }}>
         {activeTab === "social" && (
-          <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 1 }} className="flex gap-2">
+          <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 1 }} className="flex items-center gap-2">
+            <button onClick={() => { const csv = "client_name;period;platform;views;reach;likes;comments;shares;followers_gained\nClient Name;2025-06;Instagram;12000;8500;340;45;12;85"; const b = new Blob([csv], { type: "text/csv;charset=utf-8;" }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = "stats_template.csv"; a.click(); URL.revokeObjectURL(u); }} className="flex items-center gap-1 text-xs text-slate-400 hover:text-brand transition-colors"><Download className="w-3.5 h-3.5" />Template</button>
             <Button variant="outline" onClick={() => setCsvImportOpen(true)} className="h-9"><Upload className="w-4 h-4 mr-1" />Import CSV</Button>
             <Button variant="outline" onClick={openBulk} className="h-9">Bulk entry</Button>
             <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" />Add stats</Button>
