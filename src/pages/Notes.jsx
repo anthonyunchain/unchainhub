@@ -43,6 +43,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   // Track last-saved snapshot to avoid redundant auto-saves
   const lastSavedRef  = useRef(null);
   const saveTimerRef  = useRef(null);
+  const titleInputRef = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(u => setCurrentUser(u)).catch(() => {});
@@ -63,6 +64,13 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     if (!currentUser || autoNewTrigger === 0) return;
     newNote();
   }, [autoNewTrigger]);
+
+  // Auto-focus title input when a new blank note is opened
+  useEffect(() => {
+    if (editData && !editData.id) {
+      setTimeout(() => titleInputRef.current?.focus(), 50);
+    }
+  }, [editData?.id]);
 
   // ── Data queries ─────────────────────────────────────────────────────────
   const { data: notes = [] } = useQuery({
@@ -580,6 +588,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
 
       {/* Title */}
       <input
+        ref={titleInputRef}
         value={editData.title}
         onChange={e => update("title", e.target.value.slice(0, 200))}
         placeholder="Note title..."
