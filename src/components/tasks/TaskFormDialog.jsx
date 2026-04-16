@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X, UserCheck, MessageCircle, Send, Trash2, ImagePlus, Loader2, ThumbsUp } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Plus, X, UserCheck, MessageCircle, Send, Trash2, ImagePlus, Loader2, ThumbsUp, CalendarIcon } from "lucide-react";
 import TaskComments from "./TaskComments";
 
 export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
@@ -218,12 +220,12 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
             <Textarea value={data.description || ""} onChange={e => set("description", e.target.value)} rows={2} placeholder="Task details..." />
           </div>
 
-          {/* Status + Due date + Category + Assigned + Client — compact row */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div>
+          {/* Status + Due date + Category + Assigned + Client — aligned row */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 items-end">
+            <div className="space-y-1.5">
               <Label>Status</Label>
               <Select value={data.status} onValueChange={v => set("status", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Non commencé">Not started</SelectItem>
                   <SelectItem value="En cours">In progress</SelectItem>
@@ -232,14 +234,31 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>Due date</Label>
-              <Input type="date" value={data.due_date || ""} onChange={e => set("due_date", e.target.value)} />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button type="button" className="flex items-center gap-2 h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background hover:bg-accent hover:text-accent-foreground">
+                    <CalendarIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className={data.due_date ? "text-slate-800" : "text-slate-400"}>
+                      {data.due_date ? format(new Date(data.due_date + "T00:00:00"), "dd MMM yyyy") : "Pick a date"}
+                    </span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={data.due_date ? new Date(data.due_date + "T00:00:00") : undefined}
+                    onSelect={d => set("due_date", d ? format(d, "yyyy-MM-dd") : "")}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>Category</Label>
               <Select value={data.category} onValueChange={v => set("category", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Design">Design</SelectItem>
                   <SelectItem value="Video Editing">Video Editing</SelectItem>
@@ -253,8 +272,8 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
                 <Label>Assigned to</Label>
                 {currentUserName && data.assigned_to !== currentUserName && (
                   <button
@@ -286,7 +305,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                   }
                 }}
               >
-                <SelectTrigger><SelectValue placeholder="Nobody" /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Nobody" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_none">Nobody</SelectItem>
                   {currentUserName && (
@@ -300,10 +319,10 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>Linked client</Label>
               <Select value={data.client_name || "_none"} onValueChange={v => set("client_name", v === "_none" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_none">None</SelectItem>
                   {clients.map(c => <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>)}
