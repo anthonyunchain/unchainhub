@@ -102,9 +102,9 @@ const TRANSLATIONS = {
     total: "total",
   },
   fi: {
-    dashboard: "Hallintapaneeli",
+    dashboard: "Dashboard",
     brief: "Yhteenveto",
-    briefShort: "Brief",
+    briefShort: "Yhteenveto",
     reports: "Raportit",
     admin: "Ylläpito",
     shootings: "Kuvaukset",
