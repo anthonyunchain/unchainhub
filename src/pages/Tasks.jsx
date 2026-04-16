@@ -175,8 +175,21 @@ const GROUP_CONFIG = [
   { key: "noDate", label: "No date", headerClass: "text-slate-400", dotClass: "bg-slate-300" },
 ];
 
-function TaskGroups({ tasks, onEdit, onDelete, onStatusChange }) {
-  const groups = groupTasksByDate(tasks);
+function TaskGroups({ tasks, onEdit, onDelete, onStatusChange, filteringDone }) {
+  // When filtering by "Done", don't separate into done section — group all by date
+  const groups = filteringDone ? (() => {
+    const g = { overdue: [], today: [], tomorrow: [], thisWeek: [], later: [], noDate: [], done: [] };
+    for (const t of tasks) {
+      if (!t.due_date) { g.noDate.push(t); continue; }
+      const d = startOfDay(new Date(t.due_date));
+      if (isToday(d)) g.today.push(t);
+      else if (isPast(d)) g.overdue.push(t);
+      else if (isTomorrow(d)) g.tomorrow.push(t);
+      else if (isThisWeek(d, { weekStartsOn: 1 })) g.thisWeek.push(t);
+      else g.later.push(t);
+    }
+    return g;
+  })() : groupTasksByDate(tasks);
 
   return (
     <div className="space-y-6">
@@ -199,8 +212,8 @@ function TaskGroups({ tasks, onEdit, onDelete, onStatusChange }) {
         );
       })}
 
-      {/* Done — collapsible */}
-      {groups.done.length > 0 && (
+      {/* Done — collapsible (only when not already filtering by Done) */}
+      {!filteringDone && groups.done.length > 0 && (
         <details className="group">
           <summary className="cursor-pointer flex items-center gap-2 mb-2.5 list-none select-none py-1">
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-open:rotate-180 transition-transform" />
@@ -435,6 +448,7 @@ export default function Tasks() {
         onEdit={openEdit}
         onDelete={(id) => deleteMut.mutate(id)}
         onStatusChange={handleStatusChange}
+        filteringDone={activeStatus === "Terminé"}
       />
       }
 
