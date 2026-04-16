@@ -205,8 +205,9 @@ export default function Dashboard() {
         </div>
 
         {/* Upcoming Content */}
+        <Link to="/Editorial" style={{ textDecoration: 'none', display: 'block' }}>
         <div
-          style={{ ...CARD, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          style={{ ...CARD, display: 'flex', flexDirection: 'column', overflow: 'hidden', cursor: 'pointer' }}
           className="h-auto lg:h-[420px]"
           onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
           onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
@@ -228,6 +229,7 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
+        </Link>
 
         {/* Today's Tasks */}
         <div className="h-auto lg:h-[420px]">
