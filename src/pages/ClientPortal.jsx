@@ -36,6 +36,7 @@ const TRANSLATIONS = {
     cancel: "Cancel shooting",
     yourNote: "Your note",
     addNote: "Add a note (optional)...",
+    contentToShoot: "Content to shoot",
     viewsThisMonth: "Views this month",
     postsPublished: "Posts published",
     editorialCalendarPdf: "Editorial Calendar PDF",
@@ -121,6 +122,7 @@ const TRANSLATIONS = {
     cancel: "Peruuta kuvaus",
     yourNote: "Muistiinpanosi",
     addNote: "Lisää muistiinpano (valinnainen)...",
+    contentToShoot: "Kuvattava sisältö",
     viewsThisMonth: "Näyttökerrat tässä kuussa",
     postsPublished: "Julkaistut julkaisut",
     editorialCalendarPdf: "Sisältökalenteri (PDF)",
@@ -399,6 +401,36 @@ function ClientShootingsTab({ clientName, tr }) {
     enabled: shootingIds.length > 0,
   });
 
+  // Fetch linked content
+  const { data: contentLinks = [] } = useQuery({
+    queryKey: ["client-shooting-content", shootingIds],
+    queryFn: async () => {
+      if (shootingIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("shooting_content")
+        .select("*")
+        .in("shooting_id", shootingIds);
+      if (error) return [];
+      return data;
+    },
+    enabled: shootingIds.length > 0,
+  });
+
+  const contentIds = [...new Set(contentLinks.map(c => c.content_id))];
+  const { data: contentItems = [] } = useQuery({
+    queryKey: ["client-shooting-editorial", contentIds],
+    queryFn: async () => {
+      if (contentIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("editorial_content")
+        .select("id, title, post_type, scheduled_date")
+        .in("id", contentIds);
+      if (error) return [];
+      return data;
+    },
+    enabled: contentIds.length > 0,
+  });
+
   const [respondingId, setRespondingId] = useState(null);
 
   const respond = async (shootingId, newStatus, note) => {
@@ -432,8 +464,12 @@ function ClientShootingsTab({ clientName, tr }) {
     Declined: "bg-red-100 text-red-600",
   };
 
+  const TYPE_COLOR = { Reel: "bg-pink-100 text-pink-700", Story: "bg-amber-100 text-amber-700", Carousel: "bg-violet-100 text-violet-700", Post: "bg-blue-100 text-blue-700" };
+
   const ShootingCard = ({ s }) => {
     const crew = allCrew.filter(a => a.shooting_id === s.id);
+    const linkedIds = contentLinks.filter(c => c.shooting_id === s.id).map(c => c.content_id);
+    const linkedContent = contentItems.filter(c => linkedIds.includes(c.id));
     const currentStatus = s.client_status || "Pending";
     const isPending = currentStatus === "Pending";
     const isApproved = currentStatus === "Approved";
@@ -479,6 +515,22 @@ function ClientShootingsTab({ clientName, tr }) {
                     </div>
                     <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{a.freelancer_name}</span>
                     {a.role && <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--muted)' }}>· {a.role}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Linked content */}
+          {linkedContent.length > 0 && (
+            <div>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{tr.contentToShoot || "Content to shoot"}</p>
+              <div className="space-y-1.5">
+                {linkedContent.map(c => (
+                  <div key={c.id} className="flex items-center gap-2" style={{ padding: '6px 12px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--divider)' }}>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${TYPE_COLOR[c.post_type] || "bg-slate-100 text-slate-500"}`}>{c.post_type}</span>
+                    <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 500, color: 'var(--ink)', flex: 1 }}>{c.title || "Untitled"}</span>
+                    {c.scheduled_date && <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--muted)' }}>{format(parseISO(c.scheduled_date), "d MMM", { locale: enUS })}</span>}
                   </div>
                 ))}
               </div>
