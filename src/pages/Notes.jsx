@@ -65,13 +65,6 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     newNote();
   }, [autoNewTrigger]);
 
-  // Auto-focus title input when a new blank note is opened
-  useEffect(() => {
-    if (editData && !editData.id) {
-      setTimeout(() => titleInputRef.current?.focus(), 50);
-    }
-  }, [editData?.id]);
-
   // ── Data queries ─────────────────────────────────────────────────────────
   const { data: notes = [] } = useQuery({
     queryKey: ["notes"],
@@ -254,6 +247,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     setShowShare(false);
     setMobileView("editor");
     setSaveStatus(null);
+    setTimeout(() => titleInputRef.current?.focus(), 80);
   };
 
   const update = (field, value) => setEditData(prev => ({ ...prev, [field]: value }));
