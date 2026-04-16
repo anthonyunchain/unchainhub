@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Presentation, ExternalLink, Plus, Trash2, Pencil, X, Check } from "lucide-react";
+import { FileText, Presentation, ExternalLink, Plus, Trash2, Pencil, X, Check, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 const TYPE_META = {
   pdf:    { icon: FileText,     color: "bg-red-50 text-red-600",    badge: "PDF" },
   slides: { icon: Presentation, color: "bg-amber-50 text-amber-600", badge: "Slides" },
+  email:  { icon: Mail,          color: "bg-violet-50 text-violet-600", badge: "Email" },
   doc:    { icon: FileText,     color: "bg-blue-50 text-blue-600",   badge: "Doc" },
   other:  { icon: ExternalLink, color: "bg-slate-50 text-slate-600", badge: "Link" },
 };
@@ -167,6 +168,7 @@ export default function Templates() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pdf">PDF</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
                       <SelectItem value="slides">Google Slides</SelectItem>
                       <SelectItem value="doc">Document</SelectItem>
                       <SelectItem value="other">Other link</SelectItem>
