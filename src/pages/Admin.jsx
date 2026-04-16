@@ -21,6 +21,7 @@ import Pipeline from "./Pipeline";
 import Contracts from "./Contracts";
 import Ideas from "./Ideas";
 import MonthlyBriefs from "../components/admin/MonthlyBriefs";
+import Templates from "../components/admin/Templates";
 import { MeetingsManagement } from "./FreelancerAdmin";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -1901,6 +1902,7 @@ const NAV_SECTIONS = [
   { label: "Legal & Governance", items: [
     { id: 'contracts',    label: 'Contracts' },
     { id: 'legal',        label: 'Legal Docs' },
+    { id: 'templates',    label: 'Templates' },
     { id: 'meetings',     label: 'Board Meetings' },
     { id: 'shareholders', label: 'Shareholders' },
   ]},
@@ -2008,6 +2010,7 @@ export default function Admin() {
           {section === 'analytics'    && <Reports />}
           {section === 'sales'        && <Pipeline />}
           {section === 'contracts'    && <Contracts />}
+          {section === 'templates'    && <Templates />}
           {section === 'users'        && <UserManagement />}
           {section === 'permissions'  && <Permissions />}
           {section === 'ideas'        && <Ideas currentUserId={user?.id} currentUserName={user?.full_name || user?.email} />}
