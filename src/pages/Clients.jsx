@@ -298,80 +298,88 @@ export default function Clients() {
       </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl">
           <DialogHeader><DialogTitle>{editData?.id ? "Edit client" : "New client"}</DialogTitle></DialogHeader>
           {editData && (
-            <div className="space-y-4 mt-2">
-              <div><Label>Company *</Label><Input value={editData.company_name || ""} onChange={e => setEditData({ ...editData, company_name: e.target.value })} /></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Sector</Label>
-                  <Select value={editData.sector} onValueChange={v => setEditData({ ...editData, sector: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="F&B">F&B</SelectItem>
-                      <SelectItem value="Wellness">Wellness</SelectItem>
-                      <SelectItem value="Tourism">Tourism</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
+            <div className="mt-2">
+              <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                {/* Left column */}
+                <div className="space-y-3">
+                  <div><Label>Company *</Label><Input value={editData.company_name || ""} onChange={e => setEditData({ ...editData, company_name: e.target.value })} /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Sector</Label>
+                      <Select value={editData.sector} onValueChange={v => setEditData({ ...editData, sector: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="F&B">F&B</SelectItem>
+                          <SelectItem value="Wellness">Wellness</SelectItem>
+                          <SelectItem value="Tourism">Tourism</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
                       </Select>
-                      </div>
-                      <div><Label>City</Label>
-                  <Select value={editData.city} onValueChange={v => setEditData({ ...editData, city: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Tampere">Tampere</SelectItem>
-                      <SelectItem value="Helsinki">Helsinki</SelectItem>
-                      <SelectItem value="Lapland">Lapland</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    </div>
+                    <div><Label>City</Label>
+                      <Select value={editData.city} onValueChange={v => setEditData({ ...editData, city: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Tampere">Tampere</SelectItem>
+                          <SelectItem value="Helsinki">Helsinki</SelectItem>
+                          <SelectItem value="Lapland">Lapland</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Contact name</Label><Input value={editData.contact_name || ""} onChange={e => setEditData({ ...editData, contact_name: e.target.value })} /></div>
+                    <div><Label>Status</Label>
+                      <Select value={editData.status} onValueChange={v => setEditData({ ...editData, status: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Actif">Active</SelectItem>
+                          <SelectItem value="Inactif">Inactive</SelectItem>
+                          <SelectItem value="En pause">On hold</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Email</Label><Input value={editData.contact_email || ""} onChange={e => setEditData({ ...editData, contact_email: e.target.value })} /></div>
+                    <div><Label>Phone</Label><Input value={editData.contact_phone || ""} onChange={e => setEditData({ ...editData, contact_phone: e.target.value })} /></div>
+                  </div>
+                </div>
+                {/* Right column */}
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Address</Label><Input value={editData.address || ""} onChange={e => setEditData({ ...editData, address: e.target.value })} /></div>
+                    <div><Label>Start date</Label><Input type="date" value={editData.start_date || ""} onChange={e => setEditData({ ...editData, start_date: e.target.value })} /></div>
+                  </div>
+                  <div><Label>Notes</Label><Textarea value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} rows={2} /></div>
+                  <div><Label>Portal language</Label>
+                    <Select value={editData.default_language || "en"} onValueChange={v => setEditData({ ...editData, default_language: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="fi">Finnish</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                    <input
+                      type="checkbox"
+                      id="editorial_visible"
+                      checked={editData.editorial_visible || false}
+                      onChange={e => setEditData({ ...editData, editorial_visible: e.target.checked })}
+                      className="w-4 h-4 accent-blue-600 cursor-pointer"
+                    />
+                    <div>
+                      <label htmlFor="editorial_visible" className="text-sm font-medium text-slate-700 cursor-pointer">Editorial calendar visible to freelancers</label>
+                      <p className="text-xs text-slate-400 mt-0.5">Freelancers will see this client's calendar (read-only).</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Contact name</Label><Input value={editData.contact_name || ""} onChange={e => setEditData({ ...editData, contact_name: e.target.value })} /></div>
-                <div><Label>Status</Label>
-                  <Select value={editData.status} onValueChange={v => setEditData({ ...editData, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Actif">Active</SelectItem>
-                      <SelectItem value="Inactif">Inactive</SelectItem>
-                      <SelectItem value="En pause">On hold</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Email</Label><Input value={editData.contact_email || ""} onChange={e => setEditData({ ...editData, contact_email: e.target.value })} /></div>
-                <div><Label>Phone</Label><Input value={editData.contact_phone || ""} onChange={e => setEditData({ ...editData, contact_phone: e.target.value })} /></div>
-              </div>
-              <div><Label>Address</Label><Input value={editData.address || ""} onChange={e => setEditData({ ...editData, address: e.target.value })} /></div>
-              <div><Label>Start date</Label><Input type="date" value={editData.start_date || ""} onChange={e => setEditData({ ...editData, start_date: e.target.value })} /></div>
-              <div><Label>Notes</Label><Textarea value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} rows={3} /></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Portal language</Label>
-                  <Select value={editData.default_language || "en"} onValueChange={v => setEditData({ ...editData, default_language: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="fi">Finnish</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
-                <input
-                  type="checkbox"
-                  id="editorial_visible"
-                  checked={editData.editorial_visible || false}
-                  onChange={e => setEditData({ ...editData, editorial_visible: e.target.checked })}
-                  className="w-4 h-4 accent-blue-600 cursor-pointer"
-                />
-                <div>
-                  <label htmlFor="editorial_visible" className="text-sm font-medium text-slate-700 cursor-pointer">Editorial calendar visible to freelancers</label>
-                  <p className="text-xs text-slate-400 mt-0.5">Freelancers will see this client's calendar (read-only) and can write descriptions.</p>
-                </div>
-              </div>
-              <div className="flex justify-between items-center pt-2">
+              <div className="flex justify-between items-center pt-4 mt-4 border-t border-slate-100">
                 {editData.id ? (
                   <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleDelete}>
                     <Trash2 className="w-4 h-4 mr-1" /> Delete
