@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, parseISO } from "date-fns";
 import { enUS, fi as fiFns } from "date-fns/locale";
@@ -228,42 +228,45 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
 
   const unpaidInvoices = invoices.filter(i => i.status !== "Payée").slice(0, 3);
 
+  const calMonthKey = format(calCurrentDate, "yyyy-MM");
+  const monthPdf = Array.isArray(calendarPdfs) ? calendarPdfs.find(p => p.month === calMonthKey) : null;
+  const monthLabel = fmtDate(calCurrentDate, "MMMM yyyy", dateLocale);
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        <KpiCard label={tr.viewsThisMonth} value={totalViews.toLocaleString()} icon={Eye} color="#2A69FF" />
-        <KpiCard label={tr.postsPublished} value={published} icon={TrendingUp} color="#10B981" />
-        {(() => {
-          const calMonthKey = format(calCurrentDate, "yyyy-MM");
-          const monthPdf = Array.isArray(calendarPdfs) ? calendarPdfs.find(p => p.month === calMonthKey) : null;
-          const monthLabel = fmtDate(calCurrentDate, "MMMM yyyy", dateLocale);
-          return monthPdf ? (
-            <a href={monthPdf.url} target="_blank" rel="noopener noreferrer"
-              className="col-span-2 lg:col-span-1 rounded-2xl p-5 flex flex-col gap-2 transition-all hover:opacity-90"
-              style={{ background: '#2A69FF', textDecoration: 'none', boxShadow: '0 4px 24px rgba(42,105,255,0.25)' }}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-white/70 uppercase tracking-wider">{tr.editorialCalendarPdf}</span>
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
-                  <Download className="w-4 h-4 text-white" />
-                </div>
+      {/* Row 1: Upcoming Shootings | Download Calendar */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <ClientShootings clientName={client?.company_name} />
+        {monthPdf ? (
+          <a href={monthPdf.url} target="_blank" rel="noopener noreferrer"
+            className="rounded-2xl p-5 flex flex-col justify-between gap-3 transition-all hover:opacity-90"
+            style={{ background: '#2A69FF', textDecoration: 'none', boxShadow: '0 4px 24px rgba(42,105,255,0.25)', minHeight: 120 }}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono text-white/70 uppercase tracking-wider">{tr.editorialCalendarPdf}</span>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                <Download className="w-4 h-4 text-white" />
               </div>
-              <p className="text-3xl font-extrabold text-white tracking-tight">{monthLabel}</p>
-            </a>
-          ) : (
-            <div className="col-span-2 lg:col-span-1 rounded-2xl p-5 flex flex-col gap-2"
-              style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{tr.editorialCalendarPdf}</span>
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'var(--divider)' }}>
-                  <Calendar className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-                </div>
-              </div>
-              <p className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--subtle)' }}>—</p>
             </div>
-          );
-        })()}
+            <p className="text-2xl font-extrabold text-white tracking-tight">{monthLabel}</p>
+          </a>
+        ) : (
+          <div className="rounded-2xl p-5 flex flex-col justify-between gap-3"
+            style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 120 }}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{tr.editorialCalendarPdf}</span>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'var(--divider)' }}>
+                <Calendar className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+              </div>
+            </div>
+            <p className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--subtle)' }}>—</p>
+          </div>
+        )}
       </div>
 
+      {/* Calendar */}
+      <CalendarTab content={content} calendarPdfs={calendarPdfs} currentDate={calCurrentDate} setCurrentDate={setCalCurrentDate} tr={tr} dateLocale={dateLocale} />
+
+      {/* Analytics */}
       {chartData.some(d => d.views > 0) && (
         <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
           <p className="text-xs font-mono uppercase tracking-wider mb-4" style={{ color: 'var(--muted)' }}>{tr.viewsLast6Months}</p>
@@ -278,30 +281,6 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
           </ResponsiveContainer>
         </div>
       )}
-
-      {unpaidInvoices.length > 0 && (
-        <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-          <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>{tr.pendingInvoices}</p>
-          <div className="space-y-2">
-            {unpaidInvoices.map(inv => (
-              <div key={inv.id} className="flex items-center justify-between py-1.5 last:border-0" style={{ borderBottom: '1px solid var(--divider)' }}>
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{inv.invoice_number || "Invoice"}</p>
-                  {inv.due_date && <p className="text-[10px]" style={{ color: 'var(--muted)' }}>{tr.due} {fmtDate(new Date(inv.due_date), "d MMM yyyy", dateLocale)}</p>}
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{(inv.total_with_tax || inv.total_amount || 0).toLocaleString("fr-FR")} €</p>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">{inv.status}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <ClientShootings clientName={client?.company_name} />
-
-      <CalendarTab content={content} calendarPdfs={calendarPdfs} currentDate={calCurrentDate} setCurrentDate={setCalCurrentDate} tr={tr} dateLocale={dateLocale} />
     </div>
   );
 }
@@ -324,26 +303,210 @@ function ClientShootings({ clientName }) {
   });
 
   const upcoming = shootings.filter(s => s.status !== "Completed" && s.status !== "Cancelled");
-  if (upcoming.length === 0) return null;
 
   return (
     <div style={{ background: 'var(--card)', borderRadius: 20, border: '1px solid var(--divider)', padding: '20px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
       <div className="flex items-center gap-2 mb-3">
         <Camera style={{ width: 16, height: 16, color: 'var(--brand)' }} />
         <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Upcoming Shootings</p>
+        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' }}>{upcoming.length}</span>
       </div>
-      <div className="space-y-2">
-        {upcoming.map(s => (
-          <div key={s.id} style={{ padding: '12px 16px', borderRadius: 14, border: '1px solid var(--divider)', background: 'var(--bg)' }}>
-            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{s.title}</p>
-            <div className="flex flex-wrap items-center gap-3 mt-1" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' }}>
-              {s.date && <span>{format(parseISO(s.date), "EEEE d MMMM", { locale: enUS })}{s.time ? ` · ${s.time}` : ""}</span>}
-              {s.location && <span>📍 {s.location}</span>}
+      {upcoming.length === 0 ? (
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' }}>No upcoming shootings</p>
+      ) : (
+        <div className="space-y-2">
+          {upcoming.slice(0, 3).map(s => (
+            <div key={s.id} style={{ padding: '12px 16px', borderRadius: 14, border: '1px solid var(--divider)', background: 'var(--bg)' }}>
+              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{s.title}</p>
+              <div className="flex flex-wrap items-center gap-3 mt-1" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' }}>
+                {s.date && <span>{format(parseISO(s.date), "d MMM", { locale: enUS })}{s.time ? ` · ${s.time}` : ""}</span>}
+                {s.location && <span>📍 {s.location}</span>}
+              </div>
             </div>
-            {s.description && <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>{s.description}</p>}
+          ))}
+          {upcoming.length > 3 && (
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--muted)', textAlign: 'center' }}>+{upcoming.length - 3} more</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Client Shootings tab (full page) ──────────────────────────────────────
+function ClientShootingsTab({ clientName }) {
+  const { dark } = useTheme();
+  const qc = useQueryClient();
+
+  const { data: shootings = [] } = useQuery({
+    queryKey: ["client-shootings-full", clientName],
+    queryFn: async () => {
+      if (!clientName) return [];
+      const { data, error } = await supabase
+        .from("shootings")
+        .select("*")
+        .eq("client_name", clientName)
+        .order("date", { ascending: true });
+      if (error) return [];
+      return data;
+    },
+    enabled: !!clientName,
+  });
+
+  // Fetch crew for these shootings
+  const shootingIds = shootings.map(s => s.id);
+  const { data: allCrew = [] } = useQuery({
+    queryKey: ["client-shooting-crew", shootingIds],
+    queryFn: async () => {
+      if (shootingIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("shooting_assignments")
+        .select("*")
+        .in("shooting_id", shootingIds);
+      if (error) return [];
+      return data;
+    },
+    enabled: shootingIds.length > 0,
+  });
+
+  const respond = async (shootingId, newStatus) => {
+    const { error } = await supabase
+      .from("shootings")
+      .update({ client_status: newStatus })
+      .eq("id", shootingId);
+    if (!error) qc.invalidateQueries({ queryKey: ["client-shootings-full"] });
+  };
+
+  const upcoming = shootings.filter(s => s.status !== "Completed" && s.status !== "Cancelled");
+  const past = shootings.filter(s => s.status === "Completed" || s.status === "Cancelled");
+
+  const STATUS_BADGE = {
+    Planned: "bg-blue-100 text-blue-700",
+    Confirmed: "bg-emerald-100 text-emerald-700",
+    Completed: "bg-slate-100 text-slate-500",
+    Cancelled: "bg-red-100 text-red-700",
+  };
+  const CLIENT_STATUS_BADGE = {
+    Pending: "bg-amber-100 text-amber-700",
+    Approved: "bg-emerald-100 text-emerald-700",
+    Declined: "bg-red-100 text-red-600",
+  };
+
+  const ShootingCard = ({ s }) => {
+    const crew = allCrew.filter(a => a.shooting_id === s.id);
+    const isPending = (s.client_status || "Pending") === "Pending";
+
+    return (
+      <div style={{ background: 'var(--card)', borderRadius: 20, border: '1px solid var(--divider)', padding: '20px 24px', boxShadow: 'var(--card-shadow)' }}>
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[s.status] || "bg-slate-100 text-slate-500"}`}>{s.status}</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${CLIENT_STATUS_BADGE[s.client_status || "Pending"]}`}>
+                {s.client_status || "Pending approval"}
+              </span>
+            </div>
+            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{s.title}</p>
           </div>
-        ))}
+        </div>
+
+        {/* Details */}
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-4" style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--muted)' }}>
+            {s.date && <span>{format(parseISO(s.date), "EEEE d MMMM yyyy", { locale: enUS })}{s.time ? ` · ${s.time}` : ""}</span>}
+            {s.location && <span>📍 {s.location}</span>}
+          </div>
+
+          {s.description && (
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{s.description}</p>
+          )}
+
+          {s.gear && (
+            <div style={{ padding: '10px 14px', borderRadius: 12, background: dark ? 'rgba(255,180,0,0.08)' : '#FFF8E8', border: dark ? '1px solid rgba(255,180,0,0.15)' : '1px solid #FDE68A' }}>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: dark ? '#F59E0B' : '#92400E' }}>
+                <strong>Gear:</strong> {s.gear}
+              </p>
+            </div>
+          )}
+
+          {/* Crew */}
+          {crew.length > 0 && (
+            <div>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Crew</p>
+              <div className="flex flex-wrap gap-2">
+                {crew.map(a => (
+                  <div key={a.id} className="flex items-center gap-2" style={{ padding: '6px 12px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--divider)' }}>
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>
+                      {a.freelancer_name?.charAt(0)?.toUpperCase()}
+                    </div>
+                    <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{a.freelancer_name}</span>
+                    {a.role && <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--muted)' }}>· {a.role}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Images */}
+          {(s.images || []).length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              {s.images.map((url, i) => (
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                  <img src={url} alt="" style={{ width: 80, height: 80, borderRadius: 12, objectFit: 'cover', border: '1px solid var(--divider)' }} />
+                </a>
+              ))}
+            </div>
+          )}
+
+          {/* Accept / Decline */}
+          {isPending && s.status !== "Completed" && s.status !== "Cancelled" && (
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => respond(s.id, "Approved")}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, background: '#10B981', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                <CheckCircle2 style={{ width: 16, height: 16 }} /> Approve
+              </button>
+              <button
+                onClick={() => respond(s.id, "Declined")}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, background: 'transparent', color: '#EF4444', border: '1px solid #FCA5A5', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                Decline
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+    );
+  };
+
+  if (shootings.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <Camera style={{ width: 40, height: 40, color: 'var(--muted)', opacity: 0.3, margin: '0 auto 12px' }} />
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: 'var(--muted)' }}>No shootings scheduled</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {upcoming.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {upcoming.map(s => <ShootingCard key={s.id} s={s} />)}
+        </div>
+      )}
+      {past.length > 0 && (
+        <details className="group">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 list-none py-2 select-none" style={{ color: 'var(--muted)', fontFamily: "'DM Mono', monospace" }}>
+            Past shootings ({past.length})
+          </summary>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 opacity-70">
+            {past.map(s => <ShootingCard key={s.id} s={s} />)}
+          </div>
+        </details>
+      )}
     </div>
   );
 }
@@ -1038,6 +1201,7 @@ export default function ClientPortal() {
 
   const TABS = [
     { key: "dashboard", label: tr.dashboard,  icon: LayoutDashboard },
+    { key: "shootings", label: "Shootings",   icon: Camera },
     { key: "brief",     label: tr.brief,       icon: ClipboardList },
     { key: "reports",   label: tr.reports,     icon: BarChart2 },
     { key: "admin",     label: tr.admin,       icon: Settings },
@@ -1170,6 +1334,7 @@ export default function ClientPortal() {
         )}
 
         {activeTab === "dashboard" && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} calendarPdfs={clientRecord?.editorial_calendar_pdfs || []} tr={tr} dateLocale={dateLocale} />}
+        {activeTab === "shootings" && <ClientShootingsTab clientName={clientName} />}
         {activeTab === "brief"     && <BriefTab clientName={clientName} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "reports"   && <ReportsTab stats={stats} content={content} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "admin"     && (
