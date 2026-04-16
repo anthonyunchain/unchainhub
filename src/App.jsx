@@ -42,6 +42,7 @@ import Editorial from './pages/Editorial';
 import Reports from './pages/Reports';
 import VideoEditing from './pages/VideoEditing';
 import Shootings from './pages/Shootings';
+import ShootingsToOrganize from './pages/ShootingsToOrganize';
 import Tasks from './pages/Tasks';
 import Admin from './pages/Admin';
 import ContentDescriptions from './pages/ContentDescriptions';
@@ -185,6 +186,7 @@ const AuthenticatedApp = () => {
         <Route path="Reports" element={<AdminRoute><Reports /></AdminRoute>} />
         <Route path="VideoEditing" element={<AdminRoute><VideoEditing /></AdminRoute>} />
         <Route path="Shootings" element={<AdminRoute><Shootings /></AdminRoute>} />
+        <Route path="ShootingsToOrganize" element={<AdminRoute><ShootingsToOrganize /></AdminRoute>} />
         <Route path="Tasks" element={<AdminRoute><Tasks /></AdminRoute>} />
         <Route path="Admin" element={<AdminRoute><Admin /></AdminRoute>} />
         <Route path="ContentDescriptions" element={<AdminRoute><ContentDescriptions /></AdminRoute>} />
