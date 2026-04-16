@@ -46,7 +46,8 @@ function TaskRow({ task, onUpdateTask }) {
   const hasMessages = thread.length > 0;
   const lastMessage = hasMessages ? thread[thread.length - 1] : null;
   const lastFromAdmin = lastMessage?.author_role === "admin";
-  const hasDetails = task.description || task.blocking_reason || task.notes || totalCount > 0;
+  const taskImages = Array.isArray(task.images) ? task.images : [];
+  const hasDetails = task.description || task.blocking_reason || task.notes || totalCount > 0 || taskImages.length > 0;
 
   const sendMessage = async () => {
     const text = messageDraft.trim();
@@ -162,6 +163,18 @@ function TaskRow({ task, onUpdateTask }) {
         <div className="border-t border-slate-100 px-4 py-3 bg-slate-50/50 space-y-3">
           {task.description && (
             <p className="text-xs text-slate-600 leading-relaxed">{task.description}</p>
+          )}
+          {taskImages.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Attachments</p>
+              <div className="flex flex-wrap gap-2">
+                {taskImages.map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                    <img src={url} alt="" className="w-24 h-24 rounded-lg border border-slate-200 object-cover hover:opacity-90 transition-opacity" />
+                  </a>
+                ))}
+              </div>
+            </div>
           )}
           {task.blocking_reason && (
             <div className="flex items-start gap-1.5 text-xs text-red-600 bg-red-50 rounded-lg p-2">
