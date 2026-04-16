@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Camera } from "lucide-react";
+import { ArrowLeft, Camera, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
 import { enUS } from "date-fns/locale";
 
@@ -48,10 +49,15 @@ export default function ShootingsToOrganize() {
         <Link to="/Shootings" className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-slate-700 hover:border-slate-300 transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold text-slate-800">Shootings to organize</h1>
           <p className="text-xs text-slate-400 mt-0.5">{unlinked.length} content{unlinked.length !== 1 ? "s" : ""} not yet linked to a shooting</p>
         </div>
+        <Link to="/Shootings?new=1">
+          <Button className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
+            <Plus className="w-4 h-4 mr-1" /> New shooting
+          </Button>
+        </Link>
       </div>
 
       {unlinked.length === 0 ? (

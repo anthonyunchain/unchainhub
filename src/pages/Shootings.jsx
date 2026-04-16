@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
@@ -47,7 +47,18 @@ export default function Shootings() {
   const [filterClient, setFilterClient] = useState("all");
   const [view, setView] = useState("timeline");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const qc = useQueryClient();
+
+  // Auto-open create dialog when ?new=1
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setForm({ ...emptyForm });
+      setEditId(null);
+      setDialogOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
 
   const { data: shootings = [] } = useQuery({
     queryKey: ["shootings"],
