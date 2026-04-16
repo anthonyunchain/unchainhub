@@ -1085,9 +1085,9 @@ export default function FreelancerPortal() {
       payload.update_task_id = task.id;
       payload.update_task_status = updates.status;
     }
-    if (typeof updates.append_note === 'string' && updates.append_note.trim()) {
+    if ((typeof updates.append_note === 'string' && updates.append_note.trim()) || updates.append_note_image) {
       payload.update_task_id = task.id;
-      payload.append_task_note = updates.append_note;
+      payload.append_task_note = updates.append_note?.trim() || "";
       if (updates.append_note_image) {
         payload.append_note_image = updates.append_note_image;
       }

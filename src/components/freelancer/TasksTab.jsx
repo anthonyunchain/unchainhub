@@ -58,7 +58,7 @@ function TaskRow({ task, onUpdateTask }) {
         const res = await base44.integrations.Core.UploadFile({ file: chatImageFile });
         image_url = res.file_url;
       }
-      await onUpdateTask(task, { append_note: text || " ", append_note_image: image_url });
+      await onUpdateTask(task, { append_note: text || "", append_note_image: image_url });
       setMessageDraft("");
       setChatImageFile(null);
       setChatImagePreview(null);

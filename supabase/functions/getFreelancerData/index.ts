@@ -71,10 +71,12 @@ Deno.serve(async (req) => {
         }
 
         // Append a new message to the note thread
-        if (typeof body.append_task_note === 'string' && body.append_task_note.trim()) {
+        const hasNoteText = typeof body.append_task_note === 'string' && body.append_task_note.trim();
+        const hasNoteImage = typeof body.append_note_image === 'string' && body.append_note_image.startsWith('http');
+        if (hasNoteText || hasNoteImage) {
           // Defensive cap: reject absurdly long payloads, truncate otherwise
           const MAX_MSG_LEN = 5000;
-          const rawText = String(body.append_task_note).trim();
+          const rawText = String(body.append_task_note || '').trim();
           if (rawText.length > MAX_MSG_LEN * 2) {
             return Response.json(
               { error: 'Message too long' },
