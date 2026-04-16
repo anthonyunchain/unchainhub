@@ -99,7 +99,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
         {/* Hero Content Overview */}
-        <Link to="/Admin?s=analytics" style={{ textDecoration: 'none' }}>
+        <Link to="/Admin?s=analytics" style={{ textDecoration: 'none', display: 'block' }}>
           <div style={{
             ...CARD,
             background: 'linear-gradient(145deg, #1a3a8f 0%, #2A69FF 60%, #5b8fff 100%)',
@@ -126,7 +126,7 @@ export default function Dashboard() {
                 total posts planned
               </p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-2 gap-2 mt-5">
               {[
                 { label: 'Shot',       value: shot },
                 { label: 'In Editing', value: inProgress },
@@ -164,7 +164,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Row 2: Editorial + Upcoming + Today's Tasks ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
 
         {/* Editorial Calendars */}
         <div
@@ -205,10 +205,10 @@ export default function Dashboard() {
         </div>
 
         {/* Upcoming Content */}
-        <Link to="/Editorial" style={{ textDecoration: 'none', display: 'block' }}>
+        <Link to="/Editorial" style={{ textDecoration: 'none', display: 'block' }} className="h-auto lg:h-[420px]">
         <div
-          style={{ ...CARD, display: 'flex', flexDirection: 'column', overflow: 'hidden', cursor: 'pointer' }}
-          className="h-auto lg:h-[420px]"
+          style={{ ...CARD, display: 'flex', flexDirection: 'column', overflow: 'hidden', cursor: 'pointer', height: '100%' }}
+          className=""
           onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
           onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
@@ -232,7 +232,7 @@ export default function Dashboard() {
         </Link>
 
         {/* Today's Tasks */}
-        <div className="h-auto lg:h-[420px]">
+        <div className="h-auto lg:h-[420px] md:col-span-2 lg:col-span-1">
           <TodayTasksWidget />
         </div>
 
