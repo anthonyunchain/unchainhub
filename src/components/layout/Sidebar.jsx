@@ -28,7 +28,7 @@ const ICON_MAP = {
 };
 
 const STORAGE_KEY = "sidebar_nav_order";
-const STORAGE_VERSION = "v8"; // bump this to force-reset stored nav order
+const STORAGE_VERSION = "v9"; // bump this to force-reset stored nav order
 
 function loadOrder() {
   try {
