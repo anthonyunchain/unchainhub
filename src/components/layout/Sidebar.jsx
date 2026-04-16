@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Kanban, Users, Package, Mail, FileText,
-  Receipt, UserCheck, BarChart3, Calendar, FileBarChart, CheckSquare, Clapperboard,
+  Receipt, UserCheck, BarChart3, Calendar, FileBarChart, CheckSquare, Clapperboard, Camera,
   ChevronLeft, ChevronRight, Settings2, GripVertical, Check, Shield, MonitorSmartphone
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -17,17 +17,18 @@ const DEFAULT_NAV_ITEMS = [
   { path: "/Clients",        label: "Clients",          icon: "Users" },
   { path: "/Admin",          label: "Admin",            icon: "Shield" },
   { path: "/VideoEditing",   label: "Video Editing",    icon: "Clapperboard" },
+  { path: "/Shootings",      label: "Shootings",        icon: "Camera" },
   { path: "/Outreach",       label: "Outreach",         icon: "Mail" },
   { path: "/FreelancerAdmin",label: "Freelancer Portal",icon: "MonitorSmartphone" },
 ];
 
 const ICON_MAP = {
   LayoutDashboard, Kanban, Users, Package, Mail, FileText,
-  Receipt, UserCheck, BarChart3, Calendar, FileBarChart, CheckSquare, Clapperboard, Shield, MonitorSmartphone,
+  Receipt, UserCheck, BarChart3, Calendar, FileBarChart, CheckSquare, Clapperboard, Camera, Shield, MonitorSmartphone,
 };
 
 const STORAGE_KEY = "sidebar_nav_order";
-const STORAGE_VERSION = "v7"; // bump this to force-reset stored nav order
+const STORAGE_VERSION = "v8"; // bump this to force-reset stored nav order
 
 function loadOrder() {
   try {

@@ -41,6 +41,7 @@ import Finance from './pages/Finance';
 import Editorial from './pages/Editorial';
 import Reports from './pages/Reports';
 import VideoEditing from './pages/VideoEditing';
+import Shootings from './pages/Shootings';
 import Tasks from './pages/Tasks';
 import Admin from './pages/Admin';
 import ContentDescriptions from './pages/ContentDescriptions';
@@ -183,6 +184,7 @@ const AuthenticatedApp = () => {
         <Route path="Editorial" element={<AdminRoute><Editorial /></AdminRoute>} />
         <Route path="Reports" element={<AdminRoute><Reports /></AdminRoute>} />
         <Route path="VideoEditing" element={<AdminRoute><VideoEditing /></AdminRoute>} />
+        <Route path="Shootings" element={<AdminRoute><Shootings /></AdminRoute>} />
         <Route path="Tasks" element={<AdminRoute><Tasks /></AdminRoute>} />
         <Route path="Admin" element={<AdminRoute><Admin /></AdminRoute>} />
         <Route path="ContentDescriptions" element={<AdminRoute><ContentDescriptions /></AdminRoute>} />

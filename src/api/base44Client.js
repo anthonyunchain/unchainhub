@@ -40,6 +40,9 @@ const TABLE_MAP = {
   ShareholderSalary:  'shareholder_salaries',
   Subscription:       'subscriptions',
   TaskComment:        'task_comments',
+  Shooting:           'shootings',
+  ShootingAssignment: 'shooting_assignments',
+  ShootingContent:    'shooting_content',
 };
 
 

@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay } from "date-fns";
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, parseISO } from "date-fns";
 import { enUS, fi as fiFns } from "date-fns/locale";
 import { getGreeting } from "@/lib/greeting";
 import { useTheme } from "@/lib/useTheme";
 import {
-  LayoutDashboard, Calendar, BarChart2, FileText, LogOut,
+  LayoutDashboard, Calendar, BarChart2, FileText, LogOut, Camera,
   Settings, ChevronLeft, ChevronRight, Eye, Users, TrendingUp,
   Bell, Moon, Sun, ExternalLink, Instagram, Youtube, Facebook,
   Linkedin, Globe, Download, Receipt, ClipboardList, CheckCircle2, Save
@@ -298,7 +299,51 @@ function DashboardTab({ client, stats, content, contracts, invoices, calendarPdf
         </div>
       )}
 
+      <ClientShootings clientName={client?.company_name} />
+
       <CalendarTab content={content} calendarPdfs={calendarPdfs} currentDate={calCurrentDate} setCurrentDate={setCalCurrentDate} tr={tr} dateLocale={dateLocale} />
+    </div>
+  );
+}
+
+// ── Client Shootings section ──────────────────────────────────────────────
+function ClientShootings({ clientName }) {
+  const { data: shootings = [] } = useQuery({
+    queryKey: ["client-shootings", clientName],
+    queryFn: async () => {
+      if (!clientName) return [];
+      const { data, error } = await supabase
+        .from("shootings")
+        .select("*")
+        .eq("client_name", clientName)
+        .order("date", { ascending: true });
+      if (error) return [];
+      return data;
+    },
+    enabled: !!clientName,
+  });
+
+  const upcoming = shootings.filter(s => s.status !== "Completed" && s.status !== "Cancelled");
+  if (upcoming.length === 0) return null;
+
+  return (
+    <div style={{ background: 'var(--card)', borderRadius: 20, border: '1px solid var(--divider)', padding: '20px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <div className="flex items-center gap-2 mb-3">
+        <Camera style={{ width: 16, height: 16, color: 'var(--brand)' }} />
+        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Upcoming Shootings</p>
+      </div>
+      <div className="space-y-2">
+        {upcoming.map(s => (
+          <div key={s.id} style={{ padding: '12px 16px', borderRadius: 14, border: '1px solid var(--divider)', background: 'var(--bg)' }}>
+            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{s.title}</p>
+            <div className="flex flex-wrap items-center gap-3 mt-1" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' }}>
+              {s.date && <span>{format(parseISO(s.date), "EEEE d MMMM", { locale: enUS })}{s.time ? ` · ${s.time}` : ""}</span>}
+              {s.location && <span>📍 {s.location}</span>}
+            </div>
+            {s.description && <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>{s.description}</p>}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

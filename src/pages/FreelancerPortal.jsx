@@ -26,6 +26,7 @@ import CaptionsTab from "./freelancer/CaptionsTab";
 import TasksTabComponent from "@/components/freelancer/TasksTab";
 import FreelancerProjects from "@/components/freelancer/FreelancerProjects";
 import NotificationsPanel from "@/components/freelancer/NotificationsPanel";
+import ShootingsTab from "@/components/freelancer/ShootingsTab";
 import { TASK_STATUS_CONFIG as TASK_STATUS } from "@/lib/taskStatus";
 import { HIDDEN_NAV_BY_ID, getHiddenNav, MOBILE_NAV_BY_ID } from "@/lib/navConfig";
 
@@ -1118,6 +1119,7 @@ export default function FreelancerPortal() {
       case "ideas": return <Ideas currentUserId={user?.id} currentUserName={profile?.name || user?.email} isFreelancer={true} />;
       case "tools": return <ToolsTab tools={tools} />;
       case "meetings": return <MeetingsTab meetings={meetings} />;
+      case "shootings": return <ShootingsTab freelancerId={profile?.id} />;
       case "invoices":
       case "contract": return <InvoicesTab payments={payments} freelancerName={freelancerName} freelancerId={profile?.id} onPaymentAdded={handlePaymentAdded} openTrigger={invoiceOpenTrigger} profile={profile} />;
       case "profile": return <ProfileTab user={user} freelancerProfile={profile} onProfileUpdate={(p) => setFreelancerData(d => ({ ...d, profile: p }))} />;
@@ -1274,6 +1276,7 @@ export default function FreelancerPortal() {
                 ideas:       { title: 'Ideas',           subtitle: 'Brainstorm content ideas' },
                 tools:       { title: 'Tools',           subtitle: 'Your tools & resources' },
                 meetings:    { title: 'Meetings',        subtitle: 'Upcoming & past meetings' },
+                shootings:   { title: 'Shootings',       subtitle: 'Photo & video shoots' },
                 invoices:    { title: 'Invoices & Contract', subtitle: 'Your payments and contract' },
                 contract:    { title: 'Invoices & Contract', subtitle: 'Your payments and contract' },
                 profile:     { title: 'Profile',         subtitle: 'Your information & settings' },
