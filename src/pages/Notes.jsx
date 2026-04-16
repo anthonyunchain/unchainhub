@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { supabase, base44 } from "@/api/base44Client";
 import {
   Plus, Search, Trash2, X, Check, NotebookPen,
-  ChevronLeft, Share2, Tag,
+  ChevronLeft, Share2, Tag, Cloud, CloudOff,
 } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -34,10 +34,15 @@ export default function Notes({ embedded = false }) {
   const [search, setSearch]                 = useState("");
   const [mobileView, setMobileView]         = useState(selectedId ? "editor" : "list");
   const [saveError, setSaveError]           = useState(null);
+  const [saveStatus, setSaveStatus]         = useState(null); // "saving" | "saved" | "error"
   const [newTagInput, setNewTagInput]       = useState("");
   const [showNewTag, setShowNewTag]         = useState(false);
   const [showShare, setShowShare]           = useState(false);
   const [deleteConfirm, setDeleteConfirm]   = useState(false);
+
+  // Track last-saved snapshot to avoid redundant auto-saves
+  const lastSavedRef  = useRef(null);
+  const saveTimerRef  = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(u => setCurrentUser(u)).catch(() => {});
@@ -83,7 +88,7 @@ export default function Notes({ embedded = false }) {
     const id = searchParams.get("note");
     if (id && notes.length > 0) {
       const note = notes.find(n => n.id === id);
-      if (note && selectedId !== id) { openNote(note); }
+      if (note && selectedId !== id) openNote(note);
     }
   }, [searchParams, notes]);
 
@@ -109,14 +114,22 @@ export default function Notes({ embedded = false }) {
         return data;
       }
     },
+    onMutate: () => setSaveStatus("saving"),
     onSuccess: (saved) => {
+      lastSavedRef.current = stableKey(saved);
       qc.invalidateQueries({ queryKey: ["notes"] });
       setSelectedId(saved.id);
       setEditData(saved);
       setSaveError(null);
       setDeleteConfirm(false);
+      setSaveStatus("saved");
+      // fade out "Saved" indicator after 2s
+      setTimeout(() => setSaveStatus(null), 2000);
     },
-    onError: (e) => setSaveError(e.message),
+    onError: (e) => {
+      setSaveError(e.message);
+      setSaveStatus("error");
+    },
   });
 
   const deleteMut = useMutation({
@@ -128,8 +141,10 @@ export default function Notes({ embedded = false }) {
       qc.invalidateQueries({ queryKey: ["notes"] });
       setSelectedId(null);
       setEditData(null);
+      lastSavedRef.current = null;
       setMobileView("list");
       setDeleteConfirm(false);
+      setSaveStatus(null);
     },
     onError: (e) => setSaveError(e.message),
   });
@@ -153,23 +168,68 @@ export default function Notes({ embedded = false }) {
     },
   });
 
+  // ── Auto-save ─────────────────────────────────────────────────────────────
+  // Produces a stable string key from note data (excluding fields we don't save)
+  function stableKey(d) {
+    if (!d) return null;
+    return JSON.stringify({
+      title: d.title, content: d.content,
+      tags: d.tags, shared_with: d.shared_with,
+    });
+  }
+
+  useEffect(() => {
+    if (!editData || !currentUser) return;
+    const isOwner = !editData.id || editData.created_by === currentUser.id;
+    if (!isOwner) return;
+    if (!editData.title?.trim()) return;
+    if (stableKey(editData) === lastSavedRef.current) return; // no real change
+
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveMut.mutate(editData);
+    }, 1500);
+
+    return () => clearTimeout(saveTimerRef.current);
+  }, [editData, currentUser]);
+
+  // ── Backspace to delete ───────────────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key !== "Backspace") return;
+      if (!selectedId || !editData?.id) return;
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
+      e.preventDefault();
+      setDeleteConfirm(true);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedId, editData?.id]);
+
   // ── Helpers ───────────────────────────────────────────────────────────────
   const openNote = (note) => {
+    clearTimeout(saveTimerRef.current);
+    lastSavedRef.current = stableKey(note);
     setSelectedId(note.id);
     setEditData({ ...note });
     setSaveError(null);
     setDeleteConfirm(false);
     setShowShare(false);
     setMobileView("editor");
+    setSaveStatus(null);
   };
 
   const newNote = () => {
+    clearTimeout(saveTimerRef.current);
+    lastSavedRef.current = null;
     setSelectedId(null);
     setEditData({ title: "", content: "", tags: [], shared_with: [], created_by: currentUser?.id });
     setSaveError(null);
     setDeleteConfirm(false);
     setShowShare(false);
     setMobileView("editor");
+    setSaveStatus(null);
   };
 
   const update = (field, value) => setEditData(prev => ({ ...prev, [field]: value }));
@@ -204,33 +264,33 @@ export default function Notes({ embedded = false }) {
   const leftPanel = (
     <div style={{ ...CARD, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Header */}
-      <div style={{ padding: "16px 14px 10px", borderBottom: "1px solid var(--divider)", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>Notes</span>
+      <div style={{ padding: "18px 16px 12px", borderBottom: "1px solid var(--divider)", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>Notes</span>
           <button
             onClick={newNote}
             style={{
-              display: "flex", alignItems: "center", gap: 4,
+              display: "flex", alignItems: "center", gap: 5,
               background: "var(--brand)", color: "#fff",
-              border: "none", borderRadius: 8, padding: "5px 10px",
-              fontSize: 11, fontWeight: 600, cursor: "pointer",
+              border: "none", borderRadius: 8, padding: "6px 12px",
+              fontSize: 12, fontWeight: 600, cursor: "pointer",
               fontFamily: "'Plus Jakarta Sans', sans-serif",
             }}
           >
-            <Plus style={{ width: 12, height: 12 }} /> New
+            <Plus style={{ width: 13, height: 13 }} /> New
           </button>
         </div>
         {/* Search */}
         <div style={{ position: "relative" }}>
-          <Search style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", width: 12, height: 12, color: "var(--muted)" }} />
+          <Search style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 13, height: 13, color: "var(--muted)" }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search notes..."
             style={{
-              width: "100%", padding: "6px 8px 6px 26px", borderRadius: 8,
+              width: "100%", padding: "7px 10px 7px 30px", borderRadius: 9,
               border: "1px solid var(--divider)", background: "var(--bg)",
-              fontSize: 11, fontFamily: "'DM Mono', monospace", color: "var(--ink)",
+              fontSize: 12, fontFamily: "'DM Mono', monospace", color: "var(--ink)",
               outline: "none", boxSizing: "border-box",
             }}
           />
@@ -238,8 +298,8 @@ export default function Notes({ embedded = false }) {
       </div>
 
       {/* Tag filters */}
-      <div style={{ padding: "8px 12px 8px", borderBottom: "1px solid var(--divider)", flexShrink: 0 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+      <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--divider)", flexShrink: 0 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
           {[
             { key: null,     label: "All",      count: notes.length },
             { key: "mine",   label: "My notes", count: notes.filter(n => n.created_by === currentUser?.id).length },
@@ -250,7 +310,7 @@ export default function Notes({ embedded = false }) {
               key={String(key)}
               onClick={() => setFilterTag(key)}
               style={{
-                padding: "2px 8px", borderRadius: 99, border: `1.5px solid ${filterTag === key ? (color || "var(--brand)") : "var(--divider)"}`,
+                padding: "3px 9px", borderRadius: 99, border: `1.5px solid ${filterTag === key ? (color || "var(--brand)") : "var(--divider)"}`,
                 background: filterTag === key ? `${color || "var(--brand)"}18` : "transparent",
                 color: filterTag === key ? (color || "var(--brand)") : "var(--muted)",
                 fontSize: 10, fontWeight: 500, cursor: "pointer",
@@ -258,7 +318,7 @@ export default function Notes({ embedded = false }) {
                 display: "flex", alignItems: "center", gap: 4,
               }}
             >
-              {color && <span style={{ width: 5, height: 5, borderRadius: "50%", background: color }} />}
+              {color && <span style={{ width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0 }} />}
               {label} <span style={{ opacity: 0.55 }}>({count})</span>
             </button>
           ))}
@@ -266,7 +326,7 @@ export default function Notes({ embedded = false }) {
           {!showNewTag ? (
             <button
               onClick={() => setShowNewTag(true)}
-              style={{ padding: "2px 8px", borderRadius: 99, border: "1.5px dashed var(--divider)", background: "transparent", color: "var(--muted)", fontSize: 10, cursor: "pointer", fontFamily: "'DM Mono', monospace" }}
+              style={{ padding: "3px 9px", borderRadius: 99, border: "1.5px dashed var(--divider)", background: "transparent", color: "var(--muted)", fontSize: 10, cursor: "pointer", fontFamily: "'DM Mono', monospace" }}
             >
               + Tag
             </button>
@@ -280,10 +340,10 @@ export default function Notes({ embedded = false }) {
                 value={newTagInput}
                 onChange={e => setNewTagInput(e.target.value.slice(0, 50))}
                 placeholder="Tag name"
-                style={{ width: 75, padding: "2px 6px", borderRadius: 6, border: "1px solid var(--brand)", fontSize: 10, fontFamily: "'DM Mono', monospace", outline: "none", background: "var(--bg)", color: "var(--ink)" }}
+                style={{ width: 80, padding: "3px 7px", borderRadius: 6, border: "1px solid var(--brand)", fontSize: 11, fontFamily: "'DM Mono', monospace", outline: "none", background: "var(--bg)", color: "var(--ink)" }}
               />
-              <button type="submit" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--brand)", padding: 0 }}><Check style={{ width: 12, height: 12 }} /></button>
-              <button type="button" onClick={() => { setShowNewTag(false); setNewTagInput(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", padding: 0 }}><X style={{ width: 12, height: 12 }} /></button>
+              <button type="submit" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--brand)", padding: 0 }}><Check style={{ width: 13, height: 13 }} /></button>
+              <button type="button" onClick={() => { setShowNewTag(false); setNewTagInput(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", padding: 0 }}><X style={{ width: 13, height: 13 }} /></button>
             </form>
           )}
         </div>
@@ -292,9 +352,9 @@ export default function Notes({ embedded = false }) {
       {/* Note list */}
       <div style={{ overflowY: "auto", flex: 1 }}>
         {filtered.length === 0 ? (
-          <div style={{ padding: "28px 14px", textAlign: "center" }}>
-            <NotebookPen style={{ width: 22, height: 22, color: "var(--muted)", opacity: 0.2, margin: "0 auto 6px" }} />
-            <p style={{ fontSize: 11, color: "var(--muted)", fontFamily: "'DM Mono', monospace" }}>No notes</p>
+          <div style={{ padding: "36px 16px", textAlign: "center" }}>
+            <NotebookPen style={{ width: 26, height: 26, color: "var(--muted)", opacity: 0.2, margin: "0 auto 8px" }} />
+            <p style={{ fontSize: 12, color: "var(--muted)", fontFamily: "'DM Mono', monospace" }}>No notes</p>
           </div>
         ) : filtered.map(note => {
           const isMine = note.created_by === currentUser?.id;
@@ -304,7 +364,7 @@ export default function Notes({ embedded = false }) {
               key={note.id}
               onClick={() => openNote(note)}
               style={{
-                width: "100%", textAlign: "left", padding: "9px 12px",
+                width: "100%", textAlign: "left", padding: "11px 14px",
                 borderBottom: "1px solid var(--divider)",
                 background: isSelected ? "rgba(42,105,255,0.06)" : "transparent",
                 border: "none", cursor: "pointer",
@@ -314,28 +374,28 @@ export default function Notes({ embedded = false }) {
               onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = "rgba(0,0,0,0.02)"; }}
               onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
-                <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "72%" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
+                <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600, color: "var(--ink)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "72%" }}>
                   {note.title || "Untitled"}
                 </p>
                 <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--muted)", flexShrink: 0 }}>
                   {note.updated_at ? format(new Date(note.updated_at), "d MMM", { locale: enUS }) : ""}
                 </span>
               </div>
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--muted)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {note.content?.slice(0, 55) || "—"}
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--muted)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {note.content?.slice(0, 60) || "—"}
               </p>
-              <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 4, marginTop: 5, flexWrap: "wrap", alignItems: "center" }}>
                 {!isMine && (
-                  <span style={{ fontSize: 9, fontFamily: "'DM Mono', monospace", color: "var(--brand)", background: "rgba(42,105,255,0.08)", padding: "1px 5px", borderRadius: 4 }}>shared with you</span>
+                  <span style={{ fontSize: 9, fontFamily: "'DM Mono', monospace", color: "var(--brand)", background: "rgba(42,105,255,0.08)", padding: "1px 6px", borderRadius: 4 }}>shared with you</span>
                 )}
                 {isMine && note.shared_with?.length > 0 && (
-                  <span style={{ fontSize: 9, fontFamily: "'DM Mono', monospace", color: "#8b5cf6", background: "rgba(139,92,246,0.08)", padding: "1px 5px", borderRadius: 4 }}>shared</span>
+                  <span style={{ fontSize: 9, fontFamily: "'DM Mono', monospace", color: "#8b5cf6", background: "rgba(139,92,246,0.08)", padding: "1px 6px", borderRadius: 4 }}>shared</span>
                 )}
                 {(note.tags || []).slice(0, 2).map(tag => {
                   const t = userTags.find(x => x.name === tag);
                   return (
-                    <span key={tag} style={{ fontSize: 9, fontFamily: "'DM Mono', monospace", color: t?.color || "var(--muted)", padding: "1px 5px", borderRadius: 4, border: `1px solid ${(t?.color || "#6B7280")}40` }}>
+                    <span key={tag} style={{ fontSize: 9, fontFamily: "'DM Mono', monospace", color: t?.color || "var(--muted)", padding: "1px 6px", borderRadius: 4, border: `1px solid ${(t?.color || "#6B7280")}40` }}>
                       {tag}
                     </span>
                   );
@@ -352,32 +412,153 @@ export default function Notes({ embedded = false }) {
   // EDITOR PANEL
   // ─────────────────────────────────────────────────────────────────────────
   const editorPanel = !editData ? (
-    <div style={{ ...CARD, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
-      <NotebookPen style={{ width: 32, height: 32, color: "var(--muted)", opacity: 0.15 }} />
-      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--muted)" }}>Select a note or create a new one</p>
+    <div style={{ ...CARD, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
+      <NotebookPen style={{ width: 38, height: 38, color: "var(--muted)", opacity: 0.15 }} />
+      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "var(--muted)" }}>Select a note or create a new one</p>
       <button
         onClick={newNote}
-        style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--brand)", color: "#fff", border: "none", borderRadius: 10, padding: "8px 18px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--brand)", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
       >
-        <Plus style={{ width: 13, height: 13 }} /> New note
+        <Plus style={{ width: 14, height: 14 }} /> New note
       </button>
     </div>
   ) : (
     <div style={{ ...CARD, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      {/* Mobile back */}
-      <div className="flex md:hidden" style={{ padding: "8px 12px", borderBottom: "1px solid var(--divider)", flexShrink: 0 }}>
+
+      {/* ── Editor toolbar ── */}
+      <div style={{ padding: "10px 20px", borderBottom: "1px solid var(--divider)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        {/* Mobile back */}
         <button
+          className="flex md:hidden"
           onClick={() => setMobileView("list")}
           style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: "var(--brand)", fontFamily: "'DM Mono', monospace", fontSize: 11 }}
         >
-          <ChevronLeft style={{ width: 13, height: 13 }} /> All notes
+          <ChevronLeft style={{ width: 14, height: 14 }} /> Notes
         </button>
+        <div className="hidden md:block" />
+
+        {/* Right: status + actions */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {/* Save status */}
+          {saveStatus === "saving" && (
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--muted)", display: "flex", alignItems: "center", gap: 4 }}>
+              <Cloud style={{ width: 11, height: 11, opacity: 0.5 }} /> Saving…
+            </span>
+          )}
+          {saveStatus === "saved" && (
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#10b981", display: "flex", alignItems: "center", gap: 4 }}>
+              <Check style={{ width: 11, height: 11 }} /> Saved
+            </span>
+          )}
+          {saveStatus === "error" && (
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#ef4444", display: "flex", alignItems: "center", gap: 4 }}>
+              <CloudOff style={{ width: 11, height: 11 }} /> Error
+            </span>
+          )}
+
+          {/* Read-only badge */}
+          {!isOwner && (
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--brand)", background: "rgba(42,105,255,0.07)", padding: "3px 8px", borderRadius: 6 }}>read only</span>
+          )}
+
+          {/* Share button (owner only) */}
+          {isOwner && shareableProfiles.length > 0 && (
+            <button
+              onClick={() => setShowShare(v => !v)}
+              title="Share note"
+              style={{
+                width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+                background: showShare || editData.shared_with?.length > 0 ? "rgba(42,105,255,0.1)" : "var(--bg)",
+                border: `1px solid ${showShare || editData.shared_with?.length > 0 ? "rgba(42,105,255,0.25)" : "var(--divider)"}`,
+                cursor: "pointer",
+                color: editData.shared_with?.length > 0 ? "var(--brand)" : "var(--muted)",
+                position: "relative",
+              }}
+            >
+              <Share2 style={{ width: 14, height: 14 }} />
+              {editData.shared_with?.length > 0 && (
+                <span style={{
+                  position: "absolute", top: -4, right: -4,
+                  width: 14, height: 14, borderRadius: "50%",
+                  background: "var(--brand)", color: "#fff",
+                  fontSize: 8, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: "'DM Mono', monospace",
+                }}>
+                  {editData.shared_with.length}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Delete button (owner, existing note only) */}
+          {isOwner && editData.id && (
+            deleteConfirm ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "4px 10px" }}>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#ef4444" }}>Delete?</span>
+                <button
+                  onClick={() => deleteMut.mutate(editData.id)}
+                  disabled={deleteMut.isPending}
+                  style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#ef4444", fontWeight: 700 }}
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setDeleteConfirm(false)}
+                  style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--muted)" }}
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setDeleteConfirm(true)}
+                title="Delete note (or press Backspace)"
+                style={{
+                  width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+                  background: "var(--bg)", border: "1px solid var(--divider)",
+                  cursor: "pointer", color: "var(--muted)",
+                  transition: "all 150ms",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.borderColor = "#fecaca"; e.currentTarget.style.color = "#ef4444"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "var(--bg)"; e.currentTarget.style.borderColor = "var(--divider)"; e.currentTarget.style.color = "var(--muted)"; }}
+              >
+                <Trash2 style={{ width: 14, height: 14 }} />
+              </button>
+            )
+          )}
+        </div>
       </div>
 
-      {/* Read-only shared badge */}
-      {!isOwner && (
-        <div style={{ padding: "6px 20px", background: "rgba(42,105,255,0.06)", borderBottom: "1px solid var(--divider)", flexShrink: 0 }}>
-          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--brand)" }}>Shared with you — read only</span>
+      {/* Share picker dropdown */}
+      {showShare && isOwner && shareableProfiles.length > 0 && (
+        <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--divider)", flexShrink: 0, background: "rgba(42,105,255,0.02)" }}>
+          <p style={{ ...LABEL, marginBottom: 8 }}>Share with</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            {shareableProfiles.map(p => {
+              const isShared = editData.shared_with?.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => toggleShare(p.id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "7px 10px",
+                    borderRadius: 10, border: `1px solid ${isShared ? "var(--brand)" : "var(--divider)"}`,
+                    background: isShared ? "rgba(42,105,255,0.05)" : "transparent",
+                    cursor: "pointer", width: "100%", textAlign: "left",
+                    transition: "all 150ms",
+                  }}
+                >
+                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: isShared ? "var(--brand)" : "rgba(0,0,0,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: isShared ? "#fff" : "var(--muted)", flexShrink: 0 }}>
+                    {p.full_name?.charAt(0).toUpperCase() || "?"}
+                  </div>
+                  <span style={{ flex: 1, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>
+                    {p.full_name || "Unknown"}
+                  </span>
+                  {isShared && <Check style={{ width: 13, height: 13, color: "var(--brand)", flexShrink: 0 }} />}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -388,9 +569,10 @@ export default function Notes({ embedded = false }) {
         placeholder="Note title..."
         readOnly={!isOwner}
         style={{
-          padding: "20px 22px 6px", border: "none", outline: "none",
-          fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 700,
+          padding: "22px 24px 8px", border: "none", outline: "none",
+          fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 24, fontWeight: 700,
           color: "var(--ink)", background: "transparent", flexShrink: 0,
+          letterSpacing: "-0.3px",
         }}
       />
 
@@ -401,174 +583,87 @@ export default function Notes({ embedded = false }) {
         placeholder="Start writing..."
         readOnly={!isOwner}
         style={{
-          flex: 1, padding: "6px 22px", border: "none", outline: "none",
-          resize: "none", fontFamily: "'DM Mono', monospace", fontSize: 13,
-          lineHeight: 1.75, color: "var(--ink)", background: "transparent",
+          flex: 1, padding: "8px 24px 16px", border: "none", outline: "none",
+          resize: "none", fontFamily: "'DM Mono', monospace", fontSize: 14,
+          lineHeight: 1.8, color: "var(--ink)", background: "transparent",
           minHeight: 0,
         }}
       />
 
-      {/* Footer */}
-      <div style={{ padding: "10px 16px", borderTop: "1px solid var(--divider)", flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-        {/* Tags (owner only) */}
-        {isOwner && (
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
-              <Tag style={{ width: 10, height: 10, color: "var(--muted)" }} />
-              <span style={LABEL}>Tags</span>
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-              {userTags.map(tag => {
-                const active = editData.tags?.includes(tag.name);
-                return (
-                  <button
-                    key={tag.id}
-                    onClick={() => toggleTag(tag.name)}
-                    style={{
-                      padding: "2px 8px", borderRadius: 99,
-                      border: `1.5px solid ${active ? tag.color : "var(--divider)"}`,
-                      background: active ? `${tag.color}18` : "transparent",
-                      color: active ? tag.color : "var(--muted)",
-                      fontSize: 10, cursor: "pointer",
-                      fontFamily: "'DM Mono', monospace",
-                      display: "flex", alignItems: "center", gap: 4,
-                    }}
-                  >
-                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: active ? tag.color : "var(--muted)" }} />
-                    {tag.name}
-                  </button>
-                );
-              })}
-              {userTags.length === 0 && (
-                <span style={{ fontSize: 10, color: "var(--muted)", fontFamily: "'DM Mono', monospace" }}>Create a tag from the left panel</span>
-              )}
-            </div>
-          </div>
-        )}
-        {/* Read-only tags */}
-        {!isOwner && editData.tags?.length > 0 && (
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            {editData.tags.map(tag => (
-              <span key={tag} style={{ padding: "2px 8px", borderRadius: 99, border: "1px solid var(--divider)", color: "var(--muted)", fontSize: 10, fontFamily: "'DM Mono', monospace" }}>{tag}</span>
-            ))}
-          </div>
-        )}
-
-        {/* Share (owner only, if there are profiles to share with) */}
-        {isOwner && shareableProfiles.length > 0 && (
-          <div>
-            <button
-              onClick={() => setShowShare(v => !v)}
-              style={{
-                display: "flex", alignItems: "center", gap: 5,
-                background: "none", border: "none", cursor: "pointer",
-                color: editData.shared_with?.length > 0 ? "var(--brand)" : "var(--muted)",
-                fontFamily: "'DM Mono', monospace", fontSize: 10,
-              }}
-            >
-              <Share2 style={{ width: 10, height: 10 }} />
-              {editData.shared_with?.length > 0 ? `Shared with ${editData.shared_with.length} person${editData.shared_with.length > 1 ? "s" : ""}` : "Share note"}
-            </button>
-            {showShare && (
-              <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
-                {shareableProfiles.map(p => {
-                  const isShared = editData.shared_with?.includes(p.id);
+      {/* Footer: tags */}
+      {(isOwner || editData.tags?.length > 0) && (
+        <div style={{ padding: "12px 20px 14px", borderTop: "1px solid var(--divider)", flexShrink: 0 }}>
+          {/* Tags (owner only) */}
+          {isOwner && (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
+                <Tag style={{ width: 11, height: 11, color: "var(--muted)" }} />
+                <span style={LABEL}>Tags</span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                {userTags.map(tag => {
+                  const active = editData.tags?.includes(tag.name);
                   return (
                     <button
-                      key={p.id}
-                      onClick={() => toggleShare(p.id)}
+                      key={tag.id}
+                      onClick={() => toggleTag(tag.name)}
                       style={{
-                        display: "flex", alignItems: "center", gap: 8, padding: "5px 8px",
-                        borderRadius: 8, border: `1px solid ${isShared ? "var(--brand)" : "var(--divider)"}`,
-                        background: isShared ? "rgba(42,105,255,0.05)" : "transparent",
-                        cursor: "pointer", width: "100%", textAlign: "left",
+                        padding: "3px 10px", borderRadius: 99,
+                        border: `1.5px solid ${active ? tag.color : "var(--divider)"}`,
+                        background: active ? `${tag.color}18` : "transparent",
+                        color: active ? tag.color : "var(--muted)",
+                        fontSize: 11, cursor: "pointer",
+                        fontFamily: "'DM Mono', monospace",
+                        display: "flex", alignItems: "center", gap: 5,
+                        transition: "all 120ms",
                       }}
                     >
-                      <div style={{ width: 22, height: 22, borderRadius: "50%", background: isShared ? "var(--brand)" : "var(--muted)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
-                        {p.full_name?.charAt(0).toUpperCase() || "?"}
-                      </div>
-                      <span style={{ flex: 1, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, color: "var(--ink)" }}>
-                        {p.full_name || "Unknown"}
-                      </span>
-                      {isShared && <Check style={{ width: 12, height: 12, color: "var(--brand)", flexShrink: 0 }} />}
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: active ? tag.color : "var(--muted)", flexShrink: 0 }} />
+                      {tag.name}
                     </button>
                   );
                 })}
+                {userTags.length === 0 && (
+                  <span style={{ fontSize: 11, color: "var(--muted)", fontFamily: "'DM Mono', monospace" }}>Create a tag from the left panel</span>
+                )}
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Error */}
-        {saveError && (
-          <p style={{ fontSize: 11, color: "#ef4444", fontFamily: "'DM Mono', monospace", margin: 0 }}>{saveError}</p>
-        )}
-
-        {/* Actions */}
-        {isOwner && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            {editData.id ? (
-              deleteConfirm ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#ef4444" }}>Confirm?</span>
-                  <button
-                    onClick={() => deleteMut.mutate(editData.id)}
-                    disabled={deleteMut.isPending}
-                    style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#ef4444", fontWeight: 600 }}
-                  >
-                    Yes, delete
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirm(false)}
-                    style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--muted)" }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setDeleteConfirm(true)}
-                  style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontFamily: "'DM Mono', monospace", fontSize: 11 }}
-                >
-                  <Trash2 style={{ width: 12, height: 12 }} /> Delete
-                </button>
-              )
-            ) : <div />}
-
-            <button
-              onClick={() => saveMut.mutate(editData)}
-              disabled={saveMut.isPending}
-              style={{
-                background: "var(--brand)", color: "#fff", border: "none", borderRadius: 8,
-                padding: "7px 18px", fontSize: 12, fontWeight: 600, cursor: "pointer",
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                opacity: saveMut.isPending ? 0.7 : 1,
-              }}
-            >
-              {saveMut.isPending ? "Saving…" : "Save"}
-            </button>
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+          {/* Read-only tags */}
+          {!isOwner && editData.tags?.length > 0 && (
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+              {editData.tags.map(tag => (
+                <span key={tag} style={{ padding: "3px 10px", borderRadius: 99, border: "1px solid var(--divider)", color: "var(--muted)", fontSize: 11, fontFamily: "'DM Mono', monospace" }}>{tag}</span>
+              ))}
+            </div>
+          )}
+          {/* Error */}
+          {saveError && (
+            <p style={{ fontSize: 11, color: "#ef4444", fontFamily: "'DM Mono', monospace", margin: "8px 0 0" }}>{saveError}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────
+  const panelHeight = embedded ? "calc(100dvh - 200px)" : "calc(100dvh - 110px)";
+
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto" }}>
       {/* Desktop: 2-panel */}
       <div
         className="hidden md:grid"
-        style={{ gridTemplateColumns: "260px 1fr", gap: 12, height: embedded ? "calc(100dvh - 200px)" : "calc(100dvh - 110px)" }}
+        style={{ gridTemplateColumns: "320px 1fr", gap: 12, height: panelHeight }}
       >
         {leftPanel}
         {editorPanel}
       </div>
 
       {/* Mobile: single panel */}
-      <div className="flex md:hidden" style={{ height: embedded ? "calc(100dvh - 200px)" : "calc(100dvh - 110px)" }}>
+      <div className="flex md:hidden" style={{ height: panelHeight }}>
         {mobileView === "list" ? leftPanel : editorPanel}
       </div>
     </div>
