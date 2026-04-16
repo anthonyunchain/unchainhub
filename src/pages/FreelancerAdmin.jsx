@@ -791,8 +791,8 @@ export default function FreelancerAdmin() {
           onClick={() => setSection('projects')}
           onMouseEnter={hoverOn} onMouseLeave={hoverOff}
         >
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: '22px', color: '#fff', fontWeight: 300, lineHeight: 1 }}>+</span>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
           </div>
           <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 600, color: 'var(--brand)' }}>New Project</p>
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>Create & assign →</p>
