@@ -45,7 +45,6 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
 
   useEffect(() => {
     setData(task || empty);
-    setNewCheck("");
     setMessageDraft("");
     setClearStep(0);
     setConvImageFile(null);
