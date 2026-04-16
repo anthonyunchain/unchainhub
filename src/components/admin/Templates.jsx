@@ -17,10 +17,11 @@ const TYPE_META = {
 const CATEGORIES = [
   { key: "contracts", label: "Contract Templates" },
   { key: "emails",    label: "Email Templates" },
+  { key: "reports",   label: "Reports & Analytics" },
   { key: "sales",     label: "Sales & Presentations" },
 ];
 
-const STORAGE_KEY = "admin_templates_v2";
+const STORAGE_KEY = "admin_templates_v3";
 
 function loadTemplates() {
   try {
@@ -31,6 +32,7 @@ function loadTemplates() {
     { id: "1", name: "Proposal", description: "Client proposal template", type: "pdf", url: "", category: "contracts" },
     { id: "2", name: "Client Contract", description: "Standard client contract", type: "pdf", url: "", category: "contracts" },
     { id: "3", name: "Freelancer Contract", description: "Freelancer agreement template", type: "pdf", url: "", category: "contracts" },
+    { id: "6", name: "Analytics Report", description: "Monthly analytics report template", type: "pdf", url: "", category: "reports" },
     { id: "4", name: "Unchain Studio Introduction", description: "Agency introduction deck", type: "pdf", url: "", category: "sales" },
     { id: "5", name: "Discovery Call", description: "Discovery call presentation", type: "slides", url: "", category: "sales" },
   ];
