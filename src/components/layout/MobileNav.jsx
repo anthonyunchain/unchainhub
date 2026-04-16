@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard, CheckSquare, Calendar, Lightbulb,
-  MoreHorizontal, X, Shield, UserCheck, Users, Layers
+  MoreHorizontal, X, Shield, UserCheck, Users, Layers, NotebookPen
 } from "lucide-react";
 
 const MAIN_TABS = [
@@ -15,6 +15,7 @@ const MAIN_TABS = [
 const MORE_ITEMS = [
   { path: "/Clients",     label: "Clients",     icon: Users },
   { path: "/Freelancers", label: "Freelancers", icon: UserCheck },
+  { path: "/Notes",       label: "Notes",       icon: NotebookPen },
   { path: "/Admin",       label: "Admin",       icon: Shield },
   { path: "/Services",    label: "Services",    icon: Layers },
 ];

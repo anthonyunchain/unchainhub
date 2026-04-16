@@ -477,10 +477,25 @@ function InvoicesManagement() {
     onError: (e) => setMutError(e.message),
   });
   const updateMut = useMutation({
-    mutationFn: async ({ id, d }) => {
+    mutationFn: async ({ id, d, originalStatus }) => {
       const { id: _id, created_at, ...rest } = d;
       const { error } = await supabase.from("freelancer_payments").update({ ...rest, amount: parseFloat(rest.amount) || 0 }).eq("id", id);
       if (error) throw error;
+      // Fire notification when status changes to Paid
+      if (originalStatus !== "Paid" && d.status === "Paid") {
+        const freelancer = freelancers.find(f => f.id === d.freelancer_id);
+        const recipientId = freelancer?.user_id;
+        if (recipientId) {
+          await supabase.from("notifications").insert({
+            recipient_id: recipientId,
+            title: "Invoice marked as paid",
+            message: `Your invoice for "${d.mission || "mission"}" has been marked as paid (€${parseFloat(d.amount || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}).`,
+            type: "invoice_paid",
+            is_read: false,
+            action_required: false,
+          });
+        }
+      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setDialogOpen(false); setMutError(null); },
     onError: (e) => setMutError(e.message),
@@ -507,7 +522,14 @@ function InvoicesManagement() {
     setDialogOpen(true);
   };
   const openEdit = (p) => { setEditData({ ...p }); setMutError(null); setConfirmDelete(false); setDialogOpen(true); };
-  const handleSave = () => editData.id ? updateMut.mutate({ id: editData.id, d: editData }) : createMut.mutate(editData);
+  const handleSave = () => {
+    if (editData.id) {
+      const originalPayment = payments.find(p => p.id === editData.id);
+      updateMut.mutate({ id: editData.id, d: editData, originalStatus: originalPayment?.status });
+    } else {
+      createMut.mutate(editData);
+    }
+  };
 
   const STATUS_COLORS = {
     "Pending": "bg-amber-50 text-amber-700",

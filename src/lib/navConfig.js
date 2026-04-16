@@ -10,6 +10,7 @@ export const FREELANCER_NAV_ITEMS = [
   { id: "tools",         label: "Tools" },
   { id: "meetings",      label: "Meetings" },
   { id: "shootings",     label: "Shootings" },
+  { id: "notes",         label: "Notes" },
   { id: "invoices",      label: "Admin / Invoices" },
   { id: "profile",       label: "Profile" },
 ];

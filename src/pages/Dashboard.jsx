@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import SmartAlertsWidget from "../components/dashboard/SmartAlertsWidget";
 import { Users, Kanban, Calendar, ArrowUpRight, FileBarChart, Eye, Camera } from "lucide-react";
 import KpiCard from "../components/shared/KpiCard";
 import StatusBadge from "../components/shared/StatusBadge";
@@ -31,10 +32,14 @@ const LABEL = {
 
 export default function Dashboard() {
   const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState(null);
   const greeting = useMemo(() => getGreeting(userName.split(" ")[0] || ""), [userName]);
 
   useEffect(() => {
-    base44.auth.me().then(u => setUserName(u?.full_name || u?.email || "")).catch(() => {});
+    base44.auth.me().then(u => {
+      setUserName(u?.full_name || u?.email || "");
+      setUserRole(u?.role || null);
+    }).catch(() => {});
   }, []);
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
@@ -94,6 +99,9 @@ export default function Dashboard() {
           {format(new Date(), "EEEE, d MMMM yyyy", { locale: enUS })}
         </p>
       </div>
+
+      {/* ── Smart Alerts (admin only) ── */}
+      {userRole === 'admin' && <SmartAlertsWidget />}
 
       {/* ── Row 1: Hero + 4 KPIs ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">

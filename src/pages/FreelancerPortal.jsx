@@ -20,6 +20,8 @@ import Ideas from "./Ideas";
 import FreelancerSidebar from "@/components/freelancer/FreelancerSidebar";
 import UserMenu from "@/components/layout/UserMenu";
 import NotificationBell from "@/components/layout/NotificationBell";
+import NotesFABFreelancer from "@/components/notes/NotesFABFreelancer";
+import Notes from "./Notes";
 import ProfileTab from "./freelancer/ProfileTab";
 import ProjectsTab from "./freelancer/ProjectsTab";
 import CaptionsTab from "./freelancer/CaptionsTab";
@@ -1136,6 +1138,7 @@ export default function FreelancerPortal() {
         onAccept={() => handleProjectUpdate()}
         onDecline={() => handleProjectUpdate()}
       />;
+      case "notes": return <Notes embedded />;
       default: return null;
     }
   };
@@ -1189,6 +1192,7 @@ export default function FreelancerPortal() {
                 { id: 'projects', label: 'Calendar' },
 
                 ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas' }] : []),
+                { id: 'notes', label: 'Notes' },
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
                 { id: 'invoices', label: 'Admin' },
@@ -1232,6 +1236,7 @@ export default function FreelancerPortal() {
               }}>
                 {format(new Date(), "EEE, MMM d", { locale: enUS })} · {time}
               </div>
+              <NotesFABFreelancer userId={user?.id} onOpenNotes={() => setActiveTab("notes")} />
               <NotificationBell
                 notifications={notifications}
                 onMarkRead={notifMarkRead}
@@ -1250,6 +1255,7 @@ export default function FreelancerPortal() {
             {/* Mobile: time + bell + avatar menu */}
             <div className="flex md:hidden items-center gap-2">
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>{time}</div>
+              <NotesFABFreelancer userId={user?.id} onOpenNotes={() => setActiveTab("notes")} />
               <NotificationBell
                 notifications={notifications}
                 onMarkRead={notifMarkRead}

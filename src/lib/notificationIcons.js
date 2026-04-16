@@ -9,4 +9,5 @@ export const NOTIFICATION_TYPE_ICONS = {
   deadline_warning:        "⏰",
   availability_reminder:   "📅",
   message:                 "💬",
+  invoice_paid:            "💰",
 };
