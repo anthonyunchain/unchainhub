@@ -521,34 +521,35 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                     </button>
                   </div>
                 )}
-                <div className="flex items-start gap-2">
-                  <label className="shrink-0 mt-1 p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors" title="Attach image">
+                <div className="flex items-end gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 focus-within:border-brand/50 focus-within:bg-white transition-colors">
+                  <label className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-600 cursor-pointer transition-colors" title="Attach image">
                     <ImagePlus className="w-4 h-4" />
                     <input type="file" accept="image/*" className="hidden" onChange={handleConvImageSelect} />
                   </label>
-                  <Textarea
+                  <textarea
                     value={messageDraft}
                     onChange={e => setMessageDraft(e.target.value.slice(0, 5000))}
                     onKeyDown={e => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        sendAdminMessage();
+                        if (messageDraft.trim() || convImageFile) sendAdminMessage();
                       }
                     }}
-                    rows={2}
+                    rows={1}
                     placeholder="Write a message…"
                     maxLength={5000}
-                    className="flex-1 text-sm"
+                    className="flex-1 text-sm bg-transparent border-0 outline-none resize-none py-1 placeholder:text-slate-400"
+                    style={{ minHeight: 28, maxHeight: 100 }}
+                    onInput={e => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px"; }}
                   />
-                  <Button
+                  <button
                     type="button"
-                    size="sm"
                     onClick={sendAdminMessage}
-                    disabled={sendingMessage || (!messageDraft.trim() && !convImageFile)}
-                    className="shrink-0"
+                    disabled={sendingMessage || uploadingConvImage || (!messageDraft.trim() && !convImageFile)}
+                    className="shrink-0 p-1.5 rounded-lg text-white bg-brand hover:bg-brand/90 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
-                    {sendingMessage || uploadingConvImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Send className="w-3.5 h-3.5 mr-1" />Send</>}
-                  </Button>
+                    {sendingMessage || uploadingConvImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
             </div>

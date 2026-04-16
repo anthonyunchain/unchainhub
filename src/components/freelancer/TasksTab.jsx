@@ -291,37 +291,36 @@ function TaskRow({ task, onUpdateTask }) {
                   </button>
                 </div>
               )}
-              <textarea
-                value={messageDraft}
-                onChange={e => setMessageDraft(e.target.value.slice(0, 5000))}
-                onKeyDown={e => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
-                rows={3}
-                maxLength={5000}
-                placeholder="Write a message…"
-                className="w-full text-sm rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none focus:border-blue-400 resize-none"
-              />
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <label className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors" title="Attach image">
-                    <ImagePlus className="w-4 h-4" />
-                    <input type="file" accept="image/*" className="hidden" onChange={handleChatImageSelect} />
-                  </label>
-                  <span className="text-[10px] text-slate-400">Anthony gets notified.</span>
-                </div>
+              <div className="flex items-end gap-1.5 bg-white border border-slate-200 rounded-xl px-2 py-1.5 focus-within:border-blue-400 transition-colors">
+                <label className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-600 cursor-pointer transition-colors" title="Attach image">
+                  <ImagePlus className="w-4 h-4" />
+                  <input type="file" accept="image/*" className="hidden" onChange={handleChatImageSelect} />
+                </label>
+                <textarea
+                  value={messageDraft}
+                  onChange={e => setMessageDraft(e.target.value.slice(0, 5000))}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (messageDraft.trim() || chatImageFile) sendMessage();
+                    }
+                  }}
+                  rows={1}
+                  maxLength={5000}
+                  placeholder="Write a message…"
+                  className="flex-1 text-sm bg-transparent border-0 outline-none resize-none py-1 placeholder:text-slate-400"
+                  style={{ minHeight: 28, maxHeight: 100 }}
+                  onInput={e => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px"; }}
+                />
                 <button
                   onClick={sendMessage}
                   disabled={(!messageDraft.trim() && !chatImageFile) || sendingMessage}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="shrink-0 p-1.5 rounded-lg text-white bg-slate-800 hover:bg-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
-                  {sendingMessage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  {sendingMessage ? "Sending…" : "Send"}
+                  {sendingMessage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </button>
               </div>
+              <span className="text-[10px] text-slate-400">Anthony gets notified.</span>
             </div>
           </div>
         </div>
