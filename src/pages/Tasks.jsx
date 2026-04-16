@@ -81,16 +81,16 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
 
   return (
     <div
-      onClick={() => onEdit(task)} className="bg-[hsl(var(--card-hsl))] p-4 rounded-xl border border-slate-100 hover:shadow-sm hover:border-slate-200 transition-all cursor-pointer group">
+      onClick={() => onEdit(task)} className="bg-[hsl(var(--card-hsl))] p-5 rounded-xl border border-slate-100 hover:shadow-sm hover:border-slate-200 transition-all cursor-pointer group">
 
       <div className="space-y-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-start gap-2">
           <button
             onClick={(e) => {e.stopPropagation();onStatusChange(task, task.status === "Terminé" ? "Non commencé" : "Terminé");}}
-            className="shrink-0 text-slate-300 hover:text-emerald-500 transition-colors">
+            className="shrink-0 mt-0.5 text-slate-300 hover:text-emerald-500 transition-colors">
             {task.status === "Terminé" ? <CheckSquare className="w-4 h-4 text-emerald-500" /> : <Square className="w-4 h-4" />}
           </button>
-          <p className={`text-sm font-medium flex-1 truncate ${task.status === "Terminé" ? "line-through text-slate-400" : "text-slate-800"}`}>
+          <p className={`text-sm font-medium flex-1 ${task.status === "Terminé" ? "line-through text-slate-400" : "text-slate-800"}`}>
             {task.title}
           </p>
           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${cfg.color}`}>
@@ -115,14 +115,17 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
-        <div className="pl-6 space-y-2">
+        <div className="pl-6 space-y-2 mt-1">
           {task.description &&
-          <p className="text-xs text-slate-400 line-clamp-1">{task.description}</p>
+          <p className="text-xs text-slate-400 line-clamp-2">{task.description}</p>
           }
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
             {task.category && <span className={`text-[10px] px-1.5 py-0.5 rounded ${CATEGORY_STYLE[task.category] || "text-slate-400 bg-slate-50"}`}>{CATEGORY_LABEL[task.category] || task.category}</span>}
             {task.client_name &&
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">{task.client_name}</span>
+            }
+            {task.assigned_to &&
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 font-medium">{task.assigned_to}</span>
             }
             {dueBadge()}
           </div>
@@ -355,7 +358,7 @@ export default function Tasks() {
           <p className="text-slate-400 text-sm">No tasks</p>
         </div> :
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {filtered.map((task) =>
         <TaskCard
           key={task.id}
