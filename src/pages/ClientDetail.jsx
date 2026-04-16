@@ -808,6 +808,30 @@ export default function ClientDetail() {
                 <ServicesEditor value={editData.active_services || []} onChange={v => setEditData({ ...editData, active_services: v })} />
               </div>
               <div><Label>Notes</Label><Textarea value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} rows={2} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Portal language</Label>
+                  <Select value={editData.default_language || "en"} onValueChange={v => setEditData({ ...editData, default_language: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="fi">Finnish</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <input
+                  type="checkbox"
+                  id="editorial_visible_detail"
+                  checked={editData.editorial_visible || false}
+                  onChange={e => setEditData({ ...editData, editorial_visible: e.target.checked })}
+                  className="w-4 h-4 accent-blue-600 cursor-pointer"
+                />
+                <div>
+                  <label htmlFor="editorial_visible_detail" className="text-sm font-medium text-slate-700 cursor-pointer">Editorial calendar visible to freelancers</label>
+                  <p className="text-xs text-slate-400 mt-0.5">Freelancers will see this client's calendar (read-only) and can write descriptions.</p>
+                </div>
+              </div>
               <div className="flex justify-between items-center pt-2">
                 <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleDelete} disabled={deleteMut.isPending}>
                   <Trash2 className="w-4 h-4 mr-1" /> Delete
