@@ -17,7 +17,7 @@ export default function DashboardTab({ freelancerName, freelancerEmail, onTabCha
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["freelancer-tasks", freelancerEmail],
-    queryFn: () => base44.entities.Task.list("-created_date"),
+    queryFn: () => base44.entities.Task.list("-created_at"),
     select: (data) => data.filter(t =>
       t.assigned_to?.toLowerCase() === freelancerName?.toLowerCase() ||
       t.assigned_to?.toLowerCase() === freelancerEmail?.toLowerCase()

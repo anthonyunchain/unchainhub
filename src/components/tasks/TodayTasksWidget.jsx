@@ -12,7 +12,7 @@ export default function TodayTasksWidget() {
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks"],
-    queryFn: () => base44.entities.Task.list("-created_date"),
+    queryFn: () => base44.entities.Task.list("-created_at"),
   });
 
   const updateMut = useMutation({
