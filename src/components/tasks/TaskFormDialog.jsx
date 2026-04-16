@@ -198,7 +198,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={`${hasConversation ? "!max-w-[92vw]" : "!max-w-2xl"} w-[95vw] md:w-[92vw] !max-h-[85vh] h-[92vh] md:h-[85vh] p-0 overflow-hidden flex flex-col`}
+        className={`${hasConversation ? "!max-w-[92vw]" : "!max-w-2xl"} w-[95vw] md:w-[92vw] !max-h-[90vh] md:!max-h-[85vh] p-0 overflow-hidden flex flex-col`}
       >
         <DialogHeader className="px-5 pt-4 pb-3 border-b border-slate-100 flex-shrink-0">
           <DialogTitle>{task?.id ? "Edit task" : "New task"}</DialogTitle>
@@ -206,7 +206,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
 
         <div className={`flex-1 min-h-0 flex flex-col ${hasConversation ? "lg:flex-row" : ""}`}>
           {/* LEFT — form fields */}
-          <div className={`min-h-0 overflow-y-auto px-6 py-5 space-y-3 ${hasConversation ? "lg:w-[60%] lg:border-r lg:border-slate-100 flex-shrink-0" : "flex-1"}`}>
+          <div className={`min-h-0 overflow-y-auto px-4 md:px-6 py-4 md:py-5 space-y-2.5 md:space-y-3 ${hasConversation ? "lg:w-[60%] lg:border-r lg:border-slate-100 flex-shrink-0" : "flex-1"}`}>
 
           {/* Titre */}
           <div>
@@ -217,11 +217,11 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
           {/* Description */}
           <div>
             <Label>Description</Label>
-            <Textarea value={data.description || ""} onChange={e => set("description", e.target.value)} rows={2} placeholder="Task details..." />
+            <Textarea value={data.description || ""} onChange={e => set("description", e.target.value)} rows={1} className="min-h-[36px]" placeholder="Task details..." />
           </div>
 
           {/* Status + Due date + Category + Assigned + Client — aligned row */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 items-end">
+          <div className="grid grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 items-end">
             <div className="space-y-1.5">
               <Label>Status</Label>
               <Select value={data.status} onValueChange={v => set("status", v)}>
@@ -340,15 +340,13 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
           )}
 
           {/* Task images */}
-          <div className="grid grid-cols-1 gap-3">
-            {/* Task images */}
-            <div className="col-span-full">
-              <Label>Images</Label>
-              <div className="flex flex-wrap gap-2 mt-1.5">
-                {(data.images || []).map((url, i) => (
-                  <div key={i} className="relative group">
-                    <a href={url} target="_blank" rel="noopener noreferrer">
-                      <img src={url} alt="" className="w-20 h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90" />
+          <div>
+            <Label>Images</Label>
+            <div className="flex flex-wrap gap-2 mt-1.5">
+              {(data.images || []).map((url, i) => (
+                <div key={i} className="relative group">
+                  <a href={url} target="_blank" rel="noopener noreferrer">
+                    <img src={url} alt="" className="w-14 h-14 md:w-20 md:h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90" />
                     </a>
                     <button
                       type="button"
@@ -359,11 +357,10 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                     </button>
                   </div>
                 ))}
-                <label className={`w-20 h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-slate-400 transition-colors ${uploadingTaskImage ? "opacity-50 pointer-events-none" : ""}`}>
-                  {uploadingTaskImage ? <Loader2 className="w-5 h-5 animate-spin text-slate-400" /> : <ImagePlus className="w-5 h-5 text-slate-400" />}
-                  <input type="file" accept="image/*" className="hidden" onChange={handleTaskImageUpload} />
-                </label>
-              </div>
+              <label className={`w-14 h-14 md:w-20 md:h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-slate-400 transition-colors ${uploadingTaskImage ? "opacity-50 pointer-events-none" : ""}`}>
+                {uploadingTaskImage ? <Loader2 className="w-5 h-5 animate-spin text-slate-400" /> : <ImagePlus className="w-5 h-5 text-slate-400" />}
+                <input type="file" accept="image/*" className="hidden" onChange={handleTaskImageUpload} />
+              </label>
             </div>
           </div>
           </div>
