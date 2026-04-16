@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X, CheckSquare, Square, UserCheck, MessageCircle, Send, Trash2 } from "lucide-react";
+import TaskComments from "./TaskComments";
 
 export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
   const [currentUserName, setCurrentUserName] = useState("");
@@ -287,6 +288,13 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
               <Label>Internal notes</Label>
               <Textarea value={data.notes || ""} onChange={e => set("notes", e.target.value)} rows={4} placeholder="Notes..." />
             </div>
+
+            {/* Comments with images — only when editing */}
+            {task?.id && (
+              <div className="border-t border-slate-100 pt-3">
+                <TaskComments taskId={task.id} />
+              </div>
+            )}
           </div>
           </div>
           {/* ─── end LEFT column ─── */}

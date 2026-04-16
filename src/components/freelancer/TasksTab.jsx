@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { format, isPast, isToday, isTomorrow } from "date-fns";
+import { format, isPast, isToday, isTomorrow, isThisWeek, startOfDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square, MessageCircle, Send, X } from "lucide-react";
 import { TASK_STATUS_CONFIG as STATUS_CONFIG, TASK_STATUS_LABEL as STATUS_LABEL } from "@/lib/taskStatus";
+import TaskComments from "@/components/tasks/TaskComments";
 
 const CATEGORY_LABEL = {
   "Design": "Design",
@@ -18,7 +19,6 @@ const CATEGORY_LABEL = {
   "Commercial": "Commercial", "Contenu": "Content", "Administratif": "Administrative",
   "Montage": "Video Editing", "Vie perso": "Personal", "Autre": "Other",
 };
-
 
 function DueBadge({ task }) {
   if (!task.due_date || task.status === "Terminé") return null;
@@ -169,6 +169,10 @@ function TaskRow({ task, onUpdateTask }) {
               {task.notes}
             </div>
           )}
+          {/* Comments */}
+          <div className="pt-1">
+            <TaskComments taskId={task.id} />
+          </div>
         </div>
       )}
 
@@ -257,6 +261,28 @@ function TaskRow({ task, onUpdateTask }) {
   );
 }
 
+function groupTasksByDate(tasks) {
+  const groups = { overdue: [], today: [], tomorrow: [], thisWeek: [], later: [], noDate: [] };
+  for (const t of tasks) {
+    if (!t.due_date) { groups.noDate.push(t); continue; }
+    const d = startOfDay(new Date(t.due_date));
+    if (isToday(d)) groups.today.push(t);
+    else if (isPast(d)) groups.overdue.push(t);
+    else if (isTomorrow(d)) groups.tomorrow.push(t);
+    else if (isThisWeek(d, { weekStartsOn: 1 })) groups.thisWeek.push(t);
+    else groups.later.push(t);
+  }
+  return groups;
+}
+
+const DATE_GROUP_CONFIG = [
+  { key: "overdue", label: "Overdue", headerClass: "text-red-600", dotClass: "bg-red-500" },
+  { key: "today", label: "Today", headerClass: "text-amber-600", dotClass: "bg-amber-500" },
+  { key: "tomorrow", label: "Tomorrow", headerClass: "text-blue-600", dotClass: "bg-blue-500" },
+  { key: "thisWeek", label: "This week", headerClass: "text-indigo-600", dotClass: "bg-indigo-400" },
+  { key: "later", label: "Later", headerClass: "text-slate-500", dotClass: "bg-slate-400" },
+  { key: "noDate", label: "No date", headerClass: "text-slate-400", dotClass: "bg-slate-300" },
+];
 export default function TasksTab({ tasks, onUpdateTask }) {
   const [filterClient, setFilterClient] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -335,7 +361,7 @@ export default function TasksTab({ tasks, onUpdateTask }) {
         <span className="text-xs text-slate-400">{pending.length} pending · {done.length} done</span>
       </div>
 
-      {/* Pending tasks */}
+      {/* Pending tasks — grouped by date */}
       {pending.length === 0 && done.length === 0 && (
         <div className="text-center py-16 text-slate-400">
           <CheckCircle2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -343,13 +369,31 @@ export default function TasksTab({ tasks, onUpdateTask }) {
         </div>
       )}
 
-      {pending.length > 0 && (
-        <div className="space-y-2">
-          {pending.map(task => (
-            <TaskRow key={task.id} task={task} onUpdateTask={onUpdateTask} />
-          ))}
-        </div>
-      )}
+      {pending.length > 0 && (() => {
+        const groups = groupTasksByDate(pending);
+        return (
+          <div className="space-y-5">
+            {DATE_GROUP_CONFIG.map(({ key, label, headerClass, dotClass }) => {
+              const items = groups[key];
+              if (!items || items.length === 0) return null;
+              return (
+                <div key={key}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`w-2 h-2 rounded-full ${dotClass}`} />
+                    <h3 className={`text-xs font-semibold uppercase tracking-wider ${headerClass}`}>{label}</h3>
+                    <span className="text-[10px] text-slate-400">{items.length}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {items.map(task => (
+                      <TaskRow key={task.id} task={task} onUpdateTask={onUpdateTask} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Done tasks (collapsible) */}
       {done.length > 0 && (

@@ -39,6 +39,7 @@ const TABLE_MAP = {
   Shareholder:        'shareholders',
   ShareholderSalary:  'shareholder_salaries',
   Subscription:       'subscriptions',
+  TaskComment:        'task_comments',
 };
 
 

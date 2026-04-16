@@ -20,8 +20,8 @@ const toTaskPayload = (d) => ({
 });
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, CheckSquare, Square, Trash2, AlertTriangle, Clock, CheckCircle2, Circle, MessageCircle } from "lucide-react";
-import { format, isToday, isPast, isTomorrow } from "date-fns";
+import { Plus, CheckSquare, Square, Trash2, AlertTriangle, Clock, CheckCircle2, Circle, MessageCircle, ChevronDown } from "lucide-react";
+import { format, isToday, isPast, isTomorrow, isThisWeek, startOfDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 import TaskFormDialog from "../components/tasks/TaskFormDialog";
 
@@ -145,6 +145,77 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
         </div>
       </div>
     </div>);
+}
+
+function groupTasksByDate(tasks) {
+  const today = startOfDay(new Date());
+  const groups = {
+    overdue: [], today: [], tomorrow: [], thisWeek: [], later: [], noDate: [], done: []
+  };
+  for (const t of tasks) {
+    if (t.status === "Terminé") { groups.done.push(t); continue; }
+    if (!t.due_date) { groups.noDate.push(t); continue; }
+    const d = startOfDay(new Date(t.due_date));
+    if (isToday(d)) groups.today.push(t);
+    else if (isPast(d)) groups.overdue.push(t);
+    else if (isTomorrow(d)) groups.tomorrow.push(t);
+    else if (isThisWeek(d, { weekStartsOn: 1 })) groups.thisWeek.push(t);
+    else groups.later.push(t);
+  }
+  return groups;
+}
+
+const GROUP_CONFIG = [
+  { key: "overdue", label: "Overdue", headerClass: "text-red-600", dotClass: "bg-red-500" },
+  { key: "today", label: "Today", headerClass: "text-amber-600", dotClass: "bg-amber-500" },
+  { key: "tomorrow", label: "Tomorrow", headerClass: "text-blue-600", dotClass: "bg-blue-500" },
+  { key: "thisWeek", label: "This week", headerClass: "text-indigo-600", dotClass: "bg-indigo-400" },
+  { key: "later", label: "Later", headerClass: "text-slate-500", dotClass: "bg-slate-400" },
+  { key: "noDate", label: "No date", headerClass: "text-slate-400", dotClass: "bg-slate-300" },
+];
+
+function TaskGroups({ tasks, onEdit, onDelete, onStatusChange }) {
+  const groups = groupTasksByDate(tasks);
+
+  return (
+    <div className="space-y-6">
+      {GROUP_CONFIG.map(({ key, label, headerClass, dotClass }) => {
+        const items = groups[key];
+        if (!items || items.length === 0) return null;
+        return (
+          <div key={key}>
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className={`w-2 h-2 rounded-full ${dotClass}`} />
+              <h3 className={`text-sm font-semibold ${headerClass}`}>{label}</h3>
+              <span className="text-xs text-slate-400">{items.length}</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {items.map((task) => (
+                <TaskCard key={task.id} task={task} onEdit={onEdit} onDelete={(id) => onDelete(id)} onStatusChange={onStatusChange} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Done — collapsible */}
+      {groups.done.length > 0 && (
+        <details className="group">
+          <summary className="cursor-pointer flex items-center gap-2 mb-2.5 list-none select-none py-1">
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-open:rotate-180 transition-transform" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <h3 className="text-sm font-semibold text-emerald-600">Done</h3>
+            <span className="text-xs text-slate-400">{groups.done.length}</span>
+          </summary>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1 opacity-70">
+            {groups.done.map((task) => (
+              <TaskCard key={task.id} task={task} onEdit={onEdit} onDelete={(id) => onDelete(id)} onStatusChange={onStatusChange} />
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
 }
 
 export default function Tasks() {
@@ -351,24 +422,19 @@ export default function Tasks() {
       <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--bg)] to-transparent" />
       </div>
 
-      {/* Liste */}
+      {/* Liste groupée par période */}
       {filtered.length === 0 ?
       <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
           <CheckSquare className="w-10 h-10 text-slate-200 mx-auto mb-3" />
           <p className="text-slate-400 text-sm">No tasks</p>
         </div> :
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filtered.map((task) =>
-        <TaskCard
-          key={task.id}
-          task={task}
-          onEdit={openEdit}
-          onDelete={(id) => deleteMut.mutate(id)}
-          onStatusChange={handleStatusChange} />
-
-        )}
-        </div>
+      <TaskGroups
+        tasks={filtered}
+        onEdit={openEdit}
+        onDelete={(id) => deleteMut.mutate(id)}
+        onStatusChange={handleStatusChange}
+      />
       }
 
       {mutError && (
