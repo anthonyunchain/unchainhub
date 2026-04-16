@@ -1889,7 +1889,7 @@ const NAV_SECTIONS = [
     { id: 'briefs',    label: 'Monthly Briefs' },
     { id: 'ideas',     label: 'Ideas' },
     { id: 'analytics', label: 'Analytics' },
-    { id: 'sales',     label: 'Pipeline' },
+    { id: 'sales',     label: 'Prospects' },
   ]},
   { label: "Finance", items: [
     { id: 'finance',       label: 'Finance' },
