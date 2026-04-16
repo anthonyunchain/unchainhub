@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Eye, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Eye, TrendingUp, ChevronLeft, ChevronRight, Upload } from "lucide-react";
+import StatsCsvImportDialog from "@/components/stats/StatsCsvImportDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
@@ -27,6 +28,7 @@ export default function Reports() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkMonth, setBulkMonth] = useState(format(new Date(), "yyyy-MM"));
   const [bulkRows, setBulkRows] = useState([]);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
   const qc = useQueryClient();
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
@@ -175,6 +177,7 @@ export default function Reports() {
       <div style={{ position: 'relative' }}>
         {activeTab === "social" && (
           <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 1 }} className="flex gap-2">
+            <Button variant="outline" onClick={() => setCsvImportOpen(true)} className="h-9"><Upload className="w-4 h-4 mr-1" />Import CSV</Button>
             <Button variant="outline" onClick={openBulk} className="h-9">Bulk entry</Button>
             <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" />Add stats</Button>
           </div>
@@ -540,6 +543,8 @@ export default function Reports() {
         )}
       </DialogContent>
       </Dialog>
+
+      <StatsCsvImportDialog open={csvImportOpen} onOpenChange={setCsvImportOpen} allStats={allStats} />
     </div>
   );
 }
