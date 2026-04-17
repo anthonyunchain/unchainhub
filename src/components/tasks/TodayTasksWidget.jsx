@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { base44, supabase } from "@/api/base44Client";
 import { CheckSquare, Square, Plus, AlertTriangle, ChevronRight } from "lucide-react";
 import { isToday, isPast } from "date-fns";
 import { Link } from "react-router-dom";
 import TaskFormDialog from "./TaskFormDialog";
+import { toTaskPayload } from "@/lib/taskPayload";
 
 export default function TodayTasksWidget() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -21,12 +22,18 @@ export default function TodayTasksWidget() {
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, d }) => base44.entities.Task.update(id, d),
+    mutationFn: async ({ id, d }) => {
+      const { error } = await supabase.from('tasks').update(toTaskPayload(d)).eq('id', id);
+      if (error) { console.error('task update error:', error); throw error; }
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
   const createMut = useMutation({
-    mutationFn: (d) => base44.entities.Task.create(d),
+    mutationFn: async (d) => {
+      const { error } = await supabase.from('tasks').insert(toTaskPayload(d));
+      if (error) { console.error('task insert error:', error); throw error; }
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); },
   });
 

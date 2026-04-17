@@ -1,22 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
-
-// Only columns that exist in the tasks table
-const toTaskPayload = (d) => ({
-  title: d.title,
-  description: d.description || null,
-  status: d.status || "Non commencé",
-  category: d.category || "Update",
-  client_name: d.client_name || null,
-  assigned_to: d.assigned_to || null,
-  assigned_freelancer_id:
-    d.assigned_freelancer_id && d.assigned_freelancer_id !== "_me" && d.assigned_freelancer_id !== "_none"
-      ? d.assigned_freelancer_id
-      : null,
-  due_date: d.due_date || null,
-  images: d.images || [],
-});
+import { toTaskPayload } from "@/lib/taskPayload";
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Plus, CheckSquare, Square, Trash2, AlertTriangle, Clock, CheckCircle2, Circle, MessageCircle, ChevronDown } from "lucide-react";
