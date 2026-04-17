@@ -213,7 +213,10 @@ export default function ClientDetail() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: (cid) => base44.entities.Client.delete(cid),
+    mutationFn: async (cid) => {
+      const { data } = await base44.functions.invoke('deleteClient', { clientId: cid });
+      if (data?.error) throw new Error(data.error);
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); navigate("/Clients"); },
     onError: (e) => alert("Deletion error: " + (e?.message || e)),
   });

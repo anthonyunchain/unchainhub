@@ -61,7 +61,14 @@ export default function Clients() {
 
   const createMut = useMutation({ mutationFn: (d) => base44.entities.Client.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Creation error: " + (e?.message || e)) });
   const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Client.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Update error: " + (e?.message || e)) });
-  const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Client.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Deletion error: " + (e?.message || e)) });
+  const deleteMut = useMutation({
+    mutationFn: async (id) => {
+      const { data } = await base44.functions.invoke('deleteClient', { clientId: id });
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); },
+    onError: (e) => alert("Deletion error: " + (e?.message || e)),
+  });
 
   const handleDelete = () => {
     if (editData?.id && confirm("Delete this client? This action is irreversible.")) {
