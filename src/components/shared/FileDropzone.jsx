@@ -106,7 +106,7 @@ export default function FileDropzone({
           <>
             <Upload className="w-5 h-5 text-slate-400" />
             <span className="text-xs text-slate-600 font-medium">Drop files or click to upload</span>
-            <span className="text-[10px] text-slate-400">Max 50 MB per file</span>
+            <span className="text-[10px] text-slate-400">Max 50 MB · MP4, MOV, images, PDF, ZIP…</span>
           </>
         )}
         <input

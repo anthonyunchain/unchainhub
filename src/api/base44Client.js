@@ -119,8 +119,9 @@ function makeEntity(entityName) {
 
     // delete(id)
     async delete(id) {
-      const { error } = await supabase.from(table).delete().eq('id', id);
+      const { data, error } = await supabase.from(table).delete().eq('id', id).select('id');
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('Delete failed: no rows affected. You may not have permission to delete this record.');
       return { id };
     },
   };
