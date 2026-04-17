@@ -254,19 +254,19 @@ export default function Tasks() {
   const createMut = useMutation({
     mutationFn: async (d) => {
       const { error } = await supabase.from('tasks').insert(toTaskPayload(d));
-      if (error) throw error;
+      if (error) { console.error('task insert error:', error); throw error; }
     },
     onSuccess: () => { setMutError(null); qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); setEditTask(null); },
-    onError: (e) => setMutError(e.message),
+    onError: (e) => setMutError([e.message, e.details, e.hint].filter(Boolean).join(' — ')),
   });
 
   const updateMut = useMutation({
     mutationFn: async ({ id, d }) => {
       const { error } = await supabase.from('tasks').update(toTaskPayload(d)).eq('id', id);
-      if (error) throw error;
+      if (error) { console.error('task update error:', error); throw error; }
     },
     onSuccess: () => { setMutError(null); qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); setEditTask(null); },
-    onError: (e) => setMutError(e.message),
+    onError: (e) => setMutError([e.message, e.details, e.hint].filter(Boolean).join(' — ')),
   });
 
   const deleteMut = useMutation({
