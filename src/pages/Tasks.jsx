@@ -15,8 +15,6 @@ const toTaskPayload = (d) => ({
       ? d.assigned_freelancer_id
       : null,
   due_date: d.due_date || null,
-  checklist: d.checklist || [],
-  notes: d.notes || null,
   images: d.images || [],
 });
 import PageHeader from "../components/shared/PageHeader";
