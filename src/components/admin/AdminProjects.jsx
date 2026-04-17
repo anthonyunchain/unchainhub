@@ -26,7 +26,7 @@ const STATUS_CONFIG = {
 
 const PIPELINE_STATUSES = ["Unassigned", "Pending acceptance", "Accepted", "In progress", "Delivered", "Completed"];
 
-const emptyForm = { title: "", client_name: "", description: "", notes: "", freelancer_id: "", freelancer_name: "", url: "", images: [] };
+const emptyForm = { title: "", client_name: "", description: "", notes: "", freelancer_id: "", freelancer_name: "", url: "", images: [], brief_files: [] };
 
 export default function AdminProjects() {
   const [view, setView] = useState("list");
@@ -126,6 +126,7 @@ export default function AdminProjects() {
         ...(form.notes && { notes: form.notes }),
         ...(form.url && { url: form.url }),
         images: form.images || [],
+        brief_files: form.brief_files || [],
         ...(form.freelancer_id && { freelancer_id: form.freelancer_id, freelancer_name: form.freelancer_name }),
       };
       await base44.entities.Project.create(payload);
@@ -431,6 +432,16 @@ export default function AdminProjects() {
             <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>
             <div><Label>URL</Label><Input value={form.url || ""} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://..." /></div>
             <div><Label>Notes</Label><Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Internal notes..." /></div>
+            {/* Brief files */}
+            <div>
+              <Label>Brief files</Label>
+              <p className="text-[11px] text-slate-400 mb-1.5">Attach videos, PDFs, audio or any reference files for the freelancer.</p>
+              <FileDropzone
+                files={form.brief_files || []}
+                onChange={files => setForm(f => ({ ...f, brief_files: files }))}
+                pathPrefix="projects/briefs"
+              />
+            </div>
             {/* Images */}
             <div>
               <Label>Images</Label>
@@ -527,6 +538,16 @@ export default function AdminProjects() {
               <div><Label>Description</Label><Textarea value={editingProject.description || ""} onChange={e => setEditingProject(p => ({ ...p, description: e.target.value }))} rows={3} /></div>
               <div><Label>URL</Label><Input value={editingProject.url || ""} onChange={e => setEditingProject(p => ({ ...p, url: e.target.value }))} placeholder="https://..." /></div>
               <div><Label>Notes</Label><Input value={editingProject.notes || ""} onChange={e => setEditingProject(p => ({ ...p, notes: e.target.value }))} /></div>
+              {/* Brief files */}
+              <div>
+                <Label>Brief files</Label>
+                <p className="text-[11px] text-slate-400 mb-1.5">Reference files for the freelancer (videos, PDFs, audio…)</p>
+                <FileDropzone
+                  files={editingProject.brief_files || []}
+                  onChange={files => setEditingProject(p => ({ ...p, brief_files: files }))}
+                  pathPrefix={`projects/${editingProject.id}/briefs`}
+                />
+              </div>
               {/* Images */}
               <div>
                 <Label>Images</Label>

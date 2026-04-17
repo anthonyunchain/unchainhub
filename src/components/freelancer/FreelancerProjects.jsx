@@ -255,6 +255,23 @@ function ProjectCard({ project, onAction, freelancerName }) {
           </div>
         )}
 
+        {/* Brief files from admin */}
+        {Array.isArray(project.brief_files) && project.brief_files.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">Brief files</p>
+            <div className="flex flex-wrap gap-1.5">
+              {project.brief_files.map(f => (
+                <button key={f.path} type="button" onClick={() => openDeliverable(f.path)}
+                  className="flex items-center gap-1 bg-blue-50 border border-blue-100 rounded-md px-2 py-1 text-[11px] text-blue-700 hover:bg-blue-100">
+                  <Paperclip className="w-3 h-3" />
+                  <span className="max-w-[140px] truncate">{f.name}</span>
+                  {f.size ? <span className="text-blue-400">{formatBytes(f.size)}</span> : null}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Project URL */}
         {project.url && (
           <a href={project.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-brand hover:underline mb-3">
