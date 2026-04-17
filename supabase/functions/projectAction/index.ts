@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
 
     if (updateError) return respond({ error: 'DB error: ' + updateError.message });
 
-    // Notify admins
+    // Notify admins (non-blocking — never fail the accept/deliver because of a notification error)
     const notifMap = {
       deliver: { title: `📦 Delivery: ${project.title}`, message: `${freelancer.name} delivered "${project.title}".`, type: 'delivery', action_required: true },
       accept:  { title: `✅ Accepted: ${project.title}`,  message: `${freelancer.name} accepted "${project.title}".`,  type: 'update', action_required: false },
@@ -105,15 +105,19 @@ Deno.serve(async (req) => {
 
     const notif = notifMap[action];
     if (notif) {
-      const { data: admins } = await supabaseAdmin.from('profiles').select('id').eq('role', 'admin');
-      if (admins?.length) {
-        await supabaseAdmin.from('notifications').insert(
-          admins.map(a => ({
-            recipient_id: a.id, title: notif.title, message: notif.message,
-            type: notif.type, is_read: false, action_required: notif.action_required,
-            created_at: new Date().toISOString(),
-          }))
-        );
+      try {
+        const { data: admins } = await supabaseAdmin.from('profiles').select('id').eq('role', 'admin');
+        if (admins?.length) {
+          await supabaseAdmin.from('notifications').insert(
+            admins.map(a => ({
+              recipient_id: a.id, title: notif.title, message: notif.message,
+              type: notif.type, is_read: false, action_required: notif.action_required,
+              created_at: new Date().toISOString(),
+            }))
+          );
+        }
+      } catch (notifErr) {
+        console.error('Notification insert failed (non-fatal):', notifErr?.message);
       }
     }
 
