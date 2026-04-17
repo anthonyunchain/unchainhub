@@ -52,6 +52,7 @@ export default function Clients() {
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState("");
   const [invitePassword, setInvitePassword] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const qc = useQueryClient();
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
@@ -71,12 +72,10 @@ export default function Clients() {
   });
 
   const handleDelete = () => {
-    if (editData?.id && confirm("Delete this client? This action is irreversible.")) {
-      deleteMut.mutate(editData.id);
-    }
+    if (editData?.id) deleteMut.mutate(editData.id);
   };
 
-  const openEdit = (c) => { setEditData(c ? { ...c } : { ...emptyClient }); setDialogOpen(true); };
+  const openEdit = (c) => { setEditData(c ? { ...c } : { ...emptyClient }); setConfirmDelete(false); setDialogOpen(true); };
 
   const handleSave = () => {
     if (editData.id) updateMut.mutate({ id: editData.id, d: editData });
@@ -304,7 +303,7 @@ export default function Clients() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setConfirmDelete(false); }}>
         <DialogContent className="max-w-3xl">
           <DialogHeader><DialogTitle>{editData?.id ? "Edit client" : "New client"}</DialogTitle></DialogHeader>
           {editData && (
@@ -388,9 +387,19 @@ export default function Clients() {
               </div>
               <div className="flex justify-between items-center pt-4 mt-4 border-t border-slate-100">
                 {editData.id ? (
-                  <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleDelete}>
-                    <Trash2 className="w-4 h-4 mr-1" /> Delete
-                  </Button>
+                  confirmDelete ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-red-600 font-medium">Delete this client?</span>
+                      <Button variant="ghost" size="sm" className="h-8 text-slate-500" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+                      <Button size="sm" className="h-8 bg-red-600 hover:bg-red-700 text-white" onClick={handleDelete} disabled={deleteMut.isPending}>
+                        {deleteMut.isPending ? "Deleting…" : "Confirm"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => setConfirmDelete(true)}>
+                      <Trash2 className="w-4 h-4 mr-1" /> Delete
+                    </Button>
+                  )
                 ) : <div />}
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>

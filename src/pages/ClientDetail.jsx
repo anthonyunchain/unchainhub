@@ -199,6 +199,7 @@ export default function ClientDetail() {
   const [invoiceOpen,        setInvoiceOpen]        = useState(false);
   const [invoiceData,        setInvoiceData]        = useState(null);
   const [invoiceMutError,    setInvoiceMutError]    = useState(null);
+  const [confirmDelete,      setConfirmDelete]      = useState(false);
   const qc = useQueryClient();
 
   const { data: client }     = useQuery({ queryKey: ["client", id], queryFn: () => base44.entities.Client.list().then(arr => arr.find(c => c.id === id)), enabled: !!id });
@@ -313,9 +314,7 @@ export default function ClientDetail() {
     setEditOpen(true);
   };
 
-  const handleDelete = () => {
-    if (confirm("Delete this client? This action is irreversible.")) deleteMut.mutate(id);
-  };
+  const handleDelete = () => deleteMut.mutate(id);
 
   /* ── Published stats for Reports tab ── */
   const currentMonth      = format(new Date(), "yyyy-MM");
@@ -755,7 +754,7 @@ export default function ClientDetail() {
       </Dialog>
 
       {/* ── Edit Dialog ── */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setConfirmDelete(false); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit client</DialogTitle></DialogHeader>
           {editData && (
@@ -836,9 +835,19 @@ export default function ClientDetail() {
                 </div>
               </div>
               <div className="flex justify-between items-center pt-2">
-                <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleDelete} disabled={deleteMut.isPending}>
-                  <Trash2 className="w-4 h-4 mr-1" /> Delete
-                </Button>
+                {confirmDelete ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-red-600 font-medium">Delete this client?</span>
+                    <Button variant="ghost" size="sm" className="h-8 text-slate-500" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+                    <Button size="sm" className="h-8 bg-red-600 hover:bg-red-700 text-white" onClick={handleDelete} disabled={deleteMut.isPending}>
+                      {deleteMut.isPending ? "Deleting…" : "Confirm"}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => setConfirmDelete(true)}>
+                    <Trash2 className="w-4 h-4 mr-1" /> Delete
+                  </Button>
+                )}
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
                   <Button onClick={() => updateMut.mutate({ id: editData.id, d: editData })} className="bg-emerald-600 hover:bg-emerald-700 text-white" disabled={!editData.company_name}>Save</Button>
