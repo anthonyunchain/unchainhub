@@ -20,12 +20,24 @@ Deno.serve(async (req) => {
     if (authResult instanceof Response) return authResult;
     const { user } = authResult as { user: any };
     const body = await req.json();
-    const { action, project_id, reason, message, delivery_url } = body;
+    const { action, project_id, reason, message, delivery_url, files } = body;
 
     if (!action || !project_id) return respond({ error: 'Missing action or project_id' });
 
     const allowed = ['accept', 'decline', 'deliver', 'clarify'];
     if (!allowed.includes(action)) return respond({ error: 'Invalid action: ' + action });
+
+    // Normalize files payload: array of { path, name, size, uploaded_at }
+    const safeFiles = Array.isArray(files)
+      ? files
+          .filter(f => f && typeof f.path === 'string' && typeof f.name === 'string')
+          .map(f => ({
+            path: String(f.path),
+            name: String(f.name).slice(0, 255),
+            size: typeof f.size === 'number' ? f.size : null,
+            uploaded_at: f.uploaded_at || new Date().toISOString(),
+          }))
+      : [];
 
     // Resolve freelancer
     const { data: freelancers } = await supabaseAdmin
@@ -50,14 +62,22 @@ Deno.serve(async (req) => {
     }
 
     // Build updates
-    let updates = {};
+    let updates: Record<string, unknown> = {};
     if (action === 'accept') {
       updates = { status: 'Accepted' };
     } else if (action === 'decline') {
       updates = { status: 'Unassigned', freelancer_id: null, freelancer_name: null };
     } else if (action === 'deliver') {
-      if (!delivery_url) return respond({ error: 'delivery_url required' });
-      updates = { status: 'Delivered', delivery_url };
+      if (!delivery_url && safeFiles.length === 0) {
+        return respond({ error: 'Provide a delivery URL or at least one file.' });
+      }
+      // Append to existing delivery_files so re-delivery keeps history.
+      const existing = Array.isArray(project.delivery_files) ? project.delivery_files : [];
+      updates = {
+        status: 'Delivered',
+        delivery_url: delivery_url || project.delivery_url || null,
+        delivery_files: [...existing, ...safeFiles],
+      };
     } else if (action === 'clarify') {
       if (!message) return respond({ error: 'message required' });
       updates = { notes: `[Question from freelancer]: ${message}` };

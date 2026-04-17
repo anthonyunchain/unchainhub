@@ -4,11 +4,14 @@ import { format, isPast, differenceInHours, differenceInDays } from "date-fns";
 import { enUS } from "date-fns/locale";
 import {
   CheckCircle2, XCircle, Truck, MessageSquare, ChevronDown,
-  Clock, AlertTriangle, FolderOpen, MoreHorizontal, ExternalLink, Clapperboard
+  Clock, AlertTriangle, FolderOpen, MoreHorizontal, ExternalLink, Clapperboard,
+  Download, Paperclip
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import FileDropzone from "@/components/shared/FileDropzone";
+import { openDeliverable, formatBytes } from "@/lib/deliverables";
 
 // Pipeline stages in order
 const STAGES = [
@@ -94,7 +97,11 @@ function ProjectCard({ project, onAction, freelancerName }) {
   const [declineReason, setDeclineReason] = useState("");
   const [clarifyMsg, setClarifyMsg] = useState("");
   const [deliveryUrl, setDeliveryUrl] = useState("");
+  const [deliveryFiles, setDeliveryFiles] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const existingFiles = Array.isArray(project.delivery_files) ? project.delivery_files : [];
+  const revisionHistory = Array.isArray(project.revision_requests) ? project.revision_requests : [];
 
   const isPending = project.status === "Pending acceptance";
   const isActive = ["Accepted", "In progress"].includes(project.status);
@@ -196,6 +203,58 @@ function ProjectCard({ project, onAction, freelancerName }) {
           </div>
         )}
 
+        {/* Revision history with files/links */}
+        {revisionHistory.length > 0 && (
+          <div className="space-y-2 mb-3">
+            {revisionHistory.map((rev, i) => (
+              <div key={rev.id || i} className="bg-orange-50 border border-orange-100 rounded-lg px-3 py-2 text-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold text-orange-800">Revision #{i + 1}{rev.by_admin_name ? ` · ${rev.by_admin_name}` : ""}</span>
+                  {rev.created_at && (
+                    <span className="text-[10px] text-orange-500">{format(new Date(rev.created_at), "d MMM HH:mm")}</span>
+                  )}
+                </div>
+                {rev.message && <p className="text-orange-800 whitespace-pre-wrap">{rev.message}</p>}
+                {Array.isArray(rev.files) && rev.files.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {rev.files.map(f => (
+                      <button key={f.path} type="button" onClick={() => openDeliverable(f.path)}
+                        className="flex items-center gap-1 bg-white border border-orange-200 rounded-md px-2 py-0.5 text-[11px] hover:bg-orange-100">
+                        <Paperclip className="w-3 h-3 text-orange-600" />
+                        <span className="max-w-[120px] truncate">{f.name}</span>
+                        {f.size ? <span className="text-orange-400">{formatBytes(f.size)}</span> : null}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {rev.link && (
+                  <a href={rev.link} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-orange-700 underline mt-1">
+                    <ExternalLink className="w-3 h-3" /> External link
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Delivered files */}
+        {existingFiles.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">Delivered files</p>
+            <div className="flex flex-wrap gap-1.5">
+              {existingFiles.map(f => (
+                <button key={f.path} type="button" onClick={() => openDeliverable(f.path)}
+                  className="flex items-center gap-1 bg-violet-50 border border-violet-100 rounded-md px-2 py-1 text-[11px] text-violet-700 hover:bg-violet-100">
+                  <Download className="w-3 h-3" />
+                  <span className="max-w-[140px] truncate">{f.name}</span>
+                  {f.size ? <span className="text-violet-400">{formatBytes(f.size)}</span> : null}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Project URL */}
         {project.url && (
           <a href={project.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-brand hover:underline mb-3">
@@ -252,18 +311,35 @@ function ProjectCard({ project, onAction, freelancerName }) {
 
       {/* Deliver dialog */}
       <Dialog open={deliverOpen} onOpenChange={setDeliverOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{isRevision ? "Re-deliver project" : "Deliver project"}</DialogTitle></DialogHeader>
-          <p className="text-sm text-slate-500">Paste the link to your deliverable (Google Drive, Dropbox, WeTransfer, etc.)</p>
-          <input
-            type="url" value={deliveryUrl} onChange={e => setDeliveryUrl(e.target.value)}
-            placeholder="https://drive.google.com/..."
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-violet-400"
-          />
-          <div className="flex gap-2 justify-end">
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1.5 block">Upload files</label>
+              <FileDropzone
+                files={deliveryFiles}
+                onChange={setDeliveryFiles}
+                pathPrefix={`projects/${project.id}/delivery`}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1.5 block">Or paste a link (Drive, Dropbox, WeTransfer…)</label>
+              <input
+                type="url" value={deliveryUrl} onChange={e => setDeliveryUrl(e.target.value)}
+                placeholder="https://drive.google.com/..."
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-violet-400"
+              />
+            </div>
+            <p className="text-[11px] text-slate-400">Provide at least one: a file upload or a link.</p>
+          </div>
+          <div className="flex gap-2 justify-end mt-3">
             <Button variant="outline" onClick={() => setDeliverOpen(false)}>Cancel</Button>
-            <Button className="bg-violet-600 hover:bg-violet-700" disabled={!deliveryUrl.trim() || loading}
-              onClick={() => { act('deliver', { delivery_url: deliveryUrl }); setDeliverOpen(false); setDeliveryUrl(""); }}>
+            <Button className="bg-violet-600 hover:bg-violet-700"
+              disabled={loading || (!deliveryUrl.trim() && deliveryFiles.length === 0)}
+              onClick={() => {
+                act('deliver', { delivery_url: deliveryUrl, files: deliveryFiles });
+                setDeliverOpen(false); setDeliveryUrl(""); setDeliveryFiles([]);
+              }}>
               <Truck className="w-3.5 h-3.5 mr-1.5" /> Deliver
             </Button>
           </div>

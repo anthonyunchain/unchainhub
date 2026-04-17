@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
-import { Plus, RotateCcw, CheckCircle2, RefreshCw, Trash2, ImagePlus, X, Loader2, ExternalLink } from "lucide-react";
+import { Plus, RotateCcw, CheckCircle2, RefreshCw, Trash2, ImagePlus, X, Loader2, ExternalLink, Download, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import FileDropzone from "@/components/shared/FileDropzone";
+import { openDeliverable, formatBytes } from "@/lib/deliverables";
 
 // Real columns: id, title, status, client_name, description, notes,
 //               freelancer_id, freelancer_name, created_at, updated_at
@@ -33,6 +35,9 @@ export default function AdminProjects() {
   const [filterClient, setFilterClient] = useState("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [revisionNotes, setRevisionNotes] = useState("");
+  const [revisionFiles, setRevisionFiles] = useState([]);
+  const [revisionLink, setRevisionLink] = useState("");
+  const [currentAdminName, setCurrentAdminName] = useState("");
   const [revisionOpen, setRevisionOpen] = useState(null);
   const [reassignOpen, setReassignOpen] = useState(null);
   const [editingProject, setEditingProject] = useState(null);
@@ -41,6 +46,10 @@ export default function AdminProjects() {
   const [loading, setLoading] = useState(false);
   const [uploadingImg, setUploadingImg] = useState(false);
   const [uploadingEditImg, setUploadingEditImg] = useState(false);
+
+  useEffect(() => {
+    base44.auth.me().then(u => setCurrentAdminName(u?.full_name || u?.email || "Admin")).catch(() => {});
+  }, []);
 
   const uploadImage = async (e, setter, currentImages) => {
     const file = e.target.files?.[0];
@@ -179,17 +188,36 @@ export default function AdminProjects() {
   const handleRevision = async (projectId) => {
     try {
       const project = projects.find(p => p.id === projectId);
-      await base44.entities.Project.update(projectId, { status: "Revision requested", notes: revisionNotes });
+      const existingRevisions = Array.isArray(project?.revision_requests) ? project.revision_requests : [];
+      const newRevision = {
+        id: crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        message: revisionNotes || "",
+        files: revisionFiles,
+        link: revisionLink || "",
+        by_admin_name: currentAdminName || "Admin",
+        created_at: new Date().toISOString(),
+      };
+      await base44.entities.Project.update(projectId, {
+        status: "Revision requested",
+        notes: revisionNotes,
+        revision_requests: [...existingRevisions, newRevision],
+      });
       if (project?.freelancer_id) {
+        const attachmentsSummary = [
+          revisionFiles.length > 0 ? `${revisionFiles.length} file${revisionFiles.length > 1 ? "s" : ""} attached` : "",
+          revisionLink ? "link attached" : "",
+        ].filter(Boolean).join(" + ");
         await sendFreelancerNotif(
           project.freelancer_id,
           `🔄 Revision requested: ${project.title}`,
-          `A revision has been requested on "${project.title}".${revisionNotes ? ` Notes: ${revisionNotes}` : ""}`,
+          `A revision has been requested on "${project.title}".${revisionNotes ? ` Notes: ${revisionNotes}` : ""}${attachmentsSummary ? ` (${attachmentsSummary})` : ""}`,
           'revision_requested'
         );
       }
       setRevisionOpen(null);
       setRevisionNotes("");
+      setRevisionFiles([]);
+      setRevisionLink("");
       refetch();
     } catch (e) {
       alert("Error: " + (e?.message || e));
@@ -525,6 +553,53 @@ export default function AdminProjects() {
                   <a href={editingProject.delivery_url} target="_blank" rel="noopener noreferrer" className="text-xs text-violet-600 underline break-all hover:text-violet-800">{editingProject.delivery_url}</a>
                 </div>
               )}
+              {Array.isArray(editingProject.delivery_files) && editingProject.delivery_files.length > 0 && (
+                <div className="p-3 bg-violet-50 rounded-lg border border-violet-100">
+                  <p className="text-xs font-medium text-violet-700 mb-1.5">Delivered files ({editingProject.delivery_files.length})</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {editingProject.delivery_files.map(f => (
+                      <button key={f.path} type="button" onClick={() => openDeliverable(f.path)}
+                        className="flex items-center gap-1 bg-white border border-violet-200 rounded-md px-2 py-1 text-[11px] text-violet-700 hover:bg-violet-100">
+                        <Download className="w-3 h-3" />
+                        <span className="max-w-[140px] truncate">{f.name}</span>
+                        {f.size ? <span className="text-violet-400">{formatBytes(f.size)}</span> : null}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {Array.isArray(editingProject.revision_requests) && editingProject.revision_requests.length > 0 && (
+                <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
+                  <p className="text-xs font-medium text-orange-700 mb-1.5">Revision history ({editingProject.revision_requests.length})</p>
+                  <div className="space-y-1.5">
+                    {editingProject.revision_requests.map((rev, i) => (
+                      <div key={rev.id || i} className="bg-white rounded-md px-2 py-1.5 border border-orange-100 text-[11px]">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="font-semibold text-orange-700">#{i + 1}{rev.by_admin_name ? ` · ${rev.by_admin_name}` : ""}</span>
+                          {rev.created_at && <span className="text-orange-400">{new Date(rev.created_at).toLocaleDateString()}</span>}
+                        </div>
+                        {rev.message && <p className="text-orange-800 whitespace-pre-wrap">{rev.message}</p>}
+                        {Array.isArray(rev.files) && rev.files.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {rev.files.map(f => (
+                              <button key={f.path} type="button" onClick={() => openDeliverable(f.path)}
+                                className="flex items-center gap-1 bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5 text-[10px] hover:bg-orange-100">
+                                <Paperclip className="w-2.5 h-2.5" />
+                                <span className="max-w-[100px] truncate">{f.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {rev.link && (
+                          <a href={rev.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-orange-700 underline mt-1">
+                            <ExternalLink className="w-2.5 h-2.5" /> {rev.link}
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex justify-between items-center pt-2">
                 <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => { setEditingProject(null); handleDelete(editingProject.id); }}>
                   <Trash2 className="w-4 h-4 mr-1" /> Delete
@@ -552,13 +627,33 @@ export default function AdminProjects() {
       </Dialog>
 
       {/* Revision dialog */}
-      <Dialog open={!!revisionOpen} onOpenChange={() => setRevisionOpen(null)}>
-        <DialogContent className="max-w-sm">
+      <Dialog open={!!revisionOpen} onOpenChange={(v) => { if (!v) { setRevisionOpen(null); setRevisionNotes(""); setRevisionFiles([]); setRevisionLink(""); } }}>
+        <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Request revision: {revisionOpen?.title}</DialogTitle></DialogHeader>
-          <Textarea value={revisionNotes} onChange={e => setRevisionNotes(e.target.value)} rows={3} placeholder="Revision notes..." />
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Message to the freelancer</Label>
+              <Textarea value={revisionNotes} onChange={e => setRevisionNotes(e.target.value)} rows={3} placeholder="What needs to change…" />
+            </div>
+            <div>
+              <Label className="text-xs">Attach files (optional)</Label>
+              <FileDropzone
+                files={revisionFiles}
+                onChange={setRevisionFiles}
+                pathPrefix={`projects/${revisionOpen?.id || "unknown"}/revisions`}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Reference link (optional)</Label>
+              <Input type="url" value={revisionLink} onChange={e => setRevisionLink(e.target.value)}
+                placeholder="https://..." />
+            </div>
+          </div>
           <div className="flex gap-2 justify-end mt-3">
             <Button variant="outline" onClick={() => setRevisionOpen(null)}>Cancel</Button>
-            <Button onClick={() => handleRevision(revisionOpen.id)} className="bg-amber-600 hover:bg-amber-700 text-white">Send revision request</Button>
+            <Button onClick={() => handleRevision(revisionOpen.id)}
+              disabled={!revisionNotes.trim() && revisionFiles.length === 0 && !revisionLink.trim()}
+              className="bg-amber-600 hover:bg-amber-700 text-white">Send revision request</Button>
           </div>
         </DialogContent>
       </Dialog>
