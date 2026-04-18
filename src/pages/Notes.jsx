@@ -723,13 +723,13 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
       {/* Phone editor — full screen overlay */}
       {mobileView === "editor" && (
         <div
-          className="sm:hidden"
+          className="flex sm:hidden"
           style={{
             position: "fixed", inset: 0, zIndex: 200,
             paddingTop: "env(safe-area-inset-top)",
             paddingBottom: "env(safe-area-inset-bottom)",
             background: "var(--card)",
-            display: "flex", flexDirection: "column",
+            flexDirection: "column",
           }}
         >
           {editorPanel}
