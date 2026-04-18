@@ -25,6 +25,7 @@ import Contracts from "./Contracts";
 import Ideas from "./Ideas";
 import MonthlyBriefs from "../components/admin/MonthlyBriefs";
 import Templates from "../components/admin/Templates";
+import AdminTutorials from "../components/admin/AdminTutorials";
 import { MeetingsManagement } from "./FreelancerAdmin";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -2030,6 +2031,7 @@ export default function Admin() {
           {section === 'permissions'  && <Permissions />}
           {section === 'ideas'        && <Ideas currentUserId={user?.id} currentUserName={user?.full_name || user?.email} />}
           {section === 'briefs'       && <MonthlyBriefs />}
+          {section === 'tutorials'    && <AdminTutorials />}
         </div>
 
       </div>

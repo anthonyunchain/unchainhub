@@ -7,6 +7,7 @@ export const ADMIN_NAV_SECTIONS = [
     { id: 'tasks',     label: 'Admin Tasks' },
     { id: 'briefs',    label: 'Monthly Briefs' },
     { id: 'ideas',     label: 'Ideas' },
+    { id: 'tutorials', label: 'Tutorials' },
     { id: 'analytics', label: 'Analytics' },
     { id: 'sales',     label: 'Prospects' },
   ]},

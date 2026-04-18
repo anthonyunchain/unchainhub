@@ -9,8 +9,10 @@ import {
   LayoutDashboard, Calendar, BarChart2, FileText, LogOut, Camera,
   Settings, ChevronLeft, ChevronRight, Eye, Users, TrendingUp,
   Bell, Moon, Sun, ExternalLink, Instagram, Youtube, Facebook,
-  Linkedin, Globe, Download, Receipt, ClipboardList, CheckCircle2, Save
+  Linkedin, Globe, Download, Receipt, ClipboardList, CheckCircle2, Save,
+  GraduationCap
 } from "lucide-react";
+import ClientTutorialsTab from "@/components/client/ClientTutorialsTab";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 // ── Translations ───────────────────────────────────────────────────────────
@@ -100,6 +102,12 @@ const TRANSLATIONS = {
     minChars: "Min 6 characters.",
     weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
     total: "total",
+    tutorials: "Tutorials",
+    searchTutorials: "Search tutorials…",
+    allCategories: "All categories",
+    noTutorials: "No tutorials yet",
+    noTutorialsFiltered: "No tutorials match your filters",
+    noTutorialsDesc: "Unchain Studio will upload helpful walkthroughs here.",
   },
   fi: {
     dashboard: "Dashboard",
@@ -186,6 +194,12 @@ const TRANSLATIONS = {
     minChars: "Vähintään 6 merkkiä.",
     weekdays: ["Ma", "Ti", "Ke", "To", "Pe"],
     total: "yhteensä",
+    tutorials: "Ohjevideot",
+    searchTutorials: "Hae ohjevideoita…",
+    allCategories: "Kaikki kategoriat",
+    noTutorials: "Ei vielä ohjevideoita",
+    noTutorialsFiltered: "Ei hakua vastaavia ohjevideoita",
+    noTutorialsDesc: "Unchain Studio lisää tänne hyödyllisiä videoita.",
   },
 };
 
@@ -1318,6 +1332,7 @@ export default function ClientPortal() {
     { key: "shootings", label: tr.shootings,   icon: Camera },
     { key: "brief",     label: tr.brief,       icon: ClipboardList },
     { key: "reports",   label: tr.reports,     icon: BarChart2 },
+    { key: "tutorials", label: tr.tutorials || "Tutorials", icon: GraduationCap },
     { key: "admin",     label: tr.admin,       icon: Settings },
   ];
 
@@ -1451,6 +1466,7 @@ export default function ClientPortal() {
         {activeTab === "shootings" && <ClientShootingsTab clientName={clientName} tr={tr} />}
         {activeTab === "brief"     && <BriefTab clientName={clientName} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "reports"   && <ReportsTab stats={stats} content={content} tr={tr} dateLocale={dateLocale} />}
+        {activeTab === "tutorials" && <ClientTutorialsTab tr={tr} />}
         {activeTab === "admin"     && (
           <div style={{ maxWidth: 640, margin: '0 auto' }}>
             <AdminTab contracts={contracts} contractDocuments={clientRecord?.contract_documents || []} invoices={invoices} tr={tr} dateLocale={dateLocale} />
