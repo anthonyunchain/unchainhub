@@ -6,7 +6,7 @@ import PageHeader from "../components/shared/PageHeader";
 import StatusBadge from "../components/shared/StatusBadge";
 import EmptyState from "../components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, MapPin, Building2, ChevronRight, Trash2, Pencil, GripVertical, ArrowUpDown, UserPlus, RefreshCw, Copy, KeyRound } from "lucide-react";
+import { Plus, Search, MapPin, Building2, ChevronRight, Trash2, Pencil, GripVertical, ArrowUpDown, UserPlus, RefreshCw, Copy, KeyRound, ChefHat } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -54,6 +54,7 @@ export default function Clients() {
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState("");
   const [invitePassword, setInvitePassword] = useState("");
+  const [inviteRole, setInviteRole] = useState("client"); // 'client' | 'staff'
   const [confirmDelete, setConfirmDelete] = useState(false);
   const qc = useQueryClient();
 
@@ -97,9 +98,10 @@ export default function Clients() {
     return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   };
 
-  const openInvite = (c) => {
+  const openInvite = (c, role = "client") => {
     setInviteClient(c);
-    setInviteEmail(c.contact_email || "");
+    setInviteRole(role);
+    setInviteEmail(role === "staff" ? "" : (c.contact_email || ""));
     setInviteMsg("");
     setInvitePassword(generatePassword());
     setInviteOpen(true);
@@ -110,13 +112,16 @@ export default function Clients() {
     setInviting(true);
     setInviteMsg("");
     try {
-      const { data } = await base44.functions.invoke('setClientPassword', {
+      const fn = inviteRole === "staff" ? "setStaffPassword" : "setClientPassword";
+      const { data } = await base44.functions.invoke(fn, {
         email: inviteEmail, company_name: inviteClient?.company_name, client_id: inviteClient?.id, password: invitePassword,
       });
       if (data?.error) {
         setInviteMsg("Error: " + data.error);
       } else {
-        setInviteMsg("✓ Account created. Share the password with the client.");
+        setInviteMsg(inviteRole === "staff"
+          ? "Account created. Share the password with the staff member."
+          : "Account created. Share the password with the client.");
       }
     } catch (e) {
       setInviteMsg("Error: " + (e?.message || "Unknown error"));
@@ -204,22 +209,37 @@ export default function Clients() {
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <StatusBadge status={translateStatus(c.status)} />
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                                   {c.status === 'Actif' && (
-                                    <button
-                                      onClick={(e) => { e.preventDefault(); openInvite(c); }}
-                                      className="p-1 rounded-md hover:bg-blue-50 transition-colors"
-                                      title="Invite to Client Portal"
-                                    >
-                                      <UserPlus className="w-3.5 h-3.5 text-blue-500" />
-                                    </button>
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.preventDefault(); openInvite(c, "client"); }}
+                                        className="p-1 rounded-md hover:bg-blue-50 transition-colors"
+                                        aria-label={`Invite ${c.company_name} to Client Portal`}
+                                        title="Invite to Client Portal"
+                                      >
+                                        <UserPlus className="w-3.5 h-3.5 text-blue-500" aria-hidden="true" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.preventDefault(); openInvite(c, "staff"); }}
+                                        className="p-1 rounded-md hover:bg-amber-50 transition-colors"
+                                        aria-label={`Invite staff for ${c.company_name}`}
+                                        title="Invite staff (menu submissions)"
+                                      >
+                                        <ChefHat className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />
+                                      </button>
+                                    </>
                                   )}
                                   <button
+                                    type="button"
                                     onClick={(e) => { e.preventDefault(); openEdit(c); }}
                                     className="p-1 rounded-md hover:bg-slate-100 transition-colors"
+                                    aria-label={`Edit ${c.company_name}`}
                                     title="Edit"
                                   >
-                                    <Pencil className="w-3.5 h-3.5 text-slate-400" />
+                                    <Pencil className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
                                   </button>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
@@ -264,17 +284,22 @@ export default function Clients() {
         </Droppable>
       </DragDropContext>
 
-      {/* Invite to Client Portal dialog */}
+      {/* Invite dialog — client portal OR staff portal */}
       <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteMsg(""); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-blue-500" /> Portal access — {inviteClient?.company_name}
+              {inviteRole === "staff"
+                ? <ChefHat className="w-5 h-5 text-amber-600" />
+                : <UserPlus className="w-5 h-5 text-blue-500" />}
+              {inviteRole === "staff" ? "Staff access" : "Portal access"} — {inviteClient?.company_name}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <p className="text-sm text-slate-500">
-              Create an account with a password directly. Share it with the client via SMS or in person. Works even if the email is already registered.
+              {inviteRole === "staff"
+                ? "Create a staff account so the restaurant team can send you menus directly. Staff only see their own submissions — never the calendar, stats or invoices."
+                : "Create an account with a password directly. Share it with the client via SMS or in person. Works even if the email is already registered."}
             </p>
             <div>
               <Label>Email address</Label>

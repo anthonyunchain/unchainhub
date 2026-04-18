@@ -4,6 +4,7 @@ import { base44, supabase } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useConfirm } from "@/lib/confirm";
 import StatusBadge from "../components/shared/StatusBadge";
+import ClientMenusTab from "../components/shared/ClientMenusTab";
 import {
   ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt,
   Pencil, Upload, X, ExternalLink, Briefcase, Trash2, UserPlus,
@@ -41,6 +42,7 @@ const TABS = [
   { id: "invoices",  label: "Invoices"  },
   { id: "contract",  label: "Contract"  },
   { id: "calendars", label: "Calendars" },
+  { id: "menus",     label: "Menus"     },
 ];
 
 /* ─── Sub-components ──────────────────────────────────────────────────────── */
@@ -713,6 +715,11 @@ export default function ClientDetail() {
             )}
           </div>
         </div>
+      )}
+
+      {/* MENUS — staff submissions */}
+      {activeTab === "menus" && (
+        <ClientMenusTab clientId={client.id} staffLinked={!!client.staff_user_id} />
       )}
 
       {/* ── Invite Dialog ── */}

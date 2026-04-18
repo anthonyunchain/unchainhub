@@ -53,6 +53,7 @@ const ContentDescriptions = lazy(() => import('./pages/ContentDescriptions'));
 const FreelancerPortal    = lazy(() => import('./pages/FreelancerPortal'));
 const FreelancerAdmin     = lazy(() => import('./pages/FreelancerAdmin'));
 const ClientPortal        = lazy(() => import('./pages/ClientPortal'));
+const StaffPortal         = lazy(() => import('./pages/StaffPortal'));
 const Ideas               = lazy(() => import('./pages/Ideas'));
 const Notes               = lazy(() => import('./pages/Notes'));
 const FreelancerShop      = lazy(() => import('./pages/FreelancerShop'));
@@ -99,6 +100,7 @@ const AuthenticatedApp = () => {
 
           const detectedRole = profile?.role === 'client' ? 'client'
             : profile?.role === 'freelancer' ? 'freelancer'
+            : profile?.role === 'staff' ? 'staff'
             : profile?.role === 'admin' ? 'admin'
             : null;
 
@@ -171,6 +173,18 @@ const AuthenticatedApp = () => {
         <Routes>
           <Route path="/" element={<ClientPortal />} />
           <Route path="/ClientPortal" element={<ClientPortal />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
+  if (role === 'staff') {
+    return (
+      <Suspense fallback={<Spinner />}>
+        <Routes>
+          <Route path="/" element={<StaffPortal />} />
+          <Route path="/StaffPortal" element={<StaffPortal />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
