@@ -1,6 +1,6 @@
 {
-  "name": "Unchain Studio",
-  "short_name": "Unchain",
+  "name": "Unchain Hub",
+  "short_name": "Unchain Hub",
   "description": "Unchain Studio — internal management platform",
   "start_url": "/",
   "display": "standalone",
