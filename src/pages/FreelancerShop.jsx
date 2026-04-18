@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "@/components/shared/PageHeader";
+import KpiCard from "@/components/shared/KpiCard";
 import AdminNavPanel from "@/components/admin/AdminNavPanel";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus, ShoppingCart, ChevronLeft, ChevronRight,
-  Pencil, Trash2, ToggleLeft, ToggleRight, Check, X
+  Pencil, Trash2, ToggleLeft, ToggleRight, Check, X,
+  Receipt, Users, TrendingUp
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { format, subMonths, addMonths } from "date-fns";
@@ -143,28 +145,12 @@ export default function FreelancerShop() {
         <AdminNavPanel section={null} onSelect={id => navigate(`/Admin?s=${id}`)} />
       </div>
 
-      {/* KPIs — same style as Subscriptions */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
-          <p className="text-xs text-slate-400 uppercase tracking-wide">This month</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{fmt(monthTotal)} €</p>
-          <p className="text-xs text-slate-400 mt-1">{monthLabel(month)}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
-          <p className="text-xs text-slate-400 uppercase tracking-wide">Services ordered</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{monthOrders.length}</p>
-          <p className="text-xs text-slate-400 mt-1">of {activeServices} active</p>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
-          <p className="text-xs text-slate-400 uppercase tracking-wide">Services in catalog</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{activeServices}</p>
-          <p className="text-xs text-slate-400 mt-1">{services.length - activeServices} inactive</p>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
-          <p className="text-xs text-slate-400 uppercase tracking-wide">Freelancers</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{freelancers.filter(f => services.some(s => s.freelancer_id === f.id)).length}</p>
-          <p className="text-xs text-slate-400 mt-1">with services</p>
-        </div>
+      {/* KPIs */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+        <KpiCard title="This month" value={`${fmt(monthTotal)} €`} subtitle={monthLabel(month)} icon={ShoppingCart} tint="blue" />
+        <KpiCard title="Services ordered" value={monthOrders.length} subtitle={`of ${activeServices} active`} icon={Receipt} tint="purple" />
+        <KpiCard title="In catalog" value={activeServices} subtitle={`${services.length - activeServices} inactive`} icon={TrendingUp} tint="green" />
+        <KpiCard title="Freelancers" value={freelancers.filter(f => services.some(s => s.freelancer_id === f.id)).length} subtitle="with services" icon={Users} tint="amber" />
       </div>
 
       {/* Tabs */}
