@@ -12,9 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Plus, Trash2, MapPin, Clock, Camera, Users, ImagePlus, X, Loader2,
-  ChevronDown, CheckCircle2, XCircle, Calendar as CalendarIcon, Clapperboard, Link2
+  ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, XCircle,
+  Calendar as CalendarIcon, Clapperboard, Link2
 } from "lucide-react";
-import { format, isPast, isToday, isTomorrow, startOfDay, parseISO } from "date-fns";
+import {
+  format, isPast, isToday, isTomorrow, startOfDay, parseISO,
+  startOfMonth, endOfMonth, startOfWeek, eachDayOfInterval, addDays,
+  isSameMonth, isSameDay, addMonths, subMonths,
+} from "date-fns";
 import { enUS } from "date-fns/locale";
 
 const STATUS_CONFIG = {
@@ -47,6 +52,8 @@ export default function Shootings() {
   const [filterStatus, setFilterStatus] = useState("active");
   const [filterClient, setFilterClient] = useState("all");
   const [view, setView] = useState("timeline");
+  const [calDate, setCalDate] = useState(new Date());
+  const [calPage, setCalPage] = useState(0); // mobile: 0 = Mon–Thu, 1 = Thu–Sun
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const qc = useQueryClient();
@@ -296,8 +303,9 @@ export default function Shootings() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
         <div className="flex gap-1 bg-white border border-slate-100 rounded-lg p-1 shadow-sm">
-          {["timeline", "list"].map(v => (
+          {["timeline", "calendar", "list"].map(v => (
             <button key={v} onClick={() => setView(v)}
+              aria-pressed={view === v}
               className={`px-3 py-1 rounded text-xs font-medium transition-all ${view === v ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"}`}>
               {v.charAt(0).toUpperCase() + v.slice(1)}
             </button>
@@ -409,6 +417,124 @@ export default function Shootings() {
             </div>
           ))}
         </div>
+      ) : view === "calendar" ? (
+        /* ── CALENDAR VIEW ── */
+        (() => {
+          const monthStart = startOfMonth(calDate);
+          const monthEnd   = endOfMonth(calDate);
+          const calStart   = startOfWeek(monthStart, { weekStartsOn: 1 });
+          const calEnd     = startOfWeek(addDays(monthEnd, 6), { weekStartsOn: 1 });
+          const allDays    = eachDayOfInterval({ start: calStart, end: addDays(calEnd, 6) }).slice(0, 49);
+          const weeks = [];
+          for (let i = 0; i < allDays.length; i += 7) weeks.push(allDays.slice(i, i + 7));
+          const activeWeeks = weeks.filter(wk => wk.some(d => isSameMonth(d, calDate)));
+          const visibleDays = activeWeeks.flat();
+
+          const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+          const mobileColIdx = calPage === 0 ? [0, 1, 2, 3] : [3, 4, 5, 6];
+          const mobileDays = activeWeeks.flatMap(week => mobileColIdx.map(i => week[i]).filter(Boolean));
+          const mobileHeaders = mobileColIdx.map(i => DAY_LABELS[i]);
+
+          const daysShootings = (day) => filtered.filter(s => s.date && isSameDay(parseISO(s.date), day));
+
+          const DayCell = ({ day }) => {
+            const items = daysShootings(day);
+            const inMonth = isSameMonth(day, calDate);
+            const today = isSameDay(day, new Date());
+            return (
+              <div className={`min-h-[110px] p-1.5 border-b border-r border-slate-100 last:border-r-0 ${!inMonth ? "bg-slate-50/40" : "bg-white"}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${today ? "bg-[#2A69FF] text-white" : inMonth ? "text-slate-700" : "text-slate-300"}`}>
+                    {format(day, "d")}
+                  </span>
+                  {inMonth && (
+                    <button
+                      type="button"
+                      onClick={() => { setForm({ ...emptyForm, date: format(day, "yyyy-MM-dd") }); setEditId(null); setDialogOpen(true); }}
+                      className="text-slate-200 hover:text-emerald-500 transition-colors"
+                      aria-label={`New shooting on ${format(day, "MMM d")}`}
+                    >
+                      <Plus className="w-3 h-3" aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  {items.slice(0, 3).map(s => {
+                    const cfg = STATUS_CONFIG[s.status] || STATUS_CONFIG.Planned;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => openEdit(s)}
+                        className={`w-full text-left text-[10px] px-1.5 py-1 rounded-md font-medium truncate hover:opacity-90 transition ${cfg.color}`}
+                        title={`${s.title}${s.time ? " · " + s.time : ""}${s.client_name ? " · " + s.client_name : ""}`}
+                      >
+                        {s.time && <span className="opacity-70 mr-1">{s.time}</span>}
+                        {s.title}
+                      </button>
+                    );
+                  })}
+                  {items.length > 3 && <p className="text-[9px] text-slate-400 pl-1">+{items.length - 3} more</p>}
+                </div>
+              </div>
+            );
+          };
+
+          return (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              {/* Month nav */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                <h3 className="text-sm font-semibold text-slate-700">
+                  {format(calDate, "MMMM yyyy", { locale: enUS })}
+                </h3>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setCalDate(d => subMonths(d, 1))} aria-label="Previous month"
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600">
+                    <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                  <button onClick={() => setCalDate(new Date())}
+                    className="px-2.5 py-1 text-xs text-slate-500 hover:bg-slate-100 rounded-lg">
+                    Today
+                  </button>
+                  <button onClick={() => setCalDate(d => addMonths(d, 1))} aria-label="Next month"
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600">
+                    <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile: 4-col, 2 pages */}
+              <div className="sm:hidden">
+                <div className="grid grid-cols-4 border-b border-slate-100">
+                  {mobileHeaders.map(d => (
+                    <div key={d} className="text-center text-xs font-medium text-slate-400 py-2">{d}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-4">
+                  {mobileDays.map(day => <DayCell key={day.toISOString()} day={day} />)}
+                </div>
+                <div className="flex justify-center gap-1.5 py-2.5">
+                  <button aria-label="Show Mon–Thu" onClick={() => setCalPage(0)}
+                    className={`w-1.5 h-1.5 rounded-full transition-all ${calPage === 0 ? "bg-[#2A69FF] w-3" : "bg-slate-200"}`} />
+                  <button aria-label="Show Thu–Sun" onClick={() => setCalPage(1)}
+                    className={`w-1.5 h-1.5 rounded-full transition-all ${calPage === 1 ? "bg-[#2A69FF] w-3" : "bg-slate-200"}`} />
+                </div>
+              </div>
+
+              {/* Desktop: 7-col */}
+              <div className="hidden sm:block">
+                <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/60">
+                  {DAY_LABELS.map(d => (
+                    <div key={d} className="text-center text-xs font-medium text-slate-400 py-2">{d}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7">
+                  {visibleDays.map(day => <DayCell key={day.toISOString()} day={day} />)}
+                </div>
+              </div>
+            </div>
+          );
+        })()
       ) : (
         /* ── LIST VIEW ── */
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">

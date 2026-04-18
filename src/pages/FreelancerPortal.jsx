@@ -30,6 +30,7 @@ import TasksTabComponent from "@/components/freelancer/TasksTab";
 import FreelancerProjects from "@/components/freelancer/FreelancerProjects";
 import NotificationsPanel from "@/components/freelancer/NotificationsPanel";
 import ShootingsTab from "@/components/freelancer/ShootingsTab";
+import FreelancerMusicTab from "@/components/freelancer/FreelancerMusicTab";
 import { TASK_STATUS_CONFIG as TASK_STATUS } from "@/lib/taskStatus";
 import { HIDDEN_NAV_BY_ID, getHiddenNav, MOBILE_NAV_BY_ID } from "@/lib/navConfig";
 
@@ -1126,6 +1127,7 @@ export default function FreelancerPortal() {
       case "calendar": return <CalendarsTab visibleCalendars={visibleCalendars} />;
       case "ideas": return <Ideas currentUserId={user?.id} currentUserName={profile?.name || user?.email} isFreelancer={true} />;
       case "tools": return <ToolsTab tools={tools} />;
+      case "music": return <FreelancerMusicTab />;
       case "meetings": return <MeetingsTab meetings={meetings} />;
       case "shootings": return <ShootingsTab freelancerId={profile?.id} />;
       case "invoices":

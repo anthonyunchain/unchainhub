@@ -8,6 +8,7 @@ export const FREELANCER_NAV_ITEMS = [
   { id: "projects",      label: "Editorial" },
   { id: "captions",      label: "Captions" },
   { id: "tools",         label: "Tools" },
+  { id: "music",         label: "Music" },
   { id: "meetings",      label: "Meetings" },
   { id: "shootings",     label: "Shootings" },
   { id: "notes",         label: "Notes" },
@@ -21,9 +22,21 @@ export const HIDDEN_NAV_BY_ID = {
   '2ba918c3-a88e-4b9f-a570-68d8e6b0c1ed': ['tools', 'projects', 'captions'],
 };
 
+export function isVideoEditor(profile) {
+  if (!profile) return false;
+  const role = (profile.role || "").toLowerCase();
+  if (role.includes("video editor") || role.includes("monteur")) return true;
+  const tags = (profile.tags || []).map(t => String(t).toLowerCase());
+  return tags.includes("video editor");
+}
+
 export function getHiddenNav(profile) {
-  if (profile?.hidden_nav_items?.length) return profile.hidden_nav_items;
-  return HIDDEN_NAV_BY_ID[profile?.id] || [];
+  const base = profile?.hidden_nav_items?.length
+    ? [...profile.hidden_nav_items]
+    : [...(HIDDEN_NAV_BY_ID[profile?.id] || [])];
+  // Music tab is only relevant for video editors
+  if (!isVideoEditor(profile) && !base.includes("music")) base.push("music");
+  return base;
 }
 
 // ─── CUSTOM MOBILE BOTTOM NAV PER FREELANCER ──────────────────────────────
