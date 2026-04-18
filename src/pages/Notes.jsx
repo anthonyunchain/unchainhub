@@ -284,7 +284,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     setEditData({ ...note });
     setSaveError(null);
     setShowShare(false);
-    if (window.innerWidth < 768) window.history.pushState({ noteEditor: true }, "");
+    if (window.innerWidth < 640) window.history.pushState({ noteEditor: true }, "");
     setMobileView("editor");
     setSaveStatus(null);
   };
@@ -296,7 +296,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     setEditData({ title: "", content: "", tags: [], shared_with: [], created_by: currentUser?.id });
     setSaveError(null);
     setShowShare(false);
-    if (window.innerWidth < 768) window.history.pushState({ noteEditor: true }, "");
+    if (window.innerWidth < 640) window.history.pushState({ noteEditor: true }, "");
     setMobileView("editor");
     setSaveStatus(null);
     setFocusTitle(true); // focus after React re-renders the input
@@ -499,13 +499,13 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
       <div style={{ padding: "10px 20px", borderBottom: "1px solid var(--divider)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         {/* Mobile back */}
         <button
-          className="flex md:hidden"
+          className="flex sm:hidden"
           onClick={() => setMobileView("list")}
           style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: "var(--brand)", fontFamily: "'DM Mono', monospace", fontSize: 11 }}
         >
           <ChevronLeft style={{ width: 14, height: 14 }} /> Notes
         </button>
-        <div className="hidden md:block" />
+        <div className="hidden sm:block" />
 
         {/* Right: status + actions */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -706,24 +706,24 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
 
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", position: "relative" }}>
-      {/* Desktop: 2-panel */}
+      {/* Desktop + tablet: 2-panel */}
       <div
-        className="hidden md:grid"
+        className="hidden sm:grid"
         style={{ gridTemplateColumns: "320px 1fr", gap: 12, height: panelHeight }}
       >
         {leftPanel}
         {editorPanel}
       </div>
 
-      {/* Mobile list */}
-      <div className="flex md:hidden" style={{ height: panelHeight }}>
+      {/* Phone list */}
+      <div className="flex sm:hidden" style={{ height: panelHeight }}>
         {leftPanel}
       </div>
 
-      {/* Mobile editor — full screen overlay */}
+      {/* Phone editor — full screen overlay */}
       {mobileView === "editor" && (
         <div
-          className="md:hidden"
+          className="sm:hidden"
           style={{
             position: "fixed", inset: 0, zIndex: 200,
             paddingTop: "env(safe-area-inset-top)",
