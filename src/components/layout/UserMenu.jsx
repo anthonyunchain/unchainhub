@@ -136,6 +136,14 @@ export default function UserMenu({ userName, userEmail, initials, onSettingsClic
     setPushLoading(false);
   };
 
+  const sendTestNotification = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.functions.invoke('sendPushNotification', {
+      body: { title: '🔔 Unchain Hub', body: 'Push notifications are working!', url: '/', user_ids: [user.id] },
+    });
+  };
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -257,6 +265,22 @@ export default function UserMenu({ userName, userEmail, initials, onSettingsClic
                       borderRadius: "50%", background: "#fff", transition: "left 200ms",
                     }} />
                   </span>
+                </button>
+              )}
+
+              {pushEnabled && (
+                <button
+                  onClick={sendTestNotification}
+                  style={{
+                    width: "100%", padding: "8px 14px", display: "flex", alignItems: "center", gap: 10,
+                    background: "transparent", border: "none", cursor: "pointer", fontSize: "12px",
+                    color: "var(--muted)", fontFamily: "'DM Mono', monospace", transition: "background 150ms", textAlign: "left",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--divider)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  <Bell style={{ width: 12, height: 12, flexShrink: 0 }} />
+                  Send test notification
                 </button>
               )}
 
