@@ -219,10 +219,10 @@ export default function Editorial() {
   // WEEK VIEW
   const WeekView = () => {
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-    const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
+    const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
     return (
       <div className="overflow-x-auto -mx-1 px-1">
-      <div className="grid grid-cols-5 gap-3 min-w-[560px]">
+      <div className="grid grid-cols-7 gap-3 min-w-[780px]">
         {days.map(day => {
           const dayContent = filtered.filter(c => c.scheduled_date && isSameDay(new Date(c.scheduled_date), day));
           const isToday = isSameDay(day, new Date());
@@ -255,7 +255,7 @@ export default function Editorial() {
 
   // MONTH VIEW
   const MonthView = () => {
-    const [dayPage, setDayPage] = useState(0); // 0 = Mon/Tue/Wed  1 = Wed/Thu/Fri
+    const [dayPage, setDayPage] = useState(0); // 0 = Mon→Thu  1 = Thu→Sun
     const touchStartX = useRef(null);
 
     const monthStart = startOfMonth(currentDate);
@@ -263,15 +263,15 @@ export default function Editorial() {
     const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
     const calEnd = startOfWeek(addDays(monthEnd, 6), { weekStartsOn: 1 });
     const allDays = eachDayOfInterval({ start: calStart, end: addDays(calEnd, 6) }).slice(0, 49);
-    const allDaysNoWeekend = allDays.filter(d => d.getDay() !== 0 && d.getDay() !== 6);
     const weeks = [];
-    for (let i = 0; i < allDaysNoWeekend.length; i += 5) weeks.push(allDaysNoWeekend.slice(i, i + 5));
+    for (let i = 0; i < allDays.length; i += 7) weeks.push(allDays.slice(i, i + 7));
     const allWeeks = weeks.filter(week => week.some(d => isSameMonth(d, currentDate)));
     const visibleDays = allWeeks.flat(); // desktop: all days
 
-    const weekDayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-    // Mobile: page 0 → cols 0,1,2 (Mon/Tue/Wed)  page 1 → cols 2,3,4 (Wed/Thu/Fri)
-    const mobileColIdx = dayPage === 0 ? [0, 1, 2] : [2, 3, 4];
+    const weekDayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    // Mobile: 2 pages of 4 days with overlap on Thu.
+    //  page 0 → cols 0,1,2,3 (Mon/Tue/Wed/Thu)  page 1 → cols 3,4,5,6 (Thu/Fri/Sat/Sun)
+    const mobileColIdx = dayPage === 0 ? [0, 1, 2, 3] : [3, 4, 5, 6];
     const mobileDays = allWeeks.flatMap(week => mobileColIdx.map(i => week[i]).filter(Boolean));
     const mobileHeaders = mobileColIdx.map(i => weekDayLabels[i]);
 
@@ -310,29 +310,29 @@ export default function Editorial() {
     return (
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
 
-        {/* ── Mobile swipeable (3 cols) ── */}
+        {/* ── Mobile swipeable (4 cols) ── */}
         <div className="sm:hidden" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-          <div className="grid grid-cols-3 border-b border-slate-100">
+          <div className="grid grid-cols-4 border-b border-slate-100">
             {mobileHeaders.map(d => (
               <div key={d} className="text-center text-xs font-medium text-slate-400 py-2">{d}</div>
             ))}
           </div>
-          <div className="grid grid-cols-3">
+          <div className="grid grid-cols-4">
             {mobileDays.map(day => <DayCell key={day.toISOString()} day={day} />)}
           </div>
           {/* Swipe dots */}
           <div className="flex justify-center gap-1.5 py-2.5">
-            <button onClick={() => setDayPage(0)} className={`w-1.5 h-1.5 rounded-full transition-all ${dayPage === 0 ? "bg-[#2A69FF] w-3" : "bg-slate-200"}`} />
-            <button onClick={() => setDayPage(1)} className={`w-1.5 h-1.5 rounded-full transition-all ${dayPage === 1 ? "bg-[#2A69FF] w-3" : "bg-slate-200"}`} />
+            <button aria-label="Show Mon–Thu" onClick={() => setDayPage(0)} className={`w-1.5 h-1.5 rounded-full transition-all ${dayPage === 0 ? "bg-[#2A69FF] w-3" : "bg-slate-200"}`} />
+            <button aria-label="Show Thu–Sun" onClick={() => setDayPage(1)} className={`w-1.5 h-1.5 rounded-full transition-all ${dayPage === 1 ? "bg-[#2A69FF] w-3" : "bg-slate-200"}`} />
           </div>
         </div>
 
-        {/* ── Desktop (5 cols) ── */}
+        {/* ── Desktop (7 cols) ── */}
         <div className="hidden sm:block">
-          <div className="grid grid-cols-5 border-b border-slate-100">
+          <div className="grid grid-cols-7 border-b border-slate-100">
             {weekDayLabels.map(d => <div key={d} className="text-center text-xs font-medium text-slate-400 py-2">{d}</div>)}
           </div>
-          <div className="grid grid-cols-5">
+          <div className="grid grid-cols-7">
             {visibleDays.map(day => <DayCell key={day.toISOString()} day={day} />)}
           </div>
         </div>

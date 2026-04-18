@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, addDays,
-  getDay, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek,
+  isSameMonth, isSameDay, addMonths, subMonths, startOfWeek,
 } from "date-fns";
 import { enUS } from "date-fns/locale";
 
@@ -98,15 +98,14 @@ function EditorialCalendar({ content }) {
   const monthEnd   = endOfMonth(calDate);
   const calStart   = startOfWeek(monthStart, { weekStartsOn: 1 });
   const allDays    = eachDayOfInterval({ start: calStart, end: addDays(startOfWeek(addDays(monthEnd, 6), { weekStartsOn: 1 }), 6) }).slice(0, 49);
-  const noWeekend  = allDays.filter(d => getDay(d) !== 0 && getDay(d) !== 6);
   const weeks      = [];
-  for (let i = 0; i < noWeekend.length; i += 5) weeks.push(noWeekend.slice(i, i + 5));
+  for (let i = 0; i < allDays.length; i += 7) weeks.push(allDays.slice(i, i + 7));
   const visibleDays = weeks.filter(wk => wk.some(d => isSameMonth(d, calDate))).flat();
 
   const getDay_ = (day) =>
     content.filter(c => c.scheduled_date && isSameDay(new Date(c.scheduled_date), day));
 
-  const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
     <div>
@@ -133,15 +132,15 @@ function EditorialCalendar({ content }) {
 
       {/* Grid */}
       <div className="rounded-2xl border border-slate-100 overflow-x-auto">
-        <div className="min-w-[480px]">
+        <div className="min-w-[700px]">
         {/* Header row */}
-        <div className="grid grid-cols-5 border-b border-slate-100 bg-slate-50/60">
+        <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/60">
           {DAY_LABELS.map(d => (
             <div key={d} className="text-center text-xs font-medium text-slate-400 py-2">{d}</div>
           ))}
         </div>
         {/* Day cells */}
-        <div className="grid grid-cols-5 bg-white">
+        <div className="grid grid-cols-7 bg-white">
           {visibleDays.map((day, i) => {
             const dayContent = getDay_(day);
             const inMonth    = isSameMonth(day, calDate);
