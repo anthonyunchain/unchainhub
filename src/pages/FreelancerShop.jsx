@@ -67,9 +67,14 @@ function ServiceCard({ service, freelancer, onEdit, onDelete, onToggle }) {
             </span>
           )}
         </div>
-        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 18, color: "var(--brand)", flexShrink: 0 }}>
-          {fmt(service.price)} €
-        </p>
+        <div className="text-right flexShrink-0">
+          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 18, color: "var(--brand)" }}>
+            {fmt(service.price)} €
+          </p>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--muted)", letterSpacing: "0.05em" }}>
+            {service.billing_cycle === "per_project" ? "/ project" : "/ month"}
+          </span>
+        </div>
       </div>
 
       {service.description && (
@@ -167,7 +172,7 @@ export default function FreelancerShop() {
   const [editService, setEditService] = useState(null);
   const [addOrderDialog, setAddOrderDialog] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [serviceForm, setServiceForm] = useState({ name: "", description: "", category: "", price: "", freelancer_id: "" });
+  const [serviceForm, setServiceForm] = useState({ name: "", description: "", category: "", price: "", freelancer_id: "", billing_cycle: "monthly" });
   const [addOrderServiceId, setAddOrderServiceId] = useState("");
   const qc = useQueryClient();
 
@@ -265,7 +270,7 @@ export default function FreelancerShop() {
   };
   const openEdit = (svc) => {
     setEditService(svc);
-    setServiceForm({ name: svc.name, description: svc.description || "", category: svc.category || "", price: String(svc.price), freelancer_id: svc.freelancer_id || "" });
+    setServiceForm({ name: svc.name, description: svc.description || "", category: svc.category || "", price: String(svc.price), freelancer_id: svc.freelancer_id || "", billing_cycle: svc.billing_cycle || "monthly" });
     setServiceDialog(true);
   };
   const saveService = () => {
@@ -510,19 +515,29 @@ export default function FreelancerShop() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Price (€/month) *</Label>
+                <Label>Price (€) *</Label>
                 <Input className="mt-1" type="number" placeholder="0.00" value={serviceForm.price}
                   onChange={e => setServiceForm(f => ({ ...f, price: e.target.value }))} />
               </div>
               <div>
-                <Label>Category</Label>
-                <Select value={serviceForm.category} onValueChange={v => setServiceForm(f => ({ ...f, category: v }))}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select…" /></SelectTrigger>
+                <Label>Billing type</Label>
+                <Select value={serviceForm.billing_cycle} onValueChange={v => setServiceForm(f => ({ ...f, billing_cycle: v }))}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    <SelectItem value="monthly">Per month</SelectItem>
+                    <SelectItem value="per_project">Per project</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Select value={serviceForm.category} onValueChange={v => setServiceForm(f => ({ ...f, category: v }))}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Freelancer</Label>
