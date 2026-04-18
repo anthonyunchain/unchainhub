@@ -17,7 +17,6 @@ export const ADMIN_NAV_SECTIONS = [
     { id: 'subscriptions', label: 'Subscriptions' },
     { id: 'services',      label: 'Services' },
     { id: 'salaries',      label: 'Salaries' },
-    { id: 'shop',          label: 'Freelancer Shop', href: '/FreelancerShop' },
   ]},
   { label: "Legal & Governance", items: [
     { id: 'contracts',    label: 'Contracts' },
@@ -28,6 +27,7 @@ export const ADMIN_NAV_SECTIONS = [
   ]},
   { label: "Team", items: [
     { id: 'freelancer-meetings', label: 'Freelancer Meetings' },
+    { id: 'shop',                label: 'Freelancer Shop', href: '/FreelancerShop' },
     { id: 'users',               label: 'Users' },
     { id: 'permissions',         label: 'Permissions' },
   ]},
