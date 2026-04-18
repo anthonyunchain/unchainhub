@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase, base44 } from "@/api/base44Client";
 import {
   Plus, Search, Trash2, X, Check, NotebookPen,
@@ -25,6 +25,8 @@ const LABEL = { fontFamily: "'DM Mono', monospace", fontSize: "10px", fontWeight
 
 export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const qc = useQueryClient();
 
   const [currentUser, setCurrentUser]       = useState(null);
@@ -76,16 +78,13 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     }
   }, [focusTitle]);
 
-  // Browser back button / swipe-back support for mobile full-screen editor
+  // Browser back button / swipe-back: when React Router pops our history entry
+  // (location.state.noteEditor disappears), close the editor
   useEffect(() => {
-    const handlePopState = (e) => {
-      if (e.state?.noteEditor) {
-        setMobileView("list");
-      }
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+    if (window.innerWidth < 640 && mobileView === "editor" && !location.state?.noteEditor) {
+      setMobileView("list");
+    }
+  }, [location.state]);
 
   // ── Data queries ─────────────────────────────────────────────────────────
   const { data: notes = [] } = useQuery({
@@ -284,7 +283,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     setEditData({ ...note });
     setSaveError(null);
     setShowShare(false);
-    if (window.innerWidth < 640) window.history.pushState({ noteEditor: true }, "");
+    if (window.innerWidth < 640) navigate(location.pathname + location.search, { state: { noteEditor: true } });
     setMobileView("editor");
     setSaveStatus(null);
   };
@@ -296,7 +295,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     setEditData({ title: "", content: "", tags: [], shared_with: [], created_by: currentUser?.id });
     setSaveError(null);
     setShowShare(false);
-    if (window.innerWidth < 640) window.history.pushState({ noteEditor: true }, "");
+    if (window.innerWidth < 640) navigate(location.pathname + location.search, { state: { noteEditor: true } });
     setMobileView("editor");
     setSaveStatus(null);
     setFocusTitle(true); // focus after React re-renders the input
@@ -500,7 +499,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
         {/* Mobile back */}
         <button
           className="flex sm:hidden"
-          onClick={() => setMobileView("list")}
+          onClick={() => location.state?.noteEditor ? navigate(-1) : setMobileView("list")}
           style={{ alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: "var(--brand)", fontFamily: "'DM Mono', monospace", fontSize: 11 }}
         >
           <ChevronLeft style={{ width: 14, height: 14 }} /> Notes
