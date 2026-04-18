@@ -501,7 +501,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
         <button
           className="flex sm:hidden"
           onClick={() => setMobileView("list")}
-          style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: "var(--brand)", fontFamily: "'DM Mono', monospace", fontSize: 11 }}
+          style={{ alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: "var(--brand)", fontFamily: "'DM Mono', monospace", fontSize: 11 }}
         >
           <ChevronLeft style={{ width: 14, height: 14 }} /> Notes
         </button>
