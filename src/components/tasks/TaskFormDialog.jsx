@@ -221,7 +221,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
           </div>
 
           {/* Status + Due date + Category + Assigned + Client — aligned row */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 md:gap-3 items-end">
             <div className="space-y-1.5">
               <Label>Status</Label>
               <Select value={data.status} onValueChange={v => set("status", v)}>
@@ -319,7 +319,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5 col-span-2 sm:col-span-1">
+            <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
               <Label>Linked client</Label>
               <Select value={data.client_name || "_none"} onValueChange={v => set("client_name", v === "_none" ? "" : v)}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="None" /></SelectTrigger>
