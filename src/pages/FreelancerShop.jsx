@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "@/components/shared/PageHeader";
+import AdminNavPanel from "@/components/admin/AdminNavPanel";
 import KpiCard from "@/components/shared/KpiCard";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -300,6 +301,8 @@ export default function FreelancerShop() {
           <Plus className="w-4 h-4" /> New service
         </Button>
       </PageHeader>
+
+      <AdminNavPanel section={null} />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">

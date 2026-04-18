@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
+import { ADMIN_NAV_SECTIONS as NAV_SECTIONS } from "@/components/admin/AdminNavPanel";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
@@ -1883,36 +1884,7 @@ function AdminExpenses() {
 }
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
-const NAV_SECTIONS = [
-  { label: "Operations", items: [
-    { id: 'tasks',     label: 'Admin Tasks' },
-    { id: 'briefs',    label: 'Monthly Briefs' },
-    { id: 'ideas',     label: 'Ideas' },
-    { id: 'analytics', label: 'Analytics' },
-    { id: 'sales',     label: 'Prospects' },
-  ]},
-  { label: "Finance", items: [
-    { id: 'finance',       label: 'Finance' },
-    { id: 'expenses',      label: 'Expenses' },
-    { id: 'invoices',      label: 'Invoices' },
-    { id: 'subscriptions', label: 'Subscriptions' },
-    { id: 'services',      label: 'Services' },
-    { id: 'salaries',      label: 'Salaries' },
-    { id: 'shop',          label: 'Freelancer Shop', href: '/FreelancerShop' },
-  ]},
-  { label: "Legal & Governance", items: [
-    { id: 'contracts',    label: 'Contracts' },
-    { id: 'legal',        label: 'Legal Docs' },
-    { id: 'templates',    label: 'Templates' },
-    { id: 'meetings',     label: 'Board Meetings' },
-    { id: 'shareholders', label: 'Shareholders' },
-  ]},
-  { label: "Team", items: [
-    { id: 'freelancer-meetings', label: 'Freelancer Meetings' },
-    { id: 'users',               label: 'Users' },
-    { id: 'permissions',         label: 'Permissions' },
-  ]},
-];
+// NAV_SECTIONS now imported from shared component (see top of file)
 
 export default function Admin() {
   const { user } = useAuth();
