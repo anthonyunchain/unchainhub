@@ -225,7 +225,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
             <div className="space-y-1.5">
               <Label>Status</Label>
               <Select value={data.status} onValueChange={v => set("status", v)}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Non commencé">Not started</SelectItem>
                   <SelectItem value="En cours">In progress</SelectItem>
@@ -257,8 +257,8 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
             </div>
             <div className="space-y-1.5">
               <Label>Category</Label>
-              <Select value={data.category} onValueChange={v => set("category", v)}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <Select value={data.category || ""} onValueChange={v => set("category", v)}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Design">Design</SelectItem>
                   <SelectItem value="Video Editing">Video Editing</SelectItem>
@@ -319,7 +319,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 col-span-2 sm:col-span-1">
               <Label>Linked client</Label>
               <Select value={data.client_name || "_none"} onValueChange={v => set("client_name", v === "_none" ? "" : v)}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="None" /></SelectTrigger>
