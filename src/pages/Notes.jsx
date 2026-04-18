@@ -149,7 +149,6 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
       setSelectedId(saved.id);
       setEditData(saved);
       setSaveError(null);
-      setDeleteConfirm(false);
       setSaveStatus("saved");
       // fade out "Saved" indicator after 2s
       setTimeout(() => setSaveStatus(null), 2000);
@@ -273,7 +272,6 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     setSelectedId(note.id);
     setEditData({ ...note });
     setSaveError(null);
-    setDeleteConfirm(false);
     setShowShare(false);
     setMobileView("editor");
     setSaveStatus(null);
