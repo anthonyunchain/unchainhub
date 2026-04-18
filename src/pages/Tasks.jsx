@@ -236,12 +236,28 @@ export default function Tasks() {
     queryFn: () => base44.entities.Client.filter({ status: "Actif" })
   });
 
+  const { data: freelancers = [] } = useQuery({
+    queryKey: ["freelancers"],
+    queryFn: () => base44.entities.Freelancer.list(),
+  });
+
   const createMut = useMutation({
     mutationFn: async (d) => {
       const { error } = await supabase.from('tasks').insert(toTaskPayload(d));
       if (error) { console.error('task insert error:', error); throw error; }
     },
-    onSuccess: () => { setMutError(null); qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); setEditTask(null); },
+    onSuccess: (_, d) => {
+      if (d.assigned_freelancer_id) {
+        const fl = freelancers.find(f => f.id === d.assigned_freelancer_id);
+        if (fl?.email) base44.functions.invoke('sendPushNotification', {
+          title: '📋 New task assigned',
+          body: d.title || 'You have a new task',
+          url: '/',
+          freelancer_email: fl.email,
+        }).catch(() => {});
+      }
+      setMutError(null); qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); setEditTask(null);
+    },
     onError: (e) => setMutError([e.message, e.details, e.hint].filter(Boolean).join(' — ')),
   });
 

@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { pushAdmins, pushFreelancerByEmail } from '../_shared/pushNotify.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -94,6 +95,21 @@ Deno.serve(async (req) => {
 
     if (insertErr) {
       return Response.json({ error: insertErr.message }, { status: 500, headers: corsHeaders(req) });
+    }
+
+    // Push notifications (non-blocking)
+    const pushTitle = `💬 ${authorName}: ${content?.slice(0, 60) || 'New comment'}`;
+    if (authorRole === 'freelancer') {
+      pushAdmins(supabaseAdmin, { title: pushTitle, url: '/Tasks' }).catch(() => {});
+    } else {
+      // Admin commented — push the assigned freelancer if any
+      const { data: taskForPush } = await supabaseAdmin
+        .from('tasks').select('assigned_freelancer_id').eq('id', task_id).single();
+      if (taskForPush?.assigned_freelancer_id) {
+        const { data: fl } = await supabaseAdmin
+          .from('freelancers').select('email').eq('id', taskForPush.assigned_freelancer_id).single();
+        if (fl?.email) pushFreelancerByEmail(supabaseAdmin, fl.email, { title: pushTitle, url: '/' }).catch(() => {});
+      }
     }
 
     return Response.json({ success: true, comment }, { headers: corsHeaders(req) });

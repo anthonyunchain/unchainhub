@@ -17,8 +17,15 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const { title, body, url = '/', user_ids } = await req.json();
+    let { title, body, url = '/', user_ids, freelancer_email } = await req.json();
     if (!title) return Response.json({ error: 'Missing title' }, { status: 400, headers: corsHeaders(req) });
+
+    // Resolve freelancer_email to a user_id if provided
+    if (freelancer_email) {
+      const { data: authData } = await supabaseAdmin.auth.admin.listUsers();
+      const u = authData?.users?.find((u: any) => u.email === freelancer_email);
+      if (u) user_ids = [...(user_ids || []), u.id];
+    }
 
     // Fetch subscriptions — either for specific users or all
     let query = supabaseAdmin.from('push_subscriptions').select('*');

@@ -153,6 +153,7 @@ export default function Shootings() {
       }
 
       // Sync assignments
+      const newlyAssigned = [];
       if (editId) {
         const existing = assignments.filter(a => a.shooting_id === editId);
         for (const ea of existing) {
@@ -166,6 +167,7 @@ export default function Shootings() {
               shooting_id: shootingId, freelancer_id: fa.freelancer_id,
               freelancer_name: fa.freelancer_name, role: fa.role || null, status: "Pending",
             });
+            newlyAssigned.push(fa);
           }
         }
       } else {
@@ -174,7 +176,19 @@ export default function Shootings() {
             shooting_id: shootingId, freelancer_id: fa.freelancer_id,
             freelancer_name: fa.freelancer_name, role: fa.role || null, status: "Pending",
           });
+          newlyAssigned.push(fa);
         }
+      }
+
+      // Push newly assigned freelancers
+      for (const fa of newlyAssigned) {
+        const fl = freelancers.find(f => f.id === fa.freelancer_id);
+        if (fl?.email) base44.functions.invoke('sendPushNotification', {
+          title: '📸 Shooting assigned',
+          body: `You've been assigned to "${form.title}"`,
+          url: '/',
+          freelancer_email: fl.email,
+        }).catch(() => {});
       }
 
       // Sync content links

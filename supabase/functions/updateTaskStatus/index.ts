@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { corsHeaders } from '../_shared/cors.ts';
+import { pushAdmins } from '../_shared/pushNotify.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
     // Fetch the task to verify ownership
     const { data: task, error: taskErr } = await supabaseAdmin
       .from('tasks')
-      .select('id, assigned_freelancer_id, assigned_to')
+      .select('id, title, assigned_freelancer_id, assigned_to')
       .eq('id', task_id)
       .single();
 
@@ -72,6 +73,12 @@ Deno.serve(async (req) => {
     if (updateErr) {
       return Response.json({ error: updateErr.message }, { status: 500, headers: corsHeaders(req) });
     }
+
+    pushAdmins(supabaseAdmin, {
+      title: `✅ Task updated: ${task.title || 'Task'}`,
+      body: `${freelancer.name} marked it as "${status}"`,
+      url: '/Tasks',
+    }).catch(() => {});
 
     return Response.json({ success: true }, { headers: corsHeaders(req) });
 

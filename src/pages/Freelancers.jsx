@@ -53,7 +53,16 @@ export default function Freelancers() {
       const { error } = await supabase.from("freelancer_payments").insert({ ...rest, amount: parseFloat(rest.amount) || 0 });
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setPDialogOpen(false); setPaymentMutError(null); },
+    onSuccess: (_, d) => {
+      const fl = freelancers.find(f => f.id === d.freelancer_id);
+      if (fl?.email) base44.functions.invoke('sendPushNotification', {
+        title: '💸 Payment recorded',
+        body: `${d.mission || 'Invoice'} — €${parseFloat(d.amount || 0).toFixed(2)}`,
+        url: '/',
+        freelancer_email: fl.email,
+      }).catch(() => {});
+      qc.invalidateQueries({ queryKey: ["freelancer-payments"] }); setPDialogOpen(false); setPaymentMutError(null);
+    },
     onError: (e) => setPaymentMutError(e.message),
   });
   const updatePMut = useMutation({

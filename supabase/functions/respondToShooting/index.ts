@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { pushAdmins, pushFreelancersByIds } from '../_shared/pushNotify.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -113,6 +114,14 @@ Deno.serve(async (req) => {
           created_at: now,
         }))
       );
+    }
+
+    // Push notifications (non-blocking)
+    const pushOpts = { title: notifTitle, body: notifMessage, url: '/Admin' };
+    await pushAdmins(supabaseAdmin, pushOpts).catch(() => {});
+    if (assignments?.length) {
+      const freelancerIds = assignments.map((a: { freelancer_id: string }) => a.freelancer_id);
+      await pushFreelancersByIds(supabaseAdmin, freelancerIds, { ...pushOpts, url: '/' }).catch(() => {});
     }
 
     return Response.json({ success: true }, { headers: corsHeaders(req) });

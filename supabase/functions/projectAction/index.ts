@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { corsHeaders } from '../_shared/cors.ts';
 import { verifyAuth } from '../_shared/auth.ts';
+import { pushAdmins } from '../_shared/pushNotify.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -116,6 +117,7 @@ Deno.serve(async (req) => {
             }))
           );
         }
+        await pushAdmins(supabaseAdmin, { title: notif.title, body: notif.message, url: '/Admin' });
       } catch (notifErr) {
         console.error('Notification insert failed (non-fatal):', notifErr?.message);
       }
