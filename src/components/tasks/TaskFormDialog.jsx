@@ -221,7 +221,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
           </div>
 
           {/* Status + Due date + Category + Assigned + Client — aligned row */}
-          <div className="grid grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 items-end">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 items-end">
             <div className="space-y-1.5">
               <Label>Status</Label>
               <Select value={data.status} onValueChange={v => set("status", v)}>

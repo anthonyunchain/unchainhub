@@ -136,20 +136,7 @@ export default function UserMenu({ userName, userEmail, initials, onSettingsClic
     setPushLoading(false);
   };
 
-  const sendTestNotification = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await base44.functions.invoke('sendPushNotification', {
-        title: '🔔 Unchain Hub', body: 'Push notifications are working!', url: '/', user_ids: [user.id],
-      });
-      if (data?.sent === 0) alert('No subscription found — make sure you accepted the notification permission and the migration is applied in Supabase.');
-    } catch (e) {
-      alert('Error: ' + (e.message || JSON.stringify(e)));
-    }
-  };
-
-  useEffect(() => {
+useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setOpen(false);
@@ -270,22 +257,6 @@ export default function UserMenu({ userName, userEmail, initials, onSettingsClic
                       borderRadius: "50%", background: "#fff", transition: "left 200ms",
                     }} />
                   </span>
-                </button>
-              )}
-
-              {pushEnabled && (
-                <button
-                  onClick={sendTestNotification}
-                  style={{
-                    width: "100%", padding: "8px 14px", display: "flex", alignItems: "center", gap: 10,
-                    background: "transparent", border: "none", cursor: "pointer", fontSize: "12px",
-                    color: "var(--muted)", fontFamily: "'DM Mono', monospace", transition: "background 150ms", textAlign: "left",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--divider)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  <Bell style={{ width: 12, height: 12, flexShrink: 0 }} />
-                  Send test notification
                 </button>
               )}
 
