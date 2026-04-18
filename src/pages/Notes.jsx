@@ -703,26 +703,10 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
         {editorPanel}
       </div>
 
-      {/* Phone list */}
-      <div className="flex sm:hidden" style={{ height: panelHeight }}>
-        {leftPanel}
+      {/* Phone: toggle list / editor in-place, no overlay */}
+      <div className="sm:hidden" style={{ height: panelHeight }}>
+        {mobileView === "list" ? leftPanel : editorPanel}
       </div>
-
-      {/* Phone editor — full screen overlay */}
-      {mobileView === "editor" && (
-        <div
-          className="flex sm:hidden"
-          style={{
-            position: "fixed", inset: 0, zIndex: 200,
-            paddingTop: "env(safe-area-inset-top)",
-            paddingBottom: "env(safe-area-inset-bottom)",
-            background: "var(--card)",
-            flexDirection: "column",
-          }}
-        >
-          {editorPanel}
-        </div>
-      )}
 
       {/* Undo toast */}
       {undoToast && undoStack.length > 0 && (
