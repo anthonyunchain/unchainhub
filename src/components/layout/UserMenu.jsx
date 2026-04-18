@@ -140,10 +140,9 @@ export default function UserMenu({ userName, userEmail, initials, onSettingsClic
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data, error } = await supabase.functions.invoke('sendPushNotification', {
-        body: { title: '🔔 Unchain Hub', body: 'Push notifications are working!', url: '/', user_ids: [user.id] },
+      const { data } = await base44.functions.invoke('sendPushNotification', {
+        title: '🔔 Unchain Hub', body: 'Push notifications are working!', url: '/', user_ids: [user.id],
       });
-      if (error) throw error;
       if (data?.sent === 0) alert('No subscription found — make sure you accepted the notification permission and the migration is applied in Supabase.');
     } catch (e) {
       alert('Error: ' + (e.message || JSON.stringify(e)));
