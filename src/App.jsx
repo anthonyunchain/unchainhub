@@ -5,6 +5,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { ConfirmProvider } from '@/lib/confirm';
 import LoginPage from './pages/LoginPage';
 import { useEffect, useState, Component, lazy, Suspense } from 'react';
 import { supabase } from '@/api/base44Client';
@@ -15,10 +16,10 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.error) {
       return (
-        <div className="fixed inset-0 flex flex-col items-center justify-center bg-slate-50 gap-3 p-6 text-center">
-          <p className="text-slate-700 font-medium">Something went wrong</p>
-          <pre className="text-xs text-red-500 max-w-md overflow-auto bg-red-50 rounded p-3">{this.state.error.message}</pre>
-          <button onClick={() => window.location.reload()} className="text-sm text-blue-600 underline">Reload</button>
+        <div role="alert" className="fixed inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center" style={{ background: 'var(--bg)', color: 'var(--ink)' }}>
+          <p className="text-h2">Something went wrong</p>
+          <pre className="text-xs max-w-md overflow-auto rounded p-3" style={{ background: 'var(--urgent-bg)', color: 'var(--urgent-text)' }}>{this.state.error.message}</pre>
+          <button onClick={() => window.location.reload()} className="text-sm underline" style={{ color: 'var(--brand)' }}>Reload</button>
         </div>
       );
     }
@@ -60,8 +61,8 @@ const FreelancerShop      = lazy(() => import('./pages/FreelancerShop'));
 const getRoleCacheKey = (uid) => `uc_role_v3_${uid}`;
 
 const Spinner = () => (
-  <div className="fixed inset-0 flex items-center justify-center">
-    <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+  <div className="fixed inset-0 flex items-center justify-center" role="status" aria-live="polite" aria-label="Loading">
+    <div className="w-8 h-8 rounded-full animate-spin" style={{ borderWidth: 4, borderStyle: 'solid', borderColor: 'var(--divider)', borderTopColor: 'var(--ink)' }} />
   </div>
 );
 
@@ -144,11 +145,11 @@ const AuthenticatedApp = () => {
   if (!isAuthenticated) return <LoginPage />;
   if (!roleChecked) return <Spinner />;
   if (roleError) return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-slate-50 gap-4 p-6 text-center">
-      <p className="text-slate-700 font-semibold">Unable to load your account</p>
-      <p className="text-sm text-slate-500">Could not determine your access level. Please check your connection and try again.</p>
-      <button onClick={() => window.location.reload()} className="text-sm text-blue-600 underline">Retry</button>
-      <button onClick={() => supabase.auth.signOut()} className="text-xs text-slate-400 underline">Sign out</button>
+    <div role="alert" className="fixed inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center" style={{ background: 'var(--bg)', color: 'var(--ink)' }}>
+      <p className="text-h2">Unable to load your account</p>
+      <p className="text-body-sm">Could not determine your access level. Please check your connection and try again.</p>
+      <button onClick={() => window.location.reload()} className="text-sm underline" style={{ color: 'var(--brand)' }}>Retry</button>
+      <button onClick={() => supabase.auth.signOut()} className="text-xs underline" style={{ color: 'var(--subtle)' }}>Sign out</button>
     </div>
   );
 
@@ -216,11 +217,13 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <QueryClientProvider client={queryClientInstance}>
-          <Router>
-            <AuthenticatedApp />
-          </Router>
-          <Toaster />
-          <Sonner richColors position="top-right" />
+          <ConfirmProvider>
+            <Router>
+              <AuthenticatedApp />
+            </Router>
+            <Toaster />
+            <Sonner richColors position="top-right" closeButton />
+          </ConfirmProvider>
         </QueryClientProvider>
       </AuthProvider>
     </ErrorBoundary>

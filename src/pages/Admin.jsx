@@ -3,6 +3,8 @@ import { useSearchParams, Link } from "react-router-dom";
 import { ADMIN_NAV_SECTIONS as NAV_SECTIONS } from "@/components/admin/AdminNavPanel";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
+import { toast } from "sonner";
+import { useConfirm } from "@/lib/confirm";
 import PageHeader from "../components/shared/PageHeader";
 import Sensitive from "../components/shared/Sensitive";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -50,8 +52,11 @@ function BoardMeetings() {
 
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
 
-  const handleDelete = () => {
-    if (data?.id && confirm("Delete this meeting?")) { deleteMut.mutate(data.id); setOpen(false); }
+  const confirm = useConfirm();
+  const handleDelete = async () => {
+    if (!data?.id) return;
+    const ok = await confirm({ title: "Delete this meeting?", confirmLabel: "Delete", destructive: true });
+    if (ok) { deleteMut.mutate(data.id); setOpen(false); }
   };
 
   const addAttendee = () => {
@@ -181,7 +186,12 @@ function LegalDocuments() {
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (d) => { setData({ ...d }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
-  const handleDelete = () => { if (data?.id && confirm("Delete this document?")) { deleteMut.mutate(data.id); setOpen(false); } };
+  const confirm = useConfirm();
+  const handleDelete = async () => {
+    if (!data?.id) return;
+    const ok = await confirm({ title: "Delete this document?", confirmLabel: "Delete", destructive: true });
+    if (ok) { deleteMut.mutate(data.id); setOpen(false); }
+  };
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -298,11 +308,16 @@ function Shareholders() {
   const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Shareholder.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["shareholders"] }); setOpen(false); } });
   const deleteMut = useMutation({ mutationFn: (id) => base44.entities.Shareholder.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["shareholders"] }) });
 
+  const confirm = useConfirm();
   const empty = { name: "", email: "", type: "Fondateur", shares: 0, share_percentage: 0, investment_amount: 0, entry_date: "", share_class: "Ordinaire", notes: "" };
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (s) => { setData({ ...s }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
-  const handleDelete = () => { if (data?.id && confirm("Delete this shareholder?")) { deleteMut.mutate(data.id); setOpen(false); } };
+  const handleDelete = async () => {
+    if (!data?.id) return;
+    const ok = await confirm({ title: "Delete this shareholder?", confirmLabel: "Delete", destructive: true });
+    if (ok) { deleteMut.mutate(data.id); setOpen(false); }
+  };
 
   const totalShares = shareholders.reduce((s, sh) => s + (sh.shares || 0), 0);
   const totalInvested = shareholders.reduce((s, sh) => s + (sh.investment_amount || 0), 0);
@@ -454,10 +469,15 @@ function AdminTasks() {
   });
 
   const empty = { title: "", description: "", category: "Autre", status: "À faire", priority: "Normale", due_date: "", assigned_to: "", notes: "" };
+  const confirm = useConfirm();
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (t) => { setData({ ...t }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
-  const handleDelete = () => { if (data?.id && confirm("Delete this task?")) { deleteMut.mutate(data.id); setOpen(false); } };
+  const handleDelete = async () => {
+    if (!data?.id) return;
+    const ok = await confirm({ title: "Delete this task?", confirmLabel: "Delete", destructive: true });
+    if (ok) { deleteMut.mutate(data.id); setOpen(false); }
+  };
   const handleQuickDelete = (e, task) => {
     e.stopPropagation();
     if (!task?.id) return;
@@ -541,8 +561,18 @@ function AdminTasks() {
         {pending.length === 0 && done.length === 0 && <p className="text-center text-slate-400 py-10 text-sm">No admin tasks</p>}
         {[...pending, ...done].map((t) => (
           <div key={t.id} className="bg-white rounded-xl border border-slate-100 px-4 py-3 flex items-center gap-3 hover:shadow-sm transition-all">
-            <button onClick={() => toggleStatus(t)} className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${t.status === "Terminé" ? "bg-[#2A69FF] border-[#2A69FF]" : "border-slate-300 hover:border-[#2A69FF]"}`}>
-              {t.status === "Terminé" && <span className="text-white text-[10px]">✓</span>}
+            <button
+              type="button"
+              onClick={() => toggleStatus(t)}
+              aria-label={t.status === "Terminé" ? `Mark ${t.title} as pending` : `Mark ${t.title} as done`}
+              aria-pressed={t.status === "Terminé"}
+              className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors"
+              style={{
+                background: t.status === "Terminé" ? 'var(--brand)' : 'transparent',
+                borderColor: t.status === "Terminé" ? 'var(--brand)' : 'var(--subtle)',
+              }}
+            >
+              {t.status === "Terminé" && <Check className="w-3 h-3 text-white" aria-hidden="true" />}
             </button>
             <div className="flex-1 cursor-pointer" onClick={() => openEdit(t)}>
               <p className={`text-sm font-medium ${t.status === "Terminé" ? "line-through text-slate-400" : "text-slate-800"}`}>{t.title}</p>
@@ -639,11 +669,16 @@ function ShareholderSalaries() {
   const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.ShareholderSalary.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["shareholder-salaries"] }); setOpen(false); } });
   const deleteMut = useMutation({ mutationFn: (id) => base44.entities.ShareholderSalary.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["shareholder-salaries"] }) });
 
+  const confirm = useConfirm();
   const empty = { shareholder_name: "", role: "", amount: 0, date: format(new Date(), "yyyy-MM-dd"), period: "", type: "Salaire", notes: "" };
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (s) => { setData({ ...s }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
-  const handleDelete = () => { if (data?.id && confirm("Delete this payment?")) { deleteMut.mutate(data.id); setOpen(false); } };
+  const handleDelete = async () => {
+    if (!data?.id) return;
+    const ok = await confirm({ title: "Delete this payment?", confirmLabel: "Delete", destructive: true });
+    if (ok) { deleteMut.mutate(data.id); setOpen(false); }
+  };
 
   const totalByShareholder = shareholders.map(sh => ({
     name: sh.name,
@@ -900,7 +935,7 @@ function UserManagement() {
       if (data?.error) throw new Error(data.error);
       qc.invalidateQueries({ queryKey: ["profiles"] });
     } catch (e) {
-      alert("Error deleting user: " + (e.message || "Unknown error"));
+      toast.error("Error deleting user: " + (e.message || "Unknown error"));
     } finally {
       setDeletingUserId(null);
     }
@@ -961,7 +996,7 @@ function UserManagement() {
       qc.invalidateQueries({ queryKey: ["profiles"] });
       qc.invalidateQueries({ queryKey: ["authUsers"] });
       await loadOrphans();
-    } catch (e) { alert("Error: " + e.message); } finally { setDeletingOrphans(false); }
+    } catch (e) { toast.error("Error: " + e.message); } finally { setDeletingOrphans(false); }
   };
 
   return (
@@ -1282,8 +1317,8 @@ function Subscriptions() {
 
   const { data: subs = [] } = useQuery({ queryKey: ["subscriptions"], queryFn: () => base44.entities.Subscription.list() });
 
-  const createMut = useMutation({ mutationFn: d => base44.entities.Subscription.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["subscriptions"] }); setOpen(false); }, onError: e => alert("Error: " + e.message) });
-  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Subscription.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["subscriptions"] }); setOpen(false); }, onError: e => alert("Error: " + e.message) });
+  const createMut = useMutation({ mutationFn: d => base44.entities.Subscription.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["subscriptions"] }); setOpen(false); }, onError: e => toast.error("Error: " + e.message) });
+  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Subscription.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["subscriptions"] }); setOpen(false); }, onError: e => toast.error("Error: " + e.message) });
   const deleteMut = useMutation({ mutationFn: id => base44.entities.Subscription.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["subscriptions"] }); setOpen(false); } });
 
   const openNew = () => { setData({ ...EMPTY_SUB }); setOpen(true); };
@@ -1608,6 +1643,7 @@ function AdminExpenses() {
   const [filterMonth, setFilterMonth] = useState(() => format(new Date(), "yyyy-MM"));
   const [filterCat, setFilterCat] = useState("all");
   const qc = useQueryClient();
+  const confirm = useConfirm();
 
   const { data: expenses = [] } = useQuery({
     queryKey: ["expenses"],
@@ -1863,7 +1899,10 @@ function AdminExpenses() {
 
               <div className="flex justify-between items-center pt-2">
                 {data.id
-                  ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={() => { if (confirm("Delete this expense?")) deleteMut.mutate(data.id); }}>
+                  ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={async () => {
+                      const ok = await confirm({ title: "Delete this expense?", confirmLabel: "Delete", destructive: true });
+                      if (ok) deleteMut.mutate(data.id);
+                    }}>
                       <Trash2 className="w-4 h-4 mr-1" />Delete
                     </Button>
                   : <div />}

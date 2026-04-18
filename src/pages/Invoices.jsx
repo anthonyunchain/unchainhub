@@ -5,6 +5,8 @@ import PageHeader from "../components/shared/PageHeader";
 import Sensitive from "../components/shared/Sensitive";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Check, Upload, FileText, X, Paperclip } from "lucide-react";
+import { useConfirm } from "@/lib/confirm";
+import EmptyState from "../components/shared/EmptyState";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +23,7 @@ export default function Invoices() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
   const qc = useQueryClient();
+  const confirm = useConfirm();
 
   const { data: invoices = [] } = useQuery({ queryKey: ["invoices"], queryFn: () => base44.entities.Invoice.list() });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
@@ -78,8 +81,10 @@ export default function Invoices() {
     }
   };
 
-  const handleDelete = () => {
-    if (editData?.id && confirm("Delete this invoice?")) {
+  const handleDelete = async () => {
+    if (!editData?.id) return;
+    const ok = await confirm({ title: "Delete this invoice?", description: "This action cannot be undone.", confirmLabel: "Delete", destructive: true });
+    if (ok) {
       deleteMut.mutate(editData.id);
       setDialogOpen(false);
     }
@@ -139,7 +144,11 @@ export default function Invoices() {
       {/* Mobile card list */}
       <div className="md:hidden space-y-3">
         {paginated.length === 0 && (
-          <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-sm text-slate-400">No invoices</div>
+          <EmptyState
+            icon={FileText}
+            title={invoices.length === 0 ? "No invoices yet" : "No invoices match your filters"}
+            description={invoices.length === 0 ? "Create your first invoice from a client." : undefined}
+          />
         )}
         {paginated.map(inv => (
           <div key={inv.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 cursor-pointer active:bg-slate-50" onClick={() => openEdit(inv)}>
@@ -255,7 +264,9 @@ export default function Invoices() {
               </tr>
             ))}
             {paginated.length === 0 && (
-              <tr><td colSpan={9} className="px-5 py-10 text-center text-sm text-slate-400">No invoices</td></tr>
+              <tr><td colSpan={9} className="px-5 py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>
+                {invoices.length === 0 ? "No invoices yet — create one from a client's page." : "No invoices match the current filters."}
+              </td></tr>
             )}
           </tbody>
         </table>

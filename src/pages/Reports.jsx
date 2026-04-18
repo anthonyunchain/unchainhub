@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Eye, TrendingUp, ChevronLeft, ChevronRight, Upload, Download } from "lucide-react";
+import { Plus, Trash2, Eye, TrendingUp, ChevronLeft, ChevronRight, Upload, Download, Check } from "lucide-react";
 import StatsCsvImportDialog from "@/components/stats/StatsCsvImportDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,9 +38,9 @@ export default function Reports() {
   const { data: payments = [] } = useQuery({ queryKey: ["freelancer-payments"], queryFn: () => base44.entities.FreelancerPayment.list() });
   const { data: allStats = [] } = useQuery({ queryKey: ["client-stats"], queryFn: () => base44.entities.ClientStats.list("-period") });
 
-  const createStat = useMutation({ mutationFn: d => base44.entities.ClientStats.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); }, onError: (e) => alert("Error saving: " + (e?.message || e)) });
-  const updateStat = useMutation({ mutationFn: ({ id, d }) => base44.entities.ClientStats.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); }, onError: (e) => alert("Error saving: " + (e?.message || e)) });
-  const deleteStat = useMutation({ mutationFn: id => base44.entities.ClientStats.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); }, onError: (e) => alert("Error deleting: " + (e?.message || e)) });
+  const createStat = useMutation({ mutationFn: d => base44.entities.ClientStats.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); }, onError: (e) => toast.error("Error saving: " + (e?.message || e)) });
+  const updateStat = useMutation({ mutationFn: ({ id, d }) => base44.entities.ClientStats.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); }, onError: (e) => toast.error("Error saving: " + (e?.message || e)) });
+  const deleteStat = useMutation({ mutationFn: id => base44.entities.ClientStats.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); }, onError: (e) => toast.error("Error deleting: " + (e?.message || e)) });
 
   const openNew = () => { setEditStat({ ...EMPTY_STAT, period: selectedMonth }); setStatDialog(true); };
   const openEdit = s => { setEditStat({ ...s }); setStatDialog(true); };
@@ -88,7 +89,7 @@ export default function Reports() {
       qc.invalidateQueries({ queryKey: ["client-stats"] });
       setBulkOpen(false);
     } catch (e) {
-      alert("Error: " + e.message);
+      toast.error("Error: " + e.message);
     } finally {
       setBulkSaving(false);
     }
@@ -250,8 +251,9 @@ export default function Reports() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {clientPosts.map(p => (
-                        <span key={p.id} className="text-[10px] px-2 py-0.5 bg-white rounded border border-slate-200 text-slate-600">
-                          {p.post_type} · {p.platform} {p.status === "Publié" ? "✓" : ""}
+                        <span key={p.id} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-white rounded border border-slate-200 text-slate-600">
+                          {p.post_type} · {p.platform}
+                          {p.status === "Publié" && <Check className="w-3 h-3" style={{ color: 'var(--success)' }} aria-label="Published" />}
                         </span>
                       ))}
                     </div>

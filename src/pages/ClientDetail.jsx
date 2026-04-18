@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
+import { toast } from "sonner";
+import { useConfirm } from "@/lib/confirm";
 import StatusBadge from "../components/shared/StatusBadge";
 import {
   ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt,
@@ -183,6 +185,7 @@ export default function ClientDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const id        = urlParams.get("id");
   const navigate  = useNavigate();
+  const confirm   = useConfirm();
 
   const [activeTab,          setActiveTab]          = useState("dashboard");
   const [editOpen,           setEditOpen]           = useState(false);
@@ -210,7 +213,7 @@ export default function ClientDetail() {
   const updateMut = useMutation({
     mutationFn: ({ id, d }) => base44.entities.Client.update(id, d),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["client", id] }); qc.invalidateQueries({ queryKey: ["clients"] }); setEditOpen(false); },
-    onError: (e) => alert("Save error: " + (e?.message || JSON.stringify(e))),
+    onError: (e) => toast.error("Save error: " + (e?.message || JSON.stringify(e))),
   });
 
   const deleteMut = useMutation({
@@ -219,7 +222,7 @@ export default function ClientDetail() {
       if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); navigate("/Clients"); },
-    onError: (e) => alert("Deletion error: " + (e?.message || e)),
+    onError: (e) => toast.error("Deletion error: " + (e?.message || e)),
   });
 
   const calcInvoice = (d) => {
@@ -944,10 +947,12 @@ export default function ClientDetail() {
               <div className="flex justify-between items-center pt-2">
                 {invoiceData.id
                   ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={async () => {
-                      if (!confirm("Delete this invoice?")) return;
+                      const ok = await confirm({ title: "Delete this invoice?", description: "This action cannot be undone.", confirmLabel: "Delete", destructive: true });
+                      if (!ok) return;
                       await supabase.from("invoices").delete().eq("id", invoiceData.id);
                       qc.invalidateQueries({ queryKey: ["invoices"] });
                       setInvoiceOpen(false);
+                      toast.success("Invoice deleted");
                     }}><Trash2 className="w-4 h-4 mr-1" />Delete</Button>
                   : <div />}
                 <div className="flex gap-2">

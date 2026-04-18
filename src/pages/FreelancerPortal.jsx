@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { getGreeting } from "@/lib/greeting";
@@ -491,7 +492,7 @@ function CalendarsTab({ visibleCalendars: initialCalendars }) {
       setLocalItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, description: descValue } : i));
       setEditingItem(null);
     } catch (e) {
-      alert("Error saving: " + (e?.message || e));
+      toast.error("Error saving: " + (e?.message || e));
     }
     setSaving(false);
   };

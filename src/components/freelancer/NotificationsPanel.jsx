@@ -1,7 +1,6 @@
 import { Bell, Check, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { NOTIFICATION_TYPE_ICONS as TYPE_ICONS } from "@/lib/notificationIcons";
 
 export default function NotificationsPanel({ notifications = [], loading = false, onMarkRead, onMarkAllRead, onDelete, onAccept, onDecline }) {
   const unread = notifications.filter((n) => !n.is_read).length;

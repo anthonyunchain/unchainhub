@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { useConfirm } from "@/lib/confirm";
 import PageHeader from "../components/shared/PageHeader";
+import EmptyState from "../components/shared/EmptyState";
 import Sensitive from "../components/shared/Sensitive";
 import { Button } from "@/components/ui/button";
 import { Plus, MapPin, Trash2, Settings, X, Pencil } from "lucide-react";
@@ -15,15 +17,16 @@ import { fr } from "date-fns/locale";
 
 const STAGES = ["Identifié", "Contacté", "Réunion", "Proposition", "Négociation", "Signé", "Perdu"];
 
-const STAGE_COLORS = {
-  "Identifié": "bg-slate-100 text-slate-600",
-  "Contacté": "bg-blue-50 text-blue-700",
-  "Réunion": "bg-violet-50 text-violet-700",
-  "Proposition": "bg-amber-50 text-amber-700",
-  "Négociation": "bg-orange-50 text-orange-700",
-  "Signé": "bg-emerald-50 text-emerald-700",
-  "Perdu": "bg-red-50 text-red-600",
+const STAGE_STYLES = {
+  "Identifié":    { background: 'var(--divider)',    color: 'var(--muted)' },
+  "Contacté":     { background: 'var(--brand-muted)', color: 'var(--brand)' },
+  "Réunion":      { background: 'var(--purple-bg)',  color: 'var(--purple-text)' },
+  "Proposition":  { background: 'var(--warning-bg)', color: 'var(--warning-text)' },
+  "Négociation":  { background: 'var(--warning-bg)', color: 'var(--warning-text)' },
+  "Signé":        { background: 'var(--success-bg)', color: 'var(--success-text)' },
+  "Perdu":        { background: 'var(--urgent-bg)',  color: 'var(--urgent-text)' },
 };
+const stageStyle = (stage) => STAGE_STYLES[stage] || STAGE_STYLES["Identifié"];
 
 const DEFAULT_CITIES = ["Tampere", "Helsinki", "Lapland", "Other"];
 const DEFAULT_SECTORS = ["F&B", "Wellness", "Tourism", "Other"];
@@ -54,6 +57,7 @@ export default function Pipeline() {
   const [editingSector, setEditingSector] = useState(null);
 
   const qc = useQueryClient();
+  const confirm = useConfirm();
 
   const saveList = (key, setter, value) => { setter(value); localStorage.setItem(key, JSON.stringify(value)); };
   const addCity = () => { const t = newCity.trim(); if (t && !cities.includes(t)) saveList(CITIES_KEY, setCities, [...cities, t]); setNewCity(""); };
@@ -79,8 +83,16 @@ export default function Pipeline() {
   const emptyProspect = { company_name: "", sector: sectors[0] || "", city: cities[0] || "", contact_name: "", contact_email: "", contact_phone: "", contact_method: "Email", stage: "Identifié", notes: "", closing_probability: 0, estimated_value: 0 };
   const openEdit = (p) => { setEditData(p ? { ...p } : { ...emptyProspect }); setDialogOpen(true); };
   const handleSave = () => { if (editData.id) updateMut.mutate({ id: editData.id, d: editData }); else createMut.mutate(editData); };
-  const handleDelete = () => { if (editData?.id && confirm("Delete this prospect?")) { deleteMut.mutate(editData.id); setDialogOpen(false); } };
-  const quickDelete = (e, id) => { e.stopPropagation(); if (confirm("Delete this prospect?")) deleteMut.mutate(id); };
+  const handleDelete = async () => {
+    if (!editData?.id) return;
+    const ok = await confirm({ title: "Delete this prospect?", description: "This action cannot be undone.", confirmLabel: "Delete", destructive: true });
+    if (ok) { deleteMut.mutate(editData.id); setDialogOpen(false); }
+  };
+  const quickDelete = async (e, id) => {
+    e.stopPropagation();
+    const ok = await confirm({ title: "Delete this prospect?", description: "This action cannot be undone.", confirmLabel: "Delete", destructive: true });
+    if (ok) deleteMut.mutate(id);
+  };
 
   return (
     <div className="mx-auto" style={{ maxWidth: '1400px' }}>
@@ -119,7 +131,11 @@ export default function Pipeline() {
       {/* Mobile card list — visible on small screens */}
       <div className="md:hidden space-y-3">
         {filtered.length === 0 && (
-          <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-sm text-slate-400">No prospects</div>
+          <EmptyState
+            icon={MapPin}
+            title="No prospects"
+            description={prospects.length === 0 ? "Add your first prospect to start tracking your pipeline." : "No prospects match the current filters."}
+          />
         )}
         {filtered.map(p => (
           <div key={p.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 cursor-pointer active:bg-slate-50" onClick={() => openEdit(p)}>
@@ -128,7 +144,7 @@ export default function Pipeline() {
                 <p className="text-sm font-semibold text-slate-800 truncate">{p.company_name}</p>
                 {p.estimated_value > 0 && <p className="text-xs text-slate-400 mt-0.5" onClick={e => e.stopPropagation()}><Sensitive>{p.estimated_value.toLocaleString("fr-FR")} €</Sensitive></p>}
               </div>
-              <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${STAGE_COLORS[p.stage] || "bg-slate-100 text-slate-600"}`}>{p.stage}</span>
+              <span className="shrink-0 text-xs px-2.5 py-1 rounded-full font-medium" style={stageStyle(p.stage)}>{p.stage}</span>
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mb-2">
               {p.city && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{p.city}</span>}
@@ -169,7 +185,9 @@ export default function Pipeline() {
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={8} className="px-5 py-10 text-center text-sm text-slate-400">No prospects</td></tr>
+              <tr><td colSpan={8} className="px-5 py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>
+                {prospects.length === 0 ? "No prospects yet — click New to add one." : "No prospects match the current filters."}
+              </td></tr>
             )}
             {filtered.map(p => (
               <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50 group cursor-pointer" onClick={() => openEdit(p)}>
@@ -178,7 +196,7 @@ export default function Pipeline() {
                   {p.estimated_value > 0 && <p className="text-xs text-slate-400" onClick={e => e.stopPropagation()}><Sensitive>{p.estimated_value.toLocaleString("fr-FR")} €</Sensitive></p>}
                 </td>
                 <td className="px-5 py-3">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STAGE_COLORS[p.stage] || "bg-slate-100 text-slate-600"}`}>{p.stage}</span>
+                  <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={stageStyle(p.stage)}>{p.stage}</span>
                 </td>
                 <td className="px-5 py-3 text-sm text-slate-500">{p.sector || "—"}</td>
                 <td className="px-5 py-3 text-sm text-slate-500 flex items-center gap-1">
@@ -203,10 +221,13 @@ export default function Pipeline() {
                 </td>
                 <td className="px-3 py-3">
                   <button
+                    type="button"
                     onClick={(e) => quickDelete(e, p.id)}
-                    className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all p-1"
+                    aria-label={`Delete prospect ${p.company_name}`}
+                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-slate-300 hover:text-red-400 transition-all inline-flex items-center justify-center"
+                    style={{ minWidth: 32, minHeight: 32 }}
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </td>
               </tr>

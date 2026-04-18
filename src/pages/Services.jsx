@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Trash2, X } from "lucide-react";
+import { useConfirm } from "@/lib/confirm";
 
 const EMPTY = {
   name: "",
@@ -26,6 +27,7 @@ export default function Services() {
   const [newInclude, setNewInclude] = useState("");
   const [mutError, setMutError] = useState(null);
   const qc = useQueryClient();
+  const confirm = useConfirm();
 
   const { data: services = [] } = useQuery({
     queryKey: ["services"],
@@ -66,7 +68,11 @@ export default function Services() {
   const openNew = () => { setData({ ...EMPTY, includes: [] }); setMutError(null); setOpen(true); };
   const openEdit = (s) => { setData({ ...s, includes: s.includes || [] }); setMutError(null); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
-  const handleDelete = () => { if (data?.id && confirm("Delete this service?")) { deleteMut.mutate(data.id); } };
+  const handleDelete = async () => {
+    if (!data?.id) return;
+    const ok = await confirm({ title: "Delete this service?", description: "This action cannot be undone.", confirmLabel: "Delete", destructive: true });
+    if (ok) deleteMut.mutate(data.id);
+  };
 
   const addInclude = () => {
     if (newInclude.trim()) {

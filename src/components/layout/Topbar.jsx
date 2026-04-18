@@ -48,10 +48,10 @@ export default function Topbar() {
   const today = format(new Date(), "EEE, MMM d", { locale: enUS });
 
   return (
-    <nav style={{ padding: '0 0 20px 0', position: 'relative', zIndex: 10 }}>
+    <nav aria-label="Primary" style={{ padding: '0 0 20px 0', position: 'relative', zIndex: 10 }}>
       <div className="flex items-center justify-between gap-4">
         {/* Logo */}
-        <Link to="/Dashboard" className="flex items-center gap-2.5 shrink-0" style={{ textDecoration: 'none' }}>
+        <Link to="/Dashboard" aria-label="Unchain Studio — Dashboard" className="flex items-center gap-2.5 shrink-0" style={{ textDecoration: 'none' }}>
           <div style={{
             width: 32, height: 32, borderRadius: 10,
             background: 'var(--brand)',
@@ -76,6 +76,7 @@ export default function Topbar() {
               <Link
                 key={item.path}
                 to={item.path}
+                aria-current={isActive ? "page" : undefined}
                 style={{
                   fontFamily: "'DM Mono', monospace",
                   fontSize: '11px',

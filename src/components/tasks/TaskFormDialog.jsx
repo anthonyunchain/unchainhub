@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -112,7 +113,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
       setConvImagePreview(null);
     } catch (e) {
       setUploadingConvImage(false);
-      alert('Failed to send message: ' + (e?.message || e));
+      toast.error('Failed to send message: ' + (e?.message || e));
     } finally {
       setSendingMessage(false);
     }
@@ -169,7 +170,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
       const res = await base44.integrations.Core.UploadFile({ file });
       set("images", [...(data.images || []), res.file_url]);
     } catch (err) {
-      alert('Upload failed: ' + (err?.message || err));
+      toast.error('Upload failed: ' + (err?.message || err));
     } finally {
       setUploadingTaskImage(false);
       e.target.value = "";

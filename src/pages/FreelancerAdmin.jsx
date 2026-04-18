@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
+import { toast } from "sonner";
+import { useConfirm } from "@/lib/confirm";
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,8 +69,8 @@ function FreelancerProfiles() {
   const handleInvite = async (email, name) => {
     if (!email) return;
     const { data, error } = await supabase.functions.invoke('inviteFreelancer', { body: { email } });
-    if (error || data?.error) alert("Invite error: " + (data?.error || error?.message));
-    else alert(`Invitation sent to ${name || email}`);
+    if (error || data?.error) toast.error("Invite error: " + (data?.error || error?.message));
+    else toast.success(`Invitation sent to ${name || email}`);
   };
 
   return (
@@ -272,11 +274,16 @@ export function MeetingsManagement() {
   const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.FreelancerMeeting.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-meetings"] }); setOpen(false); } });
   const deleteMut = useMutation({ mutationFn: (id) => base44.entities.FreelancerMeeting.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancer-meetings"] }) });
 
+  const confirm = useConfirm();
   const empty = { title: "", date: "", time: "", format: "Remote", link: "", freelancer_id: "", freelancer_name: "", notes: "", status: "À venir" };
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (m) => { setData({ ...m }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
-  const handleDelete = () => { if (data?.id && confirm("Delete this meeting?")) { deleteMut.mutate(data.id); setOpen(false); } };
+  const handleDelete = async () => {
+    if (!data?.id) return;
+    const ok = await confirm({ title: "Delete this meeting?", confirmLabel: "Delete", destructive: true });
+    if (ok) { deleteMut.mutate(data.id); setOpen(false); }
+  };
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
@@ -374,11 +381,16 @@ function ToolsManagement() {
   const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.FreelancerTool.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-tools"] }); setOpen(false); } });
   const deleteMut = useMutation({ mutationFn: (id) => base44.entities.FreelancerTool.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancer-tools"] }) });
 
+  const confirm = useConfirm();
   const empty = { name: "", description: "", url: "", logo_url: "", category: "Autre", order: 0 };
   const openNew = () => { setData({ ...empty }); setOpen(true); };
   const openEdit = (t) => { setData({ ...t }); setOpen(true); };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
-  const handleDelete = () => { if (data?.id && confirm("Delete this tool?")) { deleteMut.mutate(data.id); setOpen(false); } };
+  const handleDelete = async () => {
+    if (!data?.id) return;
+    const ok = await confirm({ title: "Delete this tool?", confirmLabel: "Delete", destructive: true });
+    if (ok) { deleteMut.mutate(data.id); setOpen(false); }
+  };
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto' }}>

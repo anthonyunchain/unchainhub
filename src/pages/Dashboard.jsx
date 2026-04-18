@@ -42,9 +42,9 @@ export default function Dashboard() {
     }).catch(() => {});
   }, []);
 
-  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
-  const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: () => base44.entities.Prospect.list() });
-  const { data: content = [] } = useQuery({ queryKey: ["content-dash"], queryFn: () => base44.entities.EditorialContent.list() });
+  const { data: clients = [], isLoading: loadingClients } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
+  const { data: prospects = [], isLoading: loadingProspects } = useQuery({ queryKey: ["prospects"], queryFn: () => base44.entities.Prospect.list() });
+  const { data: content = [], isLoading: loadingContent } = useQuery({ queryKey: ["content-dash"], queryFn: () => base44.entities.EditorialContent.list() });
 
   const currentMonth = format(new Date(), "yyyy-MM");
 
@@ -63,10 +63,10 @@ export default function Dashboard() {
     .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))
     .slice(0, 6);
   const activeClientsList = clients.filter(c => c.status === "Actif");
-  const { data: clientStats = [] } = useQuery({ queryKey: ["client-stats-dash"], queryFn: () => base44.entities.ClientStats.list("-period") });
+  const { data: clientStats = [], isLoading: loadingStats } = useQuery({ queryKey: ["client-stats-dash"], queryFn: () => base44.entities.ClientStats.list("-period") });
   const thisMonthStats = clientStats.filter(s => s.period === currentMonth);
   const totalViews30d = thisMonthStats.reduce((s, r) => s + (r.views || 0), 0);
-  const { data: shootingContentLinks = [] } = useQuery({ queryKey: ["shooting-content-dash"], queryFn: () => base44.entities.ShootingContent.list() });
+  const { data: shootingContentLinks = [], isLoading: loadingShootings } = useQuery({ queryKey: ["shooting-content-dash"], queryFn: () => base44.entities.ShootingContent.list() });
   const linkedContentIds = new Set(shootingContentLinks.map(c => c.content_id));
   const shootingsToOrganize = content.filter(c => c.status !== "Publié" && c.needs_shooting !== false && !linkedContentIds.has(c.id)).length;
 
@@ -110,7 +110,7 @@ export default function Dashboard() {
         <Link to="/Admin?s=analytics" style={{ textDecoration: 'none', display: 'block' }}>
           <div style={{
             ...CARD,
-            background: 'linear-gradient(145deg, #1a3a8f 0%, #2A69FF 60%, #5b8fff 100%)',
+            background: 'linear-gradient(145deg, var(--brand-card-from) 0%, var(--brand) 60%, var(--brand-card-to) 100%)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
@@ -157,16 +157,16 @@ export default function Dashboard() {
         {/* 2×2 KPI grid */}
         <div className="lg:col-span-2 grid grid-cols-2 gap-3">
           <Link to="/Clients" style={{ textDecoration: 'none', display: 'block' }}>
-            <KpiCard title="Active clients"   value={activeClients}                      icon={Users}  tint="blue"   />
+            <KpiCard title="Active clients"   value={activeClients}                      icon={Users}  tint="blue"   loading={loadingClients} />
           </Link>
           <Link to="/Admin?s=sales" style={{ textDecoration: 'none', display: 'block' }}>
-            <KpiCard title="Open deals"       value={openDeals}                          icon={Kanban} tint="purple" />
+            <KpiCard title="Open deals"       value={openDeals}                          icon={Kanban} tint="purple" loading={loadingProspects} />
           </Link>
           <Link to="/Admin?s=analytics" style={{ textDecoration: 'none', display: 'block' }}>
-            <KpiCard title="Views this month" value={totalViews30d.toLocaleString("fr-FR")} icon={Eye}    tint="green"  />
+            <KpiCard title="Views this month" value={totalViews30d.toLocaleString("fr-FR")} icon={Eye}    tint="green"  loading={loadingStats} />
           </Link>
           <Link to="/Shootings" style={{ textDecoration: 'none', display: 'block' }}>
-            <KpiCard title="Shootings to organize" value={shootingsToOrganize} icon={Camera} tint="amber" />
+            <KpiCard title="Shootings to organize" value={shootingsToOrganize} icon={Camera} tint="amber" loading={loadingContent || loadingShootings} />
           </Link>
         </div>
       </div>
@@ -188,8 +188,14 @@ export default function Dashboard() {
             </Link>
           </div>
           <div style={{ overflowY: 'auto', flex: 1 }}>
-            {activeClientsList.length === 0 && <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--subtle)' }}>No active clients</p>}
-            {activeClientsList.map((c, i) => (
+            {loadingClients ? (
+              <div className="space-y-2">
+                {[...Array(3)].map((_, i) => <div key={i} className="skeleton" style={{ height: 48 }} aria-hidden="true" />)}
+              </div>
+            ) : activeClientsList.length === 0 ? (
+              <p className="text-mono-caps">No active clients</p>
+            ) : null}
+            {!loadingClients && activeClientsList.map((c, i) => (
               <Link
                 key={c.id}
                 to={`/Editorial?client=${encodeURIComponent(c.company_name)}`}
@@ -222,8 +228,14 @@ export default function Dashboard() {
         >
           <span style={{ ...LABEL, flexShrink: 0 }}>Upcoming content</span>
           <div style={{ overflowY: 'auto', flex: 1 }}>
-            {upcomingContent.length === 0 && <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--subtle)' }}>No scheduled content</p>}
-            {upcomingContent.map((c, i) => (
+            {loadingContent ? (
+              <div className="space-y-2">
+                {[...Array(3)].map((_, i) => <div key={i} className="skeleton" style={{ height: 56 }} aria-hidden="true" />)}
+              </div>
+            ) : upcomingContent.length === 0 ? (
+              <p className="text-mono-caps">No scheduled content</p>
+            ) : null}
+            {!loadingContent && upcomingContent.map((c, i) => (
               <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 0', borderBottom: i < upcomingContent.length - 1 ? '1px solid var(--divider)' : 'none' }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--card-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Calendar style={{ width: 14, height: 14, color: 'var(--brand)' }} />

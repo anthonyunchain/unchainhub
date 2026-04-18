@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
+import { toast } from "sonner";
 import { Plus, RotateCcw, CheckCircle2, RefreshCw, Trash2, ImagePlus, X, Loader2, ExternalLink, Download, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,7 +61,7 @@ export default function AdminProjects() {
       const res = await base44.integrations.Core.UploadFile({ file });
       setter(prev => ({ ...prev, images: [...(prev.images || []), res.file_url] }));
     } catch (err) {
-      alert("Upload failed: " + (err?.message || err));
+      toast.error("Upload failed: " + (err?.message || err));
     } finally {
       flag(false);
       e.target.value = "";
@@ -142,7 +143,7 @@ export default function AdminProjects() {
       setCreateOpen(false);
       setForm({ ...emptyForm });
     } catch (e) {
-      alert("Error creating project: " + (e?.message || e));
+      toast.error("Error creating project: " + (e?.message || e));
     } finally {
       setLoading(false);
     }
@@ -162,7 +163,7 @@ export default function AdminProjects() {
       refetch();
       setReassignOpen(null);
     } catch (e) {
-      alert("Error assigning: " + (e?.message || e));
+      toast.error("Error assigning: " + (e?.message || e));
     } finally {
       setLoading(false);
     }
@@ -182,7 +183,7 @@ export default function AdminProjects() {
       }
       refetch();
     } catch (e) {
-      alert("Error: " + (e?.message || e));
+      toast.error("Error: " + (e?.message || e));
     }
   };
 
@@ -221,7 +222,7 @@ export default function AdminProjects() {
       setRevisionLink("");
       refetch();
     } catch (e) {
-      alert("Error: " + (e?.message || e));
+      toast.error("Error: " + (e?.message || e));
     }
   };
 
@@ -234,7 +235,7 @@ export default function AdminProjects() {
       await base44.functions.invoke('deleteProject', { projectId: id });
       refetch();
     } catch (e) {
-      alert("Error deleting: " + (e?.message || e));
+      toast.error("Error deleting: " + (e?.message || e));
     }
   };
 
@@ -247,7 +248,7 @@ export default function AdminProjects() {
       setEditingProject(null);
       refetch();
     } catch (e) {
-      alert("Error updating: " + (e?.message || e));
+      toast.error("Error updating: " + (e?.message || e));
     } finally {
       setLoading(false);
     }
@@ -423,7 +424,7 @@ export default function AdminProjects() {
                   <SelectItem value="_none">None (assign later)</SelectItem>
                   {allFreelancers.map(fl => (
                     <SelectItem key={fl.id} value={fl.id}>
-                      {fl.name} {fl.status === "Indisponible" ? "⚠️" : "✓"}
+                      {fl.name}{fl.status === "Indisponible" ? " — unavailable" : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>

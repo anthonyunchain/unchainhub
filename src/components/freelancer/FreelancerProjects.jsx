@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { base44, supabase } from "@/api/base44Client";
+import { toast } from "sonner";
 import { format, isPast, differenceInHours, differenceInDays } from "date-fns";
 import { enUS } from "date-fns/locale";
 import {
@@ -116,13 +117,13 @@ function ProjectCard({ project, onAction, freelancerName }) {
         action, project_id: project.id, freelancer_name: freelancerName, ...extra,
       });
       if (data?.error) {
-        alert('Error: ' + data.error);
+        toast.error('Error: ' + data.error);
       } else {
         onAction();
       }
     } catch (e) {
       console.error('projectAction error:', e);
-      alert('Error: ' + (e?.message || 'Unknown error'));
+      toast.error('Error: ' + (e?.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }

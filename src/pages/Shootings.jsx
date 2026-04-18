@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
+import { toast } from "sonner";
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -215,7 +216,7 @@ export default function Shootings() {
       qc.invalidateQueries({ queryKey: ["shooting-content"] });
       setDialogOpen(false);
     } catch (e) {
-      alert("Error: " + (e?.message || e));
+      toast.error("Error: " + (e?.message || e));
     } finally {
       setLoading(false);
     }
@@ -228,7 +229,7 @@ export default function Shootings() {
       qc.invalidateQueries({ queryKey: ["shootings"] });
       qc.invalidateQueries({ queryKey: ["shooting-assignments"] });
       qc.invalidateQueries({ queryKey: ["shooting-content"] });
-    } catch (e) { alert("Error: " + (e?.message || e)); }
+    } catch (e) { toast.error("Error: " + (e?.message || e)); }
     setDeleteConfirm(null);
   };
 
@@ -239,7 +240,7 @@ export default function Shootings() {
     try {
       const res = await base44.integrations.Core.UploadFile({ file });
       setForm(f => ({ ...f, images: [...(f.images || []), res.file_url] }));
-    } catch (err) { alert("Upload failed: " + (err?.message || err)); }
+    } catch (err) { toast.error("Upload failed: " + (err?.message || err)); }
     finally { setUploadingImg(false); e.target.value = ""; }
   };
 

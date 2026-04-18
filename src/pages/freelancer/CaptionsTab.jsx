@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/api/base44Client";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { Pencil, Check, X } from "lucide-react";
@@ -50,7 +51,7 @@ export default function CaptionsTab({ items = [] }) {
       setLocalItems(prev => prev.map(i => i.id === c.id ? { ...i, description: editValue } : i));
       setEditingId(null);
     } catch (e) {
-      alert("Error saving: " + (e?.message || e));
+      toast.error("Error saving: " + (e?.message || e));
     }
   };
 

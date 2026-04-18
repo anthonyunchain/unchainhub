@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import StatusBadge from "../components/shared/StatusBadge";
+import EmptyState from "../components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, MapPin, Building2, ChevronRight, Trash2, Pencil, GripVertical, ArrowUpDown, UserPlus, RefreshCw, Copy, KeyRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -60,15 +62,15 @@ export default function Clients() {
   const orderedClients = localClients || [...clients].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const displayClients = orderedClients.filter(c => c.company_name?.toLowerCase().includes(search.toLowerCase()));
 
-  const createMut = useMutation({ mutationFn: (d) => base44.entities.Client.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Creation error: " + (e?.message || e)) });
-  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Client.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); }, onError: (e) => alert("Update error: " + (e?.message || e)) });
+  const createMut = useMutation({ mutationFn: (d) => base44.entities.Client.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); toast.success("Client created"); }, onError: (e) => toast.error("Creation error: " + (e?.message || e)) });
+  const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Client.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); toast.success("Client updated"); }, onError: (e) => toast.error("Update error: " + (e?.message || e)) });
   const deleteMut = useMutation({
     mutationFn: async (id) => {
       const { data } = await base44.functions.invoke('deleteClient', { clientId: id });
       if (data?.error) throw new Error(data.error);
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); },
-    onError: (e) => alert("Deletion error: " + (e?.message || e)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setDialogOpen(false); toast.success("Client deleted"); },
+    onError: (e) => toast.error("Deletion error: " + (e?.message || e)),
   });
 
   const handleDelete = () => {
@@ -154,6 +156,14 @@ export default function Clients() {
           <Plus className="w-4 h-4 mr-1" /> New client
         </Button>
       </PageHeader>
+
+      {displayClients.length === 0 && (
+        <EmptyState
+          icon={Building2}
+          title={clients.length === 0 ? "No clients yet" : "No clients match your search"}
+          description={clients.length === 0 ? "Create your first client to start tracking projects and invoices." : "Try a different search term."}
+        />
+      )}
 
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="clients" isDropDisabled={!reordering}>

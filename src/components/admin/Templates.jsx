@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FileText, Presentation, ExternalLink, Plus, Trash2, Pencil, X, Check, Mail } from "lucide-react";
+import { useConfirm } from "@/lib/confirm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,6 +43,7 @@ export default function Templates() {
   const [templates, setTemplates] = useState(loadTemplates);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editData, setEditData] = useState(null);
+  const confirm = useConfirm();
 
   const save = (next) => {
     setTemplates(next);
@@ -68,8 +70,9 @@ export default function Templates() {
     setDialogOpen(false);
   };
 
-  const handleDelete = (id) => {
-    if (confirm("Remove this template?")) save(templates.filter(t => t.id !== id));
+  const handleDelete = async (id) => {
+    const ok = await confirm({ title: "Remove this template?", confirmLabel: "Remove", destructive: true });
+    if (ok) save(templates.filter(t => t.id !== id));
   };
 
   return (

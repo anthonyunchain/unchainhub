@@ -639,7 +639,7 @@ export default function Editorial() {
                       <SelectContent>
                         <SelectItem value="__none__">None</SelectItem>
                         {videoEditors.length === 0 && <SelectItem value="_none" disabled>No video editors</SelectItem>}
-                        {videoEditors.map(f => <SelectItem key={f.id} value={f.id}>{f.name} {f.status === "Indisponible" ? "⚠️" : ""}</SelectItem>)}
+                        {videoEditors.map(f => <SelectItem key={f.id} value={f.id}>{f.name}{f.status === "Indisponible" ? " — unavailable" : ""}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>

@@ -1,4 +1,5 @@
 import { supabase } from "@/api/base44Client";
+import { toast } from "sonner";
 
 const BUCKET = "deliverables";
 
@@ -17,7 +18,7 @@ export async function openDeliverable(path) {
     const url = await getSignedDeliverableUrl(path);
     window.open(url, "_blank", "noopener,noreferrer");
   } catch (e) {
-    alert("Failed to open file: " + (e?.message || e));
+    toast.error("Failed to open file: " + (e?.message || e));
   }
 }
 
