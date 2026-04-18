@@ -704,12 +704,8 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
       </div>
 
       {/* Phone: toggle list / editor in-place, no overlay */}
-      <div className="sm:hidden notes-mobile" style={{ margin: '0 -16px' }}>
-        <div style={{ height: panelHeight }}>
-          {mobileView === "list" ? leftPanel : editorPanel}
-        </div>
-        {/* White background fill below panel (covers AppLayout grey padding area) */}
-        <div style={{ background: 'var(--card)', height: 200 }} />
+      <div className="sm:hidden notes-mobile" style={{ margin: '0 -16px', height: panelHeight }}>
+        {mobileView === "list" ? leftPanel : editorPanel}
       </div>
 
       {/* Undo toast */}
