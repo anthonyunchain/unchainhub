@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { base44, supabase } from "@/api/base44Client";
-import { LogOut, Settings, Sun, Moon } from "lucide-react";
+import { LogOut, Settings, Sun, Moon, Bell, BellOff } from "lucide-react";
+import { registerPush, unregisterPush } from "@/lib/pushNotifications";
 import { useTheme } from "@/lib/useTheme";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -118,8 +119,22 @@ function SettingsDialog({ open, onOpenChange }) {
 export default function UserMenu({ userName, userEmail, initials, onSettingsClick }) {
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(() => Notification.permission === 'granted');
+  const [pushLoading, setPushLoading] = useState(false);
   const menuRef = useRef(null);
   const { dark, toggle } = useTheme();
+
+  const togglePush = async () => {
+    setPushLoading(true);
+    if (pushEnabled) {
+      await unregisterPush();
+      setPushEnabled(false);
+    } else {
+      const sub = await registerPush();
+      setPushEnabled(!!sub);
+    }
+    setPushLoading(false);
+  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -215,6 +230,35 @@ export default function UserMenu({ userName, userEmail, initials, onSettingsClic
                   }} />
                 </span>
               </button>
+
+              {'Notification' in window && (
+                <button
+                  onClick={togglePush}
+                  disabled={pushLoading}
+                  style={{
+                    width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
+                    background: "transparent", border: "none", cursor: "pointer", fontSize: "13px",
+                    color: "var(--ink)", fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "background 150ms", textAlign: "left",
+                    opacity: pushLoading ? 0.6 : 1,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--divider)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    {pushEnabled ? <Bell style={{ width: 14, height: 14, flexShrink: 0 }} /> : <BellOff style={{ width: 14, height: 14, flexShrink: 0 }} />}
+                    {pushEnabled ? "Notifications on" : "Notifications off"}
+                  </span>
+                  <span style={{
+                    width: 32, height: 18, borderRadius: 9, background: pushEnabled ? "var(--brand)" : "var(--subtle)",
+                    position: "relative", flexShrink: 0, transition: "background 200ms",
+                  }}>
+                    <span style={{
+                      position: "absolute", top: 2, left: pushEnabled ? 16 : 2, width: 14, height: 14,
+                      borderRadius: "50%", background: "#fff", transition: "left 200ms",
+                    }} />
+                  </span>
+                </button>
+              )}
 
               <button
                 onClick={() => { setOpen(false); onSettingsClick ? onSettingsClick() : setSettingsOpen(true); }}
