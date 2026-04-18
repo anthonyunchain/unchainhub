@@ -51,6 +51,7 @@ import FreelancerAdmin from './pages/FreelancerAdmin';
 import ClientPortal from './pages/ClientPortal';
 import Ideas from './pages/Ideas';
 import Notes from './pages/Notes';
+import FreelancerShop from './pages/FreelancerShop';
 
 // Role cache is keyed per user ID so switching accounts always gets the right role
 const getRoleCacheKey = (uid) => `uc_role_v3_${uid}`;
@@ -194,6 +195,7 @@ const AuthenticatedApp = () => {
         <Route path="FreelancerAdmin" element={<AdminRoute><FreelancerAdmin /></AdminRoute>} />
         <Route path="Ideas" element={<AdminRoute><Ideas /></AdminRoute>} />
         <Route path="Notes" element={<AdminRoute><Notes /></AdminRoute>} />
+        <Route path="FreelancerShop" element={<AdminRoute><FreelancerShop /></AdminRoute>} />
         <Route path="*" element={<PageNotFound />} />
       </Route>
     </Routes>

@@ -43,6 +43,8 @@ const TABLE_MAP = {
   Shooting:           'shootings',
   ShootingAssignment: 'shooting_assignments',
   ShootingContent:    'shooting_content',
+  FreelancerService:  'freelancer_services',
+  MonthlyServiceOrder:'monthly_service_orders',
 };
 
 
