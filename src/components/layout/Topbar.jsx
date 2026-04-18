@@ -16,7 +16,6 @@ const NAV_LINKS = [
   { path: "/FreelancerAdmin",label: "Freelancers"},
   { path: "/Clients",        label: "Clients"    },
   { path: "/Notes",          label: "Notes"      },
-  { path: "/FreelancerShop", label: "Shop"       },
   { path: "/Admin",          label: "Admin"      },
 ];
 
