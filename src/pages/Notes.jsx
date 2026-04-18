@@ -76,6 +76,17 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     }
   }, [focusTitle]);
 
+  // Browser back button / swipe-back support for mobile full-screen editor
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (e.state?.noteEditor) {
+        setMobileView("list");
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   // ── Data queries ─────────────────────────────────────────────────────────
   const { data: notes = [] } = useQuery({
     queryKey: ["notes"],
@@ -273,6 +284,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     setEditData({ ...note });
     setSaveError(null);
     setShowShare(false);
+    if (window.innerWidth < 768) window.history.pushState({ noteEditor: true }, "");
     setMobileView("editor");
     setSaveStatus(null);
   };
@@ -284,6 +296,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     setEditData({ title: "", content: "", tags: [], shared_with: [], created_by: currentUser?.id });
     setSaveError(null);
     setShowShare(false);
+    if (window.innerWidth < 768) window.history.pushState({ noteEditor: true }, "");
     setMobileView("editor");
     setSaveStatus(null);
     setFocusTitle(true); // focus after React re-renders the input
