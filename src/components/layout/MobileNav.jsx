@@ -7,16 +7,16 @@ import {
 } from "lucide-react";
 
 const MAIN_TABS = [
-  { path: "/Dashboard", label: "Home",     icon: LayoutDashboard },
-  { path: "/Tasks",     label: "Tasks",    icon: CheckSquare },
-  { path: "/Editorial", label: "Calendar", icon: Calendar },
-  { path: "/Ideas",     label: "Ideas",    icon: Lightbulb },
+  { path: "/Dashboard", label: "Home",      icon: LayoutDashboard },
+  { path: "/Tasks",     label: "Tasks",     icon: CheckSquare },
+  { path: "/Editorial", label: "Calendar",  icon: Calendar },
+  { path: "/Shootings", label: "Shootings", icon: Camera },
 ];
 
 const MORE_ITEMS = [
+  { path: "/Ideas",          label: "Ideas",       icon: Lightbulb },
   { path: "/Clients",        label: "Clients",     icon: Users },
   { path: "/Freelancers",    label: "Freelancers", icon: UserCheck },
-  { path: "/Shootings",      label: "Shootings",   icon: Camera },
   { path: "/Finance",        label: "Finance",     icon: DollarSign },
   { path: "/Pipeline",       label: "Pipeline",    icon: GitBranch },
   { path: "/FreelancerShop", label: "Shop",        icon: ShoppingBag },
