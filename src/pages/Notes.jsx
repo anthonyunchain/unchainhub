@@ -704,7 +704,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
       </div>
 
       {/* Phone: toggle list / editor in-place, no overlay */}
-      <div className="sm:hidden" style={{ height: panelHeight }}>
+      <div className="sm:hidden notes-mobile" style={{ height: panelHeight, margin: '0 -16px' }}>
         {mobileView === "list" ? leftPanel : editorPanel}
       </div>
 
