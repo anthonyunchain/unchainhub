@@ -702,10 +702,26 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
         {editorPanel}
       </div>
 
-      {/* Mobile: single panel */}
+      {/* Mobile list */}
       <div className="flex md:hidden" style={{ height: panelHeight }}>
-        {mobileView === "list" ? leftPanel : editorPanel}
+        {leftPanel}
       </div>
+
+      {/* Mobile editor — full screen overlay */}
+      {mobileView === "editor" && (
+        <div
+          className="md:hidden"
+          style={{
+            position: "fixed", inset: 0, zIndex: 200,
+            paddingTop: "env(safe-area-inset-top)",
+            paddingBottom: "env(safe-area-inset-bottom)",
+            background: "var(--card)",
+            display: "flex", flexDirection: "column",
+          }}
+        >
+          {editorPanel}
+        </div>
+      )}
 
       {/* Undo toast */}
       {undoToast && undoStack.length > 0 && (
