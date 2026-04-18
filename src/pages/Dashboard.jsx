@@ -143,7 +143,7 @@ export default function Dashboard() {
               ].map(s => (
                 <div key={s.label} style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
                   <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{s.value}</p>
-                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.55)', marginTop: 3 }}>{s.label}</p>
+                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.55)', marginTop: 3 }}>{s.label}</p>
                 </div>
               ))}
             </div>

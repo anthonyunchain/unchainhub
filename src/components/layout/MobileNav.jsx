@@ -2,7 +2,8 @@ import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard, CheckSquare, Calendar, Lightbulb,
-  MoreHorizontal, X, Shield, UserCheck, Users, Layers, NotebookPen
+  MoreHorizontal, X, Shield, UserCheck, Users, Layers, NotebookPen,
+  Camera, DollarSign, ShoppingBag, FileText, GitBranch
 } from "lucide-react";
 
 const MAIN_TABS = [
@@ -13,11 +14,16 @@ const MAIN_TABS = [
 ];
 
 const MORE_ITEMS = [
-  { path: "/Clients",     label: "Clients",     icon: Users },
-  { path: "/Freelancers", label: "Freelancers", icon: UserCheck },
-  { path: "/Notes",       label: "Notes",       icon: NotebookPen },
-  { path: "/Admin",       label: "Admin",       icon: Shield },
-  { path: "/Services",    label: "Services",    icon: Layers },
+  { path: "/Clients",        label: "Clients",     icon: Users },
+  { path: "/Freelancers",    label: "Freelancers", icon: UserCheck },
+  { path: "/Shootings",      label: "Shootings",   icon: Camera },
+  { path: "/Finance",        label: "Finance",     icon: DollarSign },
+  { path: "/Pipeline",       label: "Pipeline",    icon: GitBranch },
+  { path: "/FreelancerShop", label: "Shop",        icon: ShoppingBag },
+  { path: "/Notes",          label: "Notes",       icon: NotebookPen },
+  { path: "/Invoices",       label: "Invoices",    icon: FileText },
+  { path: "/Admin",          label: "Admin",       icon: Shield },
+  { path: "/Services",       label: "Services",    icon: Layers },
 ];
 
 export default function MobileNav() {
@@ -96,7 +102,7 @@ export default function MobileNav() {
               <span
                 className="relative z-10"
                 style={{
-                  fontSize: '9px',
+                  fontSize: '11px',
                   fontFamily: "'DM Mono', monospace",
                   fontWeight: 500,
                   letterSpacing: '0.04em',
@@ -132,7 +138,7 @@ export default function MobileNav() {
           <span
             className="relative z-10"
             style={{
-              fontSize: '9px',
+              fontSize: '11px',
               fontFamily: "'DM Mono', monospace",
               fontWeight: 500,
               letterSpacing: '0.04em',
@@ -217,7 +223,7 @@ export default function MobileNav() {
                       style={{ color: isActive ? '#fff' : 'rgba(30,40,70,0.55)', strokeWidth: isActive ? 2.2 : 1.8 }}
                     />
                     <span style={{
-                      fontSize: '9px',
+                      fontSize: '11px',
                       fontFamily: "'DM Mono', monospace",
                       fontWeight: 500,
                       textAlign: 'center',

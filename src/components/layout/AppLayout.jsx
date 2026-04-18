@@ -1,8 +1,40 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import Topbar from "./Topbar.jsx";
 import MobileNav from "./MobileNav.jsx";
 
+const PAGE_TITLES = {
+  '/Dashboard':           'Dashboard',
+  '/Pipeline':            'Pipeline',
+  '/Clients':             'Clients',
+  '/ClientDetail':        'Client',
+  '/Services':            'Services',
+  '/Outreach':            'Outreach',
+  '/Contracts':           'Contracts',
+  '/Invoices':            'Invoices',
+  '/Freelancers':         'Freelancers',
+  '/Finance':             'Finance',
+  '/Editorial':           'Editorial',
+  '/Reports':             'Reports',
+  '/VideoEditing':        'Video Editing',
+  '/Shootings':           'Shootings',
+  '/ShootingsToOrganize': 'Shootings to Organize',
+  '/Tasks':               'Tasks',
+  '/Admin':               'Admin',
+  '/ContentDescriptions': 'Content Descriptions',
+  '/FreelancerAdmin':     'Freelancer Admin',
+  '/Ideas':               'Ideas',
+  '/Notes':               'Notes',
+  '/FreelancerShop':      'Freelancer Shop',
+};
+
 export default function AppLayout() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const name = PAGE_TITLES[location.pathname] || 'Unchain Hub';
+    document.title = `${name} — Unchain Hub`;
+  }, [location.pathname]);
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative' }}>
       {/* Background blobs — hidden on mobile for perf */}

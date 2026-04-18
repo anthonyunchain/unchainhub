@@ -6,7 +6,7 @@ export function cn(...inputs) {
 } 
 
 
-export const isIframe = window.self !== window.top;
+export const isIframe = typeof window !== 'undefined' && window.self !== window.top;
 
 // ─── FORMATTING HELPERS ───────────────────────────────────────────────────
 export function formatCurrency(value, decimals = 2) {

@@ -1,11 +1,12 @@
 import { Toaster } from "@/components/ui/toaster"
+import { Toaster as Sonner } from "sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import LoginPage from './pages/LoginPage';
-import { useEffect, useState, Component } from 'react';
+import { useEffect, useState, Component, lazy, Suspense } from 'react';
 import { supabase } from '@/api/base44Client';
 
 class ErrorBoundary extends Component {
@@ -28,30 +29,32 @@ class ErrorBoundary extends Component {
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import AdminRoute from './components/layout/AdminRoute.jsx';
-import Dashboard from './pages/Dashboard';
-import Pipeline from './pages/Pipeline';
-import Clients from './pages/Clients';
-import ClientDetail from './pages/ClientDetail';
-import Services from './pages/Services.jsx';
-import Outreach from './pages/Outreach';
-import Contracts from './pages/Contracts';
-import Invoices from './pages/Invoices';
-import Freelancers from './pages/Freelancers';
-import Finance from './pages/Finance';
-import Editorial from './pages/Editorial';
-import Reports from './pages/Reports';
-import VideoEditing from './pages/VideoEditing';
-import Shootings from './pages/Shootings';
-import ShootingsToOrganize from './pages/ShootingsToOrganize';
-import Tasks from './pages/Tasks';
-import Admin from './pages/Admin';
-import ContentDescriptions from './pages/ContentDescriptions';
-import FreelancerPortal from './pages/FreelancerPortal';
-import FreelancerAdmin from './pages/FreelancerAdmin';
-import ClientPortal from './pages/ClientPortal';
-import Ideas from './pages/Ideas';
-import Notes from './pages/Notes';
-import FreelancerShop from './pages/FreelancerShop';
+
+// Lazy-load all pages so each route gets its own JS chunk
+const Dashboard           = lazy(() => import('./pages/Dashboard'));
+const Pipeline            = lazy(() => import('./pages/Pipeline'));
+const Clients             = lazy(() => import('./pages/Clients'));
+const ClientDetail        = lazy(() => import('./pages/ClientDetail'));
+const Services            = lazy(() => import('./pages/Services.jsx'));
+const Outreach            = lazy(() => import('./pages/Outreach'));
+const Contracts           = lazy(() => import('./pages/Contracts'));
+const Invoices            = lazy(() => import('./pages/Invoices'));
+const Freelancers         = lazy(() => import('./pages/Freelancers'));
+const Finance             = lazy(() => import('./pages/Finance'));
+const Editorial           = lazy(() => import('./pages/Editorial'));
+const Reports             = lazy(() => import('./pages/Reports'));
+const VideoEditing        = lazy(() => import('./pages/VideoEditing'));
+const Shootings           = lazy(() => import('./pages/Shootings'));
+const ShootingsToOrganize = lazy(() => import('./pages/ShootingsToOrganize'));
+const Tasks               = lazy(() => import('./pages/Tasks'));
+const Admin               = lazy(() => import('./pages/Admin'));
+const ContentDescriptions = lazy(() => import('./pages/ContentDescriptions'));
+const FreelancerPortal    = lazy(() => import('./pages/FreelancerPortal'));
+const FreelancerAdmin     = lazy(() => import('./pages/FreelancerAdmin'));
+const ClientPortal        = lazy(() => import('./pages/ClientPortal'));
+const Ideas               = lazy(() => import('./pages/Ideas'));
+const Notes               = lazy(() => import('./pages/Notes'));
+const FreelancerShop      = lazy(() => import('./pages/FreelancerShop'));
 
 // Role cache is keyed per user ID so switching accounts always gets the right role
 const getRoleCacheKey = (uid) => `uc_role_v3_${uid}`;
@@ -151,54 +154,60 @@ const AuthenticatedApp = () => {
 
   if (role === 'freelancer') {
     return (
-      <Routes>
-        <Route path="/" element={<FreelancerPortal />} />
-        <Route path="/FreelancerPortal" element={<FreelancerPortal />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={<Spinner />}>
+        <Routes>
+          <Route path="/" element={<FreelancerPortal />} />
+          <Route path="/FreelancerPortal" element={<FreelancerPortal />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     );
   }
 
   if (role === 'client') {
     return (
-      <Routes>
-        <Route path="/" element={<ClientPortal />} />
-        <Route path="/ClientPortal" element={<ClientPortal />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={<Spinner />}>
+        <Routes>
+          <Route path="/" element={<ClientPortal />} />
+          <Route path="/ClientPortal" element={<ClientPortal />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     );
   }
 
   // Admin
   return (
-    <Routes>
-      <Route path="/" element={<AppLayout />}>
-        <Route index element={<AdminRoute><Dashboard /></AdminRoute>} />
-        <Route path="Dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
-        <Route path="Pipeline" element={<AdminRoute><Pipeline /></AdminRoute>} />
-        <Route path="Clients" element={<AdminRoute><Clients /></AdminRoute>} />
-        <Route path="ClientDetail" element={<AdminRoute><ClientDetail /></AdminRoute>} />
-        <Route path="Services" element={<AdminRoute><Services /></AdminRoute>} />
-        <Route path="Outreach" element={<AdminRoute><Outreach /></AdminRoute>} />
-        <Route path="Contracts" element={<AdminRoute><Contracts /></AdminRoute>} />
-        <Route path="Invoices" element={<AdminRoute><Invoices /></AdminRoute>} />
-        <Route path="Freelancers" element={<AdminRoute><Freelancers /></AdminRoute>} />
-        <Route path="Finance" element={<AdminRoute><Finance /></AdminRoute>} />
-        <Route path="Editorial" element={<AdminRoute><Editorial /></AdminRoute>} />
-        <Route path="Reports" element={<AdminRoute><Reports /></AdminRoute>} />
-        <Route path="VideoEditing" element={<AdminRoute><VideoEditing /></AdminRoute>} />
-        <Route path="Shootings" element={<AdminRoute><Shootings /></AdminRoute>} />
-        <Route path="ShootingsToOrganize" element={<AdminRoute><ShootingsToOrganize /></AdminRoute>} />
-        <Route path="Tasks" element={<AdminRoute><Tasks /></AdminRoute>} />
-        <Route path="Admin" element={<AdminRoute><Admin /></AdminRoute>} />
-        <Route path="ContentDescriptions" element={<AdminRoute><ContentDescriptions /></AdminRoute>} />
-        <Route path="FreelancerAdmin" element={<AdminRoute><FreelancerAdmin /></AdminRoute>} />
-        <Route path="Ideas" element={<AdminRoute><Ideas /></AdminRoute>} />
-        <Route path="Notes" element={<AdminRoute><Notes /></AdminRoute>} />
-        <Route path="FreelancerShop" element={<AdminRoute><FreelancerShop /></AdminRoute>} />
-        <Route path="*" element={<PageNotFound />} />
-      </Route>
-    </Routes>
+    <Suspense fallback={<Spinner />}>
+      <Routes>
+        <Route path="/" element={<AppLayout />}>
+          <Route index element={<AdminRoute><Dashboard /></AdminRoute>} />
+          <Route path="Dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
+          <Route path="Pipeline" element={<AdminRoute><Pipeline /></AdminRoute>} />
+          <Route path="Clients" element={<AdminRoute><Clients /></AdminRoute>} />
+          <Route path="ClientDetail" element={<AdminRoute><ClientDetail /></AdminRoute>} />
+          <Route path="Services" element={<AdminRoute><Services /></AdminRoute>} />
+          <Route path="Outreach" element={<AdminRoute><Outreach /></AdminRoute>} />
+          <Route path="Contracts" element={<AdminRoute><Contracts /></AdminRoute>} />
+          <Route path="Invoices" element={<AdminRoute><Invoices /></AdminRoute>} />
+          <Route path="Freelancers" element={<AdminRoute><Freelancers /></AdminRoute>} />
+          <Route path="Finance" element={<AdminRoute><Finance /></AdminRoute>} />
+          <Route path="Editorial" element={<AdminRoute><Editorial /></AdminRoute>} />
+          <Route path="Reports" element={<AdminRoute><Reports /></AdminRoute>} />
+          <Route path="VideoEditing" element={<AdminRoute><VideoEditing /></AdminRoute>} />
+          <Route path="Shootings" element={<AdminRoute><Shootings /></AdminRoute>} />
+          <Route path="ShootingsToOrganize" element={<AdminRoute><ShootingsToOrganize /></AdminRoute>} />
+          <Route path="Tasks" element={<AdminRoute><Tasks /></AdminRoute>} />
+          <Route path="Admin" element={<AdminRoute><Admin /></AdminRoute>} />
+          <Route path="ContentDescriptions" element={<AdminRoute><ContentDescriptions /></AdminRoute>} />
+          <Route path="FreelancerAdmin" element={<AdminRoute><FreelancerAdmin /></AdminRoute>} />
+          <Route path="Ideas" element={<AdminRoute><Ideas /></AdminRoute>} />
+          <Route path="Notes" element={<AdminRoute><Notes /></AdminRoute>} />
+          <Route path="FreelancerShop" element={<AdminRoute><FreelancerShop /></AdminRoute>} />
+          <Route path="*" element={<PageNotFound />} />
+        </Route>
+      </Routes>
+    </Suspense>
   );
 };
 
@@ -211,6 +220,7 @@ function App() {
             <AuthenticatedApp />
           </Router>
           <Toaster />
+          <Sonner richColors position="top-right" />
         </QueryClientProvider>
       </AuthProvider>
     </ErrorBoundary>

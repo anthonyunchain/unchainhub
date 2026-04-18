@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
       await supabaseAdmin.from('clients').update({ portal_user_id: userId }).eq('id', client_id);
     }
 
-    return Response.json({ success: true, password, email }, { headers: corsHeaders(req) });
+    return Response.json({ success: true, email }, { headers: corsHeaders(req) });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500, headers: corsHeaders(req) });
   }

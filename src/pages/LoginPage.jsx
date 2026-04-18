@@ -27,7 +27,7 @@ export default function LoginPage() {
     e.preventDefault();
     setForgotLoading(true);
     await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: 'https://unchainhub.vercel.app',
+      redirectTo: `${window.location.origin}/`,
     });
     setForgotSent(true);
     setForgotLoading(false);
