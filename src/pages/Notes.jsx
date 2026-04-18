@@ -52,6 +52,12 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     base44.auth.me().then(u => setCurrentUser(u)).catch(() => {});
   }, []);
 
+  // On mobile, force white background on the page (hides grain texture below the panel)
+  useEffect(() => {
+    document.documentElement.classList.add('notes-page');
+    return () => document.documentElement.classList.remove('notes-page');
+  }, []);
+
   // Open a blank new note when ?new=1 is in the URL or autoNewTrigger fires
   const autoNewDoneRef = useRef(false);
   useEffect(() => {
@@ -704,7 +710,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
       </div>
 
       {/* Phone: toggle list / editor in-place, no overlay */}
-      <div className="sm:hidden notes-mobile" style={{ margin: '0 -16px', height: panelHeight }}>
+      <div className="sm:hidden notes-mobile" style={{ margin: '0 -16px', height: panelHeight, background: 'var(--card)' }}>
         {mobileView === "list" ? leftPanel : editorPanel}
       </div>
 

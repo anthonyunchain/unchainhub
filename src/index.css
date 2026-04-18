@@ -14,13 +14,15 @@
   }
 }
 
-/* Notes mobile: full-width, white background, no card radius */
+/* Notes mobile: full-width, no card radius */
 @media (max-width: 639px) {
-  .notes-mobile {
-    background: var(--card);
-    /* extend white past the panel into AppLayout's bottom padding */
-    padding-bottom: 160px;
-    margin-bottom: -160px;
+  /* Force white background on entire page (covers grain texture) */
+  html.notes-page,
+  html.notes-page body {
+    background: var(--card) !important;
+  }
+  html.notes-page body::before {
+    display: none;
   }
   .notes-mobile > * {
     border-radius: 0 !important;
