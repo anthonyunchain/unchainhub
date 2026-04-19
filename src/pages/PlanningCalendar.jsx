@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/api/base44Client";
 import { base44 } from "@/api/base44Client";
 import {
   format, addMonths, subMonths, addWeeks, subWeeks,
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-  eachDayOfInterval, getDay, isToday,
+  eachDayOfInterval, isToday,
 } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, CheckCircle2, Circle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ChevronLeft, ChevronRight, CheckCircle2, Circle, CalendarDays, Loader2, AlertCircle } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
+import { toast } from "sonner";
 
 // ── Steps ────────────────────────────────────────────────────────────────────
 const STEPS = [
@@ -23,12 +24,113 @@ const STEPS = [
 
 function monthKey(d) { return format(d, "yyyy-MM"); }
 
+// ── Google Cal helpers ────────────────────────────────────────────────────────
+async function callEdgeFunction(name, body) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  const res = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${name}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    }
+  );
+  return res.json();
+}
+
 export default function PlanningCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekDate, setWeekDate] = useState(new Date());
-  const [calView, setCalView] = useState("week"); // "week" | "month"
+  const [calView, setCalView] = useState("week");
+  const [gcalConnected, setGcalConnected] = useState(null); // null=checking, true/false
+  const [gcalConnecting, setGcalConnecting] = useState(false);
+  const [gcalEvents, setGcalEvents] = useState([]);
+  const [gcalLoading, setGcalLoading] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const qc = useQueryClient();
   const month = monthKey(currentDate);
+
+  // ── Handle OAuth redirect params ─────────────────────────────────────────
+  useEffect(() => {
+    const connected = searchParams.get("connected");
+    const gcalError = searchParams.get("gcal_error");
+    if (connected === "1") {
+      setGcalConnected(true);
+      toast.success("Google Calendar connected!");
+      setSearchParams({}, { replace: true });
+    } else if (gcalError === "1") {
+      toast.error("Could not connect Google Calendar. Try again.");
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
+
+  // ── Check connection status on mount ─────────────────────────────────────
+  useEffect(() => {
+    (async () => {
+      try {
+        const now = new Date();
+        const result = await callEdgeFunction("googleCalendarEvents", {
+          timeMin: now.toISOString(),
+          timeMax: now.toISOString(),
+        });
+        setGcalConnected(result.connected === true);
+      } catch {
+        setGcalConnected(false);
+      }
+    })();
+  }, []);
+
+  // ── Fetch Google Calendar events for current view range ───────────────────
+  const fetchGcalEvents = useCallback(async (start, end) => {
+    if (!gcalConnected) return;
+    setGcalLoading(true);
+    try {
+      const result = await callEdgeFunction("googleCalendarEvents", {
+        timeMin: start.toISOString(),
+        timeMax: end.toISOString(),
+      });
+      if (result.connected) setGcalEvents(result.events || []);
+    } catch {
+      // silently ignore
+    } finally {
+      setGcalLoading(false);
+    }
+  }, [gcalConnected]);
+
+  const weekStart = startOfWeek(weekDate, { weekStartsOn: 1 });
+  const weekEnd   = endOfWeek(weekDate,   { weekStartsOn: 1 });
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd   = endOfMonth(currentDate);
+
+  useEffect(() => {
+    if (!gcalConnected) return;
+    if (calView === "week") {
+      fetchGcalEvents(weekStart, weekEnd);
+    } else {
+      fetchGcalEvents(monthStart, monthEnd);
+    }
+  }, [gcalConnected, calView, format(weekStart, "yyyy-MM-dd"), month]);
+
+  // ── Connect Google Calendar ───────────────────────────────────────────────
+  const connectGcal = async () => {
+    setGcalConnecting(true);
+    try {
+      const result = await callEdgeFunction("googleCalendarAuth", {});
+      if (result.url) {
+        window.location.href = result.url;
+      } else {
+        toast.error("Failed to get OAuth URL");
+        setGcalConnecting(false);
+      }
+    } catch {
+      toast.error("Connection error");
+      setGcalConnecting(false);
+    }
+  };
 
   // ── Queries ──────────────────────────────────────────────────────────────
   const { data: clients = [] } = useQuery({
@@ -44,10 +146,6 @@ export default function PlanningCalendar() {
     },
   });
 
-  const weekStart = startOfWeek(weekDate, { weekStartsOn: 1 });
-  const weekEnd   = endOfWeek(weekDate,   { weekStartsOn: 1 });
-
-  // Week range
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks-planning", format(weekStart, "yyyy-MM-dd")],
     queryFn: async () => {
@@ -72,10 +170,6 @@ export default function PlanningCalendar() {
     },
     enabled: calView === "week",
   });
-
-  // Month range
-  const monthStart = startOfMonth(currentDate);
-  const monthEnd   = endOfMonth(currentDate);
 
   const { data: monthTasks = [] } = useQuery({
     queryKey: ["tasks-planning-month", month],
@@ -128,11 +222,17 @@ export default function PlanningCalendar() {
   for (const t of tasks) { if (t.due_date) { (tasksByDay[t.due_date] ||= []).push(t); } }
   for (const s of shootings) { if (s.date) { (shootingsByDay[s.date] ||= []).push(s); } }
 
-  // Month grid
   const mTasksByDay = {};
   const mShootingsByDay = {};
   for (const t of monthTasks) { if (t.due_date) { (mTasksByDay[t.due_date] ||= []).push(t); } }
   for (const s of monthShootings) { if (s.date) { (mShootingsByDay[s.date] ||= []).push(s); } }
+
+  // Google Calendar events by day
+  const gcalByDay = {};
+  for (const ev of gcalEvents) {
+    const dayStr = ev.start?.date || ev.start?.dateTime?.slice(0, 10);
+    if (dayStr) (gcalByDay[dayStr] ||= []).push(ev);
+  }
 
   const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
   const gridEnd   = endOfWeek(monthEnd,     { weekStartsOn: 1 });
@@ -145,12 +245,43 @@ export default function PlanningCalendar() {
     boxShadow: "var(--card-shadow)",
   };
 
+  // ── Google Calendar chip ─────────────────────────────────────────────────
+  const GcalChip = () => {
+    if (gcalConnected === null) {
+      return (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--divider)", background: "var(--card)", color: "var(--muted)", fontFamily: "'DM Mono', monospace", fontSize: 11 }}>
+          <Loader2 style={{ width: 13, height: 13 }} className="animate-spin" />
+          Google Cal
+        </div>
+      );
+    }
+    if (gcalConnected) {
+      return (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid #10B981", background: "rgba(16,185,129,0.08)", color: "#10B981", fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 600 }}>
+          <CalendarDays style={{ width: 13, height: 13 }} />
+          Google Cal {gcalLoading && <Loader2 style={{ width: 11, height: 11 }} className="animate-spin" />}
+        </div>
+      );
+    }
+    return (
+      <button
+        onClick={connectGcal}
+        disabled={gcalConnecting}
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, border: "1px solid var(--brand)", background: "rgba(42,105,255,0.08)", color: "var(--brand)", fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+      >
+        {gcalConnecting ? <Loader2 style={{ width: 13, height: 13 }} className="animate-spin" /> : <CalendarDays style={{ width: 13, height: 13 }} />}
+        {gcalConnecting ? "Connecting…" : "Connect Google Cal"}
+      </button>
+    );
+  };
+
   return (
     <div className="w-full mx-auto space-y-5" style={{ maxWidth: 1400 }}>
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <PageHeader title="Planning" subtitle="Monthly workflow & calendar">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <GcalChip />
           <button onClick={() => setCurrentDate(d => subMonths(d, 1))} style={navBtn}>
             <ChevronLeft style={{ width: 16, height: 16 }} />
           </button>
@@ -160,7 +291,6 @@ export default function PlanningCalendar() {
           <button onClick={() => setCurrentDate(d => addMonths(d, 1))} style={navBtn}>
             <ChevronRight style={{ width: 16, height: 16 }} />
           </button>
-          {/* View toggle */}
           <div style={{ display: "flex", background: "var(--bg)", border: "1px solid var(--divider)", borderRadius: 10, padding: 3, gap: 2 }}>
             {["week", "month"].map(v => (
               <button key={v} onClick={() => setCalView(v)} style={{ padding: "5px 14px", borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 600, textTransform: "capitalize", background: calView === v ? "var(--card)" : "transparent", color: calView === v ? "var(--ink)" : "var(--muted)", boxShadow: calView === v ? "0 1px 3px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s" }}>
@@ -173,7 +303,6 @@ export default function PlanningCalendar() {
 
       {/* ── Section 1: Workflow table ────────────────────────────────────── */}
       <div style={{ ...CARD, overflow: "hidden" }}>
-        {/* Table header */}
         <div style={{ display: "grid", gridTemplateColumns: "220px repeat(5, 1fr)", borderBottom: "1px solid var(--divider)" }}>
           <div style={{ padding: "14px 20px", fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
             Client
@@ -190,7 +319,6 @@ export default function PlanningCalendar() {
           ))}
         </div>
 
-        {/* Client rows */}
         {activeClients.length === 0 ? (
           <p style={{ padding: "32px 20px", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 13, color: "var(--muted)" }}>
             No active clients — add clients first.
@@ -204,7 +332,6 @@ export default function PlanningCalendar() {
               key={client.id}
               style={{ display: "grid", gridTemplateColumns: "220px repeat(5, 1fr)", borderBottom: ci < activeClients.length - 1 ? "1px solid var(--divider)" : "none" }}
             >
-              {/* Client info */}
               <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--brand-soft)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "var(--brand)", flexShrink: 0 }}>
@@ -217,17 +344,14 @@ export default function PlanningCalendar() {
                     </p>
                   </div>
                 </div>
-                {/* Progress bar */}
                 <div style={{ height: 4, borderRadius: 2, background: "var(--divider)", overflow: "hidden" }}>
                   <div style={{ height: "100%", width: `${progress}%`, borderRadius: 2, background: completedCount === STEPS.length ? "#10B981" : "var(--brand)", transition: "width 0.3s ease" }} />
                 </div>
               </div>
 
-              {/* Step cells */}
               {STEPS.map(step => {
                 const row = getStep(name, step.key);
                 const done = row?.completed || false;
-                const exists = !!row;
                 return (
                   <div
                     key={step.key}
@@ -236,15 +360,12 @@ export default function PlanningCalendar() {
                     <button
                       onClick={() => toggleStep.mutate({ client_name: name, step_key: step.key, completed: !done })}
                       title={step.label}
-                      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", padding: 8, borderRadius: 10 }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer", padding: 8, borderRadius: 10 }}
                     >
                       {done
                         ? <CheckCircle2 style={{ width: 28, height: 28, color: step.color }} />
-                        : <Circle style={{ width: 28, height: 28, color: exists ? "var(--divider)" : "rgba(0,0,0,0.12)" }} />
+                        : <Circle style={{ width: 28, height: 28, color: "rgba(0,0,0,0.15)" }} />
                       }
-                      {!exists && (
-                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--subtle)", letterSpacing: "0.05em" }}>generate</span>
-                      )}
                     </button>
                   </div>
                 );
@@ -256,7 +377,6 @@ export default function PlanningCalendar() {
 
       {/* ── Section 2: Calendar ──────────────────────────────────────────── */}
       <div style={{ ...CARD, overflow: "hidden" }}>
-        {/* Calendar nav header */}
         <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--divider)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>
             {calView === "week"
@@ -273,7 +393,6 @@ export default function PlanningCalendar() {
           )}
         </div>
 
-        {/* Day-of-week headers (shared) */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "1px solid var(--divider)" }}>
           {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
             <div key={d} style={{ padding: "8px 0", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{d}</div>
@@ -287,6 +406,7 @@ export default function PlanningCalendar() {
               const dayKey = format(day, "yyyy-MM-dd");
               const dayTasks = tasksByDay[dayKey] || [];
               const dayShootings = shootingsByDay[dayKey] || [];
+              const dayGcal = gcalByDay[dayKey] || [];
               const isCurrentDay = isToday(day);
               const isWeekend = i >= 5;
               return (
@@ -297,6 +417,21 @@ export default function PlanningCalendar() {
                     </span>
                   </div>
                   <div style={{ padding: "10px", display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+                    {/* Google Calendar events */}
+                    {dayGcal.map(ev => (
+                      <div key={ev.id} style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(66,133,244,0.1)", borderLeft: "3px solid #4285F4" }}>
+                        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: "#1a56db", margin: 0, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                          {ev.summary || "(No title)"}
+                        </p>
+                        {ev.start?.dateTime && (
+                          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#1a56db", margin: "3px 0 0", opacity: 0.7 }}>
+                            {format(new Date(ev.start.dateTime), "HH:mm")}
+                            {ev.end?.dateTime ? ` – ${format(new Date(ev.end.dateTime), "HH:mm")}` : ""}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                    {/* Shootings */}
                     {dayShootings.map(s => (
                       <Link key={s.id} to="/Shootings" style={{ textDecoration: "none" }}>
                         <div style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(245,158,11,0.12)", borderLeft: "3px solid #F59E0B" }}>
@@ -305,6 +440,7 @@ export default function PlanningCalendar() {
                         </div>
                       </Link>
                     ))}
+                    {/* Tasks */}
                     {dayTasks.map(t => {
                       const accent = t.status === "Bloqué" ? "#EF4444" : t.status === "En cours" ? "#2A69FF" : "#6B7280";
                       const bg = t.status === "Bloqué" ? "rgba(239,68,68,0.08)" : t.status === "En cours" ? "rgba(42,105,255,0.08)" : "rgba(0,0,0,0.04)";
@@ -317,7 +453,9 @@ export default function PlanningCalendar() {
                         </Link>
                       );
                     })}
-                    {!dayTasks.length && !dayShootings.length && <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--subtle)", textAlign: "center", marginTop: 16 }}>—</p>}
+                    {!dayTasks.length && !dayShootings.length && !dayGcal.length && (
+                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--subtle)", textAlign: "center", marginTop: 16 }}>—</p>
+                    )}
                   </div>
                 </div>
               );
@@ -333,17 +471,26 @@ export default function PlanningCalendar() {
               const dayKey = format(day, "yyyy-MM-dd");
               const dayTasks = mTasksByDay[dayKey] || [];
               const dayShootings = mShootingsByDay[dayKey] || [];
+              const dayGcal = gcalByDay[dayKey] || [];
               const isCurrentDay = isToday(day);
               const isWeekend = (i % 7) >= 5;
               return (
                 <div key={dayKey} style={{ borderRight: (i + 1) % 7 !== 0 ? "1px solid var(--divider)" : "none", borderBottom: i < monthCells.length - 7 ? "1px solid var(--divider)" : "none", minHeight: 110, padding: "8px 8px 6px", background: !inMonth ? "var(--bg)" : isCurrentDay ? "rgba(42,105,255,0.03)" : isWeekend ? "rgba(0,0,0,0.015)" : "var(--card)", display: "flex", flexDirection: "column", gap: 4 }}>
-                  {/* Day number */}
                   <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 2 }}>
                     <span style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: isCurrentDay ? "var(--brand)" : "transparent", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: isCurrentDay ? 700 : inMonth ? 500 : 400, color: isCurrentDay ? "#fff" : !inMonth ? "var(--subtle)" : isWeekend ? "var(--muted)" : "var(--ink)" }}>
                       {format(day, "d")}
                     </span>
                   </div>
-                  {/* Events */}
+                  {/* Google Cal events */}
+                  {dayGcal.slice(0, 1).map(ev => (
+                    <div key={ev.id} style={{ padding: "3px 7px", borderRadius: 5, background: "rgba(66,133,244,0.1)", borderLeft: "2px solid #4285F4", overflow: "hidden" }}>
+                      <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 600, color: "#1a56db", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ev.summary || "(No title)"}</p>
+                    </div>
+                  ))}
+                  {dayGcal.length > 1 && (
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#4285F4", margin: 0, paddingLeft: 2 }}>+{dayGcal.length - 1} gcal</p>
+                  )}
+                  {/* Shootings */}
                   {dayShootings.map(s => (
                     <Link key={s.id} to="/Shootings" style={{ textDecoration: "none" }}>
                       <div style={{ padding: "3px 7px", borderRadius: 5, background: "rgba(245,158,11,0.13)", borderLeft: "2px solid #F59E0B", overflow: "hidden" }}>
@@ -375,6 +522,7 @@ export default function PlanningCalendar() {
       {/* ── Legend ──────────────────────────────────────────────────────── */}
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap", paddingBottom: 8 }}>
         {[
+          { color: "#4285F4", bg: "rgba(66,133,244,0.1)", label: "Google Calendar" },
           { color: "#F59E0B", bg: "rgba(245,158,11,0.12)", label: "Shooting" },
           { color: "#2A69FF", bg: "rgba(42,105,255,0.08)", label: "Task in progress" },
           { color: "#EF4444", bg: "rgba(239,68,68,0.08)", label: "Task blocked" },
