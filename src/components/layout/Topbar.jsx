@@ -11,6 +11,7 @@ import NotesFAB from "../notes/NotesFAB";
 const NAV_LINKS = [
   { path: "/Dashboard",      label: "Dashboard"  },
   { path: "/Tasks",          label: "Tasks"      },
+  { path: "/Planning",       label: "Planning"   },
   { path: "/Editorial",      label: "Calendars"  },
   { path: "/Shootings",      label: "Shootings"  },
   { path: "/FreelancerAdmin",label: "Freelancers"},

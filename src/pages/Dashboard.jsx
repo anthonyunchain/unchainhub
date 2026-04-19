@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import SmartAlertsWidget from "../components/dashboard/SmartAlertsWidget";
-import { Users, Kanban, Calendar, ArrowUpRight, FileBarChart, Eye, Camera } from "lucide-react";
+import { Users, Kanban, Calendar, ArrowUpRight, FileBarChart, Eye, Camera, CalendarClock } from "lucide-react";
 import KpiCard from "../components/shared/KpiCard";
 import StatusBadge from "../components/shared/StatusBadge";
 import TodayTasksWidget from "../components/tasks/TodayTasksWidget";
@@ -156,8 +156,30 @@ export default function Dashboard() {
 
         {/* 2×2 KPI grid */}
         <div className="lg:col-span-2 grid grid-cols-2 gap-3">
-          <Link to="/Clients" style={{ textDecoration: 'none', display: 'block' }}>
-            <KpiCard title="Active clients"   value={activeClients}                      icon={Users}  tint="blue"   loading={loadingClients} />
+          <Link to="/Planning" style={{ textDecoration: 'none', display: 'block' }}>
+            <div style={{
+              ...CARD,
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+              display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', minHeight: 110,
+            }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <div>
+                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Planning</p>
+                  <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', margin: 0 }}>Pro Calendar</p>
+                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>Workflow · Tasks · Meetings</p>
+                </div>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <CalendarClock style={{ width: 18, height: 18, color: 'rgba(255,255,255,0.7)' }} />
+                </div>
+              </div>
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <ArrowUpRight style={{ width: 11, height: 11, color: 'rgba(255,255,255,0.35)' }} />
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>Open planning</span>
+              </div>
+            </div>
           </Link>
           <Link to="/Admin?s=sales" style={{ textDecoration: 'none', display: 'block' }}>
             <KpiCard title="Open deals"       value={openDeals}                          icon={Kanban} tint="purple" loading={loadingProspects} />

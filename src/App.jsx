@@ -57,6 +57,7 @@ const StaffPortal         = lazy(() => import('./pages/StaffPortal'));
 const Ideas               = lazy(() => import('./pages/Ideas'));
 const Notes               = lazy(() => import('./pages/Notes'));
 const FreelancerShop      = lazy(() => import('./pages/FreelancerShop'));
+const PlanningCalendar    = lazy(() => import('./pages/PlanningCalendar'));
 
 // Role cache is keyed per user ID so switching accounts always gets the right role
 const getRoleCacheKey = (uid) => `uc_role_v3_${uid}`;
@@ -219,6 +220,7 @@ const AuthenticatedApp = () => {
           <Route path="Ideas" element={<AdminRoute><Ideas /></AdminRoute>} />
           <Route path="Notes" element={<AdminRoute><Notes /></AdminRoute>} />
           <Route path="FreelancerShop" element={<AdminRoute><FreelancerShop /></AdminRoute>} />
+          <Route path="Planning" element={<AdminRoute><PlanningCalendar /></AdminRoute>} />
           <Route path="*" element={<PageNotFound />} />
         </Route>
       </Routes>
