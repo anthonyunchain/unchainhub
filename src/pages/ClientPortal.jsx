@@ -10,7 +10,7 @@ import {
   Settings, ChevronLeft, ChevronRight, Eye, Users, TrendingUp,
   Bell, Moon, Sun, ExternalLink, Instagram, Youtube, Facebook,
   Linkedin, Globe, Download, Receipt, ClipboardList, CheckCircle2, Save,
-  GraduationCap
+  GraduationCap, MoreHorizontal
 } from "lucide-react";
 import ClientTutorialsTab from "@/components/client/ClientTutorialsTab";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -102,6 +102,7 @@ const TRANSLATIONS = {
     minChars: "Min 6 characters.",
     weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
     total: "total",
+    more: "More",
     tutorials: "Tutorials",
     searchTutorials: "Search tutorials…",
     allCategories: "All categories",
@@ -194,6 +195,7 @@ const TRANSLATIONS = {
     minChars: "Vähintään 6 merkkiä.",
     weekdays: ["Ma", "Ti", "Ke", "To", "Pe"],
     total: "yhteensä",
+    more: "Lisää",
     tutorials: "Ohjevideot",
     searchTutorials: "Hae ohjevideoita…",
     allCategories: "Kaikki kategoriat",
@@ -1210,6 +1212,7 @@ export default function ClientPortal() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [navVisible, setNavVisible] = useState(true);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [lang, setLang] = useState(() => localStorage.getItem("cp_lang") || "en");
   const lastScrollY = useRef(0);
   const { dark, toggle } = useTheme();
@@ -1333,7 +1336,8 @@ export default function ClientPortal() {
     { key: "tutorials", label: tr.tutorials || "Tutorials", icon: GraduationCap },
     { key: "admin",     label: tr.admin,       icon: Settings },
   ];
-  const MOBILE_TABS = TABS.filter(t => ["dashboard", "shootings", "brief", "admin"].includes(t.key));
+  const MOBILE_TABS = TABS.filter(t => ["dashboard", "shootings", "brief"].includes(t.key));
+  const MORE_TABS = TABS.filter(t => ["reports", "tutorials", "admin"].includes(t.key));
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1 }}>
@@ -1473,6 +1477,52 @@ export default function ClientPortal() {
         )}
       </div>
 
+      {/* Mobile "more" backdrop */}
+      {moreOpen && (
+        <div className="md:hidden fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
+      )}
+
+      {/* Mobile "more" popup */}
+      {moreOpen && (
+        <div
+          className="md:hidden fixed z-50"
+          style={{
+            bottom: `calc(84px + env(safe-area-inset-bottom))`,
+            right: 16,
+            background: dark ? 'rgba(30,35,45,0.95)' : 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            borderRadius: 18,
+            border: dark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.08)',
+            boxShadow: dark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.15)',
+            overflow: 'hidden',
+            minWidth: 180,
+          }}
+        >
+          {MORE_TABS.map((t, i) => {
+            const active = activeTab === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => { setActiveTab(t.key); setMoreOpen(false); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  width: '100%', padding: '13px 18px',
+                  background: active ? 'var(--brand-muted)' : 'transparent',
+                  border: 'none', borderTop: i > 0 ? '1px solid var(--divider)' : 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <t.icon style={{ width: 17, height: 17, color: active ? 'var(--brand)' : dark ? 'rgba(255,255,255,0.5)' : 'rgba(30,40,70,0.55)', strokeWidth: 1.8, flexShrink: 0 }} />
+                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--brand)' : 'var(--ink)' }}>
+                  {t.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Mobile bottom nav */}
       <nav
         className="md:hidden fixed left-4 right-4 z-50 flex items-center"
@@ -1497,7 +1547,7 @@ export default function ClientPortal() {
           const active = activeTab === t.key;
           const shortLabel = t.key === "brief" ? tr.briefShort : t.label;
           return (
-            <button key={t.key} onClick={() => setActiveTab(t.key)}
+            <button key={t.key} onClick={() => { setActiveTab(t.key); setMoreOpen(false); }}
               className="flex-1 flex flex-col items-center justify-center gap-1 relative"
               style={{ background: 'none', border: 'none', cursor: 'pointer', height: '100%' }}>
               {active && (
@@ -1510,6 +1560,26 @@ export default function ClientPortal() {
             </button>
           );
         })}
+
+        {/* Lisää (More) button */}
+        {(() => {
+          const moreActive = MORE_TABS.some(t => t.key === activeTab);
+          return (
+            <button
+              onClick={() => setMoreOpen(o => !o)}
+              className="flex-1 flex flex-col items-center justify-center gap-1 relative"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', height: '100%' }}
+            >
+              {(moreOpen || moreActive) && (
+                <div style={{ position: 'absolute', width: 64, height: 52, borderRadius: 16, background: 'linear-gradient(160deg, #2A69FF 0%, #1a54e0 100%)', boxShadow: '0 4px 12px rgba(42,105,255,0.35)', top: '50%', transform: 'translateY(-50%)' }} />
+              )}
+              <MoreHorizontal style={{ width: 19, height: 19, position: 'relative', zIndex: 1, color: (moreOpen || moreActive) ? '#fff' : dark ? 'rgba(255,255,255,0.4)' : 'rgba(30,40,70,0.5)', strokeWidth: 1.8 }} />
+              <span style={{ fontSize: 9, fontFamily: "'DM Mono', monospace", fontWeight: 500, letterSpacing: '0.04em', position: 'relative', zIndex: 1, color: (moreOpen || moreActive) ? '#fff' : dark ? 'rgba(255,255,255,0.4)' : 'rgba(30,40,70,0.5)', textTransform: 'uppercase' }}>
+                {tr.more || "Lisää"}
+              </span>
+            </button>
+          );
+        })()}
       </nav>
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} tr={tr} />
