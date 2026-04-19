@@ -492,25 +492,23 @@ function ClientShootingsTab({ clientName, tr }) {
     const isResponding = respondingId === s.id;
 
     return (
-      <div style={{ background: 'var(--card)', borderRadius: 20, border: '1px solid var(--divider)', padding: '20px 24px', boxShadow: 'var(--card-shadow)' }}>
+      <div style={{ background: 'var(--card)', borderRadius: 20, border: '1px solid var(--divider)', padding: '20px 24px', boxShadow: 'var(--card-shadow)', display: 'flex', flexDirection: 'column', gap: 0 }}>
         {/* Header */}
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[s.status] || "bg-slate-100 text-slate-500"}`}>{s.status}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${CLIENT_STATUS_BADGE[currentStatus]}`}>
-                {currentStatus === "Approved" ? tr.approved || "Approved" : currentStatus === "Declined" ? tr.declined || "Declined" : currentStatus === "Cancelled" ? tr.cancelled || "Cancelled" : tr.pendingApproval}
-              </span>
-            </div>
-            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{s.title}</p>
+        <div className="mb-3">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[s.status] || "bg-slate-100 text-slate-500"}`}>{s.status}</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${CLIENT_STATUS_BADGE[currentStatus]}`}>
+              {currentStatus === "Approved" ? tr.approved || "Approved" : currentStatus === "Declined" ? tr.declined || "Declined" : currentStatus === "Cancelled" ? tr.cancelled || "Cancelled" : tr.pendingApproval}
+            </span>
           </div>
+          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 18, fontWeight: 700, color: 'var(--ink)', margin: 0, lineHeight: 1.2 }}>{s.title}</p>
         </div>
 
         {/* Details */}
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-4" style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--muted)' }}>
+        <div className="space-y-3 flex-1">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1" style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--muted)' }}>
             {s.date && <span>{format(parseISO(s.date), "EEEE d MMMM yyyy", { locale: enUS })}{s.time ? ` · ${s.time}` : ""}</span>}
-            {s.location && <span>📍 {s.location}</span>}
+            {s.location && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>📍 {s.location}</span>}
           </div>
 
           {s.description && (
@@ -520,11 +518,11 @@ function ClientShootingsTab({ clientName, tr }) {
           {/* Crew */}
           {crew.length > 0 && (
             <div>
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{tr.crew}</p>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, fontWeight: 600 }}>{tr.crew}</p>
               <div className="flex flex-wrap gap-2">
                 {crew.map(a => (
-                  <div key={a.id} className="flex items-center gap-2" style={{ padding: '6px 12px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--divider)' }}>
-                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>
+                  <div key={a.id} className="flex items-center gap-2" style={{ padding: '5px 10px 5px 6px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--divider)' }}>
+                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                       {a.freelancer_name?.charAt(0)?.toUpperCase()}
                     </div>
                     <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{a.freelancer_name}</span>
@@ -538,7 +536,7 @@ function ClientShootingsTab({ clientName, tr }) {
           {/* Linked content */}
           {linkedContent.length > 0 && (
             <div>
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{tr.contentToShoot || "Content to shoot"}</p>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, fontWeight: 600 }}>{tr.contentToShoot || "Content to shoot"}</p>
               <div className="space-y-1.5">
                 {linkedContent.map(c => (
                   <div key={c.id} className="flex items-center gap-2" style={{ padding: '6px 12px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--divider)' }}>
@@ -562,27 +560,27 @@ function ClientShootingsTab({ clientName, tr }) {
 
           {/* Action area: Approve/Decline (pending) or Cancel (approved) */}
           {canAct && (isPending || isApproved) && (
-            <div className="pt-2 space-y-2">
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--divider)', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <textarea
                 value={note}
                 onChange={e => setNote(e.target.value)}
-                placeholder={tr.addNote || "Add a note (optional)..."}
+                placeholder={tr.addNote || "Lisää muistiinpano (valinnainen)..."}
                 rows={2}
-                style={{ width: '100%', fontSize: 12, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--bg)', padding: '8px 12px', outline: 'none', resize: 'none', fontFamily: "'DM Mono', monospace", color: 'var(--ink)' }}
+                style={{ width: '100%', fontSize: 12, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--bg)', padding: '8px 12px', outline: 'none', resize: 'none', fontFamily: "'DM Mono', monospace", color: 'var(--ink)', boxSizing: 'border-box' }}
               />
               {isPending && (
-                <div className="flex gap-2">
+                <div style={{ display: 'flex', gap: 10 }}>
                   <button
                     onClick={() => respond(s.id, "Approved", note)}
                     disabled={isResponding}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, background: '#10B981', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", opacity: isResponding ? 0.5 : 1 }}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 16px', borderRadius: 12, background: 'var(--brand)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", opacity: isResponding ? 0.5 : 1 }}
                   >
                     <CheckCircle2 style={{ width: 16, height: 16 }} /> {tr.approve}
                   </button>
                   <button
                     onClick={() => respond(s.id, "Declined", note)}
                     disabled={isResponding}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, background: 'transparent', color: '#EF4444', border: '1px solid #FCA5A5', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", opacity: isResponding ? 0.5 : 1 }}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 16px', borderRadius: 12, background: 'transparent', color: '#EF4444', border: '1px solid #FCA5A5', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", opacity: isResponding ? 0.5 : 1 }}
                   >
                     {tr.decline}
                   </button>
@@ -592,7 +590,7 @@ function ClientShootingsTab({ clientName, tr }) {
                 <button
                   onClick={() => respond(s.id, "Cancelled", note)}
                   disabled={isResponding}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, background: 'transparent', color: '#EF4444', border: '1px solid #FCA5A5', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", opacity: isResponding ? 0.5 : 1 }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 16px', borderRadius: 12, background: 'transparent', color: '#EF4444', border: '1px solid #FCA5A5', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", opacity: isResponding ? 0.5 : 1 }}
                 >
                   {tr.cancel || "Cancel shooting"}
                 </button>
