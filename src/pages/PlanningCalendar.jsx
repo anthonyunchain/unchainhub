@@ -246,7 +246,20 @@ export default function PlanningCalendar() {
   for (const t of monthTasks) { if (t.due_date) { (mTasksByDay[t.due_date] ||= []).push(t); } }
   for (const s of monthShootings) { if (s.date) { (mShootingsByDay[s.date] ||= []).push(s); } }
 
-  // Google Calendar events by day (visible only, future only for display)
+  const toggleCalendar = (name) => {
+    setHiddenCalendars(prev => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      localStorage.setItem("gcal_hidden", JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const visibleGcalEvents = gcalEvents.filter(ev =>
+    !hiddenCalendars.has(ev._calendarName)
+  );
+
+  // Google Calendar events by day (visible only)
   const gcalByDay = {};
   for (const ev of visibleGcalEvents) {
     const dayStr = ev.start?.date || ev.start?.dateTime?.slice(0, 10);
@@ -263,19 +276,6 @@ export default function PlanningCalendar() {
     border: "1px solid var(--divider)",
     boxShadow: "var(--card-shadow)",
   };
-
-  const toggleCalendar = (name) => {
-    setHiddenCalendars(prev => {
-      const next = new Set(prev);
-      next.has(name) ? next.delete(name) : next.add(name);
-      localStorage.setItem("gcal_hidden", JSON.stringify([...next]));
-      return next;
-    });
-  };
-
-  const visibleGcalEvents = gcalEvents.filter(ev =>
-    !hiddenCalendars.has(ev._calendarName)
-  );
 
   const disconnectGcal = async () => {
     const { data: { user } } = await supabase.auth.getUser();
