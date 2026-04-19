@@ -13,4 +13,5 @@ export const toTaskPayload = (d) => ({
       : null,
   due_date: d.due_date || null,
   images: d.images || [],
+  urls: (d.urls || []).filter(u => u.trim()),
 });

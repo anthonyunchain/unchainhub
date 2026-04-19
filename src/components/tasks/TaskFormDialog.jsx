@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Plus, X, UserCheck, MessageCircle, Send, Trash2, ImagePlus, Loader2, ThumbsUp, CalendarIcon } from "lucide-react";
+import { Plus, X, UserCheck, MessageCircle, Send, Trash2, ImagePlus, Loader2, ThumbsUp, CalendarIcon, Link2 } from "lucide-react";
 import TaskComments from "./TaskComments";
 
 export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
@@ -34,7 +34,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
   const empty = {
     title: "", description: "", status: "Non commencé",
     due_date: "", assigned_to: "", client_name: "", category: "Update",
-    blocking_reason: ""
+    blocking_reason: "", urls: []
   };
 
   const [data, setData] = useState(task || empty);
@@ -364,6 +364,45 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
               </label>
             </div>
           </div>
+
+          {/* URLs */}
+          <div>
+            <Label>Links</Label>
+            <div className="mt-1.5 space-y-2">
+              {(data.urls || []).map((url, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Link2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={e => {
+                      const next = [...(data.urls || [])];
+                      next[i] = e.target.value;
+                      set("urls", next);
+                    }}
+                    placeholder="https://..."
+                    className="flex-1 h-8 rounded-md border border-input bg-background px-2.5 text-sm outline-none focus:ring-1 focus:ring-ring"
+                  />
+                  <a href={url} target="_blank" rel="noopener noreferrer" className={`text-[#2A69FF] hover:underline text-xs ${!url ? 'pointer-events-none opacity-30' : ''}`}>Open</a>
+                  <button
+                    type="button"
+                    onClick={() => set("urls", (data.urls || []).filter((_, j) => j !== i))}
+                    className="text-slate-300 hover:text-red-400 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => set("urls", [...(data.urls || []), ""])}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add a link
+              </button>
+            </div>
+          </div>
+
           </div>
           {/* ─── end LEFT column ─── */}
 
