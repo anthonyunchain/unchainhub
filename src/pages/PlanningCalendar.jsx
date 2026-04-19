@@ -5,10 +5,10 @@ import { base44 } from "@/api/base44Client";
 import {
   format, addMonths, subMonths, addWeeks, subWeeks,
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-  eachDayOfInterval, getDay, isToday, isSameDay,
+  eachDayOfInterval, getDay, isToday,
 } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Sparkles, ClipboardList, Camera } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Circle } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 
@@ -26,6 +26,7 @@ function monthKey(d) { return format(d, "yyyy-MM"); }
 export default function PlanningCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekDate, setWeekDate] = useState(new Date());
+  const [calView, setCalView] = useState("week"); // "week" | "month"
   const qc = useQueryClient();
   const month = monthKey(currentDate);
 
@@ -46,6 +47,7 @@ export default function PlanningCalendar() {
   const weekStart = startOfWeek(weekDate, { weekStartsOn: 1 });
   const weekEnd   = endOfWeek(weekDate,   { weekStartsOn: 1 });
 
+  // Week range
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks-planning", format(weekStart, "yyyy-MM-dd")],
     queryFn: async () => {
@@ -56,6 +58,7 @@ export default function PlanningCalendar() {
         .neq("status", "Terminé");
       return data || [];
     },
+    enabled: calView === "week",
   });
 
   const { data: shootings = [] } = useQuery({
@@ -67,6 +70,36 @@ export default function PlanningCalendar() {
         .lte("date", format(weekEnd,   "yyyy-MM-dd"));
       return data || [];
     },
+    enabled: calView === "week",
+  });
+
+  // Month range
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd   = endOfMonth(currentDate);
+
+  const { data: monthTasks = [] } = useQuery({
+    queryKey: ["tasks-planning-month", month],
+    queryFn: async () => {
+      const { data } = await supabase.from("tasks")
+        .select("id, title, due_date, status, client_name, category")
+        .gte("due_date", format(monthStart, "yyyy-MM-dd"))
+        .lte("due_date", format(monthEnd,   "yyyy-MM-dd"))
+        .neq("status", "Terminé");
+      return data || [];
+    },
+    enabled: calView === "month",
+  });
+
+  const { data: monthShootings = [] } = useQuery({
+    queryKey: ["shootings-planning-month", month],
+    queryFn: async () => {
+      const { data } = await supabase.from("shootings")
+        .select("id, title, date, client_name, status, time")
+        .gte("date", format(monthStart, "yyyy-MM-dd"))
+        .lte("date", format(monthEnd,   "yyyy-MM-dd"));
+      return data || [];
+    },
+    enabled: calView === "month",
   });
 
   // ── Mutations ────────────────────────────────────────────────────────────
@@ -76,17 +109,6 @@ export default function PlanningCalendar() {
         { client_name, month, step_key, completed, completed_at: completed ? new Date().toISOString() : null },
         { onConflict: "client_name,month,step_key" }
       );
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["workflow-steps", month] }),
-  });
-
-  const generateWorkflow = useMutation({
-    mutationFn: async () => {
-      const rows = clients.flatMap(c =>
-        STEPS.map(s => ({ client_name: c.company_name, month, step_key: s.key, completed: false }))
-      );
-      await supabase.from("client_workflow_steps")
-        .upsert(rows, { onConflict: "client_name,month,step_key", ignoreDuplicates: true });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["workflow-steps", month] }),
   });
@@ -106,6 +128,16 @@ export default function PlanningCalendar() {
   for (const t of tasks) { if (t.due_date) { (tasksByDay[t.due_date] ||= []).push(t); } }
   for (const s of shootings) { if (s.date) { (shootingsByDay[s.date] ||= []).push(s); } }
 
+  // Month grid
+  const mTasksByDay = {};
+  const mShootingsByDay = {};
+  for (const t of monthTasks) { if (t.due_date) { (mTasksByDay[t.due_date] ||= []).push(t); } }
+  for (const s of monthShootings) { if (s.date) { (mShootingsByDay[s.date] ||= []).push(s); } }
+
+  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const gridEnd   = endOfWeek(monthEnd,     { weekStartsOn: 1 });
+  const monthCells = eachDayOfInterval({ start: gridStart, end: gridEnd });
+
   const CARD = {
     background: "var(--card)",
     borderRadius: 16,
@@ -117,7 +149,7 @@ export default function PlanningCalendar() {
     <div className="w-full mx-auto space-y-5" style={{ maxWidth: 1400 }}>
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <PageHeader title="Planning" subtitle="Monthly workflow & weekly calendar">
+      <PageHeader title="Planning" subtitle="Monthly workflow & calendar">
         <div className="flex items-center gap-3">
           <button onClick={() => setCurrentDate(d => subMonths(d, 1))} style={navBtn}>
             <ChevronLeft style={{ width: 16, height: 16 }} />
@@ -128,14 +160,14 @@ export default function PlanningCalendar() {
           <button onClick={() => setCurrentDate(d => addMonths(d, 1))} style={navBtn}>
             <ChevronRight style={{ width: 16, height: 16 }} />
           </button>
-          <button
-            onClick={() => generateWorkflow.mutate()}
-            disabled={generateWorkflow.isPending}
-            style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, background: "var(--brand)", color: "#fff", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", opacity: generateWorkflow.isPending ? 0.6 : 1 }}
-          >
-            <Sparkles style={{ width: 14, height: 14 }} />
-            Generate workflow
-          </button>
+          {/* View toggle */}
+          <div style={{ display: "flex", background: "var(--bg)", border: "1px solid var(--divider)", borderRadius: 10, padding: 3, gap: 2 }}>
+            {["week", "month"].map(v => (
+              <button key={v} onClick={() => setCalView(v)} style={{ padding: "5px 14px", borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 600, textTransform: "capitalize", background: calView === v ? "var(--card)" : "transparent", color: calView === v ? "var(--ink)" : "var(--muted)", boxShadow: calView === v ? "0 1px 3px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s" }}>
+                {v}
+              </button>
+            ))}
+          </div>
         </div>
       </PageHeader>
 
@@ -222,99 +254,122 @@ export default function PlanningCalendar() {
         })}
       </div>
 
-      {/* ── Section 2: Week calendar ─────────────────────────────────────── */}
+      {/* ── Section 2: Calendar ──────────────────────────────────────────── */}
       <div style={{ ...CARD, overflow: "hidden" }}>
-        {/* Week nav header */}
+        {/* Calendar nav header */}
         <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--divider)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>
-            {format(weekStart, "d MMM", { locale: enUS })} — {format(weekEnd, "d MMM yyyy", { locale: enUS })}
+            {calView === "week"
+              ? `${format(weekStart, "d MMM", { locale: enUS })} — ${format(weekEnd, "d MMM yyyy", { locale: enUS })}`
+              : format(currentDate, "MMMM yyyy", { locale: enUS })
+            }
           </span>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button onClick={() => setWeekDate(d => subWeeks(d, 1))} style={navBtn}><ChevronLeft style={{ width: 16, height: 16 }} /></button>
-            <button onClick={() => setWeekDate(new Date())} style={{ ...navBtn, fontSize: 11, fontFamily: "'DM Mono', monospace", width: "auto", padding: "0 10px", color: "var(--brand)" }}>Today</button>
-            <button onClick={() => setWeekDate(d => addWeeks(d, 1))} style={navBtn}><ChevronRight style={{ width: 16, height: 16 }} /></button>
-          </div>
+          {calView === "week" && (
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button onClick={() => setWeekDate(d => subWeeks(d, 1))} style={navBtn}><ChevronLeft style={{ width: 16, height: 16 }} /></button>
+              <button onClick={() => setWeekDate(new Date())} style={{ ...navBtn, fontSize: 11, fontFamily: "'DM Mono', monospace", width: "auto", padding: "0 10px", color: "var(--brand)" }}>Today</button>
+              <button onClick={() => setWeekDate(d => addWeeks(d, 1))} style={navBtn}><ChevronRight style={{ width: 16, height: 16 }} /></button>
+            </div>
+          )}
         </div>
 
-        {/* Day columns */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
-          {weekDays.map((day, i) => {
-            const dayKey = format(day, "yyyy-MM-dd");
-            const dayTasks = tasksByDay[dayKey] || [];
-            const dayShootings = shootingsByDay[dayKey] || [];
-            const isCurrentDay = isToday(day);
-            const isWeekend = i >= 5;
+        {/* Day-of-week headers (shared) */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "1px solid var(--divider)" }}>
+          {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
+            <div key={d} style={{ padding: "8px 0", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{d}</div>
+          ))}
+        </div>
 
-            return (
-              <div
-                key={dayKey}
-                style={{
-                  borderRight: i < 6 ? "1px solid var(--divider)" : "none",
-                  background: isCurrentDay ? "rgba(42,105,255,0.03)" : isWeekend ? "rgba(0,0,0,0.015)" : "transparent",
-                  minHeight: 220,
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                {/* Day header */}
-                <div style={{ padding: "12px 14px 10px", borderBottom: "1px solid var(--divider)", textAlign: "center" }}>
-                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: isCurrentDay ? "var(--brand)" : "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 4px" }}>
-                    {format(day, "EEE", { locale: enUS })}
-                  </p>
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    width: 32, height: 32, borderRadius: "50%",
-                    background: isCurrentDay ? "var(--brand)" : "transparent",
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
-                    fontSize: 16, fontWeight: isCurrentDay ? 700 : 500,
-                    color: isCurrentDay ? "#fff" : isWeekend ? "var(--muted)" : "var(--ink)",
-                  }}>
-                    {format(day, "d")}
-                  </span>
+        {/* ── WEEK view ── */}
+        {calView === "week" && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+            {weekDays.map((day, i) => {
+              const dayKey = format(day, "yyyy-MM-dd");
+              const dayTasks = tasksByDay[dayKey] || [];
+              const dayShootings = shootingsByDay[dayKey] || [];
+              const isCurrentDay = isToday(day);
+              const isWeekend = i >= 5;
+              return (
+                <div key={dayKey} style={{ borderRight: i < 6 ? "1px solid var(--divider)" : "none", background: isCurrentDay ? "rgba(42,105,255,0.03)" : isWeekend ? "rgba(0,0,0,0.015)" : "transparent", minHeight: 220, display: "flex", flexDirection: "column" }}>
+                  <div style={{ padding: "12px 14px 10px", borderBottom: "1px solid var(--divider)", textAlign: "center" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: "50%", background: isCurrentDay ? "var(--brand)" : "transparent", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: isCurrentDay ? 700 : 500, color: isCurrentDay ? "#fff" : isWeekend ? "var(--muted)" : "var(--ink)" }}>
+                      {format(day, "d")}
+                    </span>
+                  </div>
+                  <div style={{ padding: "10px", display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+                    {dayShootings.map(s => (
+                      <Link key={s.id} to="/Shootings" style={{ textDecoration: "none" }}>
+                        <div style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(245,158,11,0.12)", borderLeft: "3px solid #F59E0B" }}>
+                          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: "#92400E", margin: 0, lineHeight: 1.3 }}>📸 {s.title}</p>
+                          {s.client_name && <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#B45309", margin: "3px 0 0" }}>{s.client_name}{s.time ? ` · ${s.time}` : ""}</p>}
+                        </div>
+                      </Link>
+                    ))}
+                    {dayTasks.map(t => {
+                      const accent = t.status === "Bloqué" ? "#EF4444" : t.status === "En cours" ? "#2A69FF" : "#6B7280";
+                      const bg = t.status === "Bloqué" ? "rgba(239,68,68,0.08)" : t.status === "En cours" ? "rgba(42,105,255,0.08)" : "rgba(0,0,0,0.04)";
+                      return (
+                        <Link key={t.id} to="/Tasks" style={{ textDecoration: "none" }}>
+                          <div style={{ padding: "8px 10px", borderRadius: 8, background: bg, borderLeft: `3px solid ${accent}` }}>
+                            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink)", margin: 0, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{t.title}</p>
+                            {t.client_name && <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--muted)", margin: "3px 0 0" }}>{t.client_name}</p>}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                    {!dayTasks.length && !dayShootings.length && <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--subtle)", textAlign: "center", marginTop: 16 }}>—</p>}
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        )}
 
-                {/* Events */}
-                <div style={{ padding: "10px 10px", display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+        {/* ── MONTH view ── */}
+        {calView === "month" && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+            {monthCells.map((day, i) => {
+              const inMonth = day.getMonth() === currentDate.getMonth();
+              const dayKey = format(day, "yyyy-MM-dd");
+              const dayTasks = mTasksByDay[dayKey] || [];
+              const dayShootings = mShootingsByDay[dayKey] || [];
+              const isCurrentDay = isToday(day);
+              const isWeekend = (i % 7) >= 5;
+              return (
+                <div key={dayKey} style={{ borderRight: (i + 1) % 7 !== 0 ? "1px solid var(--divider)" : "none", borderBottom: i < monthCells.length - 7 ? "1px solid var(--divider)" : "none", minHeight: 110, padding: "8px 8px 6px", background: !inMonth ? "var(--bg)" : isCurrentDay ? "rgba(42,105,255,0.03)" : isWeekend ? "rgba(0,0,0,0.015)" : "var(--card)", display: "flex", flexDirection: "column", gap: 4 }}>
+                  {/* Day number */}
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 2 }}>
+                    <span style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: isCurrentDay ? "var(--brand)" : "transparent", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: isCurrentDay ? 700 : inMonth ? 500 : 400, color: isCurrentDay ? "#fff" : !inMonth ? "var(--subtle)" : isWeekend ? "var(--muted)" : "var(--ink)" }}>
+                      {format(day, "d")}
+                    </span>
+                  </div>
+                  {/* Events */}
                   {dayShootings.map(s => (
                     <Link key={s.id} to="/Shootings" style={{ textDecoration: "none" }}>
-                      <div style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(245,158,11,0.12)", borderLeft: "3px solid #F59E0B" }}>
-                        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: "#92400E", margin: 0, lineHeight: 1.3 }}>
-                          📸 {s.title}
-                        </p>
-                        {s.client_name && (
-                          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#B45309", margin: "3px 0 0" }}>{s.client_name}{s.time ? ` · ${s.time}` : ""}</p>
-                        )}
+                      <div style={{ padding: "3px 7px", borderRadius: 5, background: "rgba(245,158,11,0.13)", borderLeft: "2px solid #F59E0B", overflow: "hidden" }}>
+                        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 600, color: "#92400E", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>📸 {s.title}</p>
                       </div>
                     </Link>
                   ))}
-
-                  {dayTasks.map(t => {
-                    const isBlocked = t.status === "Bloqué";
-                    const isInProgress = t.status === "En cours";
-                    const accentColor = isBlocked ? "#EF4444" : isInProgress ? "#2A69FF" : "#6B7280";
-                    const bgColor = isBlocked ? "rgba(239,68,68,0.08)" : isInProgress ? "rgba(42,105,255,0.08)" : "rgba(0,0,0,0.04)";
+                  {dayTasks.slice(0, 2).map(t => {
+                    const accent = t.status === "Bloqué" ? "#EF4444" : t.status === "En cours" ? "#2A69FF" : "#6B7280";
+                    const bg = t.status === "Bloqué" ? "rgba(239,68,68,0.08)" : t.status === "En cours" ? "rgba(42,105,255,0.08)" : "rgba(0,0,0,0.04)";
                     return (
                       <Link key={t.id} to="/Tasks" style={{ textDecoration: "none" }}>
-                        <div style={{ padding: "8px 10px", borderRadius: 8, background: bgColor, borderLeft: `3px solid ${accentColor}` }}>
-                          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink)", margin: 0, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-                            {t.title}
-                          </p>
-                          {t.client_name && (
-                            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--muted)", margin: "3px 0 0" }}>{t.client_name}</p>
-                          )}
+                        <div style={{ padding: "3px 7px", borderRadius: 5, background: bg, borderLeft: `2px solid ${accent}`, overflow: "hidden" }}>
+                          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 500, color: "var(--ink)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.title}</p>
                         </div>
                       </Link>
                     );
                   })}
-
-                  {dayTasks.length === 0 && dayShootings.length === 0 && (
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--subtle)", textAlign: "center", marginTop: 16 }}>—</p>
+                  {dayTasks.length > 2 && (
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--muted)", margin: 0, paddingLeft: 2 }}>+{dayTasks.length - 2} more</p>
                   )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── Legend ──────────────────────────────────────────────────────── */}
