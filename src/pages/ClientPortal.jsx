@@ -1333,6 +1333,7 @@ export default function ClientPortal() {
     { key: "tutorials", label: tr.tutorials || "Tutorials", icon: GraduationCap },
     { key: "admin",     label: tr.admin,       icon: Settings },
   ];
+  const MOBILE_TABS = TABS.filter(t => ["dashboard", "shootings", "brief", "admin"].includes(t.key));
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1 }}>
@@ -1492,7 +1493,7 @@ export default function ClientPortal() {
       >
         <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9) 40%, rgba(255,255,255,0.9) 60%, transparent)', pointerEvents: 'none' }} />
 
-        {TABS.map(t => {
+        {MOBILE_TABS.map(t => {
           const active = activeTab === t.key;
           const shortLabel = t.key === "brief" ? tr.briefShort : t.label;
           return (
