@@ -3,6 +3,7 @@ import { supabase } from "@/api/base44Client";
 import { toast } from "sonner";
 import {
   KeyRound, Plus, Trash2, ExternalLink, Copy, Eye, EyeOff, Pencil, Search,
+  History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,10 @@ export default function ClientCredentialsTab({ clientId, clientName, canEdit = f
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
+  const [logOpen, setLogOpen] = useState(false);
+  const [logRows, setLogRows] = useState([]);
+  const [logLoading, setLogLoading] = useState(false);
+
   const confirm = useConfirm();
 
   const t = (key, fallback) => (tr && tr[key]) || fallback;
@@ -54,12 +59,7 @@ export default function ClientCredentialsTab({ clientId, clientName, canEdit = f
   const load = async () => {
     if (!clientId) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("client_credentials")
-      .select("id, label, login_url, username, password, category, notes, position, created_at")
-      .eq("client_id", clientId)
-      .order("position", { ascending: true })
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase.rpc("get_client_credentials", { p_client_id: clientId });
     if (error) toast.error("Failed to load credentials: " + error.message);
     setRows(data || []);
     setLoading(false);
@@ -101,20 +101,17 @@ export default function ClientCredentialsTab({ clientId, clientName, canEdit = f
   const handleSave = async () => {
     if (!form.label.trim()) return;
     setSaving(true);
-    const payload = {
-      client_id: clientId,
-      label: form.label.trim(),
-      category: form.category || null,
-      login_url: form.login_url.trim() || null,
-      username: form.username.trim() || null,
-      password: form.password || null,
-      notes: form.notes.trim() || null,
-      position: form.position === "" ? 0 : Number(form.position) || 0,
-    };
-    const q = form.id
-      ? supabase.from("client_credentials").update(payload).eq("id", form.id)
-      : supabase.from("client_credentials").insert(payload);
-    const { error } = await q;
+    const { error } = await supabase.rpc("upsert_client_credential", {
+      p_id: form.id,
+      p_client_id: clientId,
+      p_label: form.label.trim(),
+      p_login_url: form.login_url.trim(),
+      p_username: form.username.trim(),
+      p_password: form.password,
+      p_category: form.category || "",
+      p_notes: form.notes.trim(),
+      p_position: form.position === "" ? 0 : Number(form.position) || 0,
+    });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success(form.id ? "Credential updated" : "Credential added");
@@ -130,13 +127,35 @@ export default function ClientCredentialsTab({ clientId, clientName, canEdit = f
       destructive: true,
     });
     if (!ok) return;
-    const { error } = await supabase.from("client_credentials").delete().eq("id", r.id);
+    const { error } = await supabase.rpc("delete_client_credential", { p_id: r.id });
     if (error) { toast.error(error.message); return; }
     toast.success("Credential deleted");
     load();
   };
 
-  const toggleReveal = (id) => setRevealed(m => ({ ...m, [id]: !m[id] }));
+  const toggleReveal = (id) => {
+    setRevealed(m => {
+      const next = !m[id];
+      if (next) {
+        supabase.rpc("log_credential_reveal", { p_credential_id: id }).catch(() => {});
+      }
+      return { ...m, [id]: next };
+    });
+  };
+
+  const openLog = async () => {
+    setLogOpen(true);
+    setLogLoading(true);
+    const { data, error } = await supabase
+      .from("client_credentials_access_log")
+      .select("id, credential_id, actor_id, actor_email, action, created_at")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) toast.error("Failed to load access log: " + error.message);
+    setLogRows(data || []);
+    setLogLoading(false);
+  };
 
   return (
     <div className="space-y-4">
@@ -148,9 +167,14 @@ export default function ClientCredentialsTab({ clientId, clientName, canEdit = f
           </span>
         </div>
         {canEdit && (
-          <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
-            <Plus className="w-4 h-4 mr-1" aria-hidden="true" /> Add credential
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={openLog} className="h-9">
+              <History className="w-4 h-4 mr-1" aria-hidden="true" /> Activity
+            </Button>
+            <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
+              <Plus className="w-4 h-4 mr-1" aria-hidden="true" /> Add credential
+            </Button>
+          </div>
         )}
       </div>
 
@@ -374,6 +398,49 @@ export default function ClientCredentialsTab({ clientId, clientName, canEdit = f
                 {saving ? "Saving…" : (form.id ? "Save" : "Add credential")}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Access log dialog (admin only) */}
+      <Dialog open={logOpen} onOpenChange={setLogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-brand" /> Access activity{clientName ? ` — ${clientName}` : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-2">
+            {logLoading ? (
+              <div className="space-y-2">
+                {[...Array(5)].map((_, i) => <div key={i} className="skeleton" style={{ height: 36 }} aria-hidden="true" />)}
+              </div>
+            ) : logRows.length === 0 ? (
+              <p className="text-sm text-slate-500 py-6 text-center">No activity recorded yet.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100 text-sm">
+                {logRows.map(l => {
+                  const color = {
+                    create: "bg-emerald-50 text-emerald-700",
+                    update: "bg-amber-50 text-amber-700",
+                    delete: "bg-red-50 text-red-700",
+                    reveal: "bg-blue-50 text-blue-700",
+                  }[l.action] || "bg-slate-100 text-slate-700";
+                  const when = l.created_at ? new Date(l.created_at).toLocaleString() : "";
+                  return (
+                    <li key={l.id} className="py-2 flex items-center gap-3">
+                      <span className={`text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${color}`}>
+                        {l.action}
+                      </span>
+                      <span className="text-slate-700 truncate flex-1" title={l.actor_email || l.actor_id || ""}>
+                        {l.actor_email || l.actor_id || "—"}
+                      </span>
+                      <span className="text-xs text-slate-400 shrink-0">{when}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -131,6 +131,13 @@ const TRANSLATIONS = {
     urlCopied: "URL copied",
     usernameCopied: "Username copied",
     passwordCopied: "Password copied",
+    twoFactor: "Two-factor authentication",
+    twoFactorDesc: "Add an extra layer of security with an authenticator app (Google Authenticator, 1Password, Authy…).",
+    twoFactorEnable: "Enable two-factor",
+    twoFactorEnabled: "Two-factor authentication is enabled.",
+    twoFactorDisable: "Disable two-factor",
+    twoFactorScan: "Scan the QR code with your authenticator app, then enter the 6-digit code.",
+    twoFactorVerify: "Verify",
   },
   fi: {
     dashboard: "Dashboard",
@@ -244,6 +251,13 @@ const TRANSLATIONS = {
     urlCopied: "Osoite kopioitu",
     usernameCopied: "Käyttäjätunnus kopioitu",
     passwordCopied: "Salasana kopioitu",
+    twoFactor: "Kaksivaiheinen todennus",
+    twoFactorDesc: "Lisää turvallisuutta todennussovelluksella (Google Authenticator, 1Password, Authy…).",
+    twoFactorEnable: "Ota käyttöön",
+    twoFactorEnabled: "Kaksivaiheinen todennus on käytössä.",
+    twoFactorDisable: "Poista käytöstä",
+    twoFactorScan: "Skannaa QR-koodi todennussovelluksella ja syötä 6-numeroinen koodi.",
+    twoFactorVerify: "Vahvista",
   },
 };
 
@@ -1038,6 +1052,138 @@ function AdminTab({ contracts, contractDocuments, invoices, tr, dateLocale }) {
 }
 
 // ── Settings dialog ────────────────────────────────────────────────────────
+function MfaSection({ tr }) {
+  const [factors, setFactors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [enrolling, setEnrolling] = useState(false);
+  const [pending, setPending] = useState(null); // { factorId, qrSvg, secret }
+  const [code, setCode] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const refresh = async () => {
+    setLoading(true);
+    const { data } = await supabase.auth.mfa.listFactors();
+    setFactors(data?.totp || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const verified = factors.find(f => f.status === "verified");
+
+  const startEnroll = async () => {
+    setMsg("");
+    setEnrolling(true);
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp" });
+    setEnrolling(false);
+    if (error) { setMsg(error.message); return; }
+    setPending({
+      factorId: data.id,
+      qrSvg: data.totp?.qr_code,
+      secret: data.totp?.secret,
+    });
+    setCode("");
+  };
+
+  const verify = async () => {
+    if (!pending || !code) return;
+    setMsg("");
+    const { data: ch, error: chErr } = await supabase.auth.mfa.challenge({ factorId: pending.factorId });
+    if (chErr) { setMsg(chErr.message); return; }
+    const { error } = await supabase.auth.mfa.verify({
+      factorId: pending.factorId,
+      challengeId: ch.id,
+      code: code.trim(),
+    });
+    if (error) { setMsg(error.message); return; }
+    setPending(null);
+    setCode("");
+    await refresh();
+  };
+
+  const cancelEnroll = async () => {
+    if (pending?.factorId) {
+      await supabase.auth.mfa.unenroll({ factorId: pending.factorId }).catch(() => {});
+    }
+    setPending(null);
+    setCode("");
+    setMsg("");
+  };
+
+  const disable = async () => {
+    if (!verified) return;
+    setMsg("");
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: verified.id });
+    if (error) { setMsg(error.message); return; }
+    await refresh();
+  };
+
+  return (
+    <div className="space-y-2 pt-2 border-t border-slate-100">
+      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        {tr.twoFactor || "Two-factor authentication"}
+      </p>
+
+      {loading ? (
+        <p className="text-xs text-slate-400">…</p>
+      ) : pending ? (
+        <div className="space-y-2">
+          <p className="text-xs text-slate-600">
+            {tr.twoFactorScan || "Scan the QR code with your authenticator app, then enter the 6-digit code."}
+          </p>
+          {pending.qrSvg && (
+            <div className="flex justify-center bg-white p-3 rounded-xl border border-slate-200"
+              dangerouslySetInnerHTML={{ __html: pending.qrSvg }} />
+          )}
+          {pending.secret && (
+            <p className="text-[11px] text-slate-500 break-all text-center font-mono">{pending.secret}</p>
+          )}
+          <input
+            value={code}
+            onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            inputMode="numeric"
+            placeholder="123456"
+            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 text-center tracking-widest font-mono"
+          />
+          {msg && <p className="text-xs px-3 py-2 rounded-lg bg-red-50 text-red-600">{msg}</p>}
+          <div className="flex gap-2">
+            <button onClick={cancelEnroll}
+              className="flex-1 bg-slate-100 text-slate-600 rounded-xl py-2.5 text-sm font-semibold">
+              {tr.cancel || "Cancel"}
+            </button>
+            <button onClick={verify} disabled={code.length !== 6}
+              className="flex-1 bg-[#2A69FF] text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50">
+              {tr.twoFactorVerify || "Verify"}
+            </button>
+          </div>
+        </div>
+      ) : verified ? (
+        <div className="space-y-2">
+          <div className="px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 text-xs">
+            {tr.twoFactorEnabled || "Two-factor authentication is enabled."}
+          </div>
+          {msg && <p className="text-xs px-3 py-2 rounded-lg bg-red-50 text-red-600">{msg}</p>}
+          <button onClick={disable}
+            className="w-full bg-red-50 text-red-600 rounded-xl py-2.5 text-sm font-semibold">
+            {tr.twoFactorDisable || "Disable two-factor"}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-xs text-slate-500">
+            {tr.twoFactorDesc || "Add an extra layer of security with an authenticator app (Google Authenticator, 1Password, Authy…)."}
+          </p>
+          {msg && <p className="text-xs px-3 py-2 rounded-lg bg-red-50 text-red-600">{msg}</p>}
+          <button onClick={startEnroll} disabled={enrolling}
+            className="w-full bg-[#2A69FF] text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50">
+            {enrolling ? "…" : (tr.twoFactorEnable || "Enable two-factor")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsDialog({ open, onClose, tr }) {
   const [email, setEmail] = useState("");
   const [newPw, setNewPw] = useState("");
@@ -1080,7 +1226,7 @@ function SettingsDialog({ open, onClose, tr }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm z-10 p-6 space-y-5">
+      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md z-10 p-6 space-y-5 max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-bold text-slate-800">{tr.accountSettings}</h2>
         <div className="space-y-2">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{tr.changeEmail}</p>
@@ -1098,6 +1244,7 @@ function SettingsDialog({ open, onClose, tr }) {
           {pwMsg && <p className={`text-xs px-3 py-2 rounded-lg ${pwMsg.includes("updated") || pwMsg.includes("päivitetty") ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>{pwMsg}</p>}
           <button onClick={updatePw} disabled={!newPw || !confirmPw} className="w-full bg-slate-800 text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50">{tr.updatePassword}</button>
         </div>
+        <MfaSection tr={tr} />
         {'Notification' in window && (
           <div className="pt-2 border-t border-slate-100">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{tr.pushNotifications}</p>
