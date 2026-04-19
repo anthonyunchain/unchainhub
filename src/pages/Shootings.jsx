@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   Plus, Trash2, MapPin, Clock, Camera, Users, ImagePlus, X, Loader2,
   ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, XCircle,
-  Calendar as CalendarIcon, Clapperboard, Link2
+  Calendar as CalendarIcon, Clapperboard, Link2, CalendarDays
 } from "lucide-react";
 import {
   format, isPast, isToday, isTomorrow, startOfDay, parseISO,
@@ -40,7 +40,7 @@ const ASSIGNMENT_STATUS = {
 const emptyForm = {
   title: "", client_name: "", date: "", time: "", location: "",
   status: "Planned", description: "", gear: "", notes: "", images: [],
-  assignments: [], content_ids: [],
+  assignments: [], content_ids: [], gcal_event_id: null,
 };
 
 export default function Shootings() {
@@ -130,6 +130,7 @@ export default function Shootings() {
       images: s.images || [],
       assignments: s.assignments.map(a => ({ freelancer_id: a.freelancer_id, freelancer_name: a.freelancer_name, role: a.role || "" })),
       content_ids: s.content_ids || [],
+      gcal_event_id: s.gcal_event_id || null,
     });
     setEditId(s.id);
     setDialogOpen(true);
@@ -187,6 +188,28 @@ export default function Shootings() {
           newlyAssigned.push(fa);
         }
       }
+
+      // Sync to Google Calendar (fire-and-forget, non-blocking)
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session?.access_token) return;
+        fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/googleCalendarSyncShooting`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+            body: JSON.stringify({
+              shootingId,
+              title: form.title,
+              date: form.date || null,
+              time: form.time || null,
+              location: form.location || null,
+              client_name: form.client_name || null,
+              description: form.description || null,
+              gcal_event_id: form.gcal_event_id || null,
+            }),
+          }
+        ).catch(() => {});
+      });
 
       // Push newly assigned freelancers
       for (const fa of newlyAssigned) {
