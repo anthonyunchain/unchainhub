@@ -26,13 +26,14 @@ async function fetchUpcomingGcalEvents() {
   );
   if (!res.ok) return { connected: false, events: [] };
   const data = await res.json();
-  // Filter to future-only events
-  const nowMs = Date.now();
+  const today = format(new Date(), "yyyy-MM-dd");
+  // Apply hidden calendars from Planning
+  const hidden = new Set(JSON.parse(localStorage.getItem("gcal_hidden") || "[]"));
   const events = (data.events || []).filter(ev => {
-    const end = ev.end?.dateTime ? new Date(ev.end.dateTime).getTime()
-      : ev.end?.date ? new Date(ev.end.date + "T23:59:59").getTime()
-      : Infinity;
-    return end > nowMs;
+    if (hidden.has(ev._calendarName)) return false;
+    // Only future/today events (compare by start date string)
+    const dayStr = ev.start?.date || ev.start?.dateTime?.slice(0, 10) || "";
+    return dayStr >= today;
   });
   return { ...data, events };
 }
