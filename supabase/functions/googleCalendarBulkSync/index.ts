@@ -92,37 +92,12 @@ Deno.serve(async (req) => {
     const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const shootingCalId = await findShootingCalendarId(token);
 
-    // Fetch unsynced tasks and shootings
-    const [{ data: tasks }, { data: shootings }] = await Promise.all([
-      db.from("tasks").select("id, title, due_date, client_name, description").is("gcal_event_id", null),
-      db.from("shootings").select("id, title, date, time, location, client_name, description").is("gcal_event_id", null),
-    ]);
+    const { data: shootings } = await db
+      .from("shootings")
+      .select("id, title, date, time, location, client_name, description")
+      .is("gcal_event_id", null);
 
     let synced = 0;
-
-    // Sync tasks in parallel (batches of 10 to respect rate limits)
-    const taskBatches = chunkArray(tasks || [], 10);
-    for (const batch of taskBatches) {
-      await Promise.all(batch.map(async (task: any) => {
-        if (!task.title) return;
-        const descParts: string[] = [];
-        if (task.client_name) descParts.push(`Client: ${task.client_name}`);
-        if (task.description) descParts.push(task.description);
-        const event: Record<string, unknown> = {
-          summary: `📋 ${task.title}`,
-          description: descParts.join("\n"),
-        };
-        if (task.due_date) {
-          event.start = { date: task.due_date };
-          event.end   = { date: nextDay(task.due_date) };
-        }
-        const gcalId = await createGcalEvent(token, "primary", event);
-        if (gcalId) {
-          await db.from("tasks").update({ gcal_event_id: gcalId }).eq("id", task.id);
-          synced++;
-        }
-      }));
-    }
 
     // Sync shootings in parallel
     const shootingBatches = chunkArray(shootings || [], 10);

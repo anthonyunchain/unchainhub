@@ -241,31 +241,12 @@ export default function Tasks() {
     queryFn: () => base44.entities.Freelancer.list(),
   });
 
-  const syncTaskToGcal = (taskId, d) => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.access_token) return;
-      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/googleCalendarSyncTask`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({
-          taskId,
-          title: d.title,
-          due_date: d.due_date || null,
-          client_name: d.client_name || null,
-          description: d.description || null,
-          gcal_event_id: d.gcal_event_id || null,
-        }),
-      }).catch(() => {});
-    });
-  };
-
   const createMut = useMutation({
     mutationFn: async (d) => {
-      const { data, error } = await supabase.from('tasks').insert(toTaskPayload(d)).select('id').single();
+      const { error } = await supabase.from('tasks').insert(toTaskPayload(d));
       if (error) { console.error('task insert error:', error); throw error; }
-      return { taskId: data.id, d };
     },
-    onSuccess: ({ taskId, d }) => {
+    onSuccess: (_, d) => {
       if (d.assigned_freelancer_id) {
         const fl = freelancers.find(f => f.id === d.assigned_freelancer_id);
         if (fl?.email) base44.functions.invoke('sendPushNotification', {
@@ -275,7 +256,6 @@ export default function Tasks() {
           freelancer_email: fl.email,
         }).catch(() => {});
       }
-      syncTaskToGcal(taskId, d);
       setMutError(null); qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); setEditTask(null);
     },
     onError: (e) => setMutError([e.message, e.details, e.hint].filter(Boolean).join(' — ')),
@@ -285,12 +265,8 @@ export default function Tasks() {
     mutationFn: async ({ id, d }) => {
       const { error } = await supabase.from('tasks').update(toTaskPayload(d)).eq('id', id);
       if (error) { console.error('task update error:', error); throw error; }
-      return { taskId: id, d };
     },
-    onSuccess: ({ taskId, d }) => {
-      syncTaskToGcal(taskId, d);
-      setMutError(null); qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); setEditTask(null);
-    },
+    onSuccess: () => { setMutError(null); qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); setEditTask(null); },
     onError: (e) => setMutError([e.message, e.details, e.hint].filter(Boolean).join(' — ')),
   });
 

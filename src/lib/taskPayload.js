@@ -12,7 +12,6 @@ export const toTaskPayload = (d) => ({
       ? d.assigned_freelancer_id
       : null,
   due_date: d.due_date || null,
-  gcal_event_id: d.gcal_event_id || null,
   images: d.images || [],
   urls: (d.urls || []).filter(u => u.trim()),
 });
