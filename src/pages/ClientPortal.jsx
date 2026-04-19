@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
+import { registerPush, unregisterPush } from "@/lib/pushNotifications";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, parseISO } from "date-fns";
 import { enUS, fi as fiFns } from "date-fns/locale";
 import { getGreeting } from "@/lib/greeting";
@@ -103,6 +104,9 @@ const TRANSLATIONS = {
     weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
     total: "total",
     more: "More",
+    pushNotifications: "Push notifications",
+    pushOn: "Notifications on",
+    pushOff: "Notifications off",
     tutorials: "Tutorials",
     searchTutorials: "Search tutorials…",
     allCategories: "All categories",
@@ -196,6 +200,9 @@ const TRANSLATIONS = {
     weekdays: ["Ma", "Ti", "Ke", "To", "Pe"],
     total: "yhteensä",
     more: "Lisää",
+    pushNotifications: "Push-ilmoitukset",
+    pushOn: "Ilmoitukset päällä",
+    pushOff: "Ilmoitukset pois",
     tutorials: "Ohjevideot",
     searchTutorials: "Hae ohjevideoita…",
     allCategories: "Kaikki kategoriat",
@@ -1002,6 +1009,22 @@ function SettingsDialog({ open, onClose, tr }) {
   const [confirmPw, setConfirmPw] = useState("");
   const [emailMsg, setEmailMsg] = useState("");
   const [pwMsg, setPwMsg] = useState("");
+  const [pushEnabled, setPushEnabled] = useState(() =>
+    typeof Notification !== 'undefined' && Notification.permission === 'granted'
+  );
+  const [pushLoading, setPushLoading] = useState(false);
+
+  const togglePush = async () => {
+    setPushLoading(true);
+    if (pushEnabled) {
+      await unregisterPush();
+      setPushEnabled(false);
+    } else {
+      const sub = await registerPush();
+      setPushEnabled(!!sub);
+    }
+    setPushLoading(false);
+  };
 
   const updateEmail = async () => {
     if (!email) return;
@@ -1040,6 +1063,29 @@ function SettingsDialog({ open, onClose, tr }) {
           {pwMsg && <p className={`text-xs px-3 py-2 rounded-lg ${pwMsg.includes("updated") || pwMsg.includes("päivitetty") ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>{pwMsg}</p>}
           <button onClick={updatePw} disabled={!newPw || !confirmPw} className="w-full bg-slate-800 text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50">{tr.updatePassword}</button>
         </div>
+        {'Notification' in window && (
+          <div className="pt-2 border-t border-slate-100">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{tr.pushNotifications}</p>
+            <button
+              onClick={togglePush}
+              disabled={pushLoading}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 14px', borderRadius: 12,
+                background: pushEnabled ? 'rgba(42,105,255,0.07)' : 'var(--subtle, #f4f4f5)',
+                border: `1px solid ${pushEnabled ? 'rgba(42,105,255,0.2)' : '#e4e4e7'}`,
+                cursor: pushLoading ? 'not-allowed' : 'pointer', opacity: pushLoading ? 0.6 : 1,
+              }}
+            >
+              <span style={{ fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, color: pushEnabled ? '#2A69FF' : '#52525b' }}>
+                {pushEnabled ? tr.pushOn : tr.pushOff}
+              </span>
+              <span style={{ position: 'relative', width: 36, height: 20, borderRadius: 10, background: pushEnabled ? '#2A69FF' : '#d4d4d8', transition: 'background 0.2s', flexShrink: 0 }}>
+                <span style={{ position: 'absolute', top: 2, left: pushEnabled ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+              </span>
+            </button>
+          </div>
+        )}
         <button onClick={onClose} className="w-full text-sm text-slate-400 hover:text-slate-600 py-1">{tr.close}</button>
       </div>
     </div>

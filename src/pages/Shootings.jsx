@@ -199,6 +199,19 @@ export default function Shootings() {
         }).catch(() => {});
       }
 
+      // Push client when a shooting is created or updated for them
+      if (form.client_name) {
+        const isNew = !editId;
+        base44.functions.invoke('sendPushNotification', {
+          title: isNew ? '📸 New shooting scheduled' : '📸 Shooting updated',
+          body: isNew
+            ? `A new shooting has been planned for you: "${form.title}"${form.date ? ` on ${form.date}` : ''}.`
+            : `Your shooting "${form.title}" has been updated.`,
+          url: '/ClientPortal',
+          client_name: form.client_name,
+        }).catch(() => {});
+      }
+
       // Sync content links
       if (editId) {
         const existingLinks = contentLinks.filter(c => c.shooting_id === editId);

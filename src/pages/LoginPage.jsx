@@ -2,6 +2,39 @@ import { useState } from 'react';
 import { supabase } from '@/api/base44Client';
 import { Eye, EyeOff } from 'lucide-react';
 
+const TRANSLATIONS = {
+  en: {
+    signIn: "Sign in",
+    email: "Email",
+    emailPlaceholder: "Email address",
+    password: "Password",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    signingIn: "Signing in...",
+    forgotPassword: "Forgot password?",
+    sendResetLink: "Send reset link",
+    sending: "Sending...",
+    backToSignIn: "Back to sign in",
+    checkEmail: "Check your email for the reset link.",
+    incorrectCredentials: "Incorrect email or password.",
+  },
+  fi: {
+    signIn: "Kirjaudu sisään",
+    email: "Sähköposti",
+    emailPlaceholder: "Sähköpostiosoite",
+    password: "Salasana",
+    showPassword: "Näytä salasana",
+    hidePassword: "Piilota salasana",
+    signingIn: "Kirjaudutaan...",
+    forgotPassword: "Unohtuiko salasana?",
+    sendResetLink: "Lähetä palautuslinkki",
+    sending: "Lähetetään...",
+    backToSignIn: "Takaisin kirjautumiseen",
+    checkEmail: "Tarkista sähköpostisi palautuslinkin saamiseksi.",
+    incorrectCredentials: "Virheellinen sähköposti tai salasana.",
+  },
+};
+
 export default function LoginPage() {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -12,6 +45,9 @@ export default function LoginPage() {
   const [forgotSent, setForgotSent] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [lang, setLang] = useState('en');
+
+  const tr = TRANSLATIONS[lang];
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -19,7 +55,7 @@ export default function LoginPage() {
     setError('');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setError(error.message || 'Incorrect email or password.');
+      setError(tr.incorrectCredentials);
       setLoading(false);
     }
   };
@@ -93,12 +129,37 @@ export default function LoginPage() {
         position: 'relative',
         zIndex: 1,
       }}>
+        {/* Language toggle */}
+        <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 4 }}>
+          {['en', 'fi'].map(l => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              style={{
+                padding: '3px 8px',
+                borderRadius: 6,
+                fontSize: 11,
+                fontFamily: "'DM Mono', monospace",
+                fontWeight: 600,
+                letterSpacing: '0.05em',
+                border: '1px solid var(--divider)',
+                background: lang === l ? 'var(--brand)' : 'transparent',
+                color: lang === l ? '#fff' : 'var(--muted)',
+                cursor: 'pointer',
+                textTransform: 'uppercase',
+              }}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+
         <div style={{ marginBottom: 32, textAlign: 'center' }}>
           <p className="text-label-mono" style={{ marginBottom: 6 }}>
             Unchain Studio
           </p>
           <h1 className="text-h1" style={{ margin: 0 }}>
-            Sign in
+            {tr.signIn}
           </h1>
         </div>
 
@@ -106,21 +167,21 @@ export default function LoginPage() {
           forgotSent ? (
             <div style={{ textAlign: 'center' }}>
               <p style={{ fontSize: 14, color: 'var(--success-text)', marginBottom: 16 }} role="status">
-                Check your email for the reset link.
+                {tr.checkEmail}
               </p>
               <button
                 type="button"
                 onClick={() => { setShowForgot(false); setForgotSent(false); setForgotEmail(''); }}
                 style={{ ...linkBtnStyle, color: 'var(--brand)' }}
               >
-                Back to sign in
+                {tr.backToSignIn}
               </button>
             </div>
           ) : (
             <form onSubmit={handleForgotPassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label htmlFor="forgot-email" style={{ fontSize: 12, fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>
-                  Email
+                  {tr.email}
                 </label>
                 <input
                   id="forgot-email"
@@ -129,7 +190,7 @@ export default function LoginPage() {
                   value={forgotEmail}
                   onChange={e => setForgotEmail(e.target.value)}
                   required
-                  placeholder="Email address"
+                  placeholder={tr.emailPlaceholder}
                   style={inputStyle}
                 />
               </div>
@@ -138,14 +199,14 @@ export default function LoginPage() {
                 disabled={forgotLoading}
                 style={primaryBtnStyle(forgotLoading)}
               >
-                {forgotLoading ? 'Sending...' : 'Send reset link'}
+                {forgotLoading ? tr.sending : tr.sendResetLink}
               </button>
               <button
                 type="button"
                 onClick={() => setShowForgot(false)}
                 style={linkBtnStyle}
               >
-                Back to sign in
+                {tr.backToSignIn}
               </button>
             </form>
           )
@@ -153,7 +214,7 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }} noValidate>
             <div>
               <label htmlFor="login-email" style={{ fontSize: 12, fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>
-                Email
+                {tr.email}
               </label>
               <input
                 id="login-email"
@@ -162,7 +223,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                placeholder="Email address"
+                placeholder={tr.emailPlaceholder}
                 aria-invalid={!!error}
                 aria-describedby={error ? "login-error" : undefined}
                 style={inputStyle}
@@ -171,7 +232,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="login-password" style={{ fontSize: 12, fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>
-                Password
+                {tr.password}
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -189,7 +250,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? tr.hidePassword : tr.showPassword}
                   style={{
                     position: 'absolute',
                     right: 8,
@@ -223,7 +284,7 @@ export default function LoginPage() {
               disabled={loading}
               style={primaryBtnStyle(loading)}
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? tr.signingIn : tr.signIn}
             </button>
 
             <button
@@ -231,7 +292,7 @@ export default function LoginPage() {
               onClick={() => setShowForgot(true)}
               style={{ ...linkBtnStyle, marginTop: 4 }}
             >
-              Forgot password?
+              {tr.forgotPassword}
             </button>
           </form>
         )}

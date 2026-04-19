@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    let { title, body, url = '/', user_ids, freelancer_email } = await req.json();
+    let { title, body, url = '/', user_ids, freelancer_email, client_name } = await req.json();
     if (!title) return Response.json({ error: 'Missing title' }, { status: 400, headers: corsHeaders(req) });
 
     // Resolve freelancer_email to a user_id if provided
@@ -25,6 +25,22 @@ Deno.serve(async (req) => {
       const { data: authData } = await supabaseAdmin.auth.admin.listUsers();
       const u = authData?.users?.find((u: any) => u.email === freelancer_email);
       if (u) user_ids = [...(user_ids || []), u.id];
+    }
+
+    // Resolve client_name to a user_id via clients table
+    if (client_name) {
+      const { data: client } = await supabaseAdmin
+        .from('clients')
+        .select('contact_email, portal_user_id')
+        .eq('company_name', client_name)
+        .single();
+      if (client?.portal_user_id) {
+        user_ids = [...(user_ids || []), client.portal_user_id];
+      } else if (client?.contact_email) {
+        const { data: authData } = await supabaseAdmin.auth.admin.listUsers();
+        const u = authData?.users?.find((u: any) => u.email === client.contact_email);
+        if (u) user_ids = [...(user_ids || []), u.id];
+      }
     }
 
     // Fetch subscriptions — either for specific users or all

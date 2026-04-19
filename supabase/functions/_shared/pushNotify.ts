@@ -55,6 +55,32 @@ export async function pushFreelancerByEmail(supabaseAdmin: any, email: string, o
   }
 }
 
+// Push to a client by their company_name (looks up contact_email → auth user)
+export async function pushClientByName(
+  supabaseAdmin: any,
+  company_name: string,
+  opts: { title: string; body?: string; url?: string }
+) {
+  try {
+    const { data: client } = await supabaseAdmin
+      .from('clients')
+      .select('contact_email, portal_user_id')
+      .eq('company_name', company_name)
+      .single();
+    if (!client) return;
+
+    if (client.portal_user_id) {
+      await sendPush(supabaseAdmin, { ...opts, user_ids: [client.portal_user_id] });
+    } else if (client.contact_email) {
+      const { data } = await supabaseAdmin.auth.admin.listUsers();
+      const user = data?.users?.find((u: any) => u.email === client.contact_email);
+      if (user) await sendPush(supabaseAdmin, { ...opts, user_ids: [user.id] });
+    }
+  } catch (e) {
+    console.error('[pushClientByName] non-fatal:', e?.message);
+  }
+}
+
 // Push to freelancers by their IDs in the freelancers table
 export async function pushFreelancersByIds(
   supabaseAdmin: any,
