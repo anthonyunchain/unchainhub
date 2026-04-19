@@ -1,25 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, base44 } from "@/api/base44Client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/api/base44Client";
 import {
   format, addMonths, subMonths, addWeeks, subWeeks,
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, isToday,
 } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, CheckCircle2, Circle, CalendarDays, Loader2, AlertCircle, Layers } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, CalendarDays, Loader2, Layers } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import { toast } from "sonner";
-
-// ── Steps ────────────────────────────────────────────────────────────────────
-const STEPS = [
-  { key: "meeting_prev",   label: "Review meeting",         shortLabel: "Review mtg",  week: "W−1", color: "#8B5CF6", bg: "rgba(139,92,246,0.1)"  },
-  { key: "stats_share",    label: "Stats + brief request",  shortLabel: "Stats/brief", week: "W1",  color: "#2A69FF", bg: "rgba(42,105,255,0.1)"  },
-  { key: "calendar_pdf",   label: "Editorial calendar PDF", shortLabel: "Edito PDF",   week: "W2",  color: "#0EA5E9", bg: "rgba(14,165,233,0.1)"  },
-  { key: "shooting_org",   label: "Shootings + validation", shortLabel: "Shootings",   week: "W3",  color: "#F59E0B", bg: "rgba(245,158,11,0.1)"  },
-  { key: "meeting_review", label: "Monthly review meeting", shortLabel: "Review mtg",  week: "W4",  color: "#10B981", bg: "rgba(16,185,129,0.1)"  },
-];
 
 function monthKey(d) { return format(d, "yyyy-MM"); }
 
@@ -152,19 +143,6 @@ export default function PlanningCalendar() {
   };
 
   // ── Queries ──────────────────────────────────────────────────────────────
-  const { data: clients = [] } = useQuery({
-    queryKey: ["clients-active"],
-    queryFn: () => base44.entities.Client.filter({ status: "Actif" }),
-  });
-
-  const { data: steps = [] } = useQuery({
-    queryKey: ["workflow-steps", month],
-    queryFn: async () => {
-      const { data } = await supabase.from("client_workflow_steps").select("*").eq("month", month);
-      return data || [];
-    },
-  });
-
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks-planning", format(weekStart, "yyyy-MM-dd")],
     queryFn: async () => {
@@ -215,26 +193,7 @@ export default function PlanningCalendar() {
     enabled: calView === "month",
   });
 
-  // ── Mutations ────────────────────────────────────────────────────────────
-  const toggleStep = useMutation({
-    mutationFn: async ({ client_name, step_key, completed }) => {
-      await supabase.from("client_workflow_steps").upsert(
-        { client_name, month, step_key, completed, completed_at: completed ? new Date().toISOString() : null },
-        { onConflict: "client_name,month,step_key" }
-      );
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["workflow-steps", month] }),
-  });
-
   // ── Derived ──────────────────────────────────────────────────────────────
-  const stepMap = {};
-  for (const s of steps) {
-    if (!stepMap[s.client_name]) stepMap[s.client_name] = {};
-    stepMap[s.client_name][s.step_key] = s;
-  }
-  const getStep = (clientName, stepKey) => stepMap[clientName]?.[stepKey];
-  const activeClients = clients.filter(c => c.status === "Actif");
-
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
   const tasksByDay = {};
   const shootingsByDay = {};
@@ -382,81 +341,7 @@ export default function PlanningCalendar() {
         </div>
       </PageHeader>
 
-      {/* ── Section 1: Workflow table ────────────────────────────────────── */}
-      <div style={{ ...CARD, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "220px repeat(5, 1fr)", borderBottom: "1px solid var(--divider)" }}>
-          <div style={{ padding: "14px 20px", fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-            Client
-          </div>
-          {STEPS.map(s => (
-            <div key={s.key} style={{ padding: "14px 12px", borderLeft: "1px solid var(--divider)", textAlign: "center" }}>
-              <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, background: s.bg, fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 700, color: s.color, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>
-                {s.week}
-              </span>
-              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink)", margin: 0, lineHeight: 1.3 }}>
-                {s.label}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {activeClients.length === 0 ? (
-          <p style={{ padding: "32px 20px", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 13, color: "var(--muted)" }}>
-            No active clients — add clients first.
-          </p>
-        ) : activeClients.map((client, ci) => {
-          const name = client.company_name;
-          const completedCount = STEPS.filter(s => getStep(name, s.key)?.completed).length;
-          const progress = Math.round((completedCount / STEPS.length) * 100);
-          return (
-            <div
-              key={client.id}
-              style={{ display: "grid", gridTemplateColumns: "220px repeat(5, 1fr)", borderBottom: ci < activeClients.length - 1 ? "1px solid var(--divider)" : "none" }}
-            >
-              <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 8 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--brand-soft)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "var(--brand)", flexShrink: 0 }}>
-                    {name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: 0 }}>{name}</p>
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: completedCount === STEPS.length ? "#10B981" : "var(--muted)", margin: 0 }}>
-                      {completedCount}/{STEPS.length} done
-                    </p>
-                  </div>
-                </div>
-                <div style={{ height: 4, borderRadius: 2, background: "var(--divider)", overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${progress}%`, borderRadius: 2, background: completedCount === STEPS.length ? "#10B981" : "var(--brand)", transition: "width 0.3s ease" }} />
-                </div>
-              </div>
-
-              {STEPS.map(step => {
-                const row = getStep(name, step.key);
-                const done = row?.completed || false;
-                return (
-                  <div
-                    key={step.key}
-                    style={{ borderLeft: "1px solid var(--divider)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 12px", background: done ? step.bg : "transparent", transition: "background 0.15s ease" }}
-                  >
-                    <button
-                      onClick={() => toggleStep.mutate({ client_name: name, step_key: step.key, completed: !done })}
-                      title={step.label}
-                      style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer", padding: 8, borderRadius: 10 }}
-                    >
-                      {done
-                        ? <CheckCircle2 style={{ width: 28, height: 28, color: step.color }} />
-                        : <Circle style={{ width: 28, height: 28, color: "rgba(0,0,0,0.15)" }} />
-                      }
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── Section 2: Calendar ──────────────────────────────────────────── */}
+      {/* ── Calendar ──────────────────────────────────────────────────────── */}
       <div style={{ ...CARD, overflow: "hidden" }}>
         <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--divider)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>

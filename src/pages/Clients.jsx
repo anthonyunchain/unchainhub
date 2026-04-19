@@ -6,7 +6,16 @@ import PageHeader from "../components/shared/PageHeader";
 import StatusBadge from "../components/shared/StatusBadge";
 import EmptyState from "../components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, MapPin, Building2, ChevronRight, Trash2, Pencil, GripVertical, ArrowUpDown, UserPlus, RefreshCw, Copy, KeyRound, ChefHat } from "lucide-react";
+import { Plus, Search, MapPin, Building2, ChevronRight, Trash2, Pencil, GripVertical, ArrowUpDown, UserPlus, RefreshCw, Copy, KeyRound, ChefHat, CheckCircle2, Circle } from "lucide-react";
+import { format } from "date-fns";
+
+const STEPS = [
+  { key: "meeting_prev",   label: "Review meeting",         week: "W−1", color: "#8B5CF6", bg: "rgba(139,92,246,0.1)" },
+  { key: "stats_share",    label: "Stats + brief request",  week: "W1",  color: "#2A69FF", bg: "rgba(42,105,255,0.1)" },
+  { key: "calendar_pdf",   label: "Editorial calendar PDF", week: "W2",  color: "#0EA5E9", bg: "rgba(14,165,233,0.1)" },
+  { key: "shooting_org",   label: "Shootings + validation", week: "W3",  color: "#F59E0B", bg: "rgba(245,158,11,0.1)" },
+  { key: "meeting_review", label: "Monthly review meeting", week: "W4",  color: "#10B981", bg: "rgba(16,185,129,0.1)" },
+];
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -58,7 +67,34 @@ export default function Clients() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const qc = useQueryClient();
 
+  const month = format(new Date(), "yyyy-MM");
+
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
+
+  const { data: workflowSteps = [] } = useQuery({
+    queryKey: ["workflow-steps", month],
+    queryFn: async () => {
+      const { data } = await supabase.from("client_workflow_steps").select("*").eq("month", month);
+      return data || [];
+    },
+  });
+
+  const toggleStep = useMutation({
+    mutationFn: async ({ client_name, step_key, completed }) => {
+      await supabase.from("client_workflow_steps").upsert(
+        { client_name, month, step_key, completed, completed_at: completed ? new Date().toISOString() : null },
+        { onConflict: "client_name,month,step_key" }
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["workflow-steps", month] }),
+  });
+
+  const stepMap = {};
+  for (const s of workflowSteps) {
+    if (!stepMap[s.client_name]) stepMap[s.client_name] = {};
+    stepMap[s.client_name][s.step_key] = s;
+  }
+  const getStep = (clientName, stepKey) => stepMap[clientName]?.[stepKey];
 
   const orderedClients = localClients || [...clients].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const displayClients = orderedClients.filter(c => c.company_name?.toLowerCase().includes(search.toLowerCase()));
@@ -283,6 +319,69 @@ export default function Clients() {
           )}
         </Droppable>
       </DragDropContext>
+
+      {/* ── Monthly Workflow ──────────────────────────────────────────────── */}
+      {clients.filter(c => c.status === "Actif").length > 0 && (
+        <div style={{ marginTop: 32, background: "var(--card)", borderRadius: 16, border: "1px solid var(--divider)", boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--divider)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 15, color: "var(--ink)", margin: 0 }}>Monthly workflow</p>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--muted)", marginTop: 2 }}>{format(new Date(), "MMMM yyyy")}</p>
+            </div>
+          </div>
+          {/* Header row */}
+          <div style={{ display: "grid", gridTemplateColumns: "200px repeat(5, 1fr)", borderBottom: "1px solid var(--divider)", overflowX: "auto" }}>
+            <div style={{ padding: "12px 16px", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Client</div>
+            {STEPS.map(s => (
+              <div key={s.key} style={{ padding: "12px 10px", borderLeft: "1px solid var(--divider)", textAlign: "center" }}>
+                <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 20, background: s.bg, fontFamily: "'DM Mono', monospace", fontSize: 9, fontWeight: 700, color: s.color, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 3 }}>{s.week}</span>
+                <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 600, color: "var(--ink)", margin: 0, lineHeight: 1.3 }}>{s.label}</p>
+              </div>
+            ))}
+          </div>
+          {/* Client rows */}
+          {clients.filter(c => c.status === "Actif").map((client, ci, arr) => {
+            const name = client.company_name;
+            const completedCount = STEPS.filter(s => getStep(name, s.key)?.completed).length;
+            const progress = Math.round((completedCount / STEPS.length) * 100);
+            return (
+              <div key={client.id} style={{ display: "grid", gridTemplateColumns: "200px repeat(5, 1fr)", borderBottom: ci < arr.length - 1 ? "1px solid var(--divider)" : "none" }}>
+                <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--brand-soft)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--brand)", flexShrink: 0 }}>
+                      {name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 700, color: "var(--ink)", margin: 0 }}>{name}</p>
+                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: completedCount === STEPS.length ? "#10B981" : "var(--muted)", margin: 0 }}>{completedCount}/{STEPS.length} done</p>
+                    </div>
+                  </div>
+                  <div style={{ height: 3, borderRadius: 2, background: "var(--divider)", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${progress}%`, borderRadius: 2, background: completedCount === STEPS.length ? "#10B981" : "var(--brand)", transition: "width 0.3s ease" }} />
+                  </div>
+                </div>
+                {STEPS.map(step => {
+                  const done = getStep(name, step.key)?.completed || false;
+                  return (
+                    <div key={step.key} style={{ borderLeft: "1px solid var(--divider)", display: "flex", alignItems: "center", justifyContent: "center", padding: "14px 10px", background: done ? step.bg : "transparent", transition: "background 0.15s" }}>
+                      <button
+                        onClick={() => toggleStep.mutate({ client_name: name, step_key: step.key, completed: !done })}
+                        title={step.label}
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 8 }}
+                      >
+                        {done
+                          ? <CheckCircle2 style={{ width: 26, height: 26, color: step.color }} />
+                          : <Circle style={{ width: 26, height: 26, color: "rgba(0,0,0,0.15)" }} />
+                        }
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Invite dialog — client portal OR staff portal */}
       <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteMsg(""); }}>
