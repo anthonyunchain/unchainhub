@@ -46,6 +46,7 @@ export default function PlanningCalendar() {
     catch { return new Set(); }
   });
   const [calPickerOpen, setCalPickerOpen] = useState(false);
+  const [bulkSyncing, setBulkSyncing] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const qc = useQueryClient();
   const month = monthKey(currentDate);
@@ -124,6 +125,23 @@ export default function PlanningCalendar() {
       fetchGcalEvents(monthStart, monthEnd);
     }
   }, [gcalConnected, calView, format(weekStart, "yyyy-MM-dd"), month]);
+
+  // ── Bulk sync existing tasks & shootings ─────────────────────────────────
+  const bulkSync = async () => {
+    setBulkSyncing(true);
+    try {
+      const result = await callEdgeFunction("googleCalendarBulkSync", {});
+      if (result.connected === false) {
+        toast.error("Google Calendar not connected");
+      } else {
+        toast.success(`Synced ${result.synced} event${result.synced !== 1 ? "s" : ""} to Google Calendar`);
+      }
+    } catch {
+      toast.error("Sync failed");
+    } finally {
+      setBulkSyncing(false);
+    }
+  };
 
   // ── Connect Google Calendar ───────────────────────────────────────────────
   const connectGcal = async () => {
@@ -262,6 +280,14 @@ export default function PlanningCalendar() {
             <CalendarDays style={{ width: 13, height: 13 }} />
             Google Cal {gcalLoading && <Loader2 style={{ width: 11, height: 11 }} className="animate-spin" />}
           </div>
+          <button
+            onClick={bulkSync}
+            disabled={bulkSyncing}
+            style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 10px", borderRadius: 8, border: "1px solid var(--divider)", background: "var(--card)", color: "var(--brand)", fontFamily: "'DM Mono', monospace", fontSize: 10, cursor: "pointer", fontWeight: 600 }}
+          >
+            {bulkSyncing ? <Loader2 style={{ width: 11, height: 11 }} className="animate-spin" /> : null}
+            {bulkSyncing ? "Syncing…" : "Sync existing"}
+          </button>
           <button
             onClick={disconnectGcal}
             style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--divider)", background: "var(--card)", color: "var(--muted)", fontFamily: "'DM Mono', monospace", fontSize: 10, cursor: "pointer" }}
