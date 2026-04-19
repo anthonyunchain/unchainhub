@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/api/base44Client";
-import { base44 } from "@/api/base44Client";
+import { supabase, base44 } from "@/api/base44Client";
 import {
   format, addMonths, subMonths, addWeeks, subWeeks,
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
@@ -245,6 +244,15 @@ export default function PlanningCalendar() {
     boxShadow: "var(--card-shadow)",
   };
 
+  const disconnectGcal = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("google_calendar_tokens").delete().eq("user_id", user.id);
+    setGcalConnected(false);
+    setGcalEvents([]);
+    toast.success("Google Calendar disconnected");
+  };
+
   // ── Google Calendar chip ─────────────────────────────────────────────────
   const GcalChip = () => {
     if (gcalConnected === null) {
@@ -257,9 +265,17 @@ export default function PlanningCalendar() {
     }
     if (gcalConnected) {
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid #10B981", background: "rgba(16,185,129,0.08)", color: "#10B981", fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 600 }}>
-          <CalendarDays style={{ width: 13, height: 13 }} />
-          Google Cal {gcalLoading && <Loader2 style={{ width: 11, height: 11 }} className="animate-spin" />}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid #10B981", background: "rgba(16,185,129,0.08)", color: "#10B981", fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 600 }}>
+            <CalendarDays style={{ width: 13, height: 13 }} />
+            Google Cal {gcalLoading && <Loader2 style={{ width: 11, height: 11 }} className="animate-spin" />}
+          </div>
+          <button
+            onClick={disconnectGcal}
+            style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--divider)", background: "var(--card)", color: "var(--muted)", fontFamily: "'DM Mono', monospace", fontSize: 10, cursor: "pointer" }}
+          >
+            Disconnect
+          </button>
         </div>
       );
     }
