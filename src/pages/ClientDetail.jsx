@@ -6,6 +6,7 @@ import { useConfirm } from "@/lib/confirm";
 import StatusBadge from "../components/shared/StatusBadge";
 import ClientMenusTab from "../components/shared/ClientMenusTab";
 import ClientMusicTab from "../components/shared/ClientMusicTab";
+import ClientCredentialsTab from "../components/shared/ClientCredentialsTab";
 import {
   ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt,
   Pencil, Upload, X, ExternalLink, Briefcase, Trash2, UserPlus,
@@ -45,6 +46,7 @@ const TABS = [
   { id: "calendars", label: "Calendars" },
   { id: "menus",     label: "Menus"     },
   { id: "music",     label: "Music"     },
+  { id: "credentials", label: "Passwords" },
 ];
 
 /* ─── Sub-components ──────────────────────────────────────────────────────── */
@@ -726,6 +728,11 @@ export default function ClientDetail() {
       {/* MUSIC — curated library per client (for video editors) */}
       {activeTab === "music" && (
         <ClientMusicTab clientId={client.id} clientName={client.company_name} canEdit />
+      )}
+
+      {/* CREDENTIALS — per-client third-party login vault */}
+      {activeTab === "credentials" && (
+        <ClientCredentialsTab clientId={client.id} clientName={client.company_name} canEdit />
       )}
 
       {/* ── Invite Dialog ── */}

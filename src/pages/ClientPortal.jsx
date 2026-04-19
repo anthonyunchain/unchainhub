@@ -11,9 +11,10 @@ import {
   Settings, ChevronLeft, ChevronRight, Eye, Users, TrendingUp,
   Bell, Moon, Sun, ExternalLink, Instagram, Youtube, Facebook,
   Linkedin, Globe, Download, Receipt, ClipboardList, CheckCircle2, Save,
-  GraduationCap, MoreHorizontal
+  GraduationCap, MoreHorizontal, KeyRound
 } from "lucide-react";
 import ClientTutorialsTab from "@/components/client/ClientTutorialsTab";
+import ClientCredentialsTab from "@/components/shared/ClientCredentialsTab";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 // ── Translations ───────────────────────────────────────────────────────────
@@ -113,6 +114,23 @@ const TRANSLATIONS = {
     noTutorials: "No tutorials yet",
     noTutorialsFiltered: "No tutorials match your filters",
     noTutorialsDesc: "Unchain Studio will upload helpful walkthroughs here.",
+    credentials: "Passwords",
+    searchCredentials: "Search label, username, notes…",
+    noCredentials: "No passwords yet",
+    noCredentialsFiltered: "No passwords match your filters",
+    noCredentialsDesc: "Unchain Studio will add your logins here.",
+    loginUrl: "URL",
+    username: "Username",
+    password: "Password",
+    openLogin: "Open login page",
+    copyUrl: "Copy URL",
+    copyUsername: "Copy username",
+    copyPassword: "Copy password",
+    showPassword: "Show",
+    hidePassword: "Hide",
+    urlCopied: "URL copied",
+    usernameCopied: "Username copied",
+    passwordCopied: "Password copied",
   },
   fi: {
     dashboard: "Dashboard",
@@ -209,6 +227,23 @@ const TRANSLATIONS = {
     noTutorials: "Ei vielä ohjevideoita",
     noTutorialsFiltered: "Ei hakua vastaavia ohjevideoita",
     noTutorialsDesc: "Unchain Studio lisää tänne hyödyllisiä videoita.",
+    credentials: "Salasanat",
+    searchCredentials: "Hae nimeä, käyttäjätunnusta, muistiinpanoja…",
+    noCredentials: "Ei vielä salasanoja",
+    noCredentialsFiltered: "Ei hakua vastaavia salasanoja",
+    noCredentialsDesc: "Unchain Studio lisää kirjautumistietosi tänne.",
+    loginUrl: "Osoite",
+    username: "Käyttäjätunnus",
+    password: "Salasana",
+    openLogin: "Avaa kirjautumissivu",
+    copyUrl: "Kopioi osoite",
+    copyUsername: "Kopioi käyttäjätunnus",
+    copyPassword: "Kopioi salasana",
+    showPassword: "Näytä",
+    hidePassword: "Piilota",
+    urlCopied: "Osoite kopioitu",
+    usernameCopied: "Käyttäjätunnus kopioitu",
+    passwordCopied: "Salasana kopioitu",
   },
 };
 
@@ -1380,10 +1415,11 @@ export default function ClientPortal() {
     { key: "brief",     label: tr.brief,       icon: ClipboardList },
     { key: "reports",   label: tr.reports,     icon: BarChart2 },
     { key: "tutorials", label: tr.tutorials || "Tutorials", icon: GraduationCap },
+    { key: "credentials", label: tr.credentials || "Passwords", icon: KeyRound },
     { key: "admin",     label: tr.admin,       icon: Settings },
   ];
   const MOBILE_TABS = TABS.filter(t => ["dashboard", "shootings", "brief"].includes(t.key));
-  const MORE_TABS = TABS.filter(t => ["reports", "tutorials", "admin"].includes(t.key));
+  const MORE_TABS = TABS.filter(t => ["reports", "tutorials", "credentials", "admin"].includes(t.key));
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1 }}>
@@ -1516,6 +1552,7 @@ export default function ClientPortal() {
         {activeTab === "brief"     && <BriefTab clientName={clientName} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "reports"   && <ReportsTab stats={stats} content={content} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "tutorials" && <ClientTutorialsTab tr={tr} />}
+        {activeTab === "credentials" && <ClientCredentialsTab clientId={clientRecord?.id} clientName={clientName} canEdit={false} tr={tr} />}
         {activeTab === "admin"     && (
           <div style={{ maxWidth: 640, margin: '0 auto' }}>
             <AdminTab contracts={contracts} contractDocuments={clientRecord?.contract_documents || []} invoices={invoices} tr={tr} dateLocale={dateLocale} />
