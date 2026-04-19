@@ -35,7 +35,7 @@ async function callEdgeFunction(name, body) {
 export default function PlanningCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekDate, setWeekDate] = useState(new Date());
-  const [calView, setCalView] = useState("week");
+  const [calView, setCalView] = useState("month");
   const [gcalConnected, setGcalConnected] = useState(null);
   const [gcalConnecting, setGcalConnecting] = useState(false);
   const [gcalEvents, setGcalEvents] = useState([]);
@@ -376,7 +376,7 @@ export default function PlanningCalendar() {
               const isCurrentDay = isToday(day);
               const isWeekend = i >= 5;
               return (
-                <div key={dayKey} style={{ borderRight: i < 6 ? "1px solid var(--divider)" : "none", background: isCurrentDay ? "rgba(42,105,255,0.03)" : isWeekend ? "rgba(0,0,0,0.015)" : "transparent", minHeight: 220, display: "flex", flexDirection: "column" }}>
+                <div key={dayKey} style={{ borderRight: i < 6 ? "1px solid var(--divider)" : "none", background: isCurrentDay ? "rgba(42,105,255,0.03)" : isWeekend ? "rgba(0,0,0,0.015)" : "transparent", minHeight: 220, minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
                   <div style={{ padding: "12px 14px 10px", borderBottom: "1px solid var(--divider)", textAlign: "center" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: "50%", background: isCurrentDay ? "var(--brand)" : "transparent", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: isCurrentDay ? 700 : 500, color: isCurrentDay ? "#fff" : isWeekend ? "var(--muted)" : "var(--ink)" }}>
                       {format(day, "d")}
@@ -441,7 +441,7 @@ export default function PlanningCalendar() {
               const isCurrentDay = isToday(day);
               const isWeekend = (i % 7) >= 5;
               return (
-                <div key={dayKey} style={{ borderRight: (i + 1) % 7 !== 0 ? "1px solid var(--divider)" : "none", borderBottom: i < monthCells.length - 7 ? "1px solid var(--divider)" : "none", minHeight: 110, padding: "8px 8px 6px", background: !inMonth ? "var(--bg)" : isCurrentDay ? "rgba(42,105,255,0.03)" : isWeekend ? "rgba(0,0,0,0.015)" : "var(--card)", display: "flex", flexDirection: "column", gap: 4 }}>
+                <div key={dayKey} style={{ borderRight: (i + 1) % 7 !== 0 ? "1px solid var(--divider)" : "none", borderBottom: i < monthCells.length - 7 ? "1px solid var(--divider)" : "none", minHeight: 110, minWidth: 0, overflow: "hidden", padding: "8px 8px 6px", background: !inMonth ? "var(--bg)" : isCurrentDay ? "rgba(42,105,255,0.03)" : isWeekend ? "rgba(0,0,0,0.015)" : "var(--card)", display: "flex", flexDirection: "column", gap: 4 }}>
                   <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 2 }}>
                     <span style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: isCurrentDay ? "var(--brand)" : "transparent", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: isCurrentDay ? 700 : inMonth ? 500 : 400, color: isCurrentDay ? "#fff" : !inMonth ? "var(--subtle)" : isWeekend ? "var(--muted)" : "var(--ink)" }}>
                       {format(day, "d")}
