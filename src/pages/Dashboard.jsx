@@ -24,7 +24,17 @@ async function fetchUpcomingGcalEvents() {
       body: JSON.stringify({ timeMin: now.toISOString(), timeMax: addDays(now, 14).toISOString() }),
     }
   );
-  return res.ok ? res.json() : { connected: false, events: [] };
+  if (!res.ok) return { connected: false, events: [] };
+  const data = await res.json();
+  // Filter to future-only events
+  const nowMs = Date.now();
+  const events = (data.events || []).filter(ev => {
+    const end = ev.end?.dateTime ? new Date(ev.end.dateTime).getTime()
+      : ev.end?.date ? new Date(ev.end.date + "T23:59:59").getTime()
+      : Infinity;
+    return end > nowMs;
+  });
+  return { ...data, events };
 }
 
 const CARD = {

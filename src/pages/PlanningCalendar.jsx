@@ -7,7 +7,7 @@ import {
   eachDayOfInterval, isToday,
 } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, CheckCircle2, Circle, CalendarDays, Loader2, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Circle, CalendarDays, Loader2, AlertCircle, Layers } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import { toast } from "sonner";
@@ -45,10 +45,16 @@ export default function PlanningCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekDate, setWeekDate] = useState(new Date());
   const [calView, setCalView] = useState("week");
-  const [gcalConnected, setGcalConnected] = useState(null); // null=checking, true/false
+  const [gcalConnected, setGcalConnected] = useState(null);
   const [gcalConnecting, setGcalConnecting] = useState(false);
   const [gcalEvents, setGcalEvents] = useState([]);
   const [gcalLoading, setGcalLoading] = useState(false);
+  const [allCalendars, setAllCalendars] = useState([]); // [{ name, color }]
+  const [hiddenCalendars, setHiddenCalendars] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("gcal_hidden") || "[]")); }
+    catch { return new Set(); }
+  });
+  const [calPickerOpen, setCalPickerOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const qc = useQueryClient();
   const month = monthKey(currentDate);
@@ -92,7 +98,21 @@ export default function PlanningCalendar() {
         timeMin: start.toISOString(),
         timeMax: end.toISOString(),
       });
-      if (result.connected) setGcalEvents(result.events || []);
+      if (result.connected) {
+        const evs = result.events || [];
+        setGcalEvents(evs);
+        // Extract unique calendars from events
+        const calMap = {};
+        for (const ev of evs) {
+          if (ev._calendarName && !calMap[ev._calendarName]) {
+            calMap[ev._calendarName] = ev._calendarColor || "#4285F4";
+          }
+        }
+        setAllCalendars(prev => {
+          const next = { ...Object.fromEntries(prev.map(c => [c.name, c.color])), ...calMap };
+          return Object.entries(next).map(([name, color]) => ({ name, color }));
+        });
+      }
     } catch {
       // silently ignore
     } finally {
@@ -226,9 +246,9 @@ export default function PlanningCalendar() {
   for (const t of monthTasks) { if (t.due_date) { (mTasksByDay[t.due_date] ||= []).push(t); } }
   for (const s of monthShootings) { if (s.date) { (mShootingsByDay[s.date] ||= []).push(s); } }
 
-  // Google Calendar events by day
+  // Google Calendar events by day (visible only, future only for display)
   const gcalByDay = {};
-  for (const ev of gcalEvents) {
+  for (const ev of visibleGcalEvents) {
     const dayStr = ev.start?.date || ev.start?.dateTime?.slice(0, 10);
     if (dayStr) (gcalByDay[dayStr] ||= []).push(ev);
   }
@@ -243,6 +263,19 @@ export default function PlanningCalendar() {
     border: "1px solid var(--divider)",
     boxShadow: "var(--card-shadow)",
   };
+
+  const toggleCalendar = (name) => {
+    setHiddenCalendars(prev => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      localStorage.setItem("gcal_hidden", JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const visibleGcalEvents = gcalEvents.filter(ev =>
+    !hiddenCalendars.has(ev._calendarName)
+  );
 
   const disconnectGcal = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -296,8 +329,40 @@ export default function PlanningCalendar() {
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <PageHeader title="Planning" subtitle="Monthly workflow & calendar">
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap" style={{ position: "relative" }}>
           <GcalChip />
+          {gcalConnected && allCalendars.length > 0 && (
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setCalPickerOpen(o => !o)}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--divider)", background: "var(--card)", color: "var(--ink)", fontFamily: "'DM Mono', monospace", fontSize: 11, cursor: "pointer" }}
+              >
+                <Layers style={{ width: 13, height: 13 }} />
+                Calendars {hiddenCalendars.size > 0 && <span style={{ background: "var(--brand)", color: "#fff", borderRadius: 10, padding: "0 5px", fontSize: 9 }}>{allCalendars.length - hiddenCalendars.size}/{allCalendars.length}</span>}
+              </button>
+              {calPickerOpen && (
+                <>
+                  <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={() => setCalPickerOpen(false)} />
+                  <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 50, background: "var(--card)", border: "1px solid var(--divider)", borderRadius: 12, boxShadow: "var(--card-shadow)", padding: "8px", minWidth: 220, display: "flex", flexDirection: "column", gap: 2 }}>
+                    {allCalendars.map(cal => {
+                      const hidden = hiddenCalendars.has(cal.name);
+                      return (
+                        <button
+                          key={cal.name}
+                          onClick={() => toggleCalendar(cal.name)}
+                          style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, border: "none", background: hidden ? "transparent" : "rgba(0,0,0,0.03)", cursor: "pointer", textAlign: "left", width: "100%", opacity: hidden ? 0.45 : 1, transition: "all 0.15s" }}
+                        >
+                          <span style={{ width: 10, height: 10, borderRadius: "50%", background: cal.color || "#4285F4", flexShrink: 0, outline: hidden ? "2px dashed var(--divider)" : "none" }} />
+                          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: "var(--ink)", flex: 1 }}>{cal.name}</span>
+                          {!hidden && <CheckCircle2 style={{ width: 14, height: 14, color: "var(--brand)" }} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           <button onClick={() => setCurrentDate(d => subMonths(d, 1))} style={navBtn}>
             <ChevronLeft style={{ width: 16, height: 16 }} />
           </button>
