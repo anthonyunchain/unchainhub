@@ -4,7 +4,6 @@ import { enUS } from "date-fns/locale";
 import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square, MessageCircle, Send, X, ImagePlus, Loader2, ThumbsUp } from "lucide-react";
 import { TASK_STATUS_CONFIG as STATUS_CONFIG, TASK_STATUS_LABEL as STATUS_LABEL } from "@/lib/taskStatus";
 import { base44 } from "@/api/base44Client";
-import TaskComments from "@/components/tasks/TaskComments";
 
 const CATEGORY_LABEL = {
   "Design": "Design",
@@ -201,10 +200,6 @@ function TaskRow({ task, onUpdateTask }) {
               {task.notes}
             </div>
           )}
-          {/* Comments */}
-          <div className="pt-1">
-            <TaskComments taskId={task.id} />
-          </div>
         </div>
       )}
 
