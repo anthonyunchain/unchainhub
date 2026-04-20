@@ -251,7 +251,7 @@ export default function ClientCredentialsTab({ clientId, clientName, canEdit = f
                     <div className="mt-2 space-y-1.5">
                       {r.login_url && (
                         <div className="flex items-center gap-2 text-xs">
-                          <span className="text-slate-400 w-16 shrink-0">{t("loginUrl", "URL")}</span>
+                          <span className="text-slate-400 w-24 sm:w-28 shrink-0">{t("loginUrl", "URL")}</span>
                           <a href={r.login_url} target="_blank" rel="noopener noreferrer"
                             className="text-slate-700 truncate hover:text-brand hover:underline flex-1"
                             title={r.login_url}>
@@ -273,7 +273,7 @@ export default function ClientCredentialsTab({ clientId, clientName, canEdit = f
 
                       {r.username && (
                         <div className="flex items-center gap-2 text-xs">
-                          <span className="text-slate-400 w-16 shrink-0">{t("username", "Username")}</span>
+                          <span className="text-slate-400 w-24 sm:w-28 shrink-0">{t("username", "Username")}</span>
                           <span className="font-mono text-slate-700 truncate flex-1" title={r.username}>{r.username}</span>
                           <button type="button"
                             onClick={() => copyToClipboard(r.username, t("usernameCopied", "Username copied"))}
@@ -286,7 +286,7 @@ export default function ClientCredentialsTab({ clientId, clientName, canEdit = f
 
                       {r.password && (
                         <div className="flex items-center gap-2 text-xs">
-                          <span className="text-slate-400 w-16 shrink-0">{t("password", "Password")}</span>
+                          <span className="text-slate-400 w-24 sm:w-28 shrink-0">{t("password", "Password")}</span>
                           <span className="font-mono text-slate-700 truncate flex-1">
                             {isRevealed ? r.password : "•".repeat(Math.min(r.password.length, 12))}
                           </span>
