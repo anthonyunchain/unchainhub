@@ -125,7 +125,7 @@ export default function StaffPortal() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--bg)', position: 'relative', zIndex: 1 }}>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
         {/* Header */}
