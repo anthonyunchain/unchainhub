@@ -79,15 +79,16 @@ export default function StaffPortal() {
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("menu_submissions").insert({
-        client_id: client.id,
-        staff_id: user.id,
-        title: title.trim(),
-        period: period.trim() || null,
-        notes: notes.trim() || null,
-        files,
+      const { data, error } = await supabase.functions.invoke("submitMenu", {
+        body: {
+          title: title.trim(),
+          period: period.trim() || null,
+          notes: notes.trim() || null,
+          files,
+        },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       toast.success("Menu submitted");
       setTitle(""); setPeriod(""); setNotes(""); setFiles([]);
       loadSubmissions(client.id);
