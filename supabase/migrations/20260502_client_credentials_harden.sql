@@ -83,9 +83,8 @@ RETURNS TABLE (
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public, pgsodium, pg_temp
 AS $$
-#variable_conflict use_variable
 DECLARE
-  cc_key uuid := _cc_key_id();
+  key_uuid uuid := _cc_key_id();
 BEGIN
   -- Auth: admin OR the owning client's portal user
   IF NOT (
@@ -106,13 +105,13 @@ BEGIN
     CASE WHEN cc.username_enc IS NOT NULL
       THEN convert_from(
         pgsodium.crypto_aead_det_decrypt(
-          cc.username_enc, cc.client_id::text::bytea, cc_key
+          cc.username_enc, cc.client_id::text::bytea, key_uuid
         ), 'utf8')
       ELSE NULL END,
     CASE WHEN cc.password_enc IS NOT NULL
       THEN convert_from(
         pgsodium.crypto_aead_det_decrypt(
-          cc.password_enc, cc.client_id::text::bytea, cc_key
+          cc.password_enc, cc.client_id::text::bytea, key_uuid
         ), 'utf8')
       ELSE NULL END,
     cc.category, cc.notes, cc."position", cc.created_at
@@ -142,11 +141,10 @@ CREATE OR REPLACE FUNCTION upsert_client_credential(
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public, pgsodium, pg_temp
 AS $$
-#variable_conflict use_variable
 DECLARE
-  cc_key uuid := _cc_key_id();
-  cc_id  uuid;
-  cc_aad bytea := p_client_id::text::bytea;
+  key_uuid  uuid := _cc_key_id();
+  new_id    uuid;
+  aad_bytes bytea := p_client_id::text::bytea;
 BEGIN
   IF NOT is_admin() THEN
     RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
@@ -160,34 +158,38 @@ BEGIN
     ) VALUES (
       p_client_id, p_label, NULLIF(p_login_url, ''),
       CASE WHEN p_username IS NOT NULL AND p_username <> ''
-        THEN pgsodium.crypto_aead_det_encrypt(p_username::bytea, cc_aad, cc_key) END,
+        THEN pgsodium.crypto_aead_det_encrypt(p_username::bytea, aad_bytes, key_uuid) END,
       CASE WHEN p_password IS NOT NULL AND p_password <> ''
-        THEN pgsodium.crypto_aead_det_encrypt(p_password::bytea, cc_aad, cc_key) END,
+        THEN pgsodium.crypto_aead_det_encrypt(p_password::bytea, aad_bytes, key_uuid) END,
       NULLIF(p_category, ''), NULLIF(p_notes, ''), COALESCE(p_position, 0)
-    ) RETURNING id INTO cc_id;
+    ) RETURNING id INTO new_id;
 
-    INSERT INTO client_credentials_access_log (credential_id, client_id, actor_id, actor_email, action)
-    SELECT cc_id, p_client_id, auth.uid(), auth.jwt() ->> 'email', 'create';
+    EXECUTE
+      'INSERT INTO client_credentials_access_log (credential_id, client_id, actor_id, actor_email, action)
+       VALUES ($1, $2, $3, $4, $5)'
+      USING new_id, p_client_id, auth.uid(), auth.jwt() ->> 'email', 'create';
   ELSE
     UPDATE client_credentials SET
       label        = p_label,
       login_url    = NULLIF(p_login_url, ''),
       username_enc = CASE WHEN p_username IS NOT NULL AND p_username <> ''
-        THEN pgsodium.crypto_aead_det_encrypt(p_username::bytea, cc_aad, cc_key) END,
+        THEN pgsodium.crypto_aead_det_encrypt(p_username::bytea, aad_bytes, key_uuid) END,
       password_enc = CASE WHEN p_password IS NOT NULL AND p_password <> ''
-        THEN pgsodium.crypto_aead_det_encrypt(p_password::bytea, cc_aad, cc_key) END,
+        THEN pgsodium.crypto_aead_det_encrypt(p_password::bytea, aad_bytes, key_uuid) END,
       category     = NULLIF(p_category, ''),
       notes        = NULLIF(p_notes, ''),
       "position"   = COALESCE(p_position, 0),
       updated_at   = now()
     WHERE id = p_id
-    RETURNING id INTO cc_id;
+    RETURNING id INTO new_id;
 
-    INSERT INTO client_credentials_access_log (credential_id, client_id, actor_id, actor_email, action)
-    SELECT cc_id, p_client_id, auth.uid(), auth.jwt() ->> 'email', 'update';
+    EXECUTE
+      'INSERT INTO client_credentials_access_log (credential_id, client_id, actor_id, actor_email, action)
+       VALUES ($1, $2, $3, $4, $5)'
+      USING new_id, p_client_id, auth.uid(), auth.jwt() ->> 'email', 'update';
   END IF;
 
-  RETURN cc_id;
+  RETURN new_id;
 END;
 $$;
 
@@ -202,21 +204,22 @@ RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
-#variable_conflict use_variable
 DECLARE
-  cc_cid uuid;
+  owner_id uuid;
 BEGIN
   IF NOT is_admin() THEN
     RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
   END IF;
 
-  SELECT client_id INTO cc_cid FROM client_credentials WHERE id = p_id;
-  IF cc_cid IS NULL THEN RETURN; END IF;
+  SELECT client_id INTO owner_id FROM client_credentials WHERE id = p_id;
+  IF owner_id IS NULL THEN RETURN; END IF;
 
   DELETE FROM client_credentials WHERE id = p_id;
 
-  INSERT INTO client_credentials_access_log (credential_id, client_id, actor_id, actor_email, action)
-  SELECT p_id, cc_cid, auth.uid(), auth.jwt() ->> 'email', 'delete';
+  EXECUTE
+    'INSERT INTO client_credentials_access_log (credential_id, client_id, actor_id, actor_email, action)
+     VALUES ($1, $2, $3, $4, $5)'
+    USING p_id, owner_id, auth.uid(), auth.jwt() ->> 'email', 'delete';
 END;
 $$;
 
@@ -232,25 +235,26 @@ RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
-#variable_conflict use_variable
 DECLARE
-  cc_cid uuid;
+  owner_id uuid;
 BEGIN
-  SELECT client_id INTO cc_cid FROM client_credentials WHERE id = p_credential_id;
-  IF cc_cid IS NULL THEN RETURN; END IF;
+  SELECT client_id INTO owner_id FROM client_credentials WHERE id = p_credential_id;
+  IF owner_id IS NULL THEN RETURN; END IF;
 
   IF NOT (
     is_admin()
     OR EXISTS (
       SELECT 1 FROM clients c
-      WHERE c.id = cc_cid AND c.portal_user_id = auth.uid()
+      WHERE c.id = owner_id AND c.portal_user_id = auth.uid()
     )
   ) THEN
     RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
   END IF;
 
-  INSERT INTO client_credentials_access_log (credential_id, client_id, actor_id, actor_email, action)
-  SELECT p_credential_id, cc_cid, auth.uid(), auth.jwt() ->> 'email', 'reveal';
+  EXECUTE
+    'INSERT INTO client_credentials_access_log (credential_id, client_id, actor_id, actor_email, action)
+     VALUES ($1, $2, $3, $4, $5)'
+    USING p_credential_id, owner_id, auth.uid(), auth.jwt() ->> 'email', 'reveal';
 END;
 $$;
 
