@@ -74,11 +74,12 @@ Deno.serve(async (req) => {
     }
 
     // Profile row with staff role
-    await supabaseAdmin.from('profiles').upsert({
+    const { error: profileErr } = await supabaseAdmin.from('profiles').upsert({
       id: userId,
       full_name: company_name || email,
       role: 'staff',
     }, { onConflict: 'id' });
+    if (profileErr) return Response.json({ error: `Profile upsert failed: ${profileErr.message}` }, { status: 400, headers: corsHeaders(req) });
 
     // Clear any previous staff_user_id on other clients to keep 1-staff-per-client invariant
     await supabaseAdmin.from('clients').update({ staff_user_id: null }).eq('staff_user_id', userId);
