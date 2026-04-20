@@ -11,6 +11,7 @@ import {
   ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt,
   Pencil, Upload, X, ExternalLink, Briefcase, Trash2, UserPlus,
   ChevronLeft, ChevronRight, RefreshCw, Copy, KeyRound, Plus, Paperclip,
+  ChefHat,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -204,6 +205,7 @@ export default function ClientDetail() {
   const [inviting,           setInviting]           = useState(false);
   const [inviteMsg,          setInviteMsg]          = useState("");
   const [invitePassword,     setInvitePassword]     = useState("");
+  const [inviteRole,         setInviteRole]         = useState("client"); // 'client' | 'staff'
   const [invoiceOpen,        setInvoiceOpen]        = useState(false);
   const [invoiceData,        setInvoiceData]        = useState(null);
   const [invoiceMutError,    setInvoiceMutError]    = useState(null);
@@ -299,8 +301,9 @@ export default function ClientDetail() {
     return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   };
 
-  const openInvite = () => {
-    setInviteEmail(client.contact_email || "");
+  const openInvite = (role = "client") => {
+    setInviteRole(role);
+    setInviteEmail(role === "staff" ? "" : (client.contact_email || ""));
     setInviteMsg("");
     setInvitePassword(generatePassword());
     setInviteOpen(true);
@@ -309,10 +312,17 @@ export default function ClientDetail() {
     if (!inviteEmail) return;
     setInviting(true); setInviteMsg("");
     try {
-      const { data } = await base44.functions.invoke("setClientPassword", {
+      const fn = inviteRole === "staff" ? "setStaffPassword" : "setClientPassword";
+      const { data } = await base44.functions.invoke(fn, {
         email: inviteEmail, company_name: client.company_name, client_id: id, password: invitePassword,
       });
-      setInviteMsg(data?.error ? "Error: " + data.error : "✓ Account created. Share the password with the client.");
+      if (data?.error) {
+        setInviteMsg("Error: " + data.error);
+      } else {
+        setInviteMsg(inviteRole === "staff"
+          ? "✓ Account created. Share the password with the staff member."
+          : "✓ Account created. Share the password with the client.");
+      }
     } catch (e) { setInviteMsg("Error: " + (e?.message || "Unknown error")); }
     finally { setInviting(false); }
   };
@@ -368,9 +378,14 @@ export default function ClientDetail() {
           <div className="flex items-center gap-2 shrink-0">
             <StatusBadge status={client.status} />
             {client.status === "Actif" && (
-              <Button variant="outline" size="sm" onClick={openInvite} className="h-8 gap-1">
-                <UserPlus className="w-3.5 h-3.5 text-blue-500" /> Invite
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={() => openInvite("client")} className="h-8 gap-1">
+                  <UserPlus className="w-3.5 h-3.5 text-blue-500" /> Invite
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => openInvite("staff")} className="h-8 gap-1">
+                  <ChefHat className="w-3.5 h-3.5 text-amber-600" /> Staff
+                </Button>
+              </>
             )}
             <Button variant="outline" size="sm" onClick={openEdit} className="h-8 gap-1">
               <Pencil className="w-3.5 h-3.5" /> Edit
@@ -740,12 +755,17 @@ export default function ClientDetail() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-blue-500" /> Portal access — {client?.company_name}
+              {inviteRole === "staff"
+                ? <ChefHat className="w-5 h-5 text-amber-600" />
+                : <UserPlus className="w-5 h-5 text-blue-500" />}
+              {inviteRole === "staff" ? "Staff access" : "Portal access"} — {client?.company_name}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <p className="text-sm text-slate-500">
-              Create an account with a password directly. Share it with the client via SMS or in person. Works even if the email is already registered.
+              {inviteRole === "staff"
+                ? "Create a staff account so the restaurant team can send you menus directly. Staff only see their own submissions — never the calendar, stats or invoices."
+                : "Create an account with a password directly. Share it with the client via SMS or in person. Works even if the email is already registered."}
             </p>
             <div>
               <Label>Email address</Label>
