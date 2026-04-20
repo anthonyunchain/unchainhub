@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
-import { registerPush, unregisterPush } from "@/lib/pushNotifications";
+import { registerPush, unregisterPush, getPushState } from "@/lib/pushNotifications";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, parseISO } from "date-fns";
 import { enUS, fi as fiFns } from "date-fns/locale";
 import { getGreeting } from "@/lib/greeting";
@@ -108,6 +108,10 @@ const TRANSLATIONS = {
     pushNotifications: "Push notifications",
     pushOn: "Notifications on",
     pushOff: "Notifications off",
+    pushDenied: "Notifications are blocked. Unblock them in your browser settings, then reload this page.",
+    pushIosInstall: "On iPhone, tap the share icon in Safari then \u201cAdd to Home Screen\u201d to enable notifications.",
+    pushUnsupported: "Your browser doesn\u2019t support push notifications.",
+    pushError: "Couldn\u2019t enable notifications. Please try again.",
     tutorials: "Tutorials",
     searchTutorials: "Search tutorials…",
     allCategories: "All categories",
@@ -228,6 +232,10 @@ const TRANSLATIONS = {
     pushNotifications: "Push-ilmoitukset",
     pushOn: "Ilmoitukset päällä",
     pushOff: "Ilmoitukset pois",
+    pushDenied: "Ilmoitukset on estetty. Salli ne selaimen asetuksista ja lataa sivu uudelleen.",
+    pushIosInstall: "iPhonella avaa jakovalikko Safarissa ja valitse \u201dLis\u00e4\u00e4 Koti-valikkoon\u201d n\u00e4hd\u00e4ksesi ilmoitukset.",
+    pushUnsupported: "Selaimesi ei tue push-ilmoituksia.",
+    pushError: "Ilmoituksia ei voitu ottaa k\u00e4ytt\u00f6\u00f6n. Yrit\u00e4 uudelleen.",
     tutorials: "Ohjevideot",
     searchTutorials: "Hae ohjevideoita…",
     allCategories: "Kaikki kategoriat",
@@ -1196,19 +1204,39 @@ function SettingsDialog({ open, onClose, tr }) {
   const [confirmPw, setConfirmPw] = useState("");
   const [emailMsg, setEmailMsg] = useState("");
   const [pwMsg, setPwMsg] = useState("");
-  const [pushEnabled, setPushEnabled] = useState(() =>
-    typeof Notification !== 'undefined' && Notification.permission === 'granted'
-  );
+  // Push state: 'enabled' | 'disabled' | 'denied' | 'ios-install' | 'unsupported' | 'loading'
+  const [pushState, setPushState] = useState('loading');
   const [pushLoading, setPushLoading] = useState(false);
+  const [pushMsg, setPushMsg] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setPushMsg("");
+    getPushState().then(setPushState);
+  }, [open]);
 
   const togglePush = async () => {
     setPushLoading(true);
-    if (pushEnabled) {
+    setPushMsg("");
+    if (pushState === 'enabled') {
       await unregisterPush();
-      setPushEnabled(false);
-    } else {
-      const sub = await registerPush();
-      setPushEnabled(!!sub);
+      setPushState('disabled');
+    } else if (pushState === 'disabled') {
+      const res = await registerPush();
+      if (res.ok) {
+        setPushState('enabled');
+      } else if (res.reason === 'denied') {
+        setPushState('denied');
+        setPushMsg(tr.pushDenied);
+      } else if (res.reason === 'ios-install') {
+        setPushState('ios-install');
+        setPushMsg(tr.pushIosInstall);
+      } else if (res.reason === 'unsupported') {
+        setPushState('unsupported');
+        setPushMsg(tr.pushUnsupported);
+      } else {
+        setPushMsg(tr.pushError);
+      }
     }
     setPushLoading(false);
   };
@@ -1251,29 +1279,42 @@ function SettingsDialog({ open, onClose, tr }) {
           <button onClick={updatePw} disabled={!newPw || !confirmPw} className="w-full bg-slate-800 text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50">{tr.updatePassword}</button>
         </div>
         <MfaSection tr={tr} />
-        {'Notification' in window && (
-          <div className="pt-2 border-t border-slate-100">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{tr.pushNotifications}</p>
-            <button
-              onClick={togglePush}
-              disabled={pushLoading}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 14px', borderRadius: 12,
-                background: pushEnabled ? 'rgba(42,105,255,0.07)' : 'var(--subtle, #f4f4f5)',
-                border: `1px solid ${pushEnabled ? 'rgba(42,105,255,0.2)' : '#e4e4e7'}`,
-                cursor: pushLoading ? 'not-allowed' : 'pointer', opacity: pushLoading ? 0.6 : 1,
-              }}
-            >
-              <span style={{ fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, color: pushEnabled ? '#2A69FF' : '#52525b' }}>
-                {pushEnabled ? tr.pushOn : tr.pushOff}
-              </span>
-              <span style={{ position: 'relative', width: 36, height: 20, borderRadius: 10, background: pushEnabled ? '#2A69FF' : '#d4d4d8', transition: 'background 0.2s', flexShrink: 0 }}>
-                <span style={{ position: 'absolute', top: 2, left: pushEnabled ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-              </span>
-            </button>
-          </div>
-        )}
+        {(() => {
+          const pushEnabled = pushState === 'enabled';
+          const canInteract = pushState === 'enabled' || pushState === 'disabled';
+          const hint =
+            pushState === 'denied'      ? tr.pushDenied :
+            pushState === 'ios-install' ? tr.pushIosInstall :
+            pushState === 'unsupported' ? tr.pushUnsupported :
+            pushMsg || null;
+          return (
+            <div className="pt-2 border-t border-slate-100">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{tr.pushNotifications}</p>
+              <button
+                onClick={togglePush}
+                disabled={pushLoading || !canInteract}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 14px', borderRadius: 12,
+                  background: pushEnabled ? 'rgba(42,105,255,0.07)' : 'var(--subtle, #f4f4f5)',
+                  border: `1px solid ${pushEnabled ? 'rgba(42,105,255,0.2)' : '#e4e4e7'}`,
+                  cursor: (pushLoading || !canInteract) ? 'not-allowed' : 'pointer',
+                  opacity: (pushLoading || !canInteract) ? 0.55 : 1,
+                }}
+              >
+                <span style={{ fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, color: pushEnabled ? '#2A69FF' : '#52525b' }}>
+                  {pushEnabled ? tr.pushOn : tr.pushOff}
+                </span>
+                <span style={{ position: 'relative', width: 36, height: 20, borderRadius: 10, background: pushEnabled ? '#2A69FF' : '#d4d4d8', transition: 'background 0.2s', flexShrink: 0 }}>
+                  <span style={{ position: 'absolute', top: 2, left: pushEnabled ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                </span>
+              </button>
+              {hint && (
+                <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">{hint}</p>
+              )}
+            </div>
+          );
+        })()}
         <button onClick={onClose} className="w-full text-sm text-slate-400 hover:text-slate-600 py-1">{tr.close}</button>
       </div>
     </div>

@@ -130,8 +130,8 @@ export default function UserMenu({ userName, userEmail, initials, onSettingsClic
       await unregisterPush();
       setPushEnabled(false);
     } else {
-      const sub = await registerPush();
-      setPushEnabled(!!sub);
+      const res = await registerPush();
+      setPushEnabled(res?.ok === true);
     }
     setPushLoading(false);
   };
