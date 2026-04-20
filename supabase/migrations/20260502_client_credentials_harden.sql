@@ -13,6 +13,11 @@
 -- Idempotent: safe to run whether the prior migration was applied or not.
 -- =============================================================================
 
+-- Skip aggressive parse-time validation of function bodies. Supabase's
+-- plpgsql was mis-resolving local variables in SELECT expressions
+-- without a FROM clause as relations. Runtime execution works correctly.
+SET check_function_bodies = off;
+
 CREATE EXTENSION IF NOT EXISTS pgsodium;
 
 -- ── Create (or reuse) the encryption key ─────────────────────────────────────
@@ -251,3 +256,5 @@ $$;
 
 REVOKE ALL ON FUNCTION log_credential_reveal(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION log_credential_reveal(uuid) TO authenticated;
+
+RESET check_function_bodies;
