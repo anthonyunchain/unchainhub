@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/api/base44Client";
 import { format, addMonths } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, CheckCircle2, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Clock, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const FIELDS = [
@@ -17,7 +17,9 @@ const FIELDS = [
 export default function MonthlyBriefs() {
   const [currentMonth, setCurrentMonth] = useState(format(addMonths(new Date(), 1), "yyyy-MM"));
   const [filterClient, setFilterClient] = useState("all");
-  const [selected, setSelected] = useState(null); // brief id to show detail
+  const [selected, setSelected] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null); // brief id pending deletion
+  const queryClient = useQueryClient();
 
   const shiftMonth = (dir) => {
     const d = new Date(currentMonth + "-01");
@@ -44,6 +46,18 @@ export default function MonthlyBriefs() {
     queryFn: async () => {
       const { data } = await supabase.from("clients").select("company_name").eq("status", "Actif").order("company_name");
       return data || [];
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("monthly_briefs").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["monthly_briefs", currentMonth] });
+      setSelected(null);
+      setConfirmDelete(null);
     },
   });
 
@@ -87,26 +101,54 @@ export default function MonthlyBriefs() {
           {filtered.map(brief => {
             const isSelected = selected === brief.id;
             const filledFields = FIELDS.filter(f => brief[f.key]?.trim()).length;
+            const isPendingDelete = confirmDelete === brief.id;
             return (
               <div key={brief.id}
-                onClick={() => setSelected(isSelected ? null : brief.id)}
+                onClick={() => !isPendingDelete && setSelected(isSelected ? null : brief.id)}
                 className={`bg-white rounded-xl border p-4 cursor-pointer transition-all ${isSelected ? "border-[#2A69FF] ring-1 ring-[#2A69FF]/10" : "border-slate-100 hover:border-slate-200"}`}
               >
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-slate-800">{brief.client_name}</p>
+                    {brief.title?.trim() && (
+                      <p className="text-xs text-slate-600 font-medium mt-0.5">{brief.title}</p>
+                    )}
                     <p className="text-xs text-slate-400 mt-0.5">
                       {brief.submitted_at
                         ? `Submitted ${format(new Date(brief.submitted_at), "d MMM yyyy 'at' HH:mm", { locale: enUS })}`
                         : "Draft — not yet submitted"}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 ml-3 shrink-0">
                     <span className="text-xs text-slate-400">{filledFields}/{FIELDS.length} fields</span>
                     {brief.submitted_at
                       ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                       : <Clock className="w-4 h-4 text-amber-400" />
                     }
+                    {isPendingDelete ? (
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => deleteMutation.mutate(brief.id)}
+                          disabled={deleteMutation.isPending}
+                          className="text-[11px] font-semibold text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded-md"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(null)}
+                          className="text-[11px] font-semibold text-slate-500 hover:text-slate-700 px-2 py-1 rounded-md border border-slate-200"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={e => { e.stopPropagation(); setConfirmDelete(brief.id); }}
+                        className="w-6 h-6 flex items-center justify-center rounded text-slate-300 hover:text-red-400 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -129,6 +171,9 @@ export default function MonthlyBriefs() {
           <div className="w-80 shrink-0 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4 self-start sticky top-4">
             <div>
               <p className="text-base font-bold text-slate-800">{selectedBrief.client_name}</p>
+              {selectedBrief.title?.trim() && (
+                <p className="text-sm text-slate-600 font-medium mt-0.5">{selectedBrief.title}</p>
+              )}
               <p className="text-xs text-slate-400 mt-0.5 capitalize">{monthLabel}</p>
               {selectedBrief.submitted_at && (
                 <span className="inline-flex items-center gap-1 mt-2 text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold">

@@ -55,6 +55,8 @@ const TRANSLATIONS = {
     submitBrief: "Submit brief",
     submitting: "Submitting…",
     submitted: "Submitted",
+    briefTitleField: "Brief title",
+    briefTitlePlaceholder: "e.g. Summer launch — June 2026",
     keyDates: "Key dates & events",
     campaigns: "Campaigns & promotions",
     themes: "Main themes / topics",
@@ -179,6 +181,8 @@ const TRANSLATIONS = {
     submitBrief: "Lähetä tiedote",
     submitting: "Lähetetään…",
     submitted: "Lähetetty",
+    briefTitleField: "Tiedotteen otsikko",
+    briefTitlePlaceholder: "esim. Kesälanseeraus — kesäkuu 2026",
     keyDates: "Tärkeät päivämäärät ja tapahtumat",
     campaigns: "Kampanjat",
     themes: "Keskeiset teemat / aiheet",
@@ -1325,7 +1329,7 @@ function SettingsDialog({ open, onClose, tr }) {
 function BriefTab({ clientName, tr, dateLocale }) {
   const nextMonth = format(addMonths(new Date(), 1), "yyyy-MM");
   const [month, setMonth] = useState(nextMonth);
-  const [form, setForm] = useState({ key_events: "", campaigns: "", themes: "", products: "", notes: "" });
+  const [form, setForm] = useState({ title: "", key_events: "", campaigns: "", themes: "", products: "", notes: "" });
   const [briefId, setBriefId] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1352,11 +1356,11 @@ function BriefTab({ clientName, tr, dateLocale }) {
         if (data) {
           setBriefId(data.id);
           setSubmitted(!!data.submitted_at);
-          setForm({ key_events: data.key_events || "", campaigns: data.campaigns || "", themes: data.themes || "", products: data.products || "", notes: data.notes || "" });
+          setForm({ title: data.title || "", key_events: data.key_events || "", campaigns: data.campaigns || "", themes: data.themes || "", products: data.products || "", notes: data.notes || "" });
         } else {
           setBriefId(null);
           setSubmitted(false);
-          setForm({ key_events: "", campaigns: "", themes: "", products: "", notes: "" });
+          setForm({ title: "", key_events: "", campaigns: "", themes: "", products: "", notes: "" });
         }
         setLoading(false);
       });
@@ -1389,11 +1393,12 @@ function BriefTab({ clientName, tr, dateLocale }) {
   };
 
   const briefFields = [
-    { key: "key_events", label: tr.keyDates,   placeholder: tr.keyDatesPlaceholder },
-    { key: "campaigns",  label: tr.campaigns,  placeholder: tr.campaignsPlaceholder },
-    { key: "themes",     label: tr.themes,     placeholder: tr.themesPlaceholder },
-    { key: "products",   label: tr.products,   placeholder: tr.productsPlaceholder },
-    { key: "notes",      label: tr.notes,      placeholder: tr.notesPlaceholder },
+    { key: "title",      label: tr.briefTitleField, placeholder: tr.briefTitlePlaceholder, rows: 1 },
+    { key: "key_events", label: tr.keyDates,         placeholder: tr.keyDatesPlaceholder },
+    { key: "campaigns",  label: tr.campaigns,        placeholder: tr.campaignsPlaceholder },
+    { key: "themes",     label: tr.themes,           placeholder: tr.themesPlaceholder },
+    { key: "products",   label: tr.products,         placeholder: tr.productsPlaceholder },
+    { key: "notes",      label: tr.notes,            placeholder: tr.notesPlaceholder },
   ];
 
   const monthLabel = fmtDate(new Date(month + "-01"), "MMMM yyyy", dateLocale);
@@ -1439,7 +1444,7 @@ function BriefTab({ clientName, tr, dateLocale }) {
                 value={form[f.key]}
                 onChange={e => setForm(v => ({ ...v, [f.key]: e.target.value }))}
                 placeholder={f.placeholder}
-                rows={3}
+                rows={f.rows ?? 3}
                 style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, resize: 'none', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               />
             </div>
