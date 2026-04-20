@@ -11,7 +11,7 @@ import {
   Settings, ChevronLeft, ChevronRight, Eye, Users, TrendingUp,
   Bell, Moon, Sun, ExternalLink, Instagram, Youtube, Facebook,
   Linkedin, Globe, Download, Receipt, ClipboardList, CheckCircle2, Save,
-  GraduationCap, MoreHorizontal, KeyRound
+  GraduationCap, MoreHorizontal
 } from "lucide-react";
 import ClientTutorialsTab from "@/components/client/ClientTutorialsTab";
 import ClientCredentialsTab from "@/components/shared/ClientCredentialsTab";
@@ -1036,7 +1036,7 @@ function InvoicesTab({ invoices, tr, dateLocale }) {
 }
 
 // ── Admin tab ──────────────────────────────────────────────────────────────
-function AdminTab({ contracts, contractDocuments, invoices, tr, dateLocale }) {
+function AdminTab({ contracts, contractDocuments, invoices, clientId, clientName, tr, dateLocale }) {
   return (
     <div className="space-y-8">
       <div>
@@ -1047,6 +1047,12 @@ function AdminTab({ contracts, contractDocuments, invoices, tr, dateLocale }) {
         <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>{tr.invoices}</p>
         <InvoicesTab invoices={invoices} tr={tr} dateLocale={dateLocale} />
       </div>
+      {clientId && (
+        <div>
+          <p className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>{tr.credentials || "Passwords"}</p>
+          <ClientCredentialsTab clientId={clientId} clientName={clientName} canEdit={false} tr={tr} />
+        </div>
+      )}
     </div>
   );
 }
@@ -1562,11 +1568,10 @@ export default function ClientPortal() {
     { key: "brief",     label: tr.brief,       icon: ClipboardList },
     { key: "reports",   label: tr.reports,     icon: BarChart2 },
     { key: "tutorials", label: tr.tutorials || "Tutorials", icon: GraduationCap },
-    { key: "credentials", label: tr.credentials || "Passwords", icon: KeyRound },
     { key: "admin",     label: tr.admin,       icon: Settings },
   ];
   const MOBILE_TABS = TABS.filter(t => ["dashboard", "shootings", "brief"].includes(t.key));
-  const MORE_TABS = TABS.filter(t => ["reports", "tutorials", "credentials", "admin"].includes(t.key));
+  const MORE_TABS = TABS.filter(t => ["reports", "tutorials", "admin"].includes(t.key));
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1 }}>
@@ -1699,10 +1704,17 @@ export default function ClientPortal() {
         {activeTab === "brief"     && <BriefTab clientName={clientName} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "reports"   && <ReportsTab stats={stats} content={content} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "tutorials" && <ClientTutorialsTab tr={tr} />}
-        {activeTab === "credentials" && <ClientCredentialsTab clientId={clientRecord?.id} clientName={clientName} canEdit={false} tr={tr} />}
         {activeTab === "admin"     && (
           <div style={{ maxWidth: 640, margin: '0 auto' }}>
-            <AdminTab contracts={contracts} contractDocuments={clientRecord?.contract_documents || []} invoices={invoices} tr={tr} dateLocale={dateLocale} />
+            <AdminTab
+              contracts={contracts}
+              contractDocuments={clientRecord?.contract_documents || []}
+              invoices={invoices}
+              clientId={clientRecord?.id}
+              clientName={clientName}
+              tr={tr}
+              dateLocale={dateLocale}
+            />
           </div>
         )}
       </div>
