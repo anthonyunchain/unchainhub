@@ -73,7 +73,7 @@ $$;
 CREATE OR REPLACE FUNCTION get_client_credentials(p_client_id uuid)
 RETURNS TABLE (
   id uuid, label text, login_url text, username text, password text,
-  category text, notes text, position int, created_at timestamptz
+  category text, notes text, "position" int, created_at timestamptz
 )
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public, pgsodium, pg_temp
