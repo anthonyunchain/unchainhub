@@ -133,12 +133,15 @@ export default function ClientCredentialsTab({ clientId, clientName, canEdit = f
     load();
   };
 
+  const logReveal = async (id) => {
+    try { await supabase.rpc("log_credential_reveal", { p_credential_id: id }); }
+    catch { /* best-effort, don't block UI */ }
+  };
+
   const toggleReveal = (id) => {
     setRevealed(m => {
       const next = !m[id];
-      if (next) {
-        supabase.rpc("log_credential_reveal", { p_credential_id: id }).catch(() => {});
-      }
+      if (next) logReveal(id);
       return { ...m, [id]: next };
     });
   };
