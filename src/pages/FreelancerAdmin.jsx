@@ -376,15 +376,21 @@ function ToolsManagement() {
   const qc = useQueryClient();
 
   const { data: tools = [] } = useQuery({ queryKey: ["freelancer-tools"], queryFn: () => base44.entities.FreelancerTool.list() });
+  const { data: freelancers = [] } = useQuery({ queryKey: ["freelancers"], queryFn: () => base44.entities.Freelancer.list() });
 
   const createMut = useMutation({ mutationFn: (d) => base44.entities.FreelancerTool.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-tools"] }); setOpen(false); } });
   const updateMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.FreelancerTool.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancer-tools"] }); setOpen(false); } });
   const deleteMut = useMutation({ mutationFn: (id) => base44.entities.FreelancerTool.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["freelancer-tools"] }) });
 
   const confirm = useConfirm();
-  const empty = { name: "", description: "", url: "", logo_url: "", category: "Autre", order: 0 };
+  const empty = { name: "", description: "", url: "", logo_url: "", category: "Autre", order: 0, visible_to_freelancer_ids: [] };
   const openNew = () => { setData({ ...empty }); setOpen(true); };
-  const openEdit = (t) => { setData({ ...t }); setOpen(true); };
+  const openEdit = (t) => { setData({ ...t, visible_to_freelancer_ids: t.visible_to_freelancer_ids || [] }); setOpen(true); };
+  const toggleVisible = (fid) => {
+    const current = data.visible_to_freelancer_ids || [];
+    const next = current.includes(fid) ? current.filter(x => x !== fid) : [...current, fid];
+    setData({ ...data, visible_to_freelancer_ids: next });
+  };
   const handleSave = () => data.id ? updateMut.mutate({ id: data.id, d: data }) : createMut.mutate(data);
   const handleDelete = async () => {
     if (!data?.id) return;
@@ -422,10 +428,10 @@ function ToolsManagement() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{data?.id ? "Edit tool" : "New tool"}</DialogTitle></DialogHeader>
           {data && (
-            <div className="space-y-4 mt-2">
+            <div className="space-y-4 mt-2 max-h-[70vh] overflow-y-auto pr-1">
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Name *</Label><Input value={data.name || ""} onChange={e => setData({ ...data, name: e.target.value })} /></div>
                 <div><Label>Category</Label>
@@ -441,6 +447,47 @@ function ToolsManagement() {
               <div><Label>Logo URL</Label><Input value={data.logo_url || ""} onChange={e => setData({ ...data, logo_url: e.target.value })} placeholder="https://...favicon.ico" /></div>
               <div><Label>Description</Label><Textarea value={data.description || ""} onChange={e => setData({ ...data, description: e.target.value })} rows={2} /></div>
               <div><Label>Display order</Label><Input type="number" value={data.order || 0} onChange={e => setData({ ...data, order: Number(e.target.value) })} /></div>
+
+              {/* Visibility — empty = visible to all freelancers */}
+              <div>
+                <Label className="flex items-center gap-2 mb-2">
+                  <Users className="w-3.5 h-3.5 text-slate-400" />
+                  Visible for
+                  <span className="ml-auto text-[10px] text-slate-400 font-normal">
+                    {(data.visible_to_freelancer_ids || []).length === 0
+                      ? "All freelancers"
+                      : `${data.visible_to_freelancer_ids.length} selected`}
+                  </span>
+                </Label>
+                {freelancers.length === 0 ? (
+                  <p className="text-xs text-slate-400">No freelancers</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {freelancers.map(f => {
+                      const isVisible = (data.visible_to_freelancer_ids || []).includes(f.id);
+                      return (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => toggleVisible(f.id)}
+                          className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border text-sm text-left transition-colors ${
+                            isVisible
+                              ? 'border-blue-300 bg-blue-50 text-blue-800'
+                              : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${isVisible ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
+                            {isVisible && <Check className="w-3 h-3 text-white" />}
+                          </div>
+                          <span className="truncate">{f.name || f.email}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-[10px] text-slate-400 mt-1.5">Leave empty to show this tool to every freelancer.</p>
+              </div>
+
               <div className="flex justify-between pt-2">
                 {data.id ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={handleDelete}><Trash2 className="w-4 h-4 mr-1" />Delete</Button> : <div />}
                 <div className="flex gap-2">

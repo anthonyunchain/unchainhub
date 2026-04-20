@@ -224,8 +224,12 @@ Deno.serve(async (req) => {
             .order('updated_at', { ascending: false })
             .limit(50)
         : Promise.resolve({ data: [] }),
-      // Tools (shared)
-      supabaseAdmin.from('freelancer_tools').select('*').order('order', { ascending: false }).limit(50),
+      // Tools — either unrestricted (empty whitelist) or whitelisted for this freelancer.
+      // Using .or() with cs (contains) + eq.{} (empty array).
+      supabaseAdmin.from('freelancer_tools').select('*')
+        .or(`visible_to_freelancer_ids.eq.{},visible_to_freelancer_ids.cs.{${fId}}`)
+        .order('order', { ascending: false })
+        .limit(50),
     ]);
 
     const tasks = tasksRes.data || [];
