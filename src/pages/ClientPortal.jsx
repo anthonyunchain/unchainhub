@@ -1360,36 +1360,47 @@ function SettingsDialog({ open, onClose, tr }) {
         <MfaSection tr={tr} />
         {(() => {
           const pushEnabled = pushState === 'enabled';
+          const isLoading = pushState === 'loading';
           const canInteract = pushState === 'enabled' || pushState === 'disabled';
           const hint =
             pushState === 'denied'      ? tr.pushDenied :
             pushState === 'ios-install' ? tr.pushIosInstall :
             pushState === 'unsupported' ? tr.pushUnsupported :
             pushMsg || null;
+          const hintIsWarning = pushState === 'denied' || pushState === 'ios-install';
           return (
             <div className="pt-2 border-t border-slate-100">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{tr.pushNotifications}</p>
               <button
                 onClick={togglePush}
-                disabled={pushLoading || !canInteract}
+                disabled={pushLoading || isLoading || !canInteract}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '10px 14px', borderRadius: 12,
                   background: pushEnabled ? 'rgba(42,105,255,0.07)' : 'var(--subtle, #f4f4f5)',
                   border: `1px solid ${pushEnabled ? 'rgba(42,105,255,0.2)' : '#e4e4e7'}`,
-                  cursor: (pushLoading || !canInteract) ? 'not-allowed' : 'pointer',
-                  opacity: (pushLoading || !canInteract) ? 0.55 : 1,
+                  cursor: (pushLoading || isLoading || !canInteract) ? 'not-allowed' : 'pointer',
+                  opacity: (pushLoading || isLoading || !canInteract) ? 0.55 : 1,
                 }}
               >
                 <span style={{ fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, color: pushEnabled ? '#2A69FF' : '#52525b' }}>
-                  {pushEnabled ? tr.pushOn : tr.pushOff}
+                  {isLoading || pushLoading ? '…' : pushEnabled ? tr.pushOn : tr.pushOff}
                 </span>
                 <span style={{ position: 'relative', width: 36, height: 20, borderRadius: 10, background: pushEnabled ? '#2A69FF' : '#d4d4d8', transition: 'background 0.2s', flexShrink: 0 }}>
                   <span style={{ position: 'absolute', top: 2, left: pushEnabled ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
                 </span>
               </button>
               {hint && (
-                <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">{hint}</p>
+                <p style={{
+                  fontSize: 11, lineHeight: 1.6, marginTop: 8,
+                  padding: hintIsWarning ? '8px 10px' : 0,
+                  borderRadius: hintIsWarning ? 8 : 0,
+                  background: hintIsWarning ? '#FFFBEB' : 'transparent',
+                  border: hintIsWarning ? '1px solid #FDE68A' : 'none',
+                  color: hintIsWarning ? '#92400E' : '#71717a',
+                }}>
+                  {hint}
+                </p>
               )}
             </div>
           );

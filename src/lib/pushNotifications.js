@@ -54,7 +54,10 @@ export async function getPushState() {
   if (Notification.permission === 'denied') return 'denied';
 
   try {
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('sw-timeout')), 5_000)),
+    ]);
     const sub = await reg.pushManager.getSubscription();
     if (!sub) return 'disabled';
 
@@ -85,7 +88,12 @@ export async function registerPush() {
   if (support !== 'supported') return { ok: false, reason: support };
 
   try {
-    const reg = await navigator.serviceWorker.ready;
+    // Fail fast if the service worker isn't ready in 10s instead of hanging forever
+    const reg = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('sw-timeout')), 10_000)),
+    ]);
+
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return { ok: false, reason: 'denied' };
 
@@ -101,16 +109,23 @@ export async function registerPush() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { ok: false, reason: 'no-user' };
 
-    const { error } = await supabase.from('push_subscriptions').upsert({
-      user_id: user.id,
-      endpoint,
-      p256dh: keys.p256dh,
-      auth: keys.auth,
-    }, { onConflict: 'endpoint' });
-    if (error) return { ok: false, reason: 'error' };
+    const { data, error } = await supabase
+      .from('push_subscriptions')
+      .upsert(
+        { user_id: user.id, endpoint, p256dh: keys.p256dh, auth: keys.auth },
+        { onConflict: 'endpoint' }
+      )
+      .select('id');
+
+    // Detect silent failures: upsert returns no error but no row (e.g. RLS blocked it)
+    if (error || !data?.length) {
+      console.error('[registerPush] upsert failed', error);
+      return { ok: false, reason: 'error' };
+    }
 
     return { ok: true, subscription: sub };
-  } catch {
+  } catch (e) {
+    console.error('[registerPush]', e?.message);
     return { ok: false, reason: 'error' };
   }
 }
