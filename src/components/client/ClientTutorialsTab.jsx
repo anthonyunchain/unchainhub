@@ -124,11 +124,22 @@ export default function ClientTutorialsTab({ tr }) {
 
       {/* Player dialog */}
       <Dialog open={!!playing} onOpenChange={(o) => { if (!o) setPlaying(null); }}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+        <DialogContent className="max-w-5xl w-[90vw] p-0 overflow-hidden">
           <DialogHeader className="px-5 pt-5 pb-3">
             <DialogTitle className="flex items-center gap-2 pr-6">
               <GraduationCap className="w-5 h-5 text-brand" aria-hidden="true" />
-              <span className="truncate">{playing?.title}</span>
+              <span className="truncate flex-1">{playing?.title}</span>
+              {playing?.youtube_url && (
+                <a
+                  href={playing.youtube_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+                  Open in YouTube
+                </a>
+              )}
             </DialogTitle>
           </DialogHeader>
           {playing && embed ? (
