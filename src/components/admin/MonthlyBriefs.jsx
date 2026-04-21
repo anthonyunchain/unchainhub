@@ -161,7 +161,7 @@ export default function MonthlyBriefs() {
 
       {/* Detail modal */}
       <Dialog open={!!selectedBrief} onOpenChange={(o) => { if (!o) setSelected(null); }}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl w-[90vw] max-h-[75vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-start justify-between gap-3 pr-6">
               <div className="min-w-0">
@@ -178,7 +178,7 @@ export default function MonthlyBriefs() {
               )}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-5 mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
             {FIELDS.map(f => selectedBrief?.[f.key]?.trim() ? (
               <div key={f.key} className="bg-slate-50 rounded-xl px-4 py-3">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">{f.label}</p>
