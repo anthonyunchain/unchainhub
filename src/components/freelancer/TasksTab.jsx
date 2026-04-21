@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { format, isPast, isToday, isTomorrow, isThisWeek, startOfDay } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square, MessageCircle, Send, X, ImagePlus, Loader2, ThumbsUp } from "lucide-react";
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, AlertTriangle, Clock, CheckSquare, Square, MessageCircle, Send, X, Paperclip, FileText, Loader2, ThumbsUp } from "lucide-react";
+
+const isPdfUrl = (url) => typeof url === "string" && /\.pdf(\?|#|$)/i.test(url);
+const fileNameFromUrl = (url) => {
+  try {
+    const clean = url.split("?")[0].split("#")[0];
+    return decodeURIComponent(clean.split("/").pop() || "document.pdf");
+  } catch { return "document.pdf"; }
+};
 import { TASK_STATUS_CONFIG as STATUS_CONFIG, TASK_STATUS_LABEL as STATUS_LABEL } from "@/lib/taskStatus";
 import { base44 } from "@/api/base44Client";
 
@@ -71,9 +79,13 @@ function TaskRow({ task, onUpdateTask }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setChatImageFile(file);
-    const reader = new FileReader();
-    reader.onload = (ev) => setChatImagePreview(ev.target.result);
-    reader.readAsDataURL(file);
+    if (file.type === "application/pdf") {
+      setChatImagePreview({ type: "pdf", name: file.name });
+    } else {
+      const reader = new FileReader();
+      reader.onload = (ev) => setChatImagePreview({ type: "image", dataUrl: ev.target.result });
+      reader.readAsDataURL(file);
+    }
   };
 
   const cycleStatus = () => {
@@ -168,9 +180,23 @@ function TaskRow({ task, onUpdateTask }) {
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Attachments</p>
               <div className="flex flex-wrap gap-2">
                 {taskImages.map((url, i) => (
-                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                    <img src={url} alt="" className="w-24 h-24 rounded-lg border border-slate-200 object-cover hover:opacity-90 transition-opacity" />
-                  </a>
+                  isPdfUrl(url) ? (
+                    <a
+                      key={i}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={fileNameFromUrl(url)}
+                      className="w-24 h-24 rounded-lg border border-slate-200 bg-red-50 flex flex-col items-center justify-center gap-1 p-2 hover:bg-red-100 transition-colors"
+                    >
+                      <FileText className="w-7 h-7 text-red-500" />
+                      <span className="text-[10px] font-semibold text-red-600 truncate max-w-full">PDF</span>
+                    </a>
+                  ) : (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                      <img src={url} alt="" className="w-24 h-24 rounded-lg border border-slate-200 object-cover hover:opacity-90 transition-opacity" />
+                    </a>
+                  )
                 ))}
               </div>
             </div>
@@ -250,9 +276,21 @@ function TaskRow({ task, onUpdateTask }) {
                       </p>
                       {m.text && <p className="text-xs text-slate-700 whitespace-pre-wrap">{m.text}</p>}
                       {m.image_url && (
-                        <a href={m.image_url} target="_blank" rel="noopener noreferrer" className="block mt-1">
-                          <img src={m.image_url} alt="" className="max-w-[180px] max-h-[120px] rounded-md border border-slate-200 object-cover hover:opacity-90" />
-                        </a>
+                        isPdfUrl(m.image_url) ? (
+                          <a
+                            href={m.image_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 mt-1 px-2 py-1 rounded-md bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors max-w-full"
+                          >
+                            <FileText className="w-3.5 h-3.5 shrink-0" />
+                            <span className="text-xs font-medium truncate">{fileNameFromUrl(m.image_url)}</span>
+                          </a>
+                        ) : (
+                          <a href={m.image_url} target="_blank" rel="noopener noreferrer" className="block mt-1">
+                            <img src={m.image_url} alt="" className="max-w-[180px] max-h-[120px] rounded-md border border-slate-200 object-cover hover:opacity-90" />
+                          </a>
+                        )
                       )}
                       {/* Reaction toggle */}
                       <div className="flex items-center gap-1 mt-1">
@@ -277,7 +315,14 @@ function TaskRow({ task, onUpdateTask }) {
             <div className="border-t border-slate-100 px-4 py-3 space-y-2 bg-slate-50/50">
               {chatImagePreview && (
                 <div className="relative inline-block">
-                  <img src={chatImagePreview} alt="Preview" className="max-w-[80px] max-h-[50px] rounded-md border border-slate-200 object-cover" />
+                  {chatImagePreview.type === "pdf" ? (
+                    <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-slate-200 bg-red-50 max-w-[180px]">
+                      <FileText className="w-4 h-4 text-red-500 shrink-0" />
+                      <span className="text-xs text-slate-700 truncate">{chatImagePreview.name}</span>
+                    </div>
+                  ) : (
+                    <img src={chatImagePreview.dataUrl} alt="Preview" className="max-w-[80px] max-h-[50px] rounded-md border border-slate-200 object-cover" />
+                  )}
                   <button
                     onClick={() => { setChatImageFile(null); setChatImagePreview(null); }}
                     className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center"
@@ -287,9 +332,9 @@ function TaskRow({ task, onUpdateTask }) {
                 </div>
               )}
               <div className="flex items-end gap-1.5 bg-white border border-slate-200 rounded-xl px-2 py-1.5 focus-within:border-blue-400 transition-colors">
-                <label className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-600 cursor-pointer transition-colors" title="Attach image">
-                  <ImagePlus className="w-4 h-4" />
-                  <input type="file" accept="image/*" className="hidden" onChange={handleChatImageSelect} />
+                <label className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-600 cursor-pointer transition-colors" title="Attach image or PDF">
+                  <Paperclip className="w-4 h-4" />
+                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={handleChatImageSelect} />
                 </label>
                 <textarea
                   value={messageDraft}

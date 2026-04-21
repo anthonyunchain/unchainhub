@@ -12,7 +12,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Plus, X, UserCheck, MessageCircle, Send, Trash2, ImagePlus, Loader2, ThumbsUp, CalendarIcon, Link2 } from "lucide-react";
+import { Plus, X, UserCheck, MessageCircle, Send, Trash2, ImagePlus, Paperclip, FileText, Loader2, ThumbsUp, CalendarIcon, Link2 } from "lucide-react";
+
+const isPdfUrl = (url) => typeof url === "string" && /\.pdf(\?|#|$)/i.test(url);
+const fileNameFromUrl = (url) => {
+  try {
+    const clean = url.split("?")[0].split("#")[0];
+    return decodeURIComponent(clean.split("/").pop() || "document.pdf");
+  } catch { return "document.pdf"; }
+};
 import TaskComments from "./TaskComments";
 
 export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
@@ -157,9 +165,13 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setConvImageFile(file);
-    const reader = new FileReader();
-    reader.onload = (ev) => setConvImagePreview(ev.target.result);
-    reader.readAsDataURL(file);
+    if (file.type === "application/pdf") {
+      setConvImagePreview({ type: "pdf", name: file.name });
+    } else {
+      const reader = new FileReader();
+      reader.onload = (ev) => setConvImagePreview({ type: "image", dataUrl: ev.target.result });
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleTaskImageUpload = async (e) => {
@@ -340,27 +352,40 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
             </div>
           )}
 
-          {/* Task images */}
+          {/* Task attachments */}
           <div>
-            <Label>Images</Label>
+            <Label>Attachments</Label>
             <div className="flex flex-wrap gap-2 mt-1.5">
               {(data.images || []).map((url, i) => (
                 <div key={i} className="relative group">
-                  <a href={url} target="_blank" rel="noopener noreferrer">
-                    <img src={url} alt="" className="w-14 h-14 md:w-20 md:h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90" />
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => removeTaskImage(i)}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  {isPdfUrl(url) ? (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={fileNameFromUrl(url)}
+                      className="w-14 h-14 md:w-20 md:h-20 rounded-lg border border-slate-200 bg-red-50 flex flex-col items-center justify-center gap-1 hover:bg-red-100 transition-colors p-1"
                     >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
+                      <FileText className="w-6 h-6 md:w-7 md:h-7 text-red-500" />
+                      <span className="text-[9px] md:text-[10px] font-semibold text-red-600 truncate max-w-full px-0.5">PDF</span>
+                    </a>
+                  ) : (
+                    <a href={url} target="_blank" rel="noopener noreferrer">
+                      <img src={url} alt="" className="w-14 h-14 md:w-20 md:h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90" />
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeTaskImage(i)}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
               <label className={`w-14 h-14 md:w-20 md:h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-slate-400 transition-colors ${uploadingTaskImage ? "opacity-50 pointer-events-none" : ""}`}>
-                {uploadingTaskImage ? <Loader2 className="w-5 h-5 animate-spin text-slate-400" /> : <ImagePlus className="w-5 h-5 text-slate-400" />}
-                <input type="file" accept="image/*" className="hidden" onChange={handleTaskImageUpload} />
+                {uploadingTaskImage ? <Loader2 className="w-5 h-5 animate-spin text-slate-400" /> : <Paperclip className="w-5 h-5 text-slate-400" />}
+                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={handleTaskImageUpload} />
               </label>
             </div>
           </div>
@@ -493,9 +518,21 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                         </p>
                         {m.text && <p className="text-xs text-slate-700 whitespace-pre-wrap">{m.text}</p>}
                         {m.image_url && (
-                          <a href={m.image_url} target="_blank" rel="noopener noreferrer" className="block mt-1">
-                            <img src={m.image_url} alt="" className="max-w-[200px] max-h-[150px] rounded-md border border-slate-200 object-cover hover:opacity-90" />
-                          </a>
+                          isPdfUrl(m.image_url) ? (
+                            <a
+                              href={m.image_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 mt-1 px-2 py-1 rounded-md bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors max-w-full"
+                            >
+                              <FileText className="w-3.5 h-3.5 shrink-0" />
+                              <span className="text-xs font-medium truncate">{fileNameFromUrl(m.image_url)}</span>
+                            </a>
+                          ) : (
+                            <a href={m.image_url} target="_blank" rel="noopener noreferrer" className="block mt-1">
+                              <img src={m.image_url} alt="" className="max-w-[200px] max-h-[150px] rounded-md border border-slate-200 object-cover hover:opacity-90" />
+                            </a>
+                          )
                         )}
                         {/* Reaction toggle */}
                         <div className="flex items-center gap-1 mt-1">
@@ -521,7 +558,14 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
               <div className="mt-2 flex-shrink-0 space-y-2">
                 {convImagePreview && (
                   <div className="relative inline-block">
-                    <img src={convImagePreview} alt="Preview" className="max-w-[100px] max-h-[60px] rounded-md border border-slate-200 object-cover" />
+                    {convImagePreview.type === "pdf" ? (
+                      <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-slate-200 bg-red-50 max-w-[200px]">
+                        <FileText className="w-4 h-4 text-red-500 shrink-0" />
+                        <span className="text-xs text-slate-700 truncate">{convImagePreview.name}</span>
+                      </div>
+                    ) : (
+                      <img src={convImagePreview.dataUrl} alt="Preview" className="max-w-[100px] max-h-[60px] rounded-md border border-slate-200 object-cover" />
+                    )}
                     <button
                       type="button"
                       onClick={() => { setConvImageFile(null); setConvImagePreview(null); }}
@@ -532,9 +576,9 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                   </div>
                 )}
                 <div className="flex items-end gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 focus-within:border-brand/50 focus-within:bg-white transition-colors">
-                  <label className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-600 cursor-pointer transition-colors" title="Attach image">
-                    <ImagePlus className="w-4 h-4" />
-                    <input type="file" accept="image/*" className="hidden" onChange={handleConvImageSelect} />
+                  <label className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-600 cursor-pointer transition-colors" title="Attach image or PDF">
+                    <Paperclip className="w-4 h-4" />
+                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={handleConvImageSelect} />
                   </label>
                   <textarea
                     value={messageDraft}
