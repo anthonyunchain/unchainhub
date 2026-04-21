@@ -124,7 +124,7 @@ export default function ClientTutorialsTab({ tr }) {
 
       {/* Player dialog */}
       <Dialog open={!!playing} onOpenChange={(o) => { if (!o) setPlaying(null); }}>
-        <DialogContent className="w-[95vw] sm:w-[90vw] sm:max-w-5xl p-0 overflow-hidden">
+        <DialogContent className="w-[95vw] sm:w-[90vw] sm:max-w-5xl p-0 overflow-hidden !bottom-auto !left-1/2 !right-auto !top-1/2 !-translate-x-1/2 !-translate-y-1/2 !rounded-2xl !max-h-[90dvh]">
           <DialogHeader className="px-5 pt-5 pb-3">
             <DialogTitle className="flex items-center gap-2 pr-6">
               <GraduationCap className="w-5 h-5 text-brand" aria-hidden="true" />
