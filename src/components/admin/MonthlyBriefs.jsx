@@ -155,7 +155,7 @@ export default function MonthlyBriefs() {
                 {!isSelected && (() => {
                   const first = FIELDS.find(f => brief[f.key]?.trim());
                   return first ? (
-                    <p className="text-xs text-slate-500 mt-2 line-clamp-2 bg-slate-50 rounded-lg px-3 py-2">
+                    <p className="text-xs text-slate-500 mt-2 line-clamp-1 bg-slate-50 rounded-lg px-3 py-2">
                       <span className="font-medium text-slate-600">{first.label}: </span>{brief[first.key]}
                     </p>
                   ) : null;
