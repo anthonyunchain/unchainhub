@@ -50,22 +50,21 @@ function DashboardTab({ tasks, projects, payments, freelancerName, freelancerFir
 
   const priOrder = { "Urgente": 0, "Haute": 1, "Normale": 2, "Basse": 3 };
 
-  // Most urgent task (blue hero)
+  // Most urgent task (blue hero) — urgent flag first, then due date
   const nextTask = tasks
     .filter(t => t.status !== "Terminé")
     .sort((a, b) => {
-      const pDiff = (priOrder[a.priority] ?? 2) - (priOrder[b.priority] ?? 2);
-      if (pDiff !== 0) return pDiff;
+      if (b.urgent !== a.urgent) return b.urgent ? 1 : -1;
       if (a.due_date && b.due_date) return new Date(a.due_date) - new Date(b.due_date);
       if (a.due_date) return -1;
       if (b.due_date) return 1;
       return 0;
     })[0] || null;
 
-  // Tasks due today
+  // Tasks due today — urgent first
   const todayTasks = tasks
     .filter(t => t.status !== "Terminé" && t.due_date && t.due_date.slice(0, 10) === todayStr)
-    .sort((a, b) => (priOrder[a.priority] ?? 2) - (priOrder[b.priority] ?? 2));
+    .sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0));
 
   const pendingCount = tasks.filter(t => t.status !== "Terminé").length;
   const completedCount = tasks.filter(t => t.status === "Terminé").length;
@@ -122,6 +121,11 @@ function DashboardTab({ tasks, projects, payments, freelancerName, freelancerFir
           {nextTask ? (
             <>
               <div style={{ margin: '16px 0 8px' }}>
+                {nextTask.urgent && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '9px', fontFamily: "'DM Mono', monospace", fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: 'rgba(239,68,68,0.75)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 6, padding: '2px 7px', marginBottom: 8 }}>
+                    ⚠ Urgent
+                  </span>
+                )}
                 <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '18px', fontWeight: 700, color: '#fff', lineHeight: 1.3, margin: 0 }}>
                   {nextTask.title}
                 </p>
@@ -153,10 +157,15 @@ function DashboardTab({ tasks, projects, payments, freelancerName, freelancerFir
             ) : (
               todayTasks.map(task => (
                 <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--divider)' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: '#94a3b8' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: task.urgent ? '#ef4444' : '#94a3b8' }} />
                   <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px', fontWeight: 600, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
                     {task.title}
                   </p>
+                  {task.urgent && (
+                    <span style={{ flexShrink: 0, fontSize: '9px', fontFamily: "'DM Mono', monospace", fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 5, padding: '2px 6px' }}>
+                      Urgent
+                    </span>
+                  )}
                 </div>
               ))
             )}
