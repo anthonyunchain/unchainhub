@@ -151,15 +151,9 @@ export default function MonthlyBriefs() {
                   </div>
                 </div>
 
-                {/* Preview of first filled field */}
-                {!isSelected && (() => {
-                  const first = FIELDS.find(f => brief[f.key]?.trim());
-                  return first ? (
-                    <p className="text-xs text-slate-500 mt-2 line-clamp-1 bg-slate-50 rounded-lg px-3 py-2">
-                      <span className="font-medium text-slate-600">{first.label}: </span>{brief[first.key]}
-                    </p>
-                  ) : null;
-                })()}
+                {FIELDS.some(f => brief[f.key]?.trim()) && (
+                  <p className="text-xs text-[#2A69FF] mt-2 font-medium">Read brief content →</p>
+                )}
               </div>
             );
           })}
