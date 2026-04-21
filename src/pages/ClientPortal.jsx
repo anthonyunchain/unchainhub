@@ -550,6 +550,61 @@ function ClientShootingsTab({ clientName, tr }) {
 
   const TYPE_COLOR = { Reel: "bg-pink-100 text-pink-700", Story: "bg-amber-100 text-amber-700", Carousel: "bg-violet-100 text-violet-700", Post: "bg-blue-100 text-blue-700" };
 
+  const getGoogleCalendarUrl = (s) => {
+    const title = encodeURIComponent(`📸 ${s.title}`);
+    const details = encodeURIComponent([s.description, s.location ? `Location: ${s.location}` : null].filter(Boolean).join('\n'));
+    const location = encodeURIComponent(s.location || '');
+    const pad = n => String(n).padStart(2, '0');
+    let dates;
+    if (s.date && s.time) {
+      const start = `${s.date}T${s.time}:00`.replace(/-/g, '').replace(/:/g, '');
+      const endMs = new Date(`${s.date}T${s.time}:00`).getTime() + 2 * 60 * 60 * 1000;
+      const e = new Date(endMs);
+      const end = `${e.getFullYear()}${pad(e.getMonth()+1)}${pad(e.getDate())}T${pad(e.getHours())}${pad(e.getMinutes())}00`;
+      dates = `${start}/${end}`;
+    } else if (s.date) {
+      const d = s.date.replace(/-/g, '');
+      const nx = new Date(new Date(s.date).getTime() + 24 * 60 * 60 * 1000);
+      dates = `${d}/${nx.getFullYear()}${pad(nx.getMonth()+1)}${pad(nx.getDate())}`;
+    }
+    return `https://calendar.google.com/calendar/r/eventedit?text=${title}&dates=${dates}&details=${details}&location=${location}`;
+  };
+
+  const downloadICS = (s) => {
+    const pad = n => String(n).padStart(2, '0');
+    const now = new Date();
+    const dtstamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}T${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}Z`;
+    let dtstart, dtend;
+    if (s.date && s.time) {
+      const start = new Date(`${s.date}T${s.time}:00`);
+      const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+      const fmt = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+      dtstart = `DTSTART;TZID=Europe/Helsinki:${fmt(start)}`;
+      dtend = `DTEND;TZID=Europe/Helsinki:${fmt(end)}`;
+    } else if (s.date) {
+      const d = s.date.replace(/-/g, '');
+      const nx = new Date(new Date(s.date).getTime() + 24 * 60 * 60 * 1000);
+      dtstart = `DTSTART;VALUE=DATE:${d}`;
+      dtend = `DTEND;VALUE=DATE:${nx.getFullYear()}${pad(nx.getMonth()+1)}${pad(nx.getDate())}`;
+    }
+    const desc = [s.description, s.location ? `Location: ${s.location}` : null].filter(Boolean).join('\\n');
+    const lines = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//UnchainHub//Shooting//EN',
+      'BEGIN:VEVENT', `UID:shooting-${s.id}@unchainhub`, `DTSTAMP:${dtstamp}`,
+      dtstart, dtend, `SUMMARY:📸 ${s.title}`,
+      desc ? `DESCRIPTION:${desc}` : null,
+      s.location ? `LOCATION:${s.location}` : null,
+      'END:VEVENT', 'END:VCALENDAR',
+    ].filter(Boolean).join('\r\n');
+    const blob = new Blob([lines], { type: 'text/calendar' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${s.title.replace(/\s+/g, '-')}.ics`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const ShootingCard = ({ s }) => {
     const crew = allCrew.filter(a => a.shooting_id === s.id);
     const linkedIds = contentLinks.filter(c => c.shooting_id === s.id).map(c => c.content_id);
@@ -625,6 +680,26 @@ function ClientShootingsTab({ clientName, tr }) {
               <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: dark ? '#93B4FF' : '#1E40AF' }}>
                 <strong>{tr.yourNote || "Your note"}:</strong> {s.client_note}
               </p>
+            </div>
+          )}
+
+          {/* Add to calendar */}
+          {s.date && s.status !== 'Completed' && s.status !== 'Cancelled' && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <a
+                href={getGoogleCalendarUrl(s)}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--divider)', color: 'var(--ink)', fontSize: 12, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", textDecoration: 'none' }}
+              >
+                <Calendar style={{ width: 14, height: 14 }} /> Google Calendar
+              </a>
+              <button
+                onClick={() => downloadICS(s)}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--divider)', color: 'var(--ink)', fontSize: 12, fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", cursor: 'pointer' }}
+              >
+                <Download style={{ width: 14, height: 14 }} /> Download .ics
+              </button>
             </div>
           )}
 
