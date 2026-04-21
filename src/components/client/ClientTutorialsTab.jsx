@@ -92,7 +92,15 @@ export default function ClientTutorialsTab({ tr }) {
               <li key={t.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                 <button
                   type="button"
-                  onClick={() => id ? setPlaying(t) : window.open(t.youtube_url, "_blank", "noopener,noreferrer")}
+                  onClick={() => {
+                    if (window.innerWidth < 640) {
+                      window.open(t.youtube_url, "_blank", "noopener,noreferrer");
+                    } else if (id) {
+                      setPlaying(t);
+                    } else {
+                      window.open(t.youtube_url, "_blank", "noopener,noreferrer");
+                    }
+                  }}
                   className="relative block aspect-video bg-slate-100 group"
                   aria-label={`Play ${t.title}`}
                 >
