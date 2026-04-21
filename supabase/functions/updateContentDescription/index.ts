@@ -64,24 +64,24 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Content not found' }, { status: 404, headers: corsHeaders(req) });
       }
 
-      // Verify the client has editorial_visible = true
-      const { data: visibleClient } = await supabaseAdmin
-        .from('clients')
-        .select('id')
-        .eq('company_name', content.client_name)
-        .eq('editorial_visible', true)
-        .maybeSingle();
-
-      if (!visibleClient) {
-        return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders(req) });
-      }
-
-      // Verify this freelancer is the assigned editor (by ID or by name fallback)
+      // Authorize if freelancer is the assigned editor (by ID or by name fallback),
+      // OR if the client is whitelisted for this freelancer via editorial_client_names.
       const assignedById = content.assigned_editor_id === freelancerProfile!.id;
       const assignedByName = freelancerProfile!.name?.toLowerCase().trim() &&
         content.assigned_editor_name?.toLowerCase().trim() === freelancerProfile!.name.toLowerCase().trim();
 
+      let whitelisted = false;
       if (!assignedById && !assignedByName) {
+        const { data: fl } = await supabaseAdmin
+          .from('freelancers')
+          .select('editorial_client_names')
+          .eq('id', freelancerProfile!.id)
+          .single();
+        const whitelist = (fl?.editorial_client_names || []) as string[];
+        whitelisted = whitelist.includes(content.client_name);
+      }
+
+      if (!assignedById && !assignedByName && !whitelisted) {
         return Response.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders(req) });
       }
     }
