@@ -161,7 +161,7 @@ export default function MonthlyBriefs() {
 
       {/* Detail modal */}
       <Dialog open={!!selectedBrief} onOpenChange={(o) => { if (!o) setSelected(null); }}>
-        <DialogContent className="max-w-4xl w-[90vw] max-h-[75vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl w-[90vw] max-h-[55vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-start justify-between gap-3 pr-6">
               <div className="min-w-0">
