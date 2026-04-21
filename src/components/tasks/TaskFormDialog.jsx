@@ -42,7 +42,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
   const empty = {
     title: "", description: "", status: "Non commencé",
     due_date: "", assigned_to: "", client_name: "", category: "Update",
-    blocking_reason: "", urls: []
+    blocking_reason: "", urls: [], urgent: false
   };
 
   const [data, setData] = useState(task || empty);
@@ -342,6 +342,22 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Urgent toggle */}
+          <div>
+            <button
+              type="button"
+              onClick={() => set("urgent", !data.urgent)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold border transition-all ${
+                data.urgent
+                  ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                  : "bg-slate-50 text-slate-400 border-slate-200 hover:border-slate-300 hover:text-slate-600"
+              }`}
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+              {data.urgent ? "Urgent" : "Mark as urgent"}
+            </button>
           </div>
 
           {/* Raison blocage */}

@@ -65,7 +65,7 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
 
   return (
     <div
-      onClick={() => onEdit(task)} className="bg-[hsl(var(--card-hsl))] p-5 rounded-xl border border-slate-100 hover:shadow-sm hover:border-slate-200 transition-all cursor-pointer group">
+      onClick={() => onEdit(task)} className={`bg-[hsl(var(--card-hsl))] p-5 rounded-xl border hover:shadow-sm transition-all cursor-pointer group ${task.urgent && task.status !== "Terminé" ? "border-red-200 hover:border-red-300" : "border-slate-100 hover:border-slate-200"}`}>
 
       <div className="space-y-2">
         <div className="flex items-start gap-2">
@@ -75,6 +75,11 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
             {task.status === "Terminé" ? <CheckSquare className="w-4 h-4 text-emerald-500" /> : <Square className="w-4 h-4" />}
           </button>
           <p className={`text-sm font-medium flex-1 ${task.status === "Terminé" ? "line-through text-slate-400" : "text-slate-800"}`}>
+            {task.urgent && task.status !== "Terminé" && (
+              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded mr-1.5 align-middle">
+                <AlertTriangle className="w-2.5 h-2.5" /> Urgent
+              </span>
+            )}
             {task.title}
           </p>
           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${cfg.color}`}>
@@ -159,10 +164,13 @@ const GROUP_CONFIG = [
 ];
 
 function TaskGroups({ tasks, onEdit, onDelete, onStatusChange, filteringDone }) {
+  const urgentTasks = tasks.filter(t => t.urgent && t.status !== "Terminé");
+  const nonUrgentTasks = tasks.filter(t => !t.urgent || t.status === "Terminé");
+
   // When filtering by "Done", don't separate into done section — group all by date
   const groups = filteringDone ? (() => {
     const g = { overdue: [], today: [], tomorrow: [], thisWeek: [], later: [], noDate: [], done: [] };
-    for (const t of tasks) {
+    for (const t of nonUrgentTasks) {
       if (!t.due_date) { g.noDate.push(t); continue; }
       const d = startOfDay(new Date(t.due_date));
       if (isToday(d)) g.today.push(t);
@@ -172,10 +180,24 @@ function TaskGroups({ tasks, onEdit, onDelete, onStatusChange, filteringDone }) 
       else g.later.push(t);
     }
     return g;
-  })() : groupTasksByDate(tasks);
+  })() : groupTasksByDate(nonUrgentTasks);
 
   return (
     <div className="space-y-6">
+      {urgentTasks.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-2.5">
+            <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+            <h3 className="text-sm font-semibold text-red-600">Urgent</h3>
+            <span className="text-xs text-slate-400">{urgentTasks.length}</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {urgentTasks.map(task => (
+              <TaskCard key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
+            ))}
+          </div>
+        </div>
+      )}
       {GROUP_CONFIG.map(({ key, label, headerClass, dotClass }) => {
         const items = groups[key];
         if (!items || items.length === 0) return null;
