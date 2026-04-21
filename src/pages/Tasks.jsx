@@ -288,7 +288,19 @@ export default function Tasks() {
       const { error } = await supabase.from('tasks').update(toTaskPayload(d)).eq('id', id);
       if (error) { console.error('task update error:', error); throw error; }
     },
-    onSuccess: () => { setMutError(null); qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); setEditTask(null); },
+    onSuccess: (_, { d, prevAssigneeId }) => {
+      const newId = d.assigned_freelancer_id;
+      if (newId && newId !== "_me" && newId !== "_none" && newId !== prevAssigneeId) {
+        const fl = freelancers.find(f => f.id === newId);
+        if (fl?.email) base44.functions.invoke('sendPushNotification', {
+          title: '📋 New task assigned',
+          body: d.title || 'You have a new task',
+          url: '/',
+          freelancer_email: fl.email,
+        }).catch(() => {});
+      }
+      setMutError(null); qc.invalidateQueries({ queryKey: ["tasks"] }); setDialogOpen(false); setEditTask(null);
+    },
     onError: (e) => setMutError([e.message, e.details, e.hint].filter(Boolean).join(' — ')),
   });
 
@@ -301,8 +313,12 @@ export default function Tasks() {
   const openEdit = (task) => {setEditTask(task);setDialogOpen(true);};
 
   const handleSave = (data) => {
-    if (data.id) updateMut.mutate({ id: data.id, d: data });else
-    createMut.mutate(data);
+    if (data.id) {
+      const prevAssigneeId = editTask?.assigned_freelancer_id || null;
+      updateMut.mutate({ id: data.id, d: data, prevAssigneeId });
+    } else {
+      createMut.mutate(data);
+    }
   };
 
   const handleStatusChange = (task, newStatus) => {

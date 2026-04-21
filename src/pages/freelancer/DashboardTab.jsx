@@ -31,11 +31,7 @@ export default function DashboardTab({ freelancerName, freelancerEmail, onTabCha
   });
 
   const urgentTasks = tasks
-    .filter(t => t.status !== "Terminé")
-    .sort((a, b) => {
-      const priOrder = { "Urgente": 0, "Haute": 1, "Normale": 2, "Basse": 3 };
-      return (priOrder[a.priority] ?? 2) - (priOrder[b.priority] ?? 2);
-    })
+    .filter(t => t.status !== "Terminé" && t.urgent)
     .slice(0, 5);
 
   const ongoingProjects = projects.filter(p =>
@@ -92,11 +88,6 @@ export default function DashboardTab({ freelancerName, freelancerEmail, onTabCha
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${TASK_STATUS_COLORS[task.status] || "bg-slate-100 text-slate-600"}`}>
                       {task.status}
                     </span>
-                    {task.priority && (
-                      <span className={`text-[10px] font-medium ${task.priority === "Urgente" ? "text-red-500" : task.priority === "Haute" ? "text-orange-500" : "text-slate-400"}`}>
-                        {task.priority}
-                      </span>
-                    )}
                     {task.due_date && (
                       <span className="text-[10px] text-slate-400">
                         Due {format(new Date(task.due_date), "d MMM", { locale: enUS })}
@@ -104,7 +95,7 @@ export default function DashboardTab({ freelancerName, freelancerEmail, onTabCha
                     )}
                   </div>
                 </div>
-                {task.priority === "Urgente" && <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />}
+                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
               </div>
             ))}
           </div>

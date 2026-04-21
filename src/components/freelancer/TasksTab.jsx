@@ -96,7 +96,7 @@ function TaskRow({ task, onUpdateTask }) {
   };
 
   return (
-    <div className={`bg-white rounded-xl border transition-all ${isDone ? "border-slate-100 opacity-70" : "border-slate-100 hover:border-slate-200"} shadow-sm overflow-hidden`}>
+    <div className={`bg-white rounded-xl border transition-all shadow-sm overflow-hidden ${isDone ? "border-slate-100 opacity-70" : task.urgent ? "border-red-200 hover:border-red-300" : "border-slate-100 hover:border-slate-200"}`}>
       <div
         className={`p-4 ${hasDetails ? "cursor-pointer" : ""}`}
         onClick={() => { if (hasDetails) setExpanded(v => !v); }}
@@ -120,6 +120,11 @@ function TaskRow({ task, onUpdateTask }) {
           {/* Content */}
           <div className="flex-1 min-w-0">
             <p className={`text-sm font-semibold ${isDone ? "line-through text-slate-400" : "text-slate-800"}`}>
+              {task.urgent && !isDone && (
+                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded mr-1.5 align-middle">
+                  <AlertTriangle className="w-2.5 h-2.5" /> Urgent
+                </span>
+              )}
               {task.title}
             </p>
             <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
@@ -478,9 +483,25 @@ export default function TasksTab({ tasks, onUpdateTask }) {
       )}
 
       {pending.length > 0 && (() => {
-        const groups = groupTasksByDate(pending);
+        const urgentPending = pending.filter(t => t.urgent);
+        const normalPending = pending.filter(t => !t.urgent);
+        const groups = groupTasksByDate(normalPending);
         return (
           <div className="space-y-5">
+            {urgentPending.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-red-600">Urgent</h3>
+                  <span className="text-[10px] text-slate-400">{urgentPending.length}</span>
+                </div>
+                <div className="space-y-2">
+                  {urgentPending.map(task => (
+                    <TaskRow key={task.id} task={task} onUpdateTask={onUpdateTask} />
+                  ))}
+                </div>
+              </div>
+            )}
             {DATE_GROUP_CONFIG.map(({ key, label, headerClass, dotClass }) => {
               const items = groups[key];
               if (!items || items.length === 0) return null;
