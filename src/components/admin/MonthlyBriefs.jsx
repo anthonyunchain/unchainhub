@@ -5,6 +5,7 @@ import { format, addMonths } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, CheckCircle2, Clock, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const FIELDS = [
   { key: "key_events", label: "Key dates & events",        placeholder: "Product launches, holidays, special events…" },
@@ -88,9 +89,7 @@ export default function MonthlyBriefs() {
         <span className="text-xs text-slate-400">{filtered.length} brief{filtered.length !== 1 ? "s" : ""} submitted</span>
       </div>
 
-      <div className="flex gap-4">
-        {/* List */}
-        <div className="flex-1 min-w-0 space-y-2">
+      <div className="space-y-2">
           {isLoading && <p className="text-sm text-slate-400 py-10 text-center">Loading…</p>}
           {!isLoading && filtered.length === 0 && (
             <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
@@ -104,8 +103,8 @@ export default function MonthlyBriefs() {
             const isPendingDelete = confirmDelete === brief.id;
             return (
               <div key={brief.id}
-                onClick={() => !isPendingDelete && setSelected(isSelected ? null : brief.id)}
-                className={`bg-white rounded-xl border p-4 cursor-pointer transition-all ${isSelected ? "border-[#2A69FF] ring-1 ring-[#2A69FF]/10" : "border-slate-100 hover:border-slate-200"}`}
+                onClick={() => !isPendingDelete && setSelected(brief.id)}
+                className="bg-white rounded-xl border border-slate-100 hover:border-slate-200 p-4 cursor-pointer transition-all"
               >
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
@@ -164,37 +163,40 @@ export default function MonthlyBriefs() {
               </div>
             );
           })}
-        </div>
+      </div>
 
-        {/* Detail panel */}
-        {selectedBrief && (
-          <div className="w-80 shrink-0 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4 self-start sticky top-4">
-            <div>
-              <p className="text-base font-bold text-slate-800">{selectedBrief.client_name}</p>
-              {selectedBrief.title?.trim() && (
-                <p className="text-sm text-slate-600 font-medium mt-0.5">{selectedBrief.title}</p>
-              )}
-              <p className="text-xs text-slate-400 mt-0.5 capitalize">{monthLabel}</p>
-              {selectedBrief.submitted_at && (
-                <span className="inline-flex items-center gap-1 mt-2 text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold">
-                  <CheckCircle2 className="w-3 h-3" /> Submitted
+      {/* Detail modal */}
+      <Dialog open={!!selectedBrief} onOpenChange={(o) => { if (!o) setSelected(null); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-start justify-between gap-3 pr-6">
+              <div className="min-w-0">
+                <p className="text-base font-bold text-slate-800 leading-snug">{selectedBrief?.client_name}</p>
+                {selectedBrief?.title?.trim() && (
+                  <p className="text-sm text-slate-500 font-normal mt-0.5">{selectedBrief.title}</p>
+                )}
+                <p className="text-xs text-slate-400 mt-0.5 capitalize">{monthLabel}</p>
+              </div>
+              {selectedBrief?.submitted_at && (
+                <span className="inline-flex items-center gap-1 shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-semibold">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Submitted
                 </span>
               )}
-            </div>
-            <div className="space-y-3">
-              {FIELDS.map(f => selectedBrief[f.key]?.trim() ? (
-                <div key={f.key}>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{f.label}</p>
-                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{selectedBrief[f.key]}</p>
-                </div>
-              ) : null)}
-              {FIELDS.every(f => !selectedBrief[f.key]?.trim()) && (
-                <p className="text-sm text-slate-400 italic">No content filled yet.</p>
-              )}
-            </div>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 mt-2">
+            {FIELDS.map(f => selectedBrief?.[f.key]?.trim() ? (
+              <div key={f.key} className="bg-slate-50 rounded-xl px-4 py-3">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">{f.label}</p>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{selectedBrief[f.key]}</p>
+              </div>
+            ) : null)}
+            {selectedBrief && FIELDS.every(f => !selectedBrief[f.key]?.trim()) && (
+              <p className="text-sm text-slate-400 italic text-center py-6">No content filled yet.</p>
+            )}
           </div>
-        )}
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
