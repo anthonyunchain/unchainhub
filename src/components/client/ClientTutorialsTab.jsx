@@ -124,7 +124,7 @@ export default function ClientTutorialsTab({ tr }) {
 
       {/* Player dialog */}
       <Dialog open={!!playing} onOpenChange={(o) => { if (!o) setPlaying(null); }}>
-        <DialogContent className="max-w-[95vw] w-[95vw] p-0 overflow-hidden" style={{ height: '90vh', display: 'flex', flexDirection: 'column' }}>
+        <DialogContent className="w-[95vw] sm:w-[90vw] sm:max-w-5xl p-0 overflow-hidden">
           <DialogHeader className="px-5 pt-5 pb-3">
             <DialogTitle className="flex items-center gap-2 pr-6">
               <GraduationCap className="w-5 h-5 text-brand" aria-hidden="true" />
@@ -143,7 +143,7 @@ export default function ClientTutorialsTab({ tr }) {
             </DialogTitle>
           </DialogHeader>
           {playing && embed ? (
-            <div className="flex-1 min-h-0 bg-black">
+            <div className="aspect-video bg-black">
               <iframe
                 src={`${embed}?autoplay=1&rel=0`}
                 title={playing.title}
