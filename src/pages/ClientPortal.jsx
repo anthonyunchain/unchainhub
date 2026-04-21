@@ -1442,10 +1442,14 @@ function BriefTab({ clientName, tr, dateLocale }) {
               <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>{f.label}</p>
               <textarea
                 value={form[f.key]}
-                onChange={e => setForm(v => ({ ...v, [f.key]: e.target.value }))}
+                onChange={e => {
+                  setForm(v => ({ ...v, [f.key]: e.target.value }));
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
                 placeholder={f.placeholder}
                 rows={f.rows ?? 3}
-                style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, resize: 'none', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, resize: 'none', overflow: 'hidden', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               />
             </div>
           ))}
