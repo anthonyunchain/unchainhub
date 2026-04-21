@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Plus, X, UserCheck, MessageCircle, Send, Trash2, ImagePlus, Paperclip, FileText, Loader2, ThumbsUp, CalendarIcon, Link2 } from "lucide-react";
+import { Plus, X, UserCheck, MessageCircle, Send, Trash2, AlertTriangle, ImagePlus, Paperclip, FileText, Loader2, ThumbsUp, CalendarIcon, Link2 } from "lucide-react";
 
 const isPdfUrl = (url) => typeof url === "string" && /\.pdf(\?|#|$)/i.test(url);
 const fileNameFromUrl = (url) => {
