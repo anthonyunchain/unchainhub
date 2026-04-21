@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/api/base44Client";
 import { format, addMonths } from "date-fns";
@@ -21,6 +21,12 @@ export default function MonthlyBriefs() {
   const [selected, setSelected] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null); // brief id pending deletion
   const queryClient = useQueryClient();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
 
   const shiftMonth = (dir) => {
     const d = new Date(currentMonth + "-01");
@@ -161,7 +167,7 @@ export default function MonthlyBriefs() {
 
       {/* Detail modal */}
       <Dialog open={!!selectedBrief} onOpenChange={(o) => { if (!o) setSelected(null); }}>
-        <DialogContent className="p-0 overflow-hidden flex flex-col !rounded-2xl" style={{ width: '50vw', maxWidth: '50vw', aspectRatio: '16/9', position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+        <DialogContent className="p-0 overflow-hidden flex flex-col !rounded-2xl" style={{ width: isMobile ? '90vw' : '50vw', maxWidth: isMobile ? '90vw' : '50vw', aspectRatio: '16/9', position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
           <DialogHeader className="px-6 pt-5 pb-3 shrink-0">
             <DialogTitle className="flex items-start justify-between gap-3 pr-6">
               <div className="min-w-0">
