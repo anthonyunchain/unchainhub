@@ -161,7 +161,7 @@ export default function MonthlyBriefs() {
 
       {/* Detail modal */}
       <Dialog open={!!selectedBrief} onOpenChange={(o) => { if (!o) setSelected(null); }}>
-        <DialogContent className="w-[50vw] max-w-[50vw] p-0 overflow-hidden flex flex-col !bottom-auto !left-1/2 !right-auto !top-1/2 !-translate-x-1/2 !-translate-y-1/2 !rounded-2xl" style={{ aspectRatio: '16/9' }}>
+        <DialogContent className="!w-[50vw] !max-w-[50vw] p-0 overflow-hidden flex flex-col !bottom-auto !left-1/2 !right-auto !top-1/2 !-translate-x-1/2 !-translate-y-1/2 !rounded-2xl" style={{ aspectRatio: '16/9' }}>
           <DialogHeader className="px-6 pt-5 pb-3 shrink-0">
             <DialogTitle className="flex items-start justify-between gap-3 pr-6">
               <div className="min-w-0">
