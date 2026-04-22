@@ -1261,9 +1261,24 @@ export default function FreelancerPortal() {
                       whiteSpace: 'nowrap',
                       border: 'none',
                       cursor: 'pointer',
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
                     }}
                   >
                     {item.label}
+                    {item.id === 'messages' && messagesUnreadCount > 0 && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        minWidth: 16, height: 16, borderRadius: 8,
+                        background: isActive ? 'rgba(255,255,255,0.9)' : 'var(--brand)',
+                        color: isActive ? 'var(--brand)' : '#fff',
+                        fontSize: 9, fontWeight: 700, lineHeight: 1, padding: '0 4px',
+                      }}>
+                        {messagesUnreadCount > 9 ? '9+' : messagesUnreadCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}
