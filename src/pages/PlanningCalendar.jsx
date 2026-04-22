@@ -58,6 +58,7 @@ export default function PlanningCalendar() {
     catch { return new Set(); }
   });
   const [calPickerOpen, setCalPickerOpen] = useState(false);
+  const [expandedGcalDay, setExpandedGcalDay] = useState(null); // dayKey when +N gcal expanded
   const [bulkSyncing, setBulkSyncing] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const qc = useQueryClient();
@@ -483,25 +484,46 @@ export default function PlanningCalendar() {
               const isCurrentDay = isToday(day);
               const isWeekend = (i % 7) >= 5;
               return (
-                <div key={dayKey} style={{ borderRight: (i + 1) % 7 !== 0 ? "1px solid var(--divider)" : "none", borderBottom: i < monthCells.length - 7 ? "1px solid var(--divider)" : "none", minHeight: 110, minWidth: 0, overflow: "hidden", padding: "8px 8px 6px", background: !inMonth ? "var(--bg)" : isCurrentDay ? "rgba(42,105,255,0.03)" : isWeekend ? "rgba(0,0,0,0.015)" : "var(--card)", display: "flex", flexDirection: "column", gap: 4 }}>
+                <div key={dayKey} style={{ borderRight: (i + 1) % 7 !== 0 ? "1px solid var(--divider)" : "none", borderBottom: i < monthCells.length - 7 ? "1px solid var(--divider)" : "none", minHeight: 110, minWidth: 0, overflow: expandedGcalDay === dayKey ? "visible" : "hidden", padding: "8px 8px 6px", background: !inMonth ? "var(--bg)" : isCurrentDay ? "rgba(42,105,255,0.03)" : isWeekend ? "rgba(0,0,0,0.015)" : "var(--card)", display: "flex", flexDirection: "column", gap: 4 }}>
                   <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 2 }}>
                     <span style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: isCurrentDay ? "var(--brand)" : "transparent", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: isCurrentDay ? 700 : inMonth ? 500 : 400, color: isCurrentDay ? "#fff" : !inMonth ? "var(--subtle)" : isWeekend ? "var(--muted)" : "var(--ink)" }}>
                       {format(day, "d")}
                     </span>
                   </div>
-                  {/* Google Cal events */}
-                  {dayGcal.slice(0, 1).map(ev => {
-                    const calColor = ev._calendarColor || "#4285F4";
-                    const calBg = hexToRgba(calColor, 0.1);
+                  {/* Google Cal events — collapse to 1 by default, click "+N gcal" to expand */}
+                  {(() => {
+                    const isExpanded = expandedGcalDay === dayKey;
+                    const visibleGcal = isExpanded ? dayGcal : dayGcal.slice(0, 1);
                     return (
-                      <div key={ev.id} style={{ padding: "3px 7px", borderRadius: 5, background: calBg, borderLeft: `2px solid ${calColor}`, overflow: "hidden" }}>
-                        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 600, color: calColor, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ev.summary || "(No title)"}</p>
-                      </div>
+                      <>
+                        {visibleGcal.map(ev => {
+                          const calColor = ev._calendarColor || "#4285F4";
+                          const calBg = hexToRgba(calColor, 0.1);
+                          return (
+                            <div key={ev.id} style={{ padding: "3px 7px", borderRadius: 5, background: calBg, borderLeft: `2px solid ${calColor}`, overflow: "hidden" }}>
+                              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 600, color: calColor, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ev.summary || "(No title)"}</p>
+                            </div>
+                          );
+                        })}
+                        {dayGcal.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setExpandedGcalDay(isExpanded ? null : dayKey); }}
+                            style={{
+                              fontFamily: "'DM Mono', monospace", fontSize: 9,
+                              color: dayGcal[0]?._calendarColor || "#4285F4",
+                              margin: 0, paddingLeft: 2,
+                              background: "transparent", border: "none",
+                              cursor: "pointer", textAlign: "left",
+                              textDecoration: "underline",
+                            }}
+                          >
+                            {isExpanded ? "− show less" : `+${dayGcal.length - 1} gcal`}
+                          </button>
+                        )}
+                      </>
                     );
-                  })}
-                  {dayGcal.length > 1 && (
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: dayGcal[0]?._calendarColor || "#4285F4", margin: 0, paddingLeft: 2 }}>+{dayGcal.length - 1} gcal</p>
-                  )}
+                  })()}
                   {/* Shootings */}
                   {dayShootings.map(s => (
                     <Link key={s.id} to="/Shootings" style={{ textDecoration: "none" }}>
