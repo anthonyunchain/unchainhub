@@ -16,9 +16,8 @@ function fmtDuration(sec) {
 }
 
 /**
- * Read-only music library for video-editor freelancers.
- * RLS ensures the freelancer only receives tracks for clients in their
- * editorial_client_names AND only if they match a video-editor role/tag.
+ * Read-only music library for freelancers. Any freelancer can browse music for
+ * any client — RLS allows SELECT to every freelancer.
  */
 export default function FreelancerMusicTab() {
   const [tracks, setTracks] = useState([]);
@@ -131,7 +130,7 @@ export default function FreelancerMusicTab() {
       <EmptyState
         icon={Music}
         title="No music yet"
-        description="The team hasn't added music to your assigned clients. Check back later or ask Unchain Studio."
+        description="No music tracks have been added yet. Check back later."
       />
     );
   }

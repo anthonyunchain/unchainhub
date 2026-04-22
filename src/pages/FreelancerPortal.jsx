@@ -9,7 +9,7 @@ import {
   FileText, CalendarDays, FileCheck, Wrench, Upload, ExternalLink,
   Clock, CheckCircle2, Square, AlertTriangle, FolderOpen, ClipboardList,
   LayoutDashboard, User, Bell, Briefcase, Plus, Trash2, ListTodo, Lightbulb, X,
-  MoreHorizontal, AlignLeft
+  MoreHorizontal, AlignLeft, Music
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -610,17 +610,36 @@ function CalendarsTab({ visibleCalendars: initialCalendars }) {
 }
 
 // ─── TOOLS TAB ────────────────────────────────────────────────────────────
-function ToolsTab({ tools }) {
+function ToolsTab({ tools, onNavigate }) {
   const allTools = [...tools].sort((a, b) => (a.order || 0) - (b.order || 0));
   const CATEGORY_COLORS = {
     "Design": "bg-violet-50 text-violet-700",
     "Vidéo": "bg-pink-50 text-pink-700",
     "Communication": "bg-blue-50 text-blue-700",
     "Documents": "bg-amber-50 text-amber-700",
+    "Music": "bg-emerald-50 text-emerald-700",
     "Autre": "bg-slate-100 text-slate-600",
   };
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <button
+        type="button"
+        onClick={() => onNavigate?.("music")}
+        className="text-left bg-white rounded-xl border border-slate-100 p-5 shadow-sm hover:shadow-md hover:border-slate-200 transition-all group"
+      >
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--brand-muted)', color: 'var(--brand)' }}>
+            <Music className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-slate-800 group-hover:text-[#2A69FF] transition-colors">Music library</p>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Browse curated music for each client</p>
+            <span className={`inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full font-medium ${CATEGORY_COLORS["Music"]}`}>Music</span>
+          </div>
+        </div>
+      </button>
       {allTools.map(tool => (
         <a key={tool.id} href={tool.url} target="_blank" rel="noopener noreferrer"
           className="bg-white rounded-xl border border-slate-100 p-5 shadow-sm hover:shadow-md hover:border-slate-200 transition-all group">
@@ -1135,7 +1154,7 @@ export default function FreelancerPortal() {
       case "captions": return <CaptionsTab items={[...editorialProjects, ...visibleCalendars.filter(vc => !editorialProjects.find(ep => ep.id === vc.id))]} />;
       case "calendar": return <CalendarsTab visibleCalendars={visibleCalendars} />;
       case "ideas": return <Ideas currentUserId={user?.id} currentUserName={profile?.name || user?.email} isFreelancer={true} />;
-      case "tools": return <ToolsTab tools={tools} />;
+      case "tools": return <ToolsTab tools={tools} onNavigate={setActiveTab} />;
       case "music": return <FreelancerMusicTab />;
       case "meetings": return <MeetingsTab meetings={meetings} />;
       case "shootings": return <ShootingsTab freelancerId={profile?.id} />;
@@ -1298,6 +1317,7 @@ export default function FreelancerPortal() {
                 captions:    { title: 'Captions',         subtitle: 'Write captions for this month\'s content' },
                 ideas:       { title: 'Ideas',           subtitle: 'Brainstorm content ideas' },
                 tools:       { title: 'Tools',           subtitle: 'Your tools & resources' },
+                music:       { title: 'Music Library',   subtitle: 'Music curated per client' },
                 meetings:    { title: 'Meetings',        subtitle: 'Upcoming & past meetings' },
                 shootings:   { title: 'Shootings',       subtitle: 'Photo & video shoots' },
                 invoices:    { title: 'Invoices & Contract', subtitle: 'Your payments and contract' },
