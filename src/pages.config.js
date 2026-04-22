@@ -48,6 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import Admin from './pages/Admin';
+import CRM from './pages/CRM';
 import ClientDetail from './pages/ClientDetail';
 import Clients from './pages/Clients';
 import Contracts from './pages/Contracts';
@@ -66,6 +67,7 @@ import VideoEditing from './pages/VideoEditing';
 
 export const PAGES = {
     "Admin": Admin,
+    "CRM": CRM,
     "ClientDetail": ClientDetail,
     "Clients": Clients,
     "Contracts": Contracts,

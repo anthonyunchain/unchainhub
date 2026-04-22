@@ -15,6 +15,7 @@ const NAV_LINKS = [
   { path: "/Editorial",      label: "Calendars"  },
   { path: "/Shootings",      label: "Shootings"  },
   { path: "/FreelancerAdmin",label: "Freelancers"},
+  { path: "/CRM",            label: "CRM"        },
   { path: "/Clients",        label: "Clients"    },
   { path: "/Messages",       label: "Messages"   },
   { path: "/Notes",          label: "Notes"      },

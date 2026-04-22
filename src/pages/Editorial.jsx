@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Plus, ChevronLeft, ChevronRight, Upload, X, Clapperboard, Link2, Trash2, Pencil, List, Calendar as CalendarIcon } from "lucide-react";
@@ -103,7 +103,7 @@ export default function Editorial() {
 
   const openNew = (date) => {
     if (isReadOnly) return;
-    setEditData({ client_id: "", client_name: "", title: "", post_type: "Reel", scheduled_date: format(date || new Date(), "yyyy-MM-dd"), status: "Planifié", description: "", notes: "", needs_shooting: true });
+    setEditData({ client_id: "", client_name: "", title: "", post_type: "Reel", scheduled_date: format(date || new Date(), "yyyy-MM-dd"), status: "Planifié", description: "", notes: "", needs_shooting: true, shoot_timing: "in-month" });
     setDialogOpen(true);
   };
   const openEdit = (c) => { 
@@ -165,8 +165,9 @@ export default function Editorial() {
         onClick={() => openEdit(c)}
         className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 cursor-grab active:cursor-grabbing border border-slate-100 transition-colors pr-6"
       >
-        <div className="flex items-center gap-1 mb-0.5">
+        <div className="flex items-center gap-1 mb-0.5 flex-wrap">
           <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
+          {c.shoot_timing === "advance" && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700">📅 Advance</span>}
         </div>
         <p className={`font-medium text-slate-700 line-clamp-2 ${compact ? "text-[10px]" : "text-[11px]"}`}>{c.title || c.description || "Untitled"}</p>
         {!compact && <p className="text-[9px] text-slate-400 mt-0.5">{c.client_name}</p>}
@@ -398,6 +399,93 @@ export default function Editorial() {
     );
   };
 
+  const ShootingPlannerView = () => {
+    const [plannerMonth, setPlannerMonth] = useState(() => format(addMonths(new Date(), 1), "yyyy-MM"));
+    const [plannerClient, setPlannerClient] = useState("all");
+    const { data: advanceItems = [], isLoading } = useQuery({
+      queryKey: ["advance-shoot", plannerMonth, plannerClient],
+      queryFn: async () => {
+        let q = supabase.from("editorial_content")
+          .select("*")
+          .eq("shoot_timing", "advance")
+          .like("scheduled_date", `${plannerMonth}%`)
+          .order("scheduled_date");
+        if (plannerClient !== "all") q = q.eq("client_name", plannerClient);
+        const { data, error } = await q;
+        if (error) throw error;
+        return data || [];
+      },
+    });
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <input type="month" value={plannerMonth} onChange={e => setPlannerMonth(e.target.value)}
+            className="h-9 px-3 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand/30" />
+          <Select value={plannerClient} onValueChange={setPlannerClient}>
+            <SelectTrigger className="w-48 h-9 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All clients</SelectItem>
+              {clients.map(c => <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-slate-400">{advanceItems.length} advance-shoot item{advanceItems.length !== 1 ? "s" : ""}</span>
+        </div>
+        {isLoading && <div className="text-sm text-slate-400 py-8 text-center">Loading…</div>}
+        {!isLoading && advanceItems.length === 0 && (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center text-sm text-slate-400">
+            No advance-shoot content for this month
+          </div>
+        )}
+        {!isLoading && advanceItems.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/50">
+                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Date</th>
+                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Client</th>
+                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Title</th>
+                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Type</th>
+                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Shooting</th>
+                  <th className="px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {advanceItems.map(c => (
+                  <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50/50 group">
+                    <td className="px-5 py-3 text-sm text-slate-500 whitespace-nowrap">
+                      {c.scheduled_date ? format(new Date(c.scheduled_date), "d MMM yyyy", { locale: fr }) : "—"}
+                    </td>
+                    <td className="px-5 py-3 text-sm font-medium text-slate-800">{c.client_name || "—"}</td>
+                    <td className="px-5 py-3 text-sm text-slate-700 max-w-[200px] truncate">{c.title || c.description || "Untitled"}</td>
+                    <td className="px-5 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
+                    </td>
+                    <td className="px-5 py-3">
+                      {c.needs_shooting === false ? (
+                        <span className="text-xs text-slate-400">Not needed</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700">
+                          📅 Needs shooting
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3">
+                      {!isReadOnly && (
+                        <button onClick={() => openEdit(c)} className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-[#2A69FF] transition-opacity">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Editorial Calendar" subtitle="Content planning">
@@ -480,6 +568,7 @@ export default function Editorial() {
                 { key: "week", label: "Week", icon: CalendarIcon },
                 { key: "month", label: "Month", icon: CalendarIcon },
                 { key: "list", label: "List", icon: List },
+                { key: "planner", label: "Planner", icon: CalendarIcon },
             ].map(v => (
               <button
                 key={v.key}
@@ -497,6 +586,7 @@ export default function Editorial() {
       {view === "week" && <WeekView />}
       {view === "month" && <MonthView />}
       {view === "list" && <ListView />}
+      {view === "planner" && <ShootingPlannerView />}
 
       <CsvImportDialog open={csvOpen} onOpenChange={setCsvOpen} />
 
@@ -620,6 +710,24 @@ export default function Editorial() {
                       </button>
                     </div>
                   )}
+                  {/* Shoot timing */}
+                  <div>
+                    <Label>Shoot timing</Label>
+                    {isReadOnly ? (
+                      <div className="p-2 bg-slate-50 rounded border border-slate-200 text-sm text-slate-700 capitalize">
+                        {editData.shoot_timing === "advance" ? "Advance shoot (prior month)" : editData.shoot_timing === "no-shoot" ? "No shoot needed" : "In-month shoot"}
+                      </div>
+                    ) : (
+                      <Select value={editData.shoot_timing || "in-month"} onValueChange={v => setEditData({ ...editData, shoot_timing: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="in-month">In-month shoot</SelectItem>
+                          <SelectItem value="advance">Advance shoot (prior month)</SelectItem>
+                          <SelectItem value="no-shoot">No shoot needed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 </div>
 
                 {/* ── Right column — Montage ── */}

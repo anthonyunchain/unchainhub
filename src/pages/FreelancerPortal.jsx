@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -35,6 +35,7 @@ import { TASK_STATUS_CONFIG as TASK_STATUS } from "@/lib/taskStatus";
 import { getHiddenNav, MOBILE_NAV_BY_ID } from "@/lib/navConfig";
 import MessagesPage from "./Messages";
 import { useUnreadCount } from "@/components/messaging/useUnreadCount";
+import WorkflowTasksTab from "@/components/freelancer/WorkflowTasksTab";
 
 // ─── DASHBOARD TAB ─────────────────────────────────────────────────────────
 function DashboardTab({ tasks, projects, payments, freelancerName, freelancerFirstName, onTabChange, userId }) {
@@ -976,6 +977,18 @@ export default function FreelancerPortal() {
   const [localTime, setLocalTime] = useState("");
   const [helsinkiTime, setHelsinkiTime] = useState("");
 
+  // ── Workflow tasks: check if this freelancer has any assigned tasks ──────────
+  const { data: workflowTaskCount = 0 } = useQuery({
+    queryKey: ["workflow-tasks-count", user?.id],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("workflow_tasks")
+        .select("id", { count: "exact", head: true });
+      return count || 0;
+    },
+    enabled: !!user?.id,
+  });
+
   // ── Notifications (single source of truth + single realtime channel) ──────
   const [notifications, setNotifications] = useState([]);
   const [notifsLoading, setNotifsLoading] = useState(false);
@@ -1184,6 +1197,7 @@ export default function FreelancerPortal() {
       />;
       case "notes": return <Notes embedded autoNewTrigger={notesNewTrigger} />;
       case "messages": return <MessagesPage locale="fi" />;
+      case "workflow": return <WorkflowTasksTab userId={user?.id} />;
       default: return null;
     }
   };
@@ -1233,6 +1247,7 @@ export default function FreelancerPortal() {
                 { id: 'dashboard', label: 'Dashboard' },
                 { id: 'todo', label: 'My To-Do' },
                 { id: 'tasks', label: 'Tasks' },
+                ...(workflowTaskCount > 0 ? [{ id: 'workflow', label: 'Workflow' }] : []),
                 { id: 'myprojects', label: 'Projects' },
                 { id: 'projects', label: 'Calendar' },
 
@@ -1359,6 +1374,7 @@ export default function FreelancerPortal() {
                 contract:    { title: 'Invoices & Contract', subtitle: 'Your payments and contract' },
                 profile:     { title: 'Profile',         subtitle: 'Your information & settings' },
                 notifications: { title: 'Notifications', subtitle: 'Your latest updates' },
+                workflow: { title: 'Workflow', subtitle: 'Monthly client communication tasks' },
               };
               const meta = TAB_TITLES[activeTab];
               if (!meta) return null;

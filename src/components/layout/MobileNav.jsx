@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard, CheckSquare, Calendar, Lightbulb,
   MoreHorizontal, X, Shield, UserCheck, Users, Layers, NotebookPen,
-  Camera, DollarSign, ShoppingBag, FileText, GitBranch, MessageSquare
+  Camera, DollarSign, ShoppingBag, FileText, GitBranch, MessageSquare, Contact
 } from "lucide-react";
 
 const MAIN_TABS = [
@@ -15,6 +15,7 @@ const MAIN_TABS = [
 
 const MORE_ITEMS = [
   { path: "/Ideas",          label: "Ideas",       icon: Lightbulb },
+  { path: "/CRM",            label: "CRM",         icon: Contact },
   { path: "/Clients",        label: "Clients",     icon: Users },
   { path: "/Freelancers",    label: "Freelancers", icon: UserCheck },
   { path: "/Finance",        label: "Finance",     icon: DollarSign },
