@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { sendMessage } from './useMessages';
 import { toast } from 'sonner';
 
-export default function MessageInput({ conversationId, userId, replyTo, onClearReply }) {
+export default function MessageInput({ conversationId, userId, replyTo, onClearReply, isMobile }) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [attachment, setAttachment] = useState(null); // { file, preview, type }
@@ -72,8 +72,11 @@ export default function MessageInput({ conversationId, userId, replyTo, onClearR
   return (
     <div style={{
       borderTop: '1px solid var(--divider)',
-      padding: '10px 14px',
+      padding: isMobile
+        ? '10px 16px calc(10px + env(safe-area-inset-bottom))'
+        : '10px 14px',
       background: 'var(--card)',
+      flexShrink: 0,
     }}>
       {/* Reply banner */}
       {replyTo && (

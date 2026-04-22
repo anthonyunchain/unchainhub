@@ -1359,7 +1359,6 @@ export default function FreelancerPortal() {
                 contract:    { title: 'Invoices & Contract', subtitle: 'Your payments and contract' },
                 profile:     { title: 'Profile',         subtitle: 'Your information & settings' },
                 notifications: { title: 'Notifications', subtitle: 'Your latest updates' },
-                messages:      { title: 'Messages',       subtitle: 'Your conversations' },
               };
               const meta = TAB_TITLES[activeTab];
               if (!meta) return null;
