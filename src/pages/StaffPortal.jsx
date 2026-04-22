@@ -39,9 +39,9 @@ const IMPORTANCE_META = {
 };
 
 const ROLES = [
-  { id: "chef",    label: "Chef Kasper",       icon: ChefHat,       tagline: "Send your monthly menu" },
-  { id: "manager", label: "Manager",           icon: ClipboardList, tagline: "Request a label, info or asset" },
-  { id: "pastry",  label: "Juan Pablo — Pastry & Bread", icon: Croissant, tagline: "Announce a new product or photo need" },
+  { id: "chef",    label: "Chef",           icon: ChefHat,       tagline: "Send your monthly menu" },
+  { id: "manager", label: "Manager",        icon: ClipboardList, tagline: "Request a label, info or asset" },
+  { id: "pastry",  label: "Bread & Pastry", icon: Croissant,     tagline: "Announce a new product or photo need" },
 ];
 
 export default function StaffPortal() {
