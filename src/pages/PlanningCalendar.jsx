@@ -174,19 +174,6 @@ export default function PlanningCalendar() {
   };
 
   // ── Queries ──────────────────────────────────────────────────────────────
-  const { data: tasks = [] } = useQuery({
-    queryKey: ["tasks-planning", format(weekStart, "yyyy-MM-dd")],
-    queryFn: async () => {
-      const { data } = await supabase.from("tasks")
-        .select("id, title, due_date, status, client_name, category")
-        .gte("due_date", format(weekStart, "yyyy-MM-dd"))
-        .lte("due_date", format(weekEnd,   "yyyy-MM-dd"))
-        .neq("status", "Terminé");
-      return data || [];
-    },
-    enabled: calView === "week",
-  });
-
   const { data: shootings = [] } = useQuery({
     queryKey: ["shootings-planning", format(weekStart, "yyyy-MM-dd")],
     queryFn: async () => {
@@ -197,19 +184,6 @@ export default function PlanningCalendar() {
       return data || [];
     },
     enabled: calView === "week",
-  });
-
-  const { data: monthTasks = [] } = useQuery({
-    queryKey: ["tasks-planning-month", month],
-    queryFn: async () => {
-      const { data } = await supabase.from("tasks")
-        .select("id, title, due_date, status, client_name, category")
-        .gte("due_date", format(monthStart, "yyyy-MM-dd"))
-        .lte("due_date", format(monthEnd,   "yyyy-MM-dd"))
-        .neq("status", "Terminé");
-      return data || [];
-    },
-    enabled: calView === "month",
   });
 
   const { data: monthShootings = [] } = useQuery({
@@ -226,14 +200,10 @@ export default function PlanningCalendar() {
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
-  const tasksByDay = {};
   const shootingsByDay = {};
-  for (const t of tasks) { if (t.due_date) { (tasksByDay[t.due_date] ||= []).push(t); } }
   for (const s of shootings) { if (s.date) { (shootingsByDay[s.date] ||= []).push(s); } }
 
-  const mTasksByDay = {};
   const mShootingsByDay = {};
-  for (const t of monthTasks) { if (t.due_date) { (mTasksByDay[t.due_date] ||= []).push(t); } }
   for (const s of monthShootings) { if (s.date) { (mShootingsByDay[s.date] ||= []).push(s); } }
 
   const toggleCalendar = (name) => {
@@ -409,7 +379,6 @@ export default function PlanningCalendar() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
             {weekDays.map((day, i) => {
               const dayKey = format(day, "yyyy-MM-dd");
-              const dayTasks = tasksByDay[dayKey] || [];
               const dayShootings = shootingsByDay[dayKey] || [];
               const dayGcal = gcalByDay[dayKey] || [];
               const isCurrentDay = isToday(day);
@@ -449,20 +418,7 @@ export default function PlanningCalendar() {
                         </div>
                       </Link>
                     ))}
-                    {/* Tasks */}
-                    {dayTasks.map(t => {
-                      const accent = t.status === "Bloqué" ? "#EF4444" : t.status === "En cours" ? "#2A69FF" : "#6B7280";
-                      const bg = t.status === "Bloqué" ? "rgba(239,68,68,0.08)" : t.status === "En cours" ? "rgba(42,105,255,0.08)" : "rgba(0,0,0,0.04)";
-                      return (
-                        <Link key={t.id} to="/Tasks" style={{ textDecoration: "none" }}>
-                          <div style={{ padding: "8px 10px", borderRadius: 8, background: bg, borderLeft: `3px solid ${accent}` }}>
-                            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink)", margin: 0, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{t.title}</p>
-                            {t.client_name && <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--muted)", margin: "3px 0 0" }}>{t.client_name}</p>}
-                          </div>
-                        </Link>
-                      );
-                    })}
-                    {!dayTasks.length && !dayShootings.length && !dayGcal.length && (
+                    {!dayShootings.length && !dayGcal.length && (
                       <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--subtle)", textAlign: "center", marginTop: 16 }}>—</p>
                     )}
                   </div>
@@ -478,7 +434,6 @@ export default function PlanningCalendar() {
             {monthCells.map((day, i) => {
               const inMonth = day.getMonth() === currentDate.getMonth();
               const dayKey = format(day, "yyyy-MM-dd");
-              const dayTasks = mTasksByDay[dayKey] || [];
               const dayShootings = mShootingsByDay[dayKey] || [];
               const dayGcal = gcalByDay[dayKey] || [];
               const isCurrentDay = isToday(day);
@@ -532,20 +487,6 @@ export default function PlanningCalendar() {
                       </div>
                     </Link>
                   ))}
-                  {dayTasks.slice(0, 2).map(t => {
-                    const accent = t.status === "Bloqué" ? "#EF4444" : t.status === "En cours" ? "#2A69FF" : "#6B7280";
-                    const bg = t.status === "Bloqué" ? "rgba(239,68,68,0.08)" : t.status === "En cours" ? "rgba(42,105,255,0.08)" : "rgba(0,0,0,0.04)";
-                    return (
-                      <Link key={t.id} to="/Tasks" style={{ textDecoration: "none" }}>
-                        <div style={{ padding: "3px 7px", borderRadius: 5, background: bg, borderLeft: `2px solid ${accent}`, overflow: "hidden" }}>
-                          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 500, color: "var(--ink)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.title}</p>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                  {dayTasks.length > 2 && (
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--muted)", margin: 0, paddingLeft: 2 }}>+{dayTasks.length - 2} more</p>
-                  )}
                 </div>
               );
             })}
