@@ -193,14 +193,11 @@ function ProjectCard({ project, onAction, freelancerName }) {
             {project.brief || project.description}
           </p>
         )}
-        {project.notes && (
+        {/* Admin note — hidden when in revision, since notes then mirrors the
+            latest revision request (already shown in the history below). */}
+        {project.notes && !isRevision && (
           <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-xs text-amber-800 mb-3">
             <span className="font-semibold">Admin note: </span>{project.notes}
-          </div>
-        )}
-        {isRevision && project.notes && (
-          <div className="bg-orange-50 border border-orange-100 rounded-lg px-3 py-2 text-xs text-orange-800 mb-3">
-            <span className="font-semibold">Revision request: </span>{project.notes}
           </div>
         )}
 
