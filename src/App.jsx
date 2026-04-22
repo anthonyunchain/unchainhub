@@ -5,6 +5,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { useAppBadge } from '@/lib/useAppBadge';
 import { ConfirmProvider } from '@/lib/confirm';
 import LoginPage from './pages/LoginPage';
 import { useEffect, useState, Component, lazy, Suspense } from 'react';
@@ -69,7 +70,8 @@ const Spinner = () => (
 );
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isAuthenticated, isPasswordRecovery } = useAuth();
+  const { isLoadingAuth, isAuthenticated, isPasswordRecovery, user } = useAuth();
+  useAppBadge(isAuthenticated ? user?.id : null);
 
   if (isPasswordRecovery) return <ResetPasswordPage />;
 
