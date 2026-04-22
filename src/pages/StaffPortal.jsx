@@ -86,7 +86,7 @@ export default function StaffPortal() {
 
         const { data: clientRow } = await supabase
           .from("clients")
-          .select("id, company_name")
+          .select("id, company_name, staff_roles")
           .eq("staff_user_id", authUser.id)
           .maybeSingle();
 
@@ -228,7 +228,12 @@ export default function StaffPortal() {
     );
   }
 
-  const activeRoleMeta = ROLES.find(r => r.id === activeRole) || ROLES[0];
+  const enabledRoles = Array.isArray(client.staff_roles) && client.staff_roles.length > 0
+    ? ROLES.filter(r => client.staff_roles.includes(r.id))
+    : ROLES;
+  const effectiveRole = enabledRoles.find(r => r.id === activeRole)?.id || enabledRoles[0]?.id;
+  const activeRoleMeta = enabledRoles.find(r => r.id === effectiveRole) || enabledRoles[0] || ROLES[0];
+  const hideTabs = enabledRoles.length <= 1;
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', position: 'relative', zIndex: 1 }}>
@@ -245,16 +250,17 @@ export default function StaffPortal() {
           </Button>
         </div>
 
-        {/* Role switcher */}
+        {/* Role switcher (hidden when only one role is enabled for this client) */}
+        {!hideTabs && (
         <div
           role="tablist"
           aria-label="Choose what you want to send"
-          className="grid grid-cols-3 gap-2 p-1 rounded-2xl"
-          style={{ background: 'var(--card)', boxShadow: 'var(--card-shadow)' }}
+          className={`grid gap-2 p-1 rounded-2xl`}
+          style={{ background: 'var(--card)', boxShadow: 'var(--card-shadow)', gridTemplateColumns: `repeat(${enabledRoles.length}, minmax(0, 1fr))` }}
         >
-          {ROLES.map((r) => {
+          {enabledRoles.map((r) => {
             const Icon = r.icon;
-            const active = r.id === activeRole;
+            const active = r.id === effectiveRole;
             return (
               <button
                 key={r.id}
@@ -274,6 +280,7 @@ export default function StaffPortal() {
             );
           })}
         </div>
+        )}
 
         {/* Form */}
         <section
@@ -289,7 +296,7 @@ export default function StaffPortal() {
           </div>
 
           {/* CHEF — MENU FORM */}
-          {activeRole === "chef" && (
+          {effectiveRole === "chef" && (
             <>
               <p className="text-body-sm" style={{ marginBottom: 18 }}>
                 Add your monthly menu below. You can attach PDFs or photos. We'll pick it up and pass it to the designer.
@@ -324,7 +331,7 @@ export default function StaffPortal() {
           )}
 
           {/* MANAGER FORM */}
-          {activeRole === "manager" && (
+          {effectiveRole === "manager" && (
             <>
               <p className="text-body-sm" style={{ marginBottom: 18 }}>
                 Need a new label, a poster, social copy, or any info passed to us? Fill in what you need and when.
@@ -373,7 +380,7 @@ export default function StaffPortal() {
           )}
 
           {/* PASTRY / BAKER CHEF FORM */}
-          {activeRole === "pastry" && (
+          {effectiveRole === "pastry" && (
             <>
               <p className="text-body-sm" style={{ marginBottom: 18 }}>
                 New bread or pastry coming up? Need a photo? Tell us what's happening and when.
@@ -421,9 +428,9 @@ export default function StaffPortal() {
             </div>
           ) : (
             <>
-              {activeRole === "chef"    && <MenuHistory items={menuSubs} />}
-              {activeRole === "manager" && <ManagerHistory items={mgrSubs} />}
-              {activeRole === "pastry"  && <PastryHistory items={pasSubs} />}
+              {effectiveRole === "chef"    && <MenuHistory items={menuSubs} />}
+              {effectiveRole === "manager" && <ManagerHistory items={mgrSubs} />}
+              {effectiveRole === "pastry"  && <PastryHistory items={pasSubs} />}
             </>
           )}
         </section>
