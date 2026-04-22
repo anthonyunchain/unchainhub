@@ -67,15 +67,17 @@ function CategoryFields({ category, meta = {}, onChange }) {
     fields = (
       <>
         <Field label="Dimensions">
-          <MetaSelect value={meta.dimensions} onChange={v => set("dimensions", v)} placeholder="A4, A3, 50×70…">
-            <SelectItem value="A4">A4 — 210×297 mm</SelectItem>
-            <SelectItem value="A3">A3 — 297×420 mm</SelectItem>
-            <SelectItem value="A5">A5 — 148×210 mm</SelectItem>
+          <MetaSelect value={meta.dimensions} onChange={v => set("dimensions", v)} placeholder="A5, A4, 16:9…">
+            <SelectItem value="A5">A5</SelectItem>
+            <SelectItem value="A4">A4</SelectItem>
+            <SelectItem value="A3">A3</SelectItem>
+            <SelectItem value="A2">A2</SelectItem>
+            <SelectItem value="A1">A1</SelectItem>
             <SelectItem value="50x70">50×70 cm</SelectItem>
-            <SelectItem value="30x40">30×40 cm</SelectItem>
-            <SelectItem value="21x21">21×21 cm (carré)</SelectItem>
-            <SelectItem value="1:1">1:1 Square</SelectItem>
-            <SelectItem value="custom">Custom</SelectItem>
+            <SelectItem value="4:5">4:5</SelectItem>
+            <SelectItem value="16:9">16:9</SelectItem>
+            <SelectItem value="9:16">9:16</SelectItem>
+            <SelectItem value="1:1">1:1</SelectItem>
           </MetaSelect>
         </Field>
         <Field label="Export format">
@@ -88,21 +90,6 @@ function CategoryFields({ category, meta = {}, onChange }) {
             <SelectItem value="AI">Adobe Illustrator (.ai)</SelectItem>
             <SelectItem value="PSD">Photoshop (.psd)</SelectItem>
           </MetaSelect>
-        </Field>
-        <Field label="Color mode">
-          <MetaSelect value={meta.color_mode} onChange={v => set("color_mode", v)} placeholder="CMYK / RGB">
-            <SelectItem value="CMYK">CMYK — Print</SelectItem>
-            <SelectItem value="RGB">RGB — Screen</SelectItem>
-          </MetaSelect>
-        </Field>
-        <Field label="Orientation">
-          <MetaSelect value={meta.orientation} onChange={v => set("orientation", v)} placeholder="Portrait / Landscape">
-            <SelectItem value="portrait">Portrait</SelectItem>
-            <SelectItem value="landscape">Landscape</SelectItem>
-          </MetaSelect>
-        </Field>
-        <Field label="Versions">
-          <Input type="number" min={1} value={meta.versions || ""} onChange={e => set("versions", e.target.value)} placeholder="Ex: 2" className="h-9 bg-white" />
         </Field>
       </>
     );
