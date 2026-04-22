@@ -461,7 +461,6 @@ export default function StaffPortal() {
           )}
         </section>
 
-      </div>
         </>}
 
       </div>
