@@ -1273,16 +1273,9 @@ export default function FreelancerPortal() {
                 boxShadow: 'var(--card-shadow)',
                 borderRadius: 'var(--pill-radius)',
                 padding: '7px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
               }}>
-                <span>{format(new Date(), "EEE, MMM d", { locale: enUS })} · {localTime}{showHelsinkiToo && localCityLabel ? ` ${localCityLabel}` : ""}</span>
-                {showHelsinkiToo && (
-                  <span style={{ color: 'var(--brand)', borderLeft: '1px solid var(--divider)', paddingLeft: 10 }}>
-                    Helsinki {helsinkiTime}
-                  </span>
-                )}
+                {format(new Date(), "EEE, MMM d", { locale: enUS })} · {localTime}
+                {showHelsinkiToo && ` · ${helsinkiTime} Helsinki`}
               </div>
               <NotesFABFreelancer onNewNote={() => { setActiveTab("notes"); setNotesNewTrigger(n => n + 1); }} />
               <NotificationBell
@@ -1305,7 +1298,7 @@ export default function FreelancerPortal() {
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)', lineHeight: 1.15, textAlign: 'right' }}>
                 <div>{localTime}</div>
                 {showHelsinkiToo && (
-                  <div style={{ color: 'var(--brand)', fontSize: '9px' }}>HEL {helsinkiTime}</div>
+                  <div style={{ fontSize: '9px' }}>{helsinkiTime} Helsinki</div>
                 )}
               </div>
               <NotesFABFreelancer onNewNote={() => { setActiveTab("notes"); setNotesNewTrigger(n => n + 1); }} />
