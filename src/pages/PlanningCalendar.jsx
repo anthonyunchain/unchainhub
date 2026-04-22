@@ -536,9 +536,6 @@ export default function PlanningCalendar() {
         {[
           { color: "#4285F4", bg: "rgba(66,133,244,0.1)", label: "Google Calendar" },
           { color: "#F59E0B", bg: "rgba(245,158,11,0.12)", label: "Shooting" },
-          { color: "#2A69FF", bg: "rgba(42,105,255,0.08)", label: "Task in progress" },
-          { color: "#EF4444", bg: "rgba(239,68,68,0.08)", label: "Task blocked" },
-          { color: "#6B7280", bg: "rgba(0,0,0,0.04)", label: "Task not started" },
         ].map(l => (
           <span key={l.label} style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--muted)" }}>
             <span style={{ width: 12, height: 12, borderRadius: 3, background: l.bg, borderLeft: `3px solid ${l.color}`, display: "inline-block" }} />
