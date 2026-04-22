@@ -3,9 +3,10 @@ import { ArrowLeft } from 'lucide-react';
 import { useMessages } from './useMessages';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
+import { t } from './i18n';
 
-function getConversationName(conversation, currentUserId) {
-  if (conversation.type === 'group') return conversation.name || 'Group';
+function getConversationName(conversation, currentUserId, locale) {
+  if (conversation.type === 'group') return conversation.name || t(locale, 'group');
   const other = conversation.participants?.find(p => p.user_id !== currentUserId);
   return other?.profile?.full_name || other?.profile?.role || 'Chat';
 }
@@ -24,7 +25,7 @@ function avatarColor(name) {
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
 }
 
-export default function ChatWindow({ conversation, userId, onBack }) {
+export default function ChatWindow({ conversation, userId, onBack, locale = 'en' }) {
   const { data: messages = [], isLoading } = useMessages(conversation?.id, userId);
   const [replyTo, setReplyTo] = useState(null);
   const bottomRef = useRef(null);
@@ -36,7 +37,7 @@ export default function ChatWindow({ conversation, userId, onBack }) {
 
   if (!conversation) return null;
 
-  const conversationName = getConversationName(conversation, userId);
+  const conversationName = getConversationName(conversation, userId, locale);
   const isGroup = conversation.type === 'group';
   const bgColor = avatarColor(conversationName);
 
@@ -105,7 +106,7 @@ export default function ChatWindow({ conversation, userId, onBack }) {
               color: 'var(--muted)',
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}>
-              {conversation.participants?.length} members
+              {conversation.participants?.length} {t(locale, 'members')}
             </p>
           )}
         </div>
@@ -148,7 +149,7 @@ export default function ChatWindow({ conversation, userId, onBack }) {
               fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif",
               color: 'var(--muted)', margin: 0,
             }}>
-              Say hello 👋
+              {t(locale, 'sayHello')}
             </p>
           </div>
         ) : (
@@ -170,8 +171,9 @@ export default function ChatWindow({ conversation, userId, onBack }) {
                 <MessageBubble
                   message={msg}
                   isOwn={isOwn}
-                  senderName={showSender ? (senderProfile?.full_name || 'Unknown') : null}
+                  senderName={showSender ? (senderProfile?.full_name || t(locale, 'unknown')) : null}
                   replyTo={replyToMsg}
+                  locale={locale}
                 />
               </div>
             );
@@ -187,6 +189,7 @@ export default function ChatWindow({ conversation, userId, onBack }) {
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
         isMobile={!!onBack}
+        locale={locale}
       />
     </div>
   );

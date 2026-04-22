@@ -9,7 +9,7 @@ import {
   FileText, CalendarDays, FileCheck, Wrench, Upload, ExternalLink,
   Clock, CheckCircle2, Square, AlertTriangle, FolderOpen, ClipboardList,
   LayoutDashboard, User, Bell, Briefcase, Plus, Trash2, ListTodo, Lightbulb, X,
-  MoreHorizontal, AlignLeft, Music
+  MoreHorizontal, AlignLeft, Music, MessageSquare
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -1183,7 +1183,7 @@ export default function FreelancerPortal() {
         onDecline={() => handleProjectUpdate()}
       />;
       case "notes": return <Notes embedded autoNewTrigger={notesNewTrigger} />;
-      case "messages": return <MessagesPage />;
+      case "messages": return <MessagesPage locale="fi" />;
       default: return null;
     }
   };
@@ -1474,7 +1474,7 @@ export default function FreelancerPortal() {
 
           {/* More button */}
           {(MOBILE_NAV_BY_ID[profile?.id]?.showMore ?? true) && ((() => {
-            const moreActive = moreOpen || ['profile','tasks','todo','captions','ideas','tools','meetings'].includes(activeTab);
+            const moreActive = moreOpen || ['profile','tasks','todo','captions','ideas','tools','meetings','messages'].includes(activeTab);
             return (
               <button onClick={() => setMoreOpen(v => !v)}
                 className="flex-1 flex flex-col items-center justify-center gap-1 relative"
@@ -1526,9 +1526,10 @@ export default function FreelancerPortal() {
               </p>
               <div className="grid grid-cols-4 gap-2">
                 {(() => {
-                  const mobileIcons = { LayoutDashboard, ListTodo, ClipboardList, Briefcase, FileText, CalendarDays, User, Wrench, AlignLeft, Lightbulb };
+                  const mobileIcons = { LayoutDashboard, ListTodo, ClipboardList, Briefcase, FileText, CalendarDays, User, Wrench, AlignLeft, Lightbulb, MessageSquare };
                   const customMore = MOBILE_NAV_BY_ID[profile?.id]?.moreItems;
                   const defaultMore = [
+                    { id: 'messages',  label: 'Messages',  Icon: MessageSquare },
                     { id: 'profile',   label: 'Profile',   Icon: User },
                     { id: 'tasks',     label: 'Tasks',     Icon: ClipboardList },
                     { id: 'todo',      label: 'To-Do',     Icon: ListTodo },

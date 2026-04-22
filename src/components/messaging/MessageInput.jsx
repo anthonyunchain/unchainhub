@@ -3,8 +3,9 @@ import { Send, Paperclip, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { sendMessage } from './useMessages';
 import { toast } from 'sonner';
+import { t } from './i18n';
 
-export default function MessageInput({ conversationId, userId, replyTo, onClearReply, isMobile }) {
+export default function MessageInput({ conversationId, userId, replyTo, onClearReply, isMobile, locale = 'en' }) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [attachment, setAttachment] = useState(null); // { file, preview, type }
@@ -62,7 +63,7 @@ export default function MessageInput({ conversationId, userId, replyTo, onClearR
       if (onClearReply) onClearReply();
       textareaRef.current?.focus();
     } catch (err) {
-      toast.error('Failed to send message');
+      toast.error(t(locale, 'failedToSend'));
       console.error('[MessageInput]', err);
     } finally {
       setSending(false);
@@ -150,7 +151,7 @@ export default function MessageInput({ conversationId, userId, replyTo, onClearR
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Message… (Enter to send, Shift+Enter for newline)"
+          placeholder={t(locale, 'messagePlaceholder')}
           rows={1}
           style={{
             flex: 1,

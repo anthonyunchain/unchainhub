@@ -1,7 +1,8 @@
 import { format } from 'date-fns';
 import { FileText, CornerUpLeft } from 'lucide-react';
+import { t } from './i18n';
 
-export default function MessageBubble({ message, isOwn, senderName, replyTo }) {
+export default function MessageBubble({ message, isOwn, senderName, replyTo, locale = 'en' }) {
   const isDeleted = !!message.deleted_at;
   const time = message.created_at ? format(new Date(message.created_at), 'HH:mm') : '';
 
@@ -57,7 +58,7 @@ export default function MessageBubble({ message, isOwn, senderName, replyTo }) {
             fontStyle: 'italic',
             opacity: 0.5,
           }}>
-            Message deleted
+            {t(locale, 'messageDeleted')}
           </p>
         ) : message.message_type === 'image' && message.file_url ? (
           <img

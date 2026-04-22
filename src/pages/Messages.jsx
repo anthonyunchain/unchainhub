@@ -4,11 +4,11 @@ import ConversationList from '@/components/messaging/ConversationList';
 import ChatWindow from '@/components/messaging/ChatWindow';
 import NewConversationModal from '@/components/messaging/NewConversationModal';
 import { MessageSquare } from 'lucide-react';
+import { t } from '@/components/messaging/i18n';
 
-// Exported so portals can reserve space in their layout
-export const MESSAGES_NAV_OFFSET = 90; // px — approximate height of nav area across all layouts
+export const MESSAGES_NAV_OFFSET = 90;
 
-export default function Messages() {
+export default function Messages({ locale = 'en' }) {
   const [userId, setUserId] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -34,9 +34,6 @@ export default function Messages() {
   const showList = !isMobile || !selectedConversation;
   const showChat = !isMobile || !!selectedConversation;
 
-  // Position: fixed breaks out of any padded container so no scroll occurs.
-  // Mobile → full-screen overlay (covers bottom nav).
-  // Desktop → sits below nav bar with matching horizontal padding.
   const containerStyle = isMobile
     ? {
         position: 'fixed',
@@ -63,7 +60,6 @@ export default function Messages() {
   return (
     <>
       <div style={containerStyle}>
-        {/* Left: Conversation List */}
         {showList && (
           <ConversationList
             selectedId={selectedConversation?.id}
@@ -72,16 +68,17 @@ export default function Messages() {
             userId={userId}
             isAdmin={isAdmin}
             isMobile={isMobile}
+            locale={locale}
           />
         )}
 
-        {/* Right: Chat or Empty State */}
         {showChat && (
           selectedConversation ? (
             <ChatWindow
               conversation={selectedConversation}
               userId={userId}
               onBack={isMobile ? () => setSelectedConversation(null) : null}
+              locale={locale}
             />
           ) : (
             <div style={{
@@ -102,10 +99,10 @@ export default function Messages() {
               </div>
               <div style={{ textAlign: 'center' }}>
                 <p style={{ fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, color: 'var(--ink)', margin: '0 0 4px' }}>
-                  Select a conversation
+                  {t(locale, 'selectConversation')}
                 </p>
                 <p style={{ fontSize: 12, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--muted)', margin: 0 }}>
-                  Choose from the list or start a new one
+                  {t(locale, 'selectHint')}
                 </p>
               </div>
             </div>
@@ -113,7 +110,6 @@ export default function Messages() {
         )}
       </div>
 
-      {/* Reserve space in the document flow so the page doesn't collapse to zero height */}
       {!isMobile && (
         <div style={{ height: `calc(100dvh - ${MESSAGES_NAV_OFFSET}px - 20px)`, pointerEvents: 'none' }} />
       )}
@@ -123,6 +119,7 @@ export default function Messages() {
           isAdmin={isAdmin}
           currentUserId={userId}
           onClose={() => setShowNewModal(false)}
+          locale={locale}
           onCreated={(convId) => {
             setShowNewModal(false);
             setSelectedConversation({ id: convId, type: 'direct', participants: [] });

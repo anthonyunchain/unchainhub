@@ -1,17 +1,18 @@
 import { format, isToday, isYesterday } from 'date-fns';
 import { MessageSquarePlus, Users, MessageSquare } from 'lucide-react';
 import { useConversations } from './useConversations';
+import { t } from './i18n';
 
-function formatTime(dateStr) {
+function formatTime(dateStr, locale) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
   if (isToday(d)) return format(d, 'HH:mm');
-  if (isYesterday(d)) return 'Yesterday';
+  if (isYesterday(d)) return t(locale, 'yesterday');
   return format(d, 'd MMM');
 }
 
-function getConversationName(conversation, currentUserId) {
-  if (conversation.type === 'group') return conversation.name || 'Group';
+function getConversationName(conversation, currentUserId, locale) {
+  if (conversation.type === 'group') return conversation.name || t(locale, 'group');
   const other = conversation.participants?.find(p => p.user_id !== currentUserId);
   return other?.profile?.full_name || 'Chat';
 }
@@ -20,15 +21,14 @@ function getInitials(name) {
   return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-function lastMessagePreview(conv) {
+function lastMessagePreview(conv, locale) {
   const m = conv.last_message;
-  if (!m) return 'No messages yet';
+  if (!m) return t(locale, 'noMessagesYet');
   if (m.message_type === 'image') return '📷 Image';
-  if (m.message_type === 'file') return '📎 File';
+  if (m.message_type === 'file') return `📎 ${t(locale, 'file')}`;
   return m.content?.slice(0, 60) || '';
 }
 
-// Color palette for avatars
 const AVATAR_COLORS = [
   '#6366F1', '#8B5CF6', '#EC4899', '#F59E0B',
   '#10B981', '#3B82F6', '#EF4444', '#14B8A6',
@@ -39,7 +39,7 @@ function avatarColor(name) {
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
 }
 
-export default function ConversationList({ selectedId, onSelect, onNew, userId, isAdmin, isMobile }) {
+export default function ConversationList({ selectedId, onSelect, onNew, userId, isAdmin, isMobile, locale = 'en' }) {
   const { data: conversations = [], isLoading } = useConversations(userId);
   const totalUnread = conversations.reduce((s, c) => s + (c.unread_count || 0), 0);
 
@@ -71,7 +71,7 @@ export default function ConversationList({ selectedId, onSelect, onNew, userId, 
             fontFamily: "'Plus Jakarta Sans', sans-serif",
             color: 'var(--ink)',
           }}>
-            Messages
+            {t(locale, 'messages')}
           </span>
           {totalUnread > 0 && (
             <span style={{
@@ -85,7 +85,7 @@ export default function ConversationList({ selectedId, onSelect, onNew, userId, 
         </div>
         <button
           onClick={onNew}
-          title="New conversation"
+          title={t(locale, 'newConversation')}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '8px 14px',
@@ -100,14 +100,13 @@ export default function ConversationList({ selectedId, onSelect, onNew, userId, 
           }}
         >
           <MessageSquarePlus style={{ width: 14, height: 14 }} />
-          New
+          {t(locale, 'new')}
         </button>
       </div>
 
       {/* List */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {isLoading ? (
-          // Skeleton placeholders
           <div style={{ padding: '8px 0' }}>
             {[...Array(4)].map((_, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
@@ -127,12 +126,12 @@ export default function ConversationList({ selectedId, onSelect, onNew, userId, 
           }}>
             <MessageSquare style={{ width: 36, height: 36, color: 'var(--muted)' }} />
             <p style={{ fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
-              No conversations yet.<br />Start one with the button above.
+              {t(locale, 'noConversations')}<br />{t(locale, 'startOne')}
             </p>
           </div>
         ) : (
           conversations.map(conv => {
-            const name = getConversationName(conv, userId);
+            const name = getConversationName(conv, userId, locale);
             const initials = getInitials(name);
             const isSelected = conv.id === selectedId;
             const unread = conv.unread_count || 0;
@@ -160,7 +159,6 @@ export default function ConversationList({ selectedId, onSelect, onNew, userId, 
                 onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg)'; }}
                 onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
               >
-                {/* Avatar */}
                 <div style={{
                   width: isMobile ? 46 : 40,
                   height: isMobile ? 46 : 40,
@@ -172,10 +170,7 @@ export default function ConversationList({ selectedId, onSelect, onNew, userId, 
                   {conv.type === 'group' ? (
                     <Users style={{ width: 18, height: 18, color: 'var(--muted)' }} />
                   ) : (
-                    <span style={{
-                      fontSize: 14, fontWeight: 700, color: '#fff',
-                      fontFamily: "'Plus Jakarta Sans', sans-serif",
-                    }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                       {initials}
                     </span>
                   )}
@@ -194,7 +189,6 @@ export default function ConversationList({ selectedId, onSelect, onNew, userId, 
                   )}
                 </div>
 
-                {/* Text */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
                     <span style={{
@@ -213,7 +207,7 @@ export default function ConversationList({ selectedId, onSelect, onNew, userId, 
                         flexShrink: 0,
                         fontWeight: unread > 0 ? 600 : 400,
                       }}>
-                        {formatTime(lastMsg.created_at)}
+                        {formatTime(lastMsg.created_at, locale)}
                       </span>
                     )}
                   </div>
@@ -225,7 +219,7 @@ export default function ConversationList({ selectedId, onSelect, onNew, userId, 
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     lineHeight: 1.4,
                   }}>
-                    {lastMessagePreview(conv)}
+                    {lastMessagePreview(conv, locale)}
                   </p>
                 </div>
               </button>
