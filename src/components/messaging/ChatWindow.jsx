@@ -5,7 +5,7 @@ import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 
 function getConversationName(conversation, currentUserId) {
-  if (conversation.type === 'group') return conversation.name || 'Groupe';
+  if (conversation.type === 'group') return conversation.name || 'Group';
   const other = conversation.participants?.find(p => p.user_id !== currentUserId);
   return other?.profile?.full_name || other?.profile?.role || 'Chat';
 }
@@ -105,7 +105,7 @@ export default function ChatWindow({ conversation, userId, onBack }) {
               color: 'var(--muted)',
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}>
-              {conversation.participants?.length} membres
+              {conversation.participants?.length} members
             </p>
           )}
         </div>
@@ -148,7 +148,7 @@ export default function ChatWindow({ conversation, userId, onBack }) {
               fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif",
               color: 'var(--muted)', margin: 0,
             }}>
-              Dites bonjour 👋
+              Say hello 👋
             </p>
           </div>
         ) : (
@@ -170,7 +170,7 @@ export default function ChatWindow({ conversation, userId, onBack }) {
                 <MessageBubble
                   message={msg}
                   isOwn={isOwn}
-                  senderName={showSender ? (senderProfile?.full_name || 'Inconnu') : null}
+                  senderName={showSender ? (senderProfile?.full_name || 'Unknown') : null}
                   replyTo={replyToMsg}
                 />
               </div>

@@ -6,12 +6,12 @@ function formatTime(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
   if (isToday(d)) return format(d, 'HH:mm');
-  if (isYesterday(d)) return 'Hier';
+  if (isYesterday(d)) return 'Yesterday';
   return format(d, 'd MMM');
 }
 
 function getConversationName(conversation, currentUserId) {
-  if (conversation.type === 'group') return conversation.name || 'Groupe';
+  if (conversation.type === 'group') return conversation.name || 'Group';
   const other = conversation.participants?.find(p => p.user_id !== currentUserId);
   return other?.profile?.full_name || 'Chat';
 }
@@ -22,9 +22,9 @@ function getInitials(name) {
 
 function lastMessagePreview(conv) {
   const m = conv.last_message;
-  if (!m) return 'Pas encore de messages';
+  if (!m) return 'No messages yet';
   if (m.message_type === 'image') return '📷 Image';
-  if (m.message_type === 'file') return '📎 Fichier';
+  if (m.message_type === 'file') return '📎 File';
   return m.content?.slice(0, 60) || '';
 }
 
@@ -85,7 +85,7 @@ export default function ConversationList({ selectedId, onSelect, onNew, userId, 
         </div>
         <button
           onClick={onNew}
-          title="Nouvelle conversation"
+          title="New conversation"
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '8px 14px',
@@ -100,7 +100,7 @@ export default function ConversationList({ selectedId, onSelect, onNew, userId, 
           }}
         >
           <MessageSquarePlus style={{ width: 14, height: 14 }} />
-          Nouveau
+          New
         </button>
       </div>
 
@@ -127,7 +127,7 @@ export default function ConversationList({ selectedId, onSelect, onNew, userId, 
           }}>
             <MessageSquare style={{ width: 36, height: 36, color: 'var(--muted)' }} />
             <p style={{ fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
-              Aucune conversation.<br />Commencez-en une ci-dessus.
+              No conversations yet.<br />Start one with the button above.
             </p>
           </div>
         ) : (
