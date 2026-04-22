@@ -32,7 +32,7 @@ import NotificationsPanel from "@/components/freelancer/NotificationsPanel";
 import ShootingsTab from "@/components/freelancer/ShootingsTab";
 import FreelancerMusicTab from "@/components/freelancer/FreelancerMusicTab";
 import { TASK_STATUS_CONFIG as TASK_STATUS } from "@/lib/taskStatus";
-import { HIDDEN_NAV_BY_ID, getHiddenNav, MOBILE_NAV_BY_ID } from "@/lib/navConfig";
+import { getHiddenNav, MOBILE_NAV_BY_ID } from "@/lib/navConfig";
 
 // ─── DASHBOARD TAB ─────────────────────────────────────────────────────────
 function DashboardTab({ tasks, projects, payments, freelancerName, freelancerFirstName, onTabChange, userId }) {

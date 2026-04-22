@@ -16,12 +16,6 @@ export const FREELANCER_NAV_ITEMS = [
   { id: "profile",       label: "Profile" },
 ];
 
-// ─── PER-FREELANCER HIDDEN NAV ITEMS (fallback until DB migration is applied) ─
-export const HIDDEN_NAV_BY_ID = {
-  'a83475b8-6afe-45c8-bbfb-7afcbbabfe54': ['projects', 'tools', 'meetings'], // Domnin
-  '2ba918c3-a88e-4b9f-a570-68d8e6b0c1ed': ['tools', 'projects', 'captions'],
-};
-
 export function isVideoEditor(profile) {
   if (!profile) return false;
   const role = (profile.role || "").toLowerCase();
@@ -30,13 +24,11 @@ export function isVideoEditor(profile) {
   return tags.includes("video editor");
 }
 
+// Admin fully controls visibility via profile.hidden_nav_items. Empty array =
+// everything visible. Full list of page IDs lives in FREELANCER_NAV_ITEMS and
+// the toggle UI in FreelancerAdmin / Freelancers.
 export function getHiddenNav(profile) {
-  const base = profile?.hidden_nav_items?.length
-    ? [...profile.hidden_nav_items]
-    : [...(HIDDEN_NAV_BY_ID[profile?.id] || [])];
-  // Music tab is only relevant for video editors
-  if (!isVideoEditor(profile) && !base.includes("music")) base.push("music");
-  return base;
+  return [...(profile?.hidden_nav_items || [])];
 }
 
 // ─── CUSTOM MOBILE BOTTOM NAV PER FREELANCER ──────────────────────────────
