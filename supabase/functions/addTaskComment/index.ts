@@ -101,6 +101,28 @@ Deno.serve(async (req) => {
     const pushTitle = `💬 ${authorName}: ${content?.slice(0, 60) || 'New comment'}`;
     if (authorRole === 'freelancer') {
       pushAdmins(supabaseAdmin, { title: pushTitle, url: '/Tasks' }).catch(() => {});
+
+      // Also persist in-app notifications so the bell + app-icon badge update
+      (async () => {
+        const { data: task } = await supabaseAdmin
+          .from('tasks').select('title').eq('id', task_id).single();
+        const { data: admins } = await supabaseAdmin
+          .from('profiles').select('id').eq('role', 'admin');
+        if (admins?.length) {
+          const snippet = (content || '').slice(0, 140);
+          await supabaseAdmin.from('notifications').insert(
+            admins.map((a: any) => ({
+              recipient_id: a.id,
+              title: `💬 ${authorName} on "${task?.title || 'a task'}"`,
+              message: snippet || '(image)',
+              type: 'task_comment',
+              is_read: false,
+              action_required: false,
+              created_at: new Date().toISOString(),
+            })),
+          );
+        }
+      })().catch((e) => console.error('[addTaskComment] notif insert failed:', e?.message));
     } else {
       // Admin commented — push the assigned freelancer if any
       const { data: taskForPush } = await supabaseAdmin
