@@ -99,14 +99,13 @@ function CategoryFields({ category, meta = {}, onChange }) {
     fields = (
       <>
         <Field label="Duration">
-          <MetaSelect value={meta.duration} onChange={v => set("duration", v)} placeholder="15s, 1min…">
-            <SelectItem value="15s">15 sec</SelectItem>
-            <SelectItem value="30s">30 sec</SelectItem>
-            <SelectItem value="60s">1 min</SelectItem>
-            <SelectItem value="2min">2 min</SelectItem>
-            <SelectItem value="3min">3 min</SelectItem>
-            <SelectItem value="5min+">5 min+</SelectItem>
-            <SelectItem value="custom">Custom</SelectItem>
+          <MetaSelect value={meta.duration} onChange={v => set("duration", v)} placeholder="8s, 25s, 1min…">
+            <SelectItem value="8s">8 sec</SelectItem>
+            <SelectItem value="12s">12 sec</SelectItem>
+            <SelectItem value="25s">25 sec</SelectItem>
+            <SelectItem value="35s">35 sec</SelectItem>
+            <SelectItem value="45s">45 sec</SelectItem>
+            <SelectItem value="1min">1 min</SelectItem>
           </MetaSelect>
         </Field>
         <Field label="Ratio / Format">
@@ -116,26 +115,6 @@ function CategoryFields({ category, meta = {}, onChange }) {
             <SelectItem value="1:1">1:1 — Square feed</SelectItem>
             <SelectItem value="4:5">4:5 — Portrait feed</SelectItem>
           </MetaSelect>
-        </Field>
-        <Field label="Resolution">
-          <MetaSelect value={meta.resolution} onChange={v => set("resolution", v)} placeholder="1080p, 4K…">
-            <SelectItem value="4K">4K (3840×2160)</SelectItem>
-            <SelectItem value="1080p">1080p — Full HD</SelectItem>
-            <SelectItem value="720p">720p — HD</SelectItem>
-          </MetaSelect>
-        </Field>
-        <Field label="Platform">
-          <MetaSelect value={meta.platform} onChange={v => set("platform", v)} placeholder="Platform">
-            <SelectItem value="Instagram">Instagram</SelectItem>
-            <SelectItem value="TikTok">TikTok</SelectItem>
-            <SelectItem value="YouTube">YouTube</SelectItem>
-            <SelectItem value="LinkedIn">LinkedIn</SelectItem>
-            <SelectItem value="Website">Website</SelectItem>
-            <SelectItem value="Multi">Multiple</SelectItem>
-          </MetaSelect>
-        </Field>
-        <Field label="Versions">
-          <Input type="number" min={1} value={meta.versions || ""} onChange={e => set("versions", e.target.value)} placeholder="Ex: 2" className="h-9 bg-white" />
         </Field>
       </>
     );
