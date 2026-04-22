@@ -1069,6 +1069,8 @@ export default function FreelancerPortal() {
   const showHelsinkiToo = localTz !== "Europe/Helsinki";
   const localCityLabel = localTz.split("/").pop()?.replace(/_/g, " ") || "";
 
+  const messagesUnreadCount = useUnreadCount(user?.id);
+
   useEffect(() => {
     const init = async () => {
       try {
@@ -1117,7 +1119,6 @@ export default function FreelancerPortal() {
   const freelancerName = profile?.name || user?.full_name || user?.email;
   const freelancerFirstName = profile?.first_name || freelancerName?.split(" ")[0] || "";
   const unreadCount = notifications.filter(n => !n.is_read).length;
-  const messagesUnreadCount = useUnreadCount(user?.id);
 
   const handleUpdateTask = async (task, updates) => {
     // Optimistic update so the UI responds immediately
