@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Upload, X, ExternalLink, Users, CalendarDays, Wrench, Briefcase, Bell, FileText, Check, Eye, EyeOff, LayoutDashboard } from "lucide-react";
+import { Plus, Trash2, Upload, X, ExternalLink, Users, CalendarDays, Wrench, Briefcase, Bell, FileText, Check, Eye, EyeOff, LayoutDashboard, KeyRound, RefreshCw, Copy } from "lucide-react";
 import { FREELANCER_NAV_ITEMS } from "@/lib/navConfig";
 import AdminProjects from "@/components/admin/AdminProjects";
 import AdminNotifications from "@/components/admin/AdminNotifications";
@@ -20,12 +20,24 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 // ─── FREELANCER PROFILES ──────────────────────────────────────────────────
+function generateFreelancerPassword() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
 function FreelancerProfiles() {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteTarget, setInviteTarget] = useState(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [invitePassword, setInvitePassword] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState("");
+  const [inviteForce, setInviteForce] = useState(false);
   const qc = useQueryClient();
 
   const { data: freelancers = [] } = useQuery({ queryKey: ["freelancers"], queryFn: () => base44.entities.Freelancer.list() });
@@ -66,11 +78,47 @@ function FreelancerProfiles() {
     setUploading(false); e.target.value = "";
   };
 
-  const handleInvite = async (email, name) => {
-    if (!email) return;
-    const { data, error } = await supabase.functions.invoke('inviteFreelancer', { body: { email } });
-    if (error || data?.error) toast.error("Invite error: " + (data?.error || error?.message));
-    else toast.success(`Invitation sent to ${name || email}`);
+  const openInvite = (freelancer) => {
+    setInviteTarget(freelancer);
+    setInviteEmail(freelancer?.email || "");
+    setInvitePassword(generateFreelancerPassword());
+    setInviteMsg("");
+    setInviteForce(false);
+    setInviteOpen(true);
+  };
+
+  const sendInvite = async () => {
+    if (!inviteEmail || !invitePassword) return;
+    setInviting(true);
+    setInviteMsg("");
+    try {
+      const { data: resp, error } = await supabase.functions.invoke('setFreelancerPassword', {
+        body: {
+          email: inviteEmail,
+          freelancer_name: inviteTarget?.name,
+          freelancer_id: inviteTarget?.id,
+          password: invitePassword,
+          force: inviteForce,
+        },
+      });
+      if (error) {
+        setInviteMsg("Error: " + error.message);
+      } else if (resp?.error) {
+        if (resp.canForce) {
+          setInviteMsg(resp.error + " Tick \"override\" and retry to overwrite the password.");
+          setInviteForce(false);
+        } else {
+          setInviteMsg("Error: " + resp.error);
+        }
+      } else {
+        setInviteMsg("Account ready. Share the password with the freelancer.");
+        qc.invalidateQueries({ queryKey: ["freelancers"] });
+      }
+    } catch (e) {
+      setInviteMsg("Error: " + (e?.message || "Unknown error"));
+    } finally {
+      setInviting(false);
+    }
   };
 
   return (
@@ -242,8 +290,8 @@ function FreelancerProfiles() {
                       </Button>
                     )}
                     {data.email && !confirmDelete && (
-                      <Button variant="outline" className="h-8 text-xs" onClick={() => handleInvite(data.email, data.name)}>
-                        📧 Invite
+                      <Button variant="outline" className="h-8 text-xs" onClick={() => { setOpen(false); openInvite(data); }}>
+                        <KeyRound className="w-3.5 h-3.5 mr-1" /> Portal access
                       </Button>
                     )}
                   </div>
@@ -255,6 +303,63 @@ function FreelancerProfiles() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Portal access dialog — per-freelancer password */}
+      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteMsg(""); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-blue-500" />
+              Portal access — {inviteTarget?.name || inviteTarget?.email}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-slate-500">
+              Create an account with a password for this freelancer. Share it with them via SMS or in person.
+              Works even if the email is already registered.
+            </p>
+            <div>
+              <Label>Email address</Label>
+              <Input
+                type="email"
+                value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                placeholder="freelancer@example.com"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Password</Label>
+              <div className="flex gap-2 mt-1">
+                <Input value={invitePassword} onChange={e => setInvitePassword(e.target.value)} className="font-mono" />
+                <Button variant="outline" size="icon" onClick={() => setInvitePassword(generateFreelancerPassword())} title="Regenerate">
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => navigator.clipboard.writeText(invitePassword)} title="Copy">
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            {inviteMsg?.includes("existing") && (
+              <label className="flex items-center gap-2 text-xs text-slate-600">
+                <input type="checkbox" checked={inviteForce} onChange={e => setInviteForce(e.target.checked)} />
+                Override existing account role and reset its password
+              </label>
+            )}
+            {inviteMsg && (
+              <p className={`text-sm px-3 py-2 rounded-lg ${inviteMsg.startsWith('Error') || inviteMsg.includes('existing') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                {inviteMsg}
+              </p>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+              <Button onClick={sendInvite} disabled={inviting || !inviteEmail || !invitePassword} className="bg-brand hover:bg-brand/90 text-white">
+                <KeyRound className="w-4 h-4 mr-1.5" />{inviting ? "Creating..." : "Create account"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

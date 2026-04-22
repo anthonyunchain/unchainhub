@@ -28,13 +28,23 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admins cannot access this endpoint' }, { status: 403, headers: corsHeaders(req) });
     }
 
-    // Get freelancer record by email (email is from verified JWT, not user input)
-    const { data: freelancers } = await supabaseAdmin
+    // Get freelancer record: prefer direct user_id link (per-freelancer auth account),
+    // fall back to email match for freelancers not yet linked to an auth user.
+    const { data: byUserId } = await supabaseAdmin
       .from('freelancers')
       .select('*')
-      .eq('email', user.email);
+      .eq('user_id', user.id)
+      .limit(1);
 
-    const freelancerProfile = freelancers?.[0] || null;
+    let freelancerProfile = byUserId?.[0] || null;
+
+    if (!freelancerProfile) {
+      const { data: byEmail } = await supabaseAdmin
+        .from('freelancers')
+        .select('*')
+        .eq('email', user.email);
+      freelancerProfile = byEmail?.[0] || null;
+    }
 
     if (!freelancerProfile) {
       return Response.json({ error: 'Not a freelancer' }, { status: 403, headers: corsHeaders(req) });
