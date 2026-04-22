@@ -15,6 +15,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
+import { toast } from "sonner";
+
+function friendlyFreelancerError(err) {
+  const msg = err?.message || String(err);
+  if (/freelancers_email_unique/i.test(msg) || /duplicate key value.*email/i.test(msg)) {
+    return "A freelancer with this email already exists.";
+  }
+  return msg;
+}
 
 export default function Freelancers() {
   const [section, setSection] = useState(null);
@@ -44,8 +53,16 @@ export default function Freelancers() {
     },
   });
 
-  const createFMut = useMutation({ mutationFn: (d) => base44.entities.Freelancer.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setFDialogOpen(false); } });
-  const updateFMut = useMutation({ mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setFDialogOpen(false); } });
+  const createFMut = useMutation({
+    mutationFn: (d) => base44.entities.Freelancer.create(d),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setFDialogOpen(false); },
+    onError: (e) => toast.error(friendlyFreelancerError(e)),
+  });
+  const updateFMut = useMutation({
+    mutationFn: ({ id, d }) => base44.entities.Freelancer.update(id, d),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setFDialogOpen(false); },
+    onError: (e) => toast.error(friendlyFreelancerError(e)),
+  });
   const deleteFMut = useMutation({ mutationFn: (id) => base44.entities.Freelancer.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["freelancers"] }); setFDialogOpen(false); setConfirmDelete(null); } });
   const createPMut = useMutation({
     mutationFn: async (d) => {
