@@ -14,6 +14,18 @@ import { toast } from "sonner";
 
 function monthKey(d) { return format(d, "yyyy-MM"); }
 
+// ── Color helpers ─────────────────────────────────────────────────────────────
+// Convert a hex string (e.g. "#4285F4") to an rgba() string with the given alpha.
+// Falls back to Google Calendar blue if the input is missing or malformed.
+function hexToRgba(hex, alpha) {
+  const clean = (hex || "").replace("#", "").trim();
+  const norm = clean.length === 6 ? clean : "4285F4";
+  const r = parseInt(norm.substring(0, 2), 16);
+  const g = parseInt(norm.substring(2, 4), 16);
+  const b = parseInt(norm.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 // ── Google Cal helpers ────────────────────────────────────────────────────────
 async function callEdgeFunction(name, body) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -410,19 +422,23 @@ export default function PlanningCalendar() {
                   </div>
                   <div style={{ padding: "10px", display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
                     {/* Google Calendar events */}
-                    {dayGcal.map(ev => (
-                      <div key={ev.id} style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(66,133,244,0.1)", borderLeft: "3px solid #4285F4" }}>
-                        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: "#1a56db", margin: 0, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-                          {ev.summary || "(No title)"}
-                        </p>
-                        {ev.start?.dateTime && (
-                          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#1a56db", margin: "3px 0 0", opacity: 0.7 }}>
-                            {format(new Date(ev.start.dateTime), "HH:mm")}
-                            {ev.end?.dateTime ? ` – ${format(new Date(ev.end.dateTime), "HH:mm")}` : ""}
+                    {dayGcal.map(ev => {
+                      const calColor = ev._calendarColor || "#4285F4";
+                      const calBg = hexToRgba(calColor, 0.1);
+                      return (
+                        <div key={ev.id} style={{ padding: "8px 10px", borderRadius: 8, background: calBg, borderLeft: `3px solid ${calColor}` }}>
+                          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: calColor, margin: 0, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                            {ev.summary || "(No title)"}
                           </p>
-                        )}
-                      </div>
-                    ))}
+                          {ev.start?.dateTime && (
+                            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: calColor, margin: "3px 0 0", opacity: 0.7 }}>
+                              {format(new Date(ev.start.dateTime), "HH:mm")}
+                              {ev.end?.dateTime ? ` – ${format(new Date(ev.end.dateTime), "HH:mm")}` : ""}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                     {/* Shootings */}
                     {dayShootings.map(s => (
                       <Link key={s.id} to="/Shootings" style={{ textDecoration: "none" }}>
@@ -474,13 +490,17 @@ export default function PlanningCalendar() {
                     </span>
                   </div>
                   {/* Google Cal events */}
-                  {dayGcal.slice(0, 1).map(ev => (
-                    <div key={ev.id} style={{ padding: "3px 7px", borderRadius: 5, background: "rgba(66,133,244,0.1)", borderLeft: "2px solid #4285F4", overflow: "hidden" }}>
-                      <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 600, color: "#1a56db", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ev.summary || "(No title)"}</p>
-                    </div>
-                  ))}
+                  {dayGcal.slice(0, 1).map(ev => {
+                    const calColor = ev._calendarColor || "#4285F4";
+                    const calBg = hexToRgba(calColor, 0.1);
+                    return (
+                      <div key={ev.id} style={{ padding: "3px 7px", borderRadius: 5, background: calBg, borderLeft: `2px solid ${calColor}`, overflow: "hidden" }}>
+                        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 600, color: calColor, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ev.summary || "(No title)"}</p>
+                      </div>
+                    );
+                  })}
                   {dayGcal.length > 1 && (
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#4285F4", margin: 0, paddingLeft: 2 }}>+{dayGcal.length - 1} gcal</p>
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: dayGcal[0]?._calendarColor || "#4285F4", margin: 0, paddingLeft: 2 }}>+{dayGcal.length - 1} gcal</p>
                   )}
                   {/* Shootings */}
                   {dayShootings.map(s => (
