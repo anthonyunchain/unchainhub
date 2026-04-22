@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { useConfirm } from "@/lib/confirm";
 import StatusBadge from "../components/shared/StatusBadge";
 import ClientMenusTab from "../components/shared/ClientMenusTab";
+import ClientManagerRequestsTab from "../components/shared/ClientManagerRequestsTab";
+import ClientPastryRequestsTab from "../components/shared/ClientPastryRequestsTab";
 import ClientMusicTab from "../components/shared/ClientMusicTab";
 import ClientCredentialsTab from "../components/shared/ClientCredentialsTab";
 import {
@@ -46,6 +48,8 @@ const TABS = [
   { id: "contract",  label: "Contract"  },
   { id: "calendars", label: "Calendars" },
   { id: "menus",     label: "Menus"     },
+  { id: "manager",   label: "Manager"   },
+  { id: "pastry",    label: "Pastry"    },
   { id: "music",     label: "Music"     },
   { id: "credentials", label: "Passwords" },
 ];
@@ -738,6 +742,16 @@ export default function ClientDetail() {
       {/* MENUS — staff submissions */}
       {activeTab === "menus" && (
         <ClientMenusTab clientId={client.id} staffLinked={!!client.staff_user_id} />
+      )}
+
+      {/* MANAGER — staff requests */}
+      {activeTab === "manager" && (
+        <ClientManagerRequestsTab clientId={client.id} staffLinked={!!client.staff_user_id} />
+      )}
+
+      {/* PASTRY / BAKER CHEF — staff requests */}
+      {activeTab === "pastry" && (
+        <ClientPastryRequestsTab clientId={client.id} staffLinked={!!client.staff_user_id} />
       )}
 
       {/* MUSIC — curated library per client (for video editors) */}
