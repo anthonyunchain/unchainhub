@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import {
   LayoutDashboard, ClipboardList, FolderOpen, Wrench, CalendarDays,
   FileText, FileCheck, User, ChevronLeft, ChevronRight, Settings2,
-  Check, GripVertical, LogOut, Bell, Briefcase
+  Check, GripVertical, LogOut, Bell, Briefcase, MessageCircle
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { getHiddenNav } from "@/lib/navConfig";
@@ -18,12 +18,13 @@ const DEFAULT_NAV = [
   { id: "tools",         label: "Tools",             icon: "Wrench" },
   { id: "meetings",      label: "Meetings",          icon: "CalendarDays" },
   { id: "invoices",      label: "Admin",             icon: "FileText" },
+  { id: "messages",      label: "Messages",          icon: "MessageCircle" },
   { id: "profile",       label: "Profile",           icon: "User" },
 ];
 
 const ICON_MAP = {
   LayoutDashboard, ClipboardList, FolderOpen, Wrench, CalendarDays,
-  FileText, FileCheck, User, Bell, Briefcase,
+  FileText, FileCheck, User, Bell, Briefcase, MessageCircle,
 };
 
 const STORAGE_KEY = "freelancer_sidebar_order_v2";
@@ -44,7 +45,7 @@ function loadOrder() {
   return DEFAULT_NAV;
 }
 
-export default function FreelancerSidebar({ activeTab, onTabChange, user, freelancerProfile, unreadCount = 0 }) {
+export default function FreelancerSidebar({ activeTab, onTabChange, user, freelancerProfile, unreadCount = 0, messagesUnreadCount = 0 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [editing, setEditing] = useState(false);
   const [navItems, setNavItems] = useState(loadOrder);
@@ -151,7 +152,9 @@ export default function FreelancerSidebar({ activeTab, onTabChange, user, freela
             {visibleNavItems.map((item) => {
               const Icon = ICON_MAP[item.icon];
               const isActive = activeTab === item.id;
-              const badge = item.id === "notifications" && unreadCount > 0 ? unreadCount : null;
+              const badge = item.id === "notifications" && unreadCount > 0 ? unreadCount
+                : item.id === "messages" && messagesUnreadCount > 0 ? messagesUnreadCount
+                : null;
               return (
                 <button
                   key={item.id}

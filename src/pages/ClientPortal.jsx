@@ -11,10 +11,11 @@ import {
   Settings, ChevronLeft, ChevronRight, Eye, Users, TrendingUp,
   Bell, Moon, Sun, ExternalLink, Instagram, Youtube, Facebook,
   Linkedin, Globe, Download, Receipt, ClipboardList, CheckCircle2, Save,
-  GraduationCap, MoreHorizontal
+  GraduationCap, MoreHorizontal, MessageSquare
 } from "lucide-react";
 import ClientTutorialsTab from "@/components/client/ClientTutorialsTab";
 import ClientCredentialsTab from "@/components/shared/ClientCredentialsTab";
+import MessagesPage from "./Messages";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 // ── Translations ───────────────────────────────────────────────────────────
@@ -1704,10 +1705,11 @@ export default function ClientPortal() {
     { key: "brief",     label: tr.brief,       icon: ClipboardList },
     { key: "reports",   label: tr.reports,     icon: BarChart2 },
     { key: "tutorials", label: tr.tutorials || "Tutorials", icon: GraduationCap },
+    { key: "messages",  label: "Messages",     icon: MessageSquare },
     { key: "admin",     label: tr.admin,       icon: Settings },
   ];
   const MOBILE_TABS = TABS.filter(t => ["dashboard", "shootings", "brief"].includes(t.key));
-  const MORE_TABS = TABS.filter(t => ["reports", "tutorials", "admin"].includes(t.key));
+  const MORE_TABS = TABS.filter(t => ["reports", "tutorials", "messages", "admin"].includes(t.key));
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1 }}>
@@ -1840,6 +1842,7 @@ export default function ClientPortal() {
         {activeTab === "brief"     && <BriefTab clientName={clientName} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "reports"   && <ReportsTab stats={stats} content={content} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "tutorials" && <ClientTutorialsTab tr={tr} />}
+        {activeTab === "messages"  && <MessagesPage />}
         {activeTab === "admin"     && (
           <div style={{ maxWidth: 640, margin: '0 auto' }}>
             <AdminTab

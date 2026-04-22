@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard, CheckSquare, Calendar, Lightbulb,
   MoreHorizontal, X, Shield, UserCheck, Users, Layers, NotebookPen,
-  Camera, DollarSign, ShoppingBag, FileText, GitBranch
+  Camera, DollarSign, ShoppingBag, FileText, GitBranch, MessageSquare
 } from "lucide-react";
 
 const MAIN_TABS = [
@@ -21,6 +21,7 @@ const MORE_ITEMS = [
   { path: "/Pipeline",       label: "Pipeline",    icon: GitBranch },
   { path: "/FreelancerShop", label: "Shop",        icon: ShoppingBag },
   { path: "/Notes",          label: "Notes",       icon: NotebookPen },
+  { path: "/Messages",       label: "Messages",    icon: MessageSquare },
   { path: "/Invoices",       label: "Invoices",    icon: FileText },
   { path: "/Admin",          label: "Admin",       icon: Shield },
   { path: "/Services",       label: "Services",    icon: Layers },

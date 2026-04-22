@@ -1,0 +1,188 @@
+import { format, isToday, isYesterday } from 'date-fns';
+import { MessageSquarePlus, Users, MessageSquare } from 'lucide-react';
+import { useConversations } from './useConversations';
+
+function formatTime(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isToday(d)) return format(d, 'HH:mm');
+  if (isYesterday(d)) return 'Yesterday';
+  return format(d, 'd MMM');
+}
+
+function getConversationName(conversation, currentUserId) {
+  if (conversation.type === 'group') return conversation.name || 'Group';
+  const other = conversation.participants?.find(p => p.user_id !== currentUserId);
+  return other?.profile?.full_name || 'Chat';
+}
+
+function getInitials(name) {
+  return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function lastMessagePreview(conv) {
+  const m = conv.last_message;
+  if (!m) return 'No messages yet';
+  if (m.message_type === 'image') return '📷 Image';
+  if (m.message_type === 'file') return '📎 File';
+  return m.content?.slice(0, 60) || '';
+}
+
+export default function ConversationList({ selectedId, onSelect, onNew, userId, isAdmin }) {
+  const { data: conversations = [], isLoading } = useConversations(userId);
+  const totalUnread = conversations.reduce((s, c) => s + (c.unread_count || 0), 0);
+
+  return (
+    <div style={{
+      width: 300,
+      minWidth: 260,
+      borderRight: '1px solid var(--divider)',
+      display: 'flex',
+      flexDirection: 'column',
+      background: 'var(--card)',
+      flexShrink: 0,
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '14px 16px 12px',
+        borderBottom: '1px solid var(--divider)',
+        flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--ink)' }}>
+            Messages
+          </span>
+          {totalUnread > 0 && (
+            <span style={{
+              background: '#E8421A', color: '#fff',
+              fontSize: 9, fontWeight: 700, padding: '2px 6px',
+              borderRadius: 99, fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}>
+              {totalUnread > 99 ? '99+' : totalUnread}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={onNew}
+          title="New conversation"
+          style={{
+            background: 'var(--bg)', border: '1px solid var(--divider)',
+            borderRadius: 8, padding: '5px 8px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 5,
+            fontSize: 11, fontFamily: "'DM Mono', monospace", color: 'var(--muted)',
+          }}
+        >
+          <MessageSquarePlus style={{ width: 14, height: 14 }} />
+          New
+        </button>
+      </div>
+
+      {/* List */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {isLoading ? (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)', fontSize: 12, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            Loading…
+          </div>
+        ) : conversations.length === 0 ? (
+          <div style={{ padding: 32, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, opacity: 0.5 }}>
+            <MessageSquare style={{ width: 32, height: 32, color: 'var(--muted)' }} />
+            <p style={{ fontSize: 12, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--muted)', margin: 0 }}>
+              No conversations yet.<br />Start one with the button above.
+            </p>
+          </div>
+        ) : (
+          conversations.map(conv => {
+            const name = getConversationName(conv, userId);
+            const initials = getInitials(name);
+            const isSelected = conv.id === selectedId;
+            const unread = conv.unread_count || 0;
+            const lastMsg = conv.last_message;
+
+            return (
+              <button
+                key={conv.id}
+                onClick={() => onSelect(conv)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  width: '100%',
+                  padding: '10px 16px',
+                  background: isSelected ? 'var(--brand-muted, rgba(42,105,255,0.08))' : 'transparent',
+                  border: 'none',
+                  borderBottom: '1px solid var(--divider)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'background 150ms',
+                }}
+                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg)'; }}
+                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+              >
+                {/* Avatar */}
+                <div style={{
+                  width: 38, height: 38, borderRadius: '50%',
+                  background: isSelected ? 'var(--brand)' : 'var(--divider)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, position: 'relative',
+                }}>
+                  {conv.type === 'group' ? (
+                    <Users style={{ width: 18, height: 18, color: isSelected ? '#fff' : 'var(--muted)' }} />
+                  ) : (
+                    <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? '#fff' : 'var(--muted)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                      {initials}
+                    </span>
+                  )}
+                  {unread > 0 && (
+                    <span style={{
+                      position: 'absolute', top: -2, right: -2,
+                      width: 16, height: 16, borderRadius: '50%',
+                      background: '#E8421A', color: '#fff',
+                      fontSize: 9, fontWeight: 700,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      border: '2px solid var(--card)',
+                    }}>
+                      {unread > 9 ? '9+' : unread}
+                    </span>
+                  )}
+                </div>
+
+                {/* Text */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 4 }}>
+                    <span style={{
+                      fontSize: 13, fontWeight: unread > 0 ? 700 : 500,
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      color: isSelected ? 'var(--brand)' : 'var(--ink)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {name}
+                    </span>
+                    {lastMsg && (
+                      <span style={{ fontSize: 9, fontFamily: "'DM Mono', monospace", color: 'var(--muted)', flexShrink: 0 }}>
+                        {formatTime(lastMsg.created_at)}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{
+                    margin: 0, fontSize: 11,
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    color: unread > 0 ? 'var(--ink)' : 'var(--muted)',
+                    fontWeight: unread > 0 ? 500 : 400,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    marginTop: 1,
+                  }}>
+                    {lastMessagePreview(conv)}
+                  </p>
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}

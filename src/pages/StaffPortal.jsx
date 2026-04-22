@@ -5,8 +5,9 @@ import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import {
   ChefHat, ClipboardList, Croissant, LogOut, Send, History, CheckCircle2,
-  Clock, FileText, Image as ImageIcon, CalendarClock, Flame
+  Clock, FileText, Image as ImageIcon, CalendarClock, Flame, MessageSquare
 } from "lucide-react";
+import MessagesPage from "./Messages";
 import FileDropzone from "@/components/shared/FileDropzone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ const ROLES = [
 ];
 
 export default function StaffPortal() {
+  const [activeTab, setActiveTab] = useState("menu");
   const [user, setUser] = useState(null);
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -250,6 +252,30 @@ export default function StaffPortal() {
           </Button>
         </div>
 
+        {/* Top-level tab: Menu vs Messages */}
+        <div className="flex items-center gap-1 p-1" style={{ background: 'var(--card)', borderRadius: 'var(--pill-radius)', boxShadow: 'var(--card-shadow)', width: 'fit-content' }}>
+          {[
+            { key: 'menu', label: 'Menu', icon: ChefHat },
+            { key: 'messages', label: 'Messages', icon: MessageSquare },
+          ].map(({ key, label, icon: Icon }) => (
+            <button key={key} onClick={() => setActiveTab(key)} style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 500,
+              padding: '6px 14px', borderRadius: 'var(--pill-radius)',
+              background: activeTab === key ? 'var(--brand)' : 'transparent',
+              color: activeTab === key ? '#fff' : 'var(--muted)',
+              border: 'none', cursor: 'pointer', transition: 'all 200ms',
+            }}>
+              <Icon style={{ width: 13, height: 13 }} />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "messages" && <MessagesPage />}
+
+        {activeTab === "menu" && <>
+
         {/* Role switcher (hidden when only one role is enabled for this client) */}
         {!hideTabs && (
         <div
@@ -434,6 +460,9 @@ export default function StaffPortal() {
             </>
           )}
         </section>
+
+      </div>
+        </>}
 
       </div>
     </div>

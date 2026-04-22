@@ -33,6 +33,8 @@ import ShootingsTab from "@/components/freelancer/ShootingsTab";
 import FreelancerMusicTab from "@/components/freelancer/FreelancerMusicTab";
 import { TASK_STATUS_CONFIG as TASK_STATUS } from "@/lib/taskStatus";
 import { getHiddenNav, MOBILE_NAV_BY_ID } from "@/lib/navConfig";
+import MessagesPage from "./Messages";
+import { useUnreadCount } from "@/components/messaging/useUnreadCount";
 
 // ─── DASHBOARD TAB ─────────────────────────────────────────────────────────
 function DashboardTab({ tasks, projects, payments, freelancerName, freelancerFirstName, onTabChange, userId }) {
@@ -1115,6 +1117,7 @@ export default function FreelancerPortal() {
   const freelancerName = profile?.name || user?.full_name || user?.email;
   const freelancerFirstName = profile?.first_name || freelancerName?.split(" ")[0] || "";
   const unreadCount = notifications.filter(n => !n.is_read).length;
+  const messagesUnreadCount = useUnreadCount(user?.id);
 
   const handleUpdateTask = async (task, updates) => {
     // Optimistic update so the UI responds immediately
@@ -1179,6 +1182,7 @@ export default function FreelancerPortal() {
         onDecline={() => handleProjectUpdate()}
       />;
       case "notes": return <Notes embedded autoNewTrigger={notesNewTrigger} />;
+      case "messages": return <MessagesPage />;
       default: return null;
     }
   };
@@ -1232,6 +1236,7 @@ export default function FreelancerPortal() {
                 { id: 'projects', label: 'Calendar' },
 
                 ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas' }] : []),
+                { id: 'messages', label: 'Messages' },
                 { id: 'notes', label: 'Notes' },
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
@@ -1338,6 +1343,7 @@ export default function FreelancerPortal() {
                 contract:    { title: 'Invoices & Contract', subtitle: 'Your payments and contract' },
                 profile:     { title: 'Profile',         subtitle: 'Your information & settings' },
                 notifications: { title: 'Notifications', subtitle: 'Your latest updates' },
+                messages:      { title: 'Messages',       subtitle: 'Your conversations' },
               };
               const meta = TAB_TITLES[activeTab];
               if (!meta) return null;
