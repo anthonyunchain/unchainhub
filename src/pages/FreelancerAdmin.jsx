@@ -152,6 +152,17 @@ function FreelancerProfiles() {
                   <div><Label>Email</Label><Input value={data.email || ""} onChange={e => setData({ ...data, email: e.target.value })} /></div>
                   <div><Label>Phone</Label><Input value={data.phone || ""} onChange={e => setData({ ...data, phone: e.target.value })} placeholder="e.g. +33 6 12 34 56 78" /></div>
                 </div>
+                <div>
+                  <Label>Timezone</Label>
+                  <Input
+                    value={data.timezone || ""}
+                    onChange={e => setData({ ...data, timezone: e.target.value })}
+                    placeholder="e.g. Asia/Karachi, Asia/Ho_Chi_Minh, Europe/Helsinki"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    IANA timezone ID. When set, the freelancer's portal shows their local time plus Helsinki.
+                  </p>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label>Role</Label><Input value={data.role || ""} onChange={e => setData({ ...data, role: e.target.value })} placeholder="e.g. Video editor" /></div>
                   <div><Label>Status</Label>

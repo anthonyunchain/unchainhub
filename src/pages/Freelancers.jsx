@@ -195,6 +195,17 @@ export default function Freelancers() {
               <div><Label>Email</Label><Input value={editFreelancer.email || ""} onChange={e => setEditFreelancer({ ...editFreelancer, email: e.target.value })} /></div>
               <div><Label>Phone</Label><Input value={editFreelancer.phone || ""} onChange={e => setEditFreelancer({ ...editFreelancer, phone: e.target.value })} /></div>
             </div>
+            <div>
+              <Label>Timezone</Label>
+              <Input
+                value={editFreelancer.timezone || ""}
+                onChange={e => setEditFreelancer({ ...editFreelancer, timezone: e.target.value })}
+                placeholder="e.g. Asia/Karachi, Asia/Ho_Chi_Minh, Europe/Helsinki"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                IANA timezone ID. When set, the freelancer's portal shows their local time plus Helsinki. Leave empty to default to Helsinki.
+              </p>
+            </div>
             <div><Label>Notes</Label><Textarea value={editFreelancer.notes || ""} onChange={e => setEditFreelancer({ ...editFreelancer, notes: e.target.value })} rows={3} /></div>
 
             {editFreelancer.id && (

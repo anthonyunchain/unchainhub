@@ -971,7 +971,8 @@ export default function FreelancerPortal() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [navVisible, setNavVisible] = useState(true);
   const lastScrollY = useRef(0);
-  const [time, setTime] = useState("");
+  const [localTime, setLocalTime] = useState("");
+  const [helsinkiTime, setHelsinkiTime] = useState("");
 
   // ── Notifications (single source of truth + single realtime channel) ──────
   const [notifications, setNotifications] = useState([]);
@@ -1050,14 +1051,21 @@ export default function FreelancerPortal() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const localTz = freelancerData?.profile?.timezone || "Europe/Helsinki";
   useEffect(() => {
     const updateTime = () => {
-      setTime(new Date().toLocaleTimeString("fi-FI", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/Helsinki" }));
+      const now = new Date();
+      const fmt = { hour: "2-digit", minute: "2-digit", hour12: false };
+      setLocalTime(now.toLocaleTimeString("fi-FI", { ...fmt, timeZone: localTz }));
+      setHelsinkiTime(now.toLocaleTimeString("fi-FI", { ...fmt, timeZone: "Europe/Helsinki" }));
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [localTz]);
+
+  const showHelsinkiToo = localTz !== "Europe/Helsinki";
+  const localCityLabel = localTz.split("/").pop()?.replace(/_/g, " ") || "";
 
   useEffect(() => {
     const init = async () => {
@@ -1265,8 +1273,16 @@ export default function FreelancerPortal() {
                 boxShadow: 'var(--card-shadow)',
                 borderRadius: 'var(--pill-radius)',
                 padding: '7px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
               }}>
-                {format(new Date(), "EEE, MMM d", { locale: enUS })} · {time}
+                <span>{format(new Date(), "EEE, MMM d", { locale: enUS })} · {localTime}{showHelsinkiToo && localCityLabel ? ` ${localCityLabel}` : ""}</span>
+                {showHelsinkiToo && (
+                  <span style={{ color: 'var(--brand)', borderLeft: '1px solid var(--divider)', paddingLeft: 10 }}>
+                    Helsinki {helsinkiTime}
+                  </span>
+                )}
               </div>
               <NotesFABFreelancer onNewNote={() => { setActiveTab("notes"); setNotesNewTrigger(n => n + 1); }} />
               <NotificationBell
@@ -1286,7 +1302,12 @@ export default function FreelancerPortal() {
 
             {/* Mobile: time + bell + avatar menu */}
             <div className="flex md:hidden items-center gap-2">
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)' }}>{time}</div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)', lineHeight: 1.15, textAlign: 'right' }}>
+                <div>{localTime}</div>
+                {showHelsinkiToo && (
+                  <div style={{ color: 'var(--brand)', fontSize: '9px' }}>HEL {helsinkiTime}</div>
+                )}
+              </div>
               <NotesFABFreelancer onNewNote={() => { setActiveTab("notes"); setNotesNewTrigger(n => n + 1); }} />
               <NotificationBell
                 notifications={notifications}
