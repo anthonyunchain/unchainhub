@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import {
   LayoutDashboard, ClipboardList, FolderOpen, Wrench, CalendarDays,
   FileText, FileCheck, User, ChevronLeft, ChevronRight, Settings2,
-  Check, GripVertical, LogOut, Bell, Briefcase, MessageCircle
+  Check, GripVertical, LogOut, Bell, Briefcase, MessageCircle, KeyRound
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { getHiddenNav } from "@/lib/navConfig";
@@ -18,13 +18,14 @@ const DEFAULT_NAV = [
   { id: "tools",         label: "Tools",             icon: "Wrench" },
   { id: "meetings",      label: "Meetings",          icon: "CalendarDays" },
   { id: "invoices",      label: "Admin",             icon: "FileText" },
+  { id: "credentials",   label: "Passwords",         icon: "KeyRound" },
   { id: "messages",      label: "Messages",          icon: "MessageCircle" },
   { id: "profile",       label: "Profile",           icon: "User" },
 ];
 
 const ICON_MAP = {
   LayoutDashboard, ClipboardList, FolderOpen, Wrench, CalendarDays,
-  FileText, FileCheck, User, Bell, Briefcase, MessageCircle,
+  FileText, FileCheck, User, Bell, Briefcase, MessageCircle, KeyRound,
 };
 
 const STORAGE_KEY = "freelancer_sidebar_order_v2";

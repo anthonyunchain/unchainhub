@@ -32,6 +32,7 @@ import FreelancerProjects from "@/components/freelancer/FreelancerProjects";
 import NotificationsPanel from "@/components/freelancer/NotificationsPanel";
 import ShootingsTab from "@/components/freelancer/ShootingsTab";
 import FreelancerMusicTab from "@/components/freelancer/FreelancerMusicTab";
+import FreelancerCredentialsTab from "@/components/shared/FreelancerCredentialsTab";
 import { TASK_STATUS_CONFIG as TASK_STATUS } from "@/lib/taskStatus";
 import { getHiddenNav, MOBILE_NAV_BY_ID } from "@/lib/navConfig";
 import MessagesPage from "./Messages";
@@ -961,6 +962,7 @@ const TAB_TITLES = {
   contract: "Invoices & Contract",
   profile: "My Profile",
   notifications: "Notifications",
+  credentials: "Passwords",
 };
 
 export default function FreelancerPortal() {
@@ -1184,6 +1186,9 @@ export default function FreelancerPortal() {
       case "music": return <FreelancerMusicTab />;
       case "meetings": return <MeetingsTab meetings={meetings} />;
       case "shootings": return <ShootingsTab freelancerId={profile?.id} />;
+      case "credentials": return profile?.id
+        ? <FreelancerCredentialsTab freelancerId={profile.id} freelancerName={freelancerName} canEdit={false} />
+        : null;
       case "invoices":
       case "contract": return <InvoicesTab payments={payments} freelancerName={freelancerName} freelancerId={profile?.id} onPaymentAdded={handlePaymentAdded} openTrigger={invoiceOpenTrigger} profile={profile} />;
       case "profile": return <ProfileTab user={user} freelancerProfile={profile} onProfileUpdate={(p) => setFreelancerData(d => ({ ...d, profile: p }))} />;
@@ -1378,6 +1383,7 @@ export default function FreelancerPortal() {
                 profile:     { title: 'Profile',         subtitle: 'Your information & settings' },
                 notifications: { title: 'Notifications', subtitle: 'Your latest updates' },
                 workflow: { title: 'Workflow', subtitle: 'Monthly client communication tasks' },
+                credentials: { title: 'Passwords', subtitle: 'Logins shared with you' },
               };
               const meta = TAB_TITLES[activeTab];
               if (!meta) return null;

@@ -16,6 +16,7 @@ import { FREELANCER_NAV_ITEMS } from "@/lib/navConfig";
 import AdminProjects from "@/components/admin/AdminProjects";
 import AdminNotifications from "@/components/admin/AdminNotifications";
 import FreelancerProfileCard from "@/components/freelancer/FreelancerProfileCard";
+import FreelancerCredentialsTab from "@/components/shared/FreelancerCredentialsTab";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -904,6 +905,47 @@ function InvoicesManagement() {
   );
 }
 
+// ─── CREDENTIALS MANAGEMENT ───────────────────────────────────────────────
+function CredentialsManagement() {
+  const { data: freelancers = [] } = useQuery({ queryKey: ["freelancers"], queryFn: () => base44.entities.Freelancer.list() });
+  const [selectedFreelancer, setSelectedFreelancer] = useState(null);
+
+  useEffect(() => {
+    if (!selectedFreelancer && freelancers.length > 0) {
+      setSelectedFreelancer(freelancers[0].id);
+    }
+  }, [freelancers, selectedFreelancer]);
+
+  const current = freelancers.find(f => f.id === selectedFreelancer);
+
+  if (freelancers.length === 0) {
+    return <div className="text-center py-12 text-slate-400 text-sm">No freelancers registered</div>;
+  }
+
+  return (
+    <div>
+      <div className="flex gap-2 flex-wrap mb-5">
+        {freelancers.map(f => (
+          <button key={f.id} onClick={() => setSelectedFreelancer(f.id)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedFreelancer === f.id ? "bg-slate-800 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+            {f.name}
+          </button>
+        ))}
+      </div>
+
+      {current && (
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 sm:p-6">
+          <FreelancerCredentialsTab
+            freelancerId={current.id}
+            freelancerName={current.name}
+            canEdit
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ─────────────────────────────────────────────────────────────
 export default function FreelancerAdmin() {
   const [adminId, setAdminId] = useState(null);
@@ -945,6 +987,7 @@ export default function FreelancerAdmin() {
         {section === 'meetings' && <MeetingsManagement />}
         {section === 'tools' && <ToolsManagement />}
         {section === 'invoices' && <InvoicesManagement />}
+        {section === 'credentials' && <CredentialsManagement />}
       </div>
     );
   }
@@ -1045,6 +1088,22 @@ export default function FreelancerAdmin() {
         >
           <p style={LABEL}>Freelancer Invoices</p>
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '12px', color: 'var(--muted)', marginTop: 12 }}>View & manage invoices →</p>
+        </div>
+
+        {/* Credentials card */}
+        <div
+          style={{ ...CARD, background: '#F0F4FF' }}
+          onClick={() => setSection('credentials')}
+          onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+        >
+          <p style={LABEL}>Passwords</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--brand-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <KeyRound className="w-5 h-5" style={{ color: 'var(--brand)' }} />
+            </div>
+            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>Per-freelancer vault</p>
+          </div>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginTop: 10 }}>Share logins securely →</p>
         </div>
 
       </div>
