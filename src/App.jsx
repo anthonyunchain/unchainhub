@@ -31,6 +31,7 @@ class ErrorBoundary extends Component {
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import AdminRoute from './components/layout/AdminRoute.jsx';
+import PushEnableModal from './components/shared/PushEnableModal.jsx';
 
 // Lazy-load all pages so each route gets its own JS chunk
 const Dashboard           = lazy(() => import('./pages/Dashboard'));
@@ -162,45 +163,56 @@ const AuthenticatedApp = () => {
 
   if (role === 'freelancer') {
     return (
-      <Suspense fallback={<Spinner />}>
-        <Routes>
-          <Route path="/" element={<FreelancerPortal />} />
-          <Route path="/FreelancerPortal" element={<FreelancerPortal />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <>
+        <PushEnableModal />
+        <Suspense fallback={<Spinner />}>
+          <Routes>
+            <Route path="/" element={<FreelancerPortal />} />
+            <Route path="/FreelancerPortal" element={<FreelancerPortal />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </>
     );
   }
 
   if (role === 'client') {
     return (
-      <Suspense fallback={<Spinner />}>
-        <Routes>
-          <Route path="/" element={<ClientPortal />} />
-          <Route path="/ClientPortal" element={<ClientPortal />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <>
+        <PushEnableModal />
+        <Suspense fallback={<Spinner />}>
+          <Routes>
+            <Route path="/" element={<ClientPortal />} />
+            <Route path="/ClientPortal" element={<ClientPortal />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </>
     );
   }
 
   if (role === 'staff') {
     return (
-      <Suspense fallback={<Spinner />}>
-        <Routes>
-          <Route path="/" element={<StaffPortal />} />
-          <Route path="/StaffPortal" element={<StaffPortal />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <>
+        <PushEnableModal />
+        <Suspense fallback={<Spinner />}>
+          <Routes>
+            <Route path="/" element={<StaffPortal />} />
+            <Route path="/StaffPortal" element={<StaffPortal />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </>
     );
   }
 
   // Admin
   return (
-    <Suspense fallback={<Spinner />}>
-      <Routes>
-        <Route path="/" element={<AppLayout />}>
+    <>
+      <PushEnableModal />
+      <Suspense fallback={<Spinner />}>
+        <Routes>
+          <Route path="/" element={<AppLayout />}>
           <Route index element={<AdminRoute><Dashboard /></AdminRoute>} />
           <Route path="Dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
           <Route path="Pipeline" element={<AdminRoute><Pipeline /></AdminRoute>} />
@@ -231,6 +243,7 @@ const AuthenticatedApp = () => {
         </Route>
       </Routes>
     </Suspense>
+    </>
   );
 };
 
