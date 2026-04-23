@@ -151,15 +151,17 @@ export default function MessageInput({ conversationId, userId, replyTo, onClearR
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={t(locale, 'messagePlaceholder')}
+          placeholder={t(locale, isMobile ? 'messagePlaceholderShort' : 'messagePlaceholder')}
           rows={1}
           style={{
             flex: 1,
+            minWidth: 0,
             resize: 'none',
             border: '1px solid var(--divider)',
             borderRadius: 12,
             padding: '8px 12px',
-            fontSize: 13,
+            // 16px on mobile prevents iOS Safari from auto-zooming on focus.
+            fontSize: isMobile ? 16 : 13,
             fontFamily: "'Plus Jakarta Sans', sans-serif",
             color: 'var(--ink)',
             background: 'var(--bg)',
