@@ -7,6 +7,7 @@ import { Menu, X } from "lucide-react";
 import UserMenu from "./UserMenu";
 import NotificationBell from "./NotificationBell";
 import NotesFAB from "../notes/NotesFAB";
+import { useUnreadCount } from "@/components/messaging/useUnreadCount";
 
 const NAV_LINKS = [
   { path: "/Dashboard",      label: "Dashboard"  },
@@ -49,6 +50,7 @@ export default function Topbar() {
 
   const initials = userName?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "US";
   const today = format(new Date(), "EEE, MMM d", { locale: enUS });
+  const messagesUnread = useUnreadCount(userId);
 
   return (
     <nav aria-label="Primary" style={{ padding: '0 0 20px 0', position: 'relative', zIndex: 10 }}>
@@ -75,6 +77,7 @@ export default function Topbar() {
         }}>
           {NAV_LINKS.map(item => {
             const isActive = location.pathname === item.path;
+            const badge = item.path === '/Messages' ? messagesUnread : 0;
             return (
               <Link
                 key={item.path}
@@ -91,9 +94,22 @@ export default function Topbar() {
                   textDecoration: 'none',
                   transition: 'all 200ms cubic-bezier(0.4,0,0.2,1)',
                   whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
                 }}
               >
                 {item.label}
+                {badge > 0 && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    minWidth: 16, height: 16, padding: '0 5px', borderRadius: 8,
+                    background: isActive ? 'rgba(255,255,255,0.9)' : '#E8421A',
+                    color: isActive ? 'var(--brand)' : '#fff',
+                    fontSize: 9, fontWeight: 700, lineHeight: 1,
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  }}>{badge > 99 ? '99+' : badge}</span>
+                )}
               </Link>
             );
           })}
