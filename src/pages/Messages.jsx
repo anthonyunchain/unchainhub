@@ -9,12 +9,37 @@ import { t } from '@/components/messaging/i18n';
 
 export const MESSAGES_NAV_OFFSET = 90;
 
+// Track visualViewport so the mobile chat container shrinks when the
+// iOS/Android soft keyboard opens — otherwise `position: fixed; inset: 0`
+// stays locked to the layout viewport and the message input hides behind
+// the keyboard.
+function useVisualViewport() {
+  const [vv, setVv] = useState(() => ({
+    height: typeof window !== 'undefined' ? window.innerHeight : 0,
+    offsetTop: 0,
+  }));
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => setVv({ height: viewport.height, offsetTop: viewport.offsetTop });
+    update();
+    viewport.addEventListener('resize', update);
+    viewport.addEventListener('scroll', update);
+    return () => {
+      viewport.removeEventListener('resize', update);
+      viewport.removeEventListener('scroll', update);
+    };
+  }, []);
+  return vv;
+}
+
 export default function Messages({ locale = 'en' }) {
   const [userId, setUserId] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [showNewModal, setShowNewModal] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const { height: vvHeight, offsetTop: vvOffset } = useVisualViewport();
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -38,7 +63,10 @@ export default function Messages({ locale = 'en' }) {
   const containerStyle = isMobile
     ? {
         position: 'fixed',
-        inset: 0,
+        top: vvOffset,
+        left: 0,
+        right: 0,
+        height: vvHeight,
         zIndex: 100,
         display: 'flex',
         background: 'var(--bg)',
