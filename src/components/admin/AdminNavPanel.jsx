@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 export const ADMIN_NAV_SECTIONS = [
   { label: "Operations", items: [
     { id: 'tasks',     label: 'Admin Tasks' },
+    { id: 'crm',       label: 'CRM' },
     { id: 'briefs',    label: 'Monthly Briefs' },
     { id: 'ideas',     label: 'Ideas' },
     { id: 'tutorials', label: 'Tutorials' },

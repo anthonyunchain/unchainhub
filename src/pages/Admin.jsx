@@ -23,6 +23,7 @@ import Reports from "./Reports";
 import Pipeline from "./Pipeline";
 import Contracts from "./Contracts";
 import Ideas from "./Ideas";
+import CRM from "./CRM";
 import MonthlyBriefs from "../components/admin/MonthlyBriefs";
 import Templates from "../components/admin/Templates";
 import AdminTutorials from "../components/admin/AdminTutorials";
@@ -2013,6 +2014,7 @@ export default function Admin() {
         {/* ── Main content ── */}
         <div className="min-w-0">
           {section === 'tasks'        && <AdminTasks />}
+          {section === 'crm'          && <CRM />}
           {section === 'meetings'     && <BoardMeetings />}
           {section === 'freelancer-meetings' && <MeetingsManagement />}
           {section === 'legal'        && <LegalDocuments />}

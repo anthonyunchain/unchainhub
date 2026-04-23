@@ -17,7 +17,6 @@ const MAIN_TABS = [
 
 const MORE_ITEMS = [
   { path: "/Ideas",          label: "Ideas",       icon: Lightbulb },
-  { path: "/CRM",            label: "CRM",         icon: Contact },
   { path: "/Clients",        label: "Clients",     icon: Users },
   { path: "/Freelancers",    label: "Freelancers", icon: UserCheck },
   { path: "/Finance",        label: "Finance",     icon: DollarSign },
