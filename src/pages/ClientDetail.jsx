@@ -47,12 +47,20 @@ const TABS = [
   { id: "invoices",  label: "Invoices"  },
   { id: "contract",  label: "Contract"  },
   { id: "calendars", label: "Calendars" },
-  { id: "menus",     label: "Menus"     },
-  { id: "manager",   label: "Manager"   },
-  { id: "pastry",    label: "Pastry"    },
+  { id: "menus",     label: "Menus",   staffRole: "chef"    },
+  { id: "manager",   label: "Manager", staffRole: "manager" },
+  { id: "pastry",    label: "Pastry",  staffRole: "pastry"  },
   { id: "music",     label: "Music"     },
   { id: "credentials", label: "Passwords" },
 ];
+
+// Hide staff-portal submission tabs (menus/manager/pastry) that the client
+// hasn't enabled in their staff_roles setting. NULL/empty = show all three.
+function visibleTabs(client) {
+  const roles = client?.staff_roles;
+  if (!Array.isArray(roles) || roles.length === 0) return TABS;
+  return TABS.filter(t => !t.staffRole || roles.includes(t.staffRole));
+}
 
 /* ─── Sub-components ──────────────────────────────────────────────────────── */
 function ServicesEditor({ value = [], onChange }) {
@@ -428,7 +436,7 @@ export default function ClientDetail() {
 
       {/* ── Tab bar ── */}
       <div className="flex items-center gap-1 mb-4 bg-white rounded-xl border border-slate-100 shadow-sm p-1.5 overflow-x-auto">
-        {TABS.map(tab => (
+        {visibleTabs(client).map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
