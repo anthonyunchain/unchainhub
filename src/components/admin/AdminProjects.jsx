@@ -12,6 +12,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import FileDropzone from "@/components/shared/FileDropzone";
 import { openDeliverable, formatBytes } from "@/lib/deliverables";
 
+// Split delivery_files into rounds using revision_request timestamps as cutoffs.
+// Files uploaded before the first revision request form round 1, files between
+// the first and second form round 2, etc.
+function groupDeliveriesIntoRounds(files, revisions) {
+  const sortedFiles = [...(Array.isArray(files) ? files : [])]
+    .sort((a, b) => new Date(a?.uploaded_at || 0) - new Date(b?.uploaded_at || 0));
+  const cutoffs = [...(Array.isArray(revisions) ? revisions : [])]
+    .map(r => new Date(r?.created_at || 0).getTime())
+    .filter(t => Number.isFinite(t) && t > 0)
+    .sort((a, b) => a - b);
+  const rounds = Array.from({ length: cutoffs.length + 1 }, () => []);
+  for (const f of sortedFiles) {
+    const t = new Date(f?.uploaded_at || 0).getTime();
+    let idx = cutoffs.findIndex(c => t < c);
+    if (idx === -1) idx = cutoffs.length;
+    rounds[idx].push(f);
+  }
+  return rounds
+    .map((roundFiles, i) => ({ index: i + 1, files: roundFiles }))
+    .filter(r => r.files.length > 0);
+}
+
 // Real columns: id, title, status, client_name, description, notes,
 //               freelancer_id, freelancer_name, created_at, updated_at
 
@@ -575,21 +597,41 @@ export default function AdminProjects() {
                   <a href={editingProject.delivery_url} target="_blank" rel="noopener noreferrer" className="text-xs text-violet-600 underline break-all hover:text-violet-800">{editingProject.delivery_url}</a>
                 </div>
               )}
-              {Array.isArray(editingProject.delivery_files) && editingProject.delivery_files.length > 0 && (
-                <div className="p-3 bg-violet-50 rounded-lg border border-violet-100">
-                  <p className="text-xs font-medium text-violet-700 mb-1.5">Delivered files ({editingProject.delivery_files.length})</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {editingProject.delivery_files.map(f => (
-                      <button key={f.path} type="button" onClick={() => openDeliverable(f.path)}
-                        className="flex items-center gap-1 bg-white border border-violet-200 rounded-md px-2 py-1 text-[11px] text-violet-700 hover:bg-violet-100">
-                        <Download className="w-3 h-3" />
-                        <span className="max-w-[140px] truncate">{f.name}</span>
-                        {f.size ? <span className="text-violet-400">{formatBytes(f.size)}</span> : null}
-                      </button>
-                    ))}
+              {(() => {
+                const rounds = groupDeliveriesIntoRounds(editingProject.delivery_files, editingProject.revision_requests);
+                if (rounds.length === 0) return null;
+                return (
+                  <div>
+                    <p className="text-xs font-medium text-violet-700 mb-1.5">Delivered files</p>
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {rounds.map(round => {
+                        const firstTs = round.files[0]?.uploaded_at;
+                        return (
+                          <div key={round.index} className="flex-shrink-0 p-2.5 bg-violet-50 rounded-lg border border-violet-100 min-w-[170px] max-w-[220px]">
+                            <p className="text-[11px] font-semibold text-violet-700 mb-1.5 flex items-baseline justify-between gap-1">
+                              <span>Delivery #{round.index}</span>
+                              {firstTs && (
+                                <span className="text-violet-400 font-normal">{new Date(firstTs).toLocaleDateString()}</span>
+                              )}
+                            </p>
+                            <div className="flex flex-col gap-1">
+                              {round.files.map(f => (
+                                <button key={f.path} type="button" onClick={() => openDeliverable(f.path)}
+                                  className="flex items-center gap-1 bg-white border border-violet-200 rounded-md px-2 py-1 text-[11px] text-violet-700 hover:bg-violet-100">
+                                  <Download className="w-3 h-3 flex-shrink-0" />
+                                  <span className="flex-1 truncate text-left">{f.name}</span>
+                                  {f.size ? <span className="text-violet-400 flex-shrink-0">{formatBytes(f.size)}</span> : null}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
+
               {Array.isArray(editingProject.revision_requests) && editingProject.revision_requests.length > 0 && (
                 <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
                   <p className="text-xs font-medium text-orange-700 mb-1.5">Revision history ({editingProject.revision_requests.length})</p>
