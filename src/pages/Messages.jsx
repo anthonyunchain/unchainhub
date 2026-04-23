@@ -60,13 +60,21 @@ export default function Messages({ locale = 'en' }) {
   const showList = !isMobile || !selectedConversation;
   const showChat = !isMobile || !!selectedConversation;
 
+  // Treat a large shrink of visualViewport vs layout viewport as "keyboard open".
+  // When the keyboard is up we use the full visible height; otherwise we reserve
+  // room at the bottom so the floating bottom nav stays reachable.
+  const keyboardOpen = typeof window !== 'undefined' && (window.innerHeight - vvHeight) > 120;
+  const mobileHeight = keyboardOpen
+    ? `${vvHeight}px`
+    : `calc(${vvHeight}px - 88px - env(safe-area-inset-bottom))`;
+
   const containerStyle = isMobile
     ? {
         position: 'fixed',
         top: vvOffset,
         left: 0,
         right: 0,
-        height: vvHeight,
+        height: mobileHeight,
         zIndex: 100,
         display: 'flex',
         background: 'var(--bg)',

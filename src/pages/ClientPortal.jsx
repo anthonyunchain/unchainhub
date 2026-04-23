@@ -13,9 +13,11 @@ import {
   Linkedin, Globe, Download, Receipt, ClipboardList, CheckCircle2, Save,
   GraduationCap, MoreHorizontal, MessageSquare
 } from "lucide-react";
+import { downloadShootingIcs } from "@/lib/generateShootingIcs";
 import ClientTutorialsTab from "@/components/client/ClientTutorialsTab";
 import ClientCredentialsTab from "@/components/shared/ClientCredentialsTab";
 import MessagesPage from "./Messages";
+import { useUnreadCount } from "@/components/messaging/useUnreadCount";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 // ── Translations ───────────────────────────────────────────────────────────
@@ -41,6 +43,7 @@ const TRANSLATIONS = {
     cancel: "Cancel shooting",
     yourNote: "Your note",
     addNote: "Add a note (optional)...",
+    addToCalendar: "Add to calendar",
     contentToShoot: "Content to shoot",
     viewsThisMonth: "Views this month",
     postsPublished: "Posts published",
@@ -167,6 +170,7 @@ const TRANSLATIONS = {
     cancel: "Peruuta kuvaus",
     yourNote: "Muistiinpanosi",
     addNote: "Lisää muistiinpano (valinnainen)...",
+    addToCalendar: "Lisää kalenteriin",
     contentToShoot: "Kuvattava sisältö",
     viewsThisMonth: "Näyttökerrat tässä kuussa",
     postsPublished: "Julkaistut julkaisut",
@@ -636,6 +640,27 @@ function ClientShootingsTab({ clientName, tr }) {
             {s.date && <span>{format(parseISO(s.date), "EEEE d MMMM yyyy", { locale: enUS })}{s.time ? ` · ${s.time}` : ""}</span>}
             {s.location && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>📍 {s.location}</span>}
           </div>
+
+          {s.date && (
+            <button
+              type="button"
+              onClick={() => downloadShootingIcs(s, {
+                extraDescription: crew.length > 0
+                  ? `Crew: ${crew.map(c => c.freelancer_name + (c.role ? ` (${c.role})` : '')).join(', ')}`
+                  : undefined,
+              })}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 10,
+                background: 'var(--bg)', border: '1px solid var(--divider)',
+                fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600,
+                color: 'var(--ink)', cursor: 'pointer', alignSelf: 'flex-start',
+              }}
+            >
+              <Calendar style={{ width: 13, height: 13, color: 'var(--brand)' }} />
+              {tr.addToCalendar}
+            </button>
+          )}
 
           {s.description && (
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{s.description}</p>
@@ -1587,6 +1612,7 @@ export default function ClientPortal() {
   const [lang, setLang] = useState(() => localStorage.getItem("cp_lang") || "en");
   const lastScrollY = useRef(0);
   const { dark, toggle } = useTheme();
+  const unreadMessages = useUnreadCount(user?.id);
 
   const tr = TRANSLATIONS[lang] || TRANSLATIONS.en;
   const dateLocale = lang === "fi" ? fiFns : enUS;
@@ -1728,6 +1754,7 @@ export default function ClientPortal() {
           <div className="hidden md:flex items-center gap-1 p-1" style={{ background: 'var(--card)', borderRadius: 'var(--pill-radius)', boxShadow: 'var(--card-shadow)', border: '1px solid var(--divider)' }}>
             {TABS.map((t) => {
               const isAdmin = t.key === "admin";
+              const badgeCount = t.key === "messages" ? unreadMessages : 0;
               return (
                 <button key={t.key} onClick={() => setActiveTab(t.key)}
                   style={{
@@ -1741,6 +1768,15 @@ export default function ClientPortal() {
                   }}>
                   <t.icon style={{ width: 12, height: 12 }} />
                   {t.label}
+                  {badgeCount > 0 && (
+                    <span style={{
+                      minWidth: 16, height: 16, padding: '0 5px',
+                      borderRadius: 8, background: '#E8421A', color: '#fff',
+                      fontSize: 9, fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      lineHeight: 1,
+                    }}>{badgeCount > 99 ? '99+' : badgeCount}</span>
+                  )}
                 </button>
               );
             })}
@@ -1882,6 +1918,7 @@ export default function ClientPortal() {
         >
           {MORE_TABS.map((t, i) => {
             const active = activeTab === t.key;
+            const badgeCount = t.key === "messages" ? unreadMessages : 0;
             return (
               <button
                 key={t.key}
@@ -1895,9 +1932,18 @@ export default function ClientPortal() {
                 }}
               >
                 <t.icon style={{ width: 17, height: 17, color: active ? 'var(--brand)' : dark ? 'rgba(255,255,255,0.5)' : 'rgba(30,40,70,0.55)', strokeWidth: 1.8, flexShrink: 0 }} />
-                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--brand)' : 'var(--ink)' }}>
+                <span style={{ flex: 1, textAlign: 'left', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--brand)' : 'var(--ink)' }}>
                   {t.label}
                 </span>
+                {badgeCount > 0 && (
+                  <span style={{
+                    minWidth: 18, height: 18, padding: '0 6px',
+                    borderRadius: 9, background: '#E8421A', color: '#fff',
+                    fontSize: 10, fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    lineHeight: 1,
+                  }}>{badgeCount > 99 ? '99+' : badgeCount}</span>
+                )}
               </button>
             );
           })}
@@ -1958,6 +2004,17 @@ export default function ClientPortal() {
               <span style={{ fontSize: 9, fontFamily: "'DM Mono', monospace", fontWeight: 500, letterSpacing: '0.04em', position: 'relative', zIndex: 1, color: (moreOpen || moreActive) ? '#fff' : dark ? 'rgba(255,255,255,0.4)' : 'rgba(30,40,70,0.5)', textTransform: 'uppercase' }}>
                 {tr.more || "Lisää"}
               </span>
+              {unreadMessages > 0 && !moreOpen && (
+                <span style={{
+                  position: 'absolute', top: 8, right: '50%', marginRight: -18,
+                  minWidth: 16, height: 16, padding: '0 4px',
+                  borderRadius: 8, background: '#E8421A', color: '#fff',
+                  fontSize: 9, fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  lineHeight: 1, zIndex: 2,
+                  border: '2px solid rgba(255,255,255,0.9)',
+                }}>{unreadMessages > 99 ? '99+' : unreadMessages}</span>
+              )}
             </button>
           );
         })()}

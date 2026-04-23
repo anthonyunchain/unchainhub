@@ -5,6 +5,8 @@ import {
   MoreHorizontal, X, Shield, UserCheck, Users, Layers, NotebookPen,
   Camera, DollarSign, ShoppingBag, FileText, GitBranch, MessageSquare, Contact
 } from "lucide-react";
+import { supabase } from "@/api/base44Client";
+import { useUnreadCount } from "@/components/messaging/useUnreadCount";
 
 const MAIN_TABS = [
   { path: "/Dashboard", label: "Home",      icon: LayoutDashboard },
@@ -32,7 +34,13 @@ export default function MobileNav() {
   const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   const [navVisible, setNavVisible] = useState(true);
+  const [userId, setUserId] = useState(null);
   const lastScrollY = useRef(0);
+  const unreadMessages = useUnreadCount(userId);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id || null));
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -157,6 +165,17 @@ export default function MobileNav() {
           >
             More
           </span>
+          {unreadMessages > 0 && !moreOpen && (
+            <span aria-label={`${unreadMessages} unread messages`} style={{
+              position: 'absolute', top: 6, right: '50%', marginRight: -22,
+              minWidth: 18, height: 18, padding: '0 5px',
+              borderRadius: 9, background: '#E8421A', color: '#fff',
+              fontSize: 10, fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif",
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              lineHeight: 1, zIndex: 20,
+              border: '2px solid rgba(255,255,255,0.95)',
+            }}>{unreadMessages > 99 ? '99+' : unreadMessages}</span>
+          )}
         </button>
       </nav>
 
@@ -208,6 +227,7 @@ export default function MobileNav() {
               {MORE_ITEMS.map(item => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path.split('?')[0];
+                const badgeCount = item.path === '/Messages' ? unreadMessages : 0;
                 return (
                   <Link
                     key={item.path}
@@ -241,6 +261,16 @@ export default function MobileNav() {
                     }}>
                       {item.label}
                     </span>
+                    {badgeCount > 0 && (
+                      <span style={{
+                        position: 'absolute', top: 6, right: 6,
+                        minWidth: 18, height: 18, padding: '0 5px',
+                        borderRadius: 9, background: '#E8421A', color: '#fff',
+                        fontSize: 10, fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        lineHeight: 1,
+                      }}>{badgeCount > 99 ? '99+' : badgeCount}</span>
+                    )}
                   </Link>
                 );
               })}
