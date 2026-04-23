@@ -1202,7 +1202,7 @@ export default function FreelancerPortal() {
         onDecline={() => handleProjectUpdate()}
       />;
       case "notes": return <Notes embedded autoNewTrigger={notesNewTrigger} />;
-      case "messages": return <MessagesPage locale="fi" />;
+      case "messages": return <MessagesPage />;
       case "workflow": return <WorkflowTasksTab userId={user?.id} />;
       case "crm": return <CRM />;
       default: return null;
