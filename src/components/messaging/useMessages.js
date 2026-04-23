@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/api/base44Client';
+import { supabase, base44 } from '@/api/base44Client';
 
 export function useMessages(conversationId, userId) {
   const qc = useQueryClient();
@@ -62,20 +62,17 @@ export function useMessages(conversationId, userId) {
   return query;
 }
 
-export async function sendMessage({ conversationId, senderId, content, messageType = 'text', fileUrl = null, fileName = null, replyToId = null }) {
-  const { data, error } = await supabase
-    .from('messages')
-    .insert({
-      conversation_id: conversationId,
-      sender_id: senderId,
-      content: content || '',
-      message_type: messageType,
-      file_url: fileUrl,
-      file_name: fileName,
-      reply_to_id: replyToId,
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+export async function sendMessage({ conversationId, senderId: _senderId, content, messageType = 'text', fileUrl = null, fileName = null, replyToId = null }) {
+  // Route through the edge function so recipients get a push notification.
+  // The function infers sender_id from the JWT, so we don't send it.
+  const { data } = await base44.functions.invoke('sendMessage', {
+    conversation_id: conversationId,
+    content: content || '',
+    message_type: messageType,
+    file_url: fileUrl,
+    file_name: fileName,
+    reply_to_id: replyToId,
+  });
+  if (data?.error) throw new Error(data.error);
+  return data?.message;
 }

@@ -42,6 +42,11 @@ Deno.serve(async (req) => {
 
     const isAdmin = profile?.role === 'admin';
 
+    // Staff accounts don't have messaging access.
+    if (profile?.role === 'staff') {
+      return Response.json({ error: 'Messaging is not available for staff accounts.' }, { status: 403, headers: corsHeaders(req) });
+    }
+
     // Groups are admin-only in v1
     if (type === 'group' && !isAdmin) {
       return Response.json({ error: 'Only admins can create group conversations' }, { status: 403, headers: corsHeaders(req) });
