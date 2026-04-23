@@ -17,7 +17,7 @@ import { enUS } from "date-fns/locale";
 import {
   Mail, MessageCircle, Bell, ChevronLeft, ChevronRight,
   Zap, CheckCircle2, Clock, SkipForward, AlertTriangle,
-  Pencil, X, RefreshCw, Eye,
+  Pencil, X, RefreshCw, Eye, Plus,
 } from "lucide-react";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -457,7 +457,7 @@ function TemplatesTab() {
 
   const openEdit = (tpl) => {
     setEditing(tpl);
-    setForm({ message_en: tpl.message_en, message_fi: tpl.message_fi, subject_en: tpl.subject_en || "", subject_fi: tpl.subject_fi || "" });
+    setForm({ trigger_event: tpl.trigger_event || "", message_en: tpl.message_en, message_fi: tpl.message_fi, subject_en: tpl.subject_en || "", subject_fi: tpl.subject_fi || "" });
   };
 
   const WEEK_COLOR = {
@@ -517,6 +517,11 @@ function TemplatesTab() {
           </DialogHeader>
           {form && (
             <div className="space-y-4 mt-2">
+              <div>
+                <Label className="text-xs">Message name</Label>
+                <Input value={form.trigger_event} className="text-sm" placeholder="e.g. Month start, Brief not received…"
+                  onChange={e => setForm(f => ({ ...f, trigger_event: e.target.value }))} />
+              </div>
               {editing?.default_channel === "email" && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -549,7 +554,7 @@ function TemplatesTab() {
                 <Button variant="outline" size="sm" onClick={() => setEditing(null)}>Cancel</Button>
                 <Button size="sm" className="bg-brand hover:bg-brand/90 text-brand-foreground"
                   disabled={updateMut.isPending}
-                  onClick={() => updateMut.mutate({ id: editing.id, d: form })}>
+                  onClick={() => updateMut.mutate({ id: editing.id, d: { trigger_event: form.trigger_event, message_en: form.message_en, message_fi: form.message_fi, subject_en: form.subject_en, subject_fi: form.subject_fi } })}>
                   Save
                 </Button>
               </div>
@@ -563,10 +568,115 @@ function TemplatesTab() {
 
 // ── Main CRM page ─────────────────────────────────────────────────────────────
 
+function NewTaskModal({ open, onClose }) {
+  const qc = useQueryClient();
+  const today = format(new Date(), "yyyy-MM-dd");
+  const empty = { client_id: "", msg_id: "", scheduled_date: today, channel: "whatsapp", status: "pending", notes: "", assigned_to: "anthony" };
+  const [form, setForm] = useState(empty);
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ["crm-clients-new"],
+    queryFn: async () => {
+      const { data } = await supabase.from("clients").select("id, company_name").eq("status", "Actif").order("company_name");
+      return data || [];
+    },
+    enabled: open,
+  });
+
+  const { data: templates = [] } = useQuery({
+    queryKey: ["workflow-templates-new"],
+    queryFn: async () => {
+      const { data } = await supabase.from("workflow_message_templates").select("msg_id, trigger_event").order("msg_id");
+      return data || [];
+    },
+    enabled: open,
+  });
+
+  const createMut = useMutation({
+    mutationFn: async (d) => {
+      const month = d.scheduled_date ? d.scheduled_date.slice(0, 7) : format(new Date(), "yyyy-MM");
+      const { error } = await supabase.from("workflow_tasks").insert({ ...d, month });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workflow-tasks-week"] });
+      qc.invalidateQueries({ queryKey: ["workflow-tasks-month"] });
+      toast.success("Task created");
+      setForm(empty);
+      onClose();
+    },
+    onError: e => toast.error(e.message),
+  });
+
+  useEffect(() => { if (open) setForm(empty); }, [open]);
+
+  return (
+    <Dialog open={open} onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>New task</DialogTitle></DialogHeader>
+        <div className="space-y-3 mt-2">
+          <div>
+            <Label className="text-xs">Client</Label>
+            <Select value={form.client_id} onValueChange={v => setForm(f => ({ ...f, client_id: v }))}>
+              <SelectTrigger className="text-sm"><SelectValue placeholder="Select client" /></SelectTrigger>
+              <SelectContent>
+                {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Message template</Label>
+            <Select value={form.msg_id} onValueChange={v => setForm(f => ({ ...f, msg_id: v }))}>
+              <SelectTrigger className="text-sm"><SelectValue placeholder="Select template" /></SelectTrigger>
+              <SelectContent>
+                {templates.map(t => <SelectItem key={t.msg_id} value={t.msg_id}>{t.msg_id} — {t.trigger_event}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Scheduled date</Label>
+              <Input type="date" value={form.scheduled_date} onChange={e => setForm(f => ({ ...f, scheduled_date: e.target.value }))} className="text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">Channel</Label>
+              <Select value={form.channel} onValueChange={v => setForm(f => ({ ...f, channel: v }))}>
+                <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="push">Push</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Assigned to</Label>
+            <Input value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))} className="text-sm" placeholder="anthony" />
+          </div>
+          <div>
+            <Label className="text-xs">Notes</Label>
+            <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} className="text-sm" />
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+            <Button size="sm" className="bg-brand hover:bg-brand/90 text-brand-foreground"
+              disabled={!form.client_id || !form.msg_id || !form.scheduled_date || createMut.isPending}
+              onClick={() => createMut.mutate(form)}>
+              Create task
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function CRM() {
   const qc = useQueryClient();
   const [tab, setTab] = useState("week");
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
   const updateTaskMut = useMutation({
@@ -594,10 +704,15 @@ export default function CRM() {
   return (
     <div className="mx-auto px-4 md:px-6" style={{ maxWidth: 1400 }}>
       <PageHeader title="CRM" subtitle="Monthly client touchpoint scheduler">
-        <Button onClick={() => setGenerateOpen(true)}
-          className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
-          <Zap className="w-4 h-4 mr-1" /> Generate tasks
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="h-9" onClick={() => setNewTaskOpen(true)}>
+            <Plus className="w-4 h-4 mr-1" /> New task
+          </Button>
+          <Button onClick={() => setGenerateOpen(true)}
+            className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
+            <Zap className="w-4 h-4 mr-1" /> Generate tasks
+          </Button>
+        </div>
       </PageHeader>
 
       {/* Tab bar */}
@@ -623,6 +738,7 @@ export default function CRM() {
       />
 
       <GenerateModal open={generateOpen} onClose={() => setGenerateOpen(false)} />
+      <NewTaskModal open={newTaskOpen} onClose={() => setNewTaskOpen(false)} />
     </div>
   );
 }

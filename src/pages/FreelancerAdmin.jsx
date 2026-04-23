@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Upload, X, ExternalLink, Users, CalendarDays, Wrench, Briefcase, Bell, FileText, Check, Eye, EyeOff, LayoutDashboard, KeyRound, RefreshCw, Copy } from "lucide-react";
+import { Plus, Trash2, Upload, X, ExternalLink, Users, CalendarDays, Wrench, Briefcase, Bell, FileText, Check, Eye, EyeOff, LayoutDashboard, KeyRound, RefreshCw, Copy, Contact } from "lucide-react";
 import { FREELANCER_NAV_ITEMS } from "@/lib/navConfig";
 import AdminProjects from "@/components/admin/AdminProjects";
 import AdminNotifications from "@/components/admin/AdminNotifications";
@@ -272,6 +272,27 @@ function FreelancerProfiles() {
                     <p className="text-[10px] text-slate-400 mt-1.5">Green = visible. Grey = hidden.</p>
                   </div>
                 )}
+
+                {/* CRM access */}
+                <div>
+                  <Label className="flex items-center gap-2 mb-2">
+                    <Contact className="w-3.5 h-3.5 text-slate-400" />
+                    CRM access
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={() => setData({ ...data, can_see_crm: !data.can_see_crm })}
+                    className={`flex items-center justify-between gap-2 w-full px-3.5 py-2.5 rounded-lg border text-sm transition-all ${
+                      data.can_see_crm
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                        : "bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300"
+                    }`}
+                  >
+                    <span className={data.can_see_crm ? "font-medium" : ""}>CRM</span>
+                    {data.can_see_crm ? <Eye className="w-4 h-4 shrink-0" /> : <EyeOff className="w-4 h-4 shrink-0" />}
+                  </button>
+                  <p className="text-[10px] text-slate-400 mt-1.5">Off by default. When enabled, the freelancer sees a CRM tab in their portal.</p>
+                </div>
               </div>
 
               {data.email && !data.id && (

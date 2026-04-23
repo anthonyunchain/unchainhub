@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import Ideas from "./Ideas";
+import CRM from "./CRM";
 
 import FreelancerSidebar from "@/components/freelancer/FreelancerSidebar";
 import UserMenu from "@/components/layout/UserMenu";
@@ -1198,6 +1199,7 @@ export default function FreelancerPortal() {
       case "notes": return <Notes embedded autoNewTrigger={notesNewTrigger} />;
       case "messages": return <MessagesPage locale="fi" />;
       case "workflow": return <WorkflowTasksTab userId={user?.id} />;
+      case "crm": return <CRM />;
       default: return null;
     }
   };
@@ -1252,6 +1254,7 @@ export default function FreelancerPortal() {
                 { id: 'projects', label: 'Calendar' },
 
                 ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas' }] : []),
+                ...(profile?.can_see_crm ? [{ id: 'crm', label: 'CRM' }] : []),
                 { id: 'messages', label: 'Messages' },
                 { id: 'notes', label: 'Notes' },
                 { id: 'tools', label: 'Tools' },
@@ -1551,6 +1554,7 @@ export default function FreelancerPortal() {
                     { id: 'todo',      label: 'To-Do',     Icon: ListTodo },
                     { id: 'captions',  label: 'Captions',  Icon: AlignLeft },
                     ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas', Icon: Lightbulb }] : []),
+                    ...(profile?.can_see_crm ? [{ id: 'crm', label: 'CRM', Icon: MoreHorizontal }] : []),
                     { id: 'tools',     label: 'Tools',     Icon: Wrench },
                     { id: 'meetings',  label: 'Meetings',  Icon: CalendarDays },
                   ];
