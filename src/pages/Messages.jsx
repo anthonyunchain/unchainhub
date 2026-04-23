@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '@/api/base44Client';
 import ConversationList from '@/components/messaging/ConversationList';
 import ChatWindow from '@/components/messaging/ChatWindow';
@@ -57,7 +58,7 @@ export default function Messages({ locale = 'en' }) {
         border: '1px solid var(--divider)',
       };
 
-  return (
+  const content = (
     <>
       <div style={containerStyle}>
         {showList && (
@@ -110,10 +111,6 @@ export default function Messages({ locale = 'en' }) {
         )}
       </div>
 
-      {!isMobile && (
-        <div style={{ height: `calc(100dvh - ${MESSAGES_NAV_OFFSET}px - 20px)`, pointerEvents: 'none' }} />
-      )}
-
       {showNewModal && userId && (
         <NewConversationModal
           isAdmin={isAdmin}
@@ -126,6 +123,17 @@ export default function Messages({ locale = 'en' }) {
           }}
         />
       )}
+    </>
+  );
+
+  // On mobile, portal to body so the full-screen fixed container escapes the
+  // AppLayout stacking context (which would otherwise hide it behind the nav).
+  if (isMobile) return createPortal(content, document.body);
+
+  return (
+    <>
+      {content}
+      <div style={{ height: `calc(100dvh - ${MESSAGES_NAV_OFFSET}px - 20px)`, pointerEvents: 'none' }} />
     </>
   );
 }
