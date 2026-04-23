@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { base44, supabase } from "@/api/base44Client";
 import { LogOut, Settings, Sun, Moon, Bell, BellOff } from "lucide-react";
 import { registerPush, unregisterPush } from "@/lib/pushNotifications";
@@ -121,6 +122,7 @@ export default function UserMenu({ userName, userEmail, initials, onSettingsClic
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(() => Notification.permission === 'granted');
   const [pushLoading, setPushLoading] = useState(false);
+  const buttonRef = useRef(null);
   const menuRef = useRef(null);
   const { dark, toggle } = useTheme();
 
@@ -138,9 +140,9 @@ export default function UserMenu({ userName, userEmail, initials, onSettingsClic
 
 useEffect(() => {
     const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setOpen(false);
-      }
+      if (buttonRef.current?.contains(e.target)) return;
+      if (menuRef.current?.contains(e.target)) return;
+      setOpen(false);
     };
     if (open) document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
@@ -152,8 +154,9 @@ useEffect(() => {
 
   return (
     <>
-      <div ref={menuRef} style={{ position: "relative" }}>
+      <div style={{ position: "relative" }}>
         <button
+          ref={buttonRef}
           onClick={() => setOpen(!open)}
           style={{
             width: 36,
@@ -182,8 +185,9 @@ useEffect(() => {
           </span>
         </button>
 
-        {open && (
+        {open && createPortal(
           <div
+            ref={menuRef}
             style={{
               position: "fixed",
               top: "72px",
@@ -192,7 +196,7 @@ useEffect(() => {
               borderRadius: "var(--card-radius)",
               boxShadow: "var(--card-shadow-hover)",
               border: "1px solid var(--divider)",
-              zIndex: 9999,
+              zIndex: 10000,
               minWidth: 220,
             }}
           >
@@ -289,7 +293,8 @@ useEffect(() => {
                 Logout
               </button>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 
