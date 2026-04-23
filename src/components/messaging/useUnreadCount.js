@@ -34,7 +34,7 @@ export function useUnreadCount(userId) {
     computeTotal(userId).then(setCount);
 
     const channel = supabase
-      .channel(`unread-count-${userId}`)
+      .channel(`unread-count-${userId}-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
         () => computeTotal(userId).then(setCount))
