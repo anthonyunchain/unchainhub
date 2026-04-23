@@ -36,12 +36,12 @@ const TRANSLATIONS = {
 };
 
 export default function LoginPage() {
-  const [email, setEmail]       = useState('');
+  const [email, setEmail]       = useState(() => localStorage.getItem('uc_last_email') || '');
   const [password, setPassword] = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [showForgot, setShowForgot] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotEmail, setForgotEmail] = useState(() => localStorage.getItem('uc_last_email') || '');
   const [forgotSent, setForgotSent] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -57,6 +57,8 @@ export default function LoginPage() {
     if (error) {
       setError(tr.incorrectCredentials);
       setLoading(false);
+    } else {
+      localStorage.setItem('uc_last_email', email);
     }
   };
 
