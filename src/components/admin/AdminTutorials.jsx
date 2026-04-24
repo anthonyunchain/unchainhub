@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, GraduationCap, Play, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, GraduationCap, Play, ExternalLink, Users, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,10 +12,11 @@ import EmptyState from "@/components/shared/EmptyState";
 import { useConfirm } from "@/lib/confirm";
 import { getYouTubeId, getYouTubeThumbnail } from "@/lib/youtube";
 
-const emptyForm = { id: null, title: "", description: "", youtube_url: "", category: "", position: 0 };
+const emptyForm = { id: null, title: "", description: "", youtube_url: "", category: "", position: 0, client_ids: [] };
 
 export default function AdminTutorials() {
   const [tutorials, setTutorials] = useState([]);
+  const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -24,17 +25,21 @@ export default function AdminTutorials() {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("tutorials")
-      .select("*")
-      .order("position", { ascending: true })
-      .order("created_at", { ascending: false });
-    if (error) toast.error("Failed to load: " + error.message);
-    setTutorials(data || []);
+    const [tutRes, clientsRes] = await Promise.all([
+      supabase.from("tutorials").select("*")
+        .order("position", { ascending: true })
+        .order("created_at", { ascending: false }),
+      supabase.from("clients").select("id, company_name").order("company_name"),
+    ]);
+    if (tutRes.error) toast.error("Failed to load: " + tutRes.error.message);
+    setTutorials(tutRes.data || []);
+    setClients(clientsRes.data || []);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  const clientNameById = Object.fromEntries(clients.map(c => [c.id, c.company_name]));
 
   const openNew = () => { setForm({ ...emptyForm, position: tutorials.length }); setDialogOpen(true); };
   const openEdit = (t) => {
@@ -45,6 +50,7 @@ export default function AdminTutorials() {
       youtube_url: t.youtube_url || "",
       category: t.category || "",
       position: t.position ?? 0,
+      client_ids: Array.isArray(t.client_ids) ? t.client_ids : [],
     });
     setDialogOpen(true);
   };
@@ -62,6 +68,7 @@ export default function AdminTutorials() {
       youtube_url: form.youtube_url.trim(),
       category: form.category.trim() || null,
       position: Number(form.position) || 0,
+      client_ids: form.client_ids.length > 0 ? form.client_ids : null,
     };
     const q = form.id
       ? supabase.from("tutorials").update(payload).eq("id", form.id)
@@ -133,6 +140,24 @@ export default function AdminTutorials() {
                     <h3 className="text-sm font-semibold text-slate-800 leading-snug">{t.title}</h3>
                     {t.category && <span className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0" style={{ background: 'var(--brand-muted)', color: 'var(--brand)' }}>{t.category}</span>}
                   </div>
+                  {(() => {
+                    const ids = Array.isArray(t.client_ids) ? t.client_ids : [];
+                    if (ids.length === 0) {
+                      return (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
+                          <Globe className="w-3 h-3" aria-hidden="true" />All clients
+                        </span>
+                      );
+                    }
+                    const names = ids.map(id => clientNameById[id]).filter(Boolean);
+                    const label = names.length <= 2 ? names.join(", ") : `${names.slice(0, 2).join(", ")} +${names.length - 2}`;
+                    return (
+                      <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: 'var(--brand)' }}>
+                        <Users className="w-3 h-3" aria-hidden="true" />
+                        <span className="truncate">{label || `${ids.length} client${ids.length > 1 ? "s" : ""}`}</span>
+                      </span>
+                    );
+                  })()}
                   {t.description && <p className="text-xs text-slate-500 line-clamp-2">{t.description}</p>}
                   <div className="flex items-center justify-between mt-auto pt-2">
                     <a href={t.youtube_url} target="_blank" rel="noopener noreferrer"
@@ -188,6 +213,44 @@ export default function AdminTutorials() {
             <div>
               <Label htmlFor="tut-desc">Description</Label>
               <Textarea id="tut-desc" rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What this tutorial covers…" className="mt-1" />
+            </div>
+            <div>
+              <Label>Visibility</Label>
+              <p className="text-xs text-slate-500 mt-0.5 mb-2">
+                Leave empty to show to every client, or pick specific clients below.
+              </p>
+              <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 p-2 space-y-1 bg-slate-50/50">
+                {clients.length === 0 ? (
+                  <p className="text-xs text-slate-400 p-2">No clients found.</p>
+                ) : clients.map(c => {
+                  const checked = form.client_ids.includes(c.id);
+                  return (
+                    <label key={c.id} className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-white cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => setForm(f => ({
+                          ...f,
+                          client_ids: e.target.checked
+                            ? [...f.client_ids, c.id]
+                            : f.client_ids.filter(id => id !== c.id),
+                        }))}
+                        className="rounded"
+                      />
+                      <span className="truncate">{c.company_name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {form.client_ids.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, client_ids: [] }))}
+                  className="text-xs text-slate-500 hover:text-slate-700 mt-1.5 underline underline-offset-2"
+                >
+                  Clear selection (show to all)
+                </button>
+              )}
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
