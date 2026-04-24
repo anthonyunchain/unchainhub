@@ -1,16 +1,17 @@
 import { useState, useRef } from 'react';
 import { Send, Paperclip, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { sendMessage } from './useMessages';
+import { useSendMessage } from './useMessages';
 import { toast } from 'sonner';
 import { t } from './i18n';
 
 export default function MessageInput({ conversationId, userId, replyTo, onClearReply, isMobile, locale = 'en' }) {
   const [text, setText] = useState('');
-  const [sending, setSending] = useState(false);
+  const [sending, setSending] = useState(false); // only true during attachment upload
   const [attachment, setAttachment] = useState(null); // { file, preview, type }
   const fileRef = useRef(null);
   const textareaRef = useRef(null);
+  const sendOptimistic = useSendMessage(conversationId, userId);
 
   const canSend = (text.trim() || attachment) && !sending && conversationId;
 
@@ -32,36 +33,50 @@ export default function MessageInput({ conversationId, userId, replyTo, onClearR
 
   const handleSend = async () => {
     if (!canSend) return;
+
+    const textSnapshot = text.trim();
+    const attachmentSnapshot = attachment;
+    const replySnapshot = replyTo;
+
+    // Text-only path: clear UI instantly and send in the background. The
+    // sender's bubble appears immediately via the optimistic cache update.
+    if (!attachmentSnapshot) {
+      setText('');
+      if (onClearReply) onClearReply();
+      textareaRef.current?.focus();
+      try {
+        await sendOptimistic({
+          content: textSnapshot,
+          messageType: 'text',
+          replyToId: replySnapshot?.id || null,
+        });
+      } catch (err) {
+        toast.error(t(locale, 'failedToSend'));
+        setText(textSnapshot);
+        console.error('[MessageInput]', err);
+      }
+      return;
+    }
+
+    // With attachment: wait for the upload (can't be optimistic without a
+    // real file URL), then optimistic insert for the DB round-trip.
     setSending(true);
     try {
-      let fileUrl = null;
-      let fileName = null;
-      let messageType = 'text';
-
-      if (attachment) {
-        const { file_url } = await base44.integrations.Core.UploadFile({
-          file: attachment.file,
-          bucket: 'messages',
-        });
-        fileUrl = file_url;
-        fileName = attachment.file.name;
-        messageType = attachment.type;
-      }
-
-      await sendMessage({
-        conversationId,
-        senderId: userId,
-        content: text.trim(),
-        messageType,
-        fileUrl,
-        fileName,
-        replyToId: replyTo?.id || null,
+      const { file_url } = await base44.integrations.Core.UploadFile({
+        file: attachmentSnapshot.file,
+        bucket: 'messages',
       });
-
       setText('');
       setAttachment(null);
       if (onClearReply) onClearReply();
       textareaRef.current?.focus();
+      await sendOptimistic({
+        content: textSnapshot,
+        messageType: attachmentSnapshot.type,
+        fileUrl: file_url,
+        fileName: attachmentSnapshot.file.name,
+        replyToId: replySnapshot?.id || null,
+      });
     } catch (err) {
       toast.error(t(locale, 'failedToSend'));
       console.error('[MessageInput]', err);

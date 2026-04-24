@@ -76,3 +76,54 @@ export async function sendMessage({ conversationId, senderId: _senderId, content
   if (data?.error) throw new Error(data.error);
   return data?.message;
 }
+
+// Optimistic send: inserts a pending message in the query cache immediately
+// so the sender's bubble appears without waiting for the edge-function round
+// trip. The temp entry is swapped for the real one on success, or removed on
+// failure. Realtime INSERTs dedupe on id so there's no duplicate.
+export function useSendMessage(conversationId, userId) {
+  const qc = useQueryClient();
+
+  return async ({ content = '', messageType = 'text', fileUrl = null, fileName = null, replyToId = null }) => {
+    if (!conversationId || !userId) throw new Error('Missing conversation or user');
+    const tempId = `optimistic-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+    const optimistic = {
+      id: tempId,
+      conversation_id: conversationId,
+      sender_id: userId,
+      content,
+      message_type: messageType,
+      file_url: fileUrl,
+      file_name: fileName,
+      reply_to_id: replyToId,
+      created_at: new Date().toISOString(),
+      deleted_at: null,
+      _pending: true,
+    };
+
+    qc.setQueryData(['messages', conversationId], (old = []) => [...old, optimistic]);
+
+    try {
+      const realMessage = await sendMessage({
+        conversationId,
+        senderId: userId,
+        content,
+        messageType,
+        fileUrl,
+        fileName,
+        replyToId,
+      });
+      qc.setQueryData(['messages', conversationId], (old = []) => {
+        const withoutTemp = old.filter(m => m.id !== tempId);
+        if (realMessage?.id && !withoutTemp.find(m => m.id === realMessage.id)) {
+          return [...withoutTemp, realMessage];
+        }
+        return withoutTemp;
+      });
+      return realMessage;
+    } catch (err) {
+      qc.setQueryData(['messages', conversationId], (old = []) => old.filter(m => m.id !== tempId));
+      throw err;
+    }
+  };
+}

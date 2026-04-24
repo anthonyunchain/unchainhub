@@ -35,6 +35,8 @@ export default function MessageBubble({ message, isOwn, senderName, replyTo, loc
         padding: '8px 12px',
         boxShadow: 'var(--card-shadow)',
         position: 'relative',
+        opacity: message._pending ? 0.65 : 1,
+        transition: 'opacity 120ms ease-out',
       }}>
         {/* Reply preview */}
         {replyTo && (
