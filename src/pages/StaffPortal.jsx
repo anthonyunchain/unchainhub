@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import {
   ChefHat, ClipboardList, Croissant, LogOut, Send, History, CheckCircle2,
-  Clock, FileText, Image as ImageIcon, CalendarClock, Flame
+  Clock, FileText, Image as ImageIcon, CalendarClock, Flame, ChevronDown, ChevronRight
 } from "lucide-react";
 import FileDropzone from "@/components/shared/FileDropzone";
 import { Button } from "@/components/ui/button";
@@ -76,6 +76,7 @@ export default function StaffPortal() {
   const [mgrSubs, setMgrSubs]       = useState([]);
   const [pasSubs, setPasSubs]       = useState([]);
   const [loadingList, setLoadingList] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -417,12 +418,29 @@ export default function StaffPortal() {
 
         {/* History — filtered by active role */}
         <section aria-labelledby="history-heading" className="space-y-3">
-          <div className="flex items-center gap-2">
-            <History className="w-4 h-4" style={{ color: 'var(--muted)' }} aria-hidden="true" />
-            <h2 id="history-heading" className="text-label-mono" style={{ margin: 0 }}>Previous submissions</h2>
-          </div>
+          {(() => {
+            const historyCount =
+              effectiveRole === "chef"    ? menuSubs.length :
+              effectiveRole === "manager" ? mgrSubs.length  :
+              effectiveRole === "pastry"  ? pasSubs.length  : 0;
+            const Chevron = historyOpen ? ChevronDown : ChevronRight;
+            return (
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(o => !o)}
+                aria-expanded={historyOpen}
+                className="flex items-center gap-2 w-full text-left"
+              >
+                <History className="w-4 h-4" style={{ color: 'var(--muted)' }} aria-hidden="true" />
+                <h2 id="history-heading" className="text-label-mono" style={{ margin: 0 }}>
+                  Previous submissions{historyCount > 0 ? ` (${historyCount})` : ""}
+                </h2>
+                <Chevron className="w-4 h-4 ml-auto" style={{ color: 'var(--muted)' }} aria-hidden="true" />
+              </button>
+            );
+          })()}
 
-          {loadingList ? (
+          {historyOpen && (loadingList ? (
             <div className="space-y-2">
               {[...Array(2)].map((_, i) => <div key={i} className="skeleton" style={{ height: 82 }} aria-hidden="true" />)}
             </div>
@@ -432,7 +450,7 @@ export default function StaffPortal() {
               {effectiveRole === "manager" && <ManagerHistory items={mgrSubs} />}
               {effectiveRole === "pastry"  && <PastryHistory items={pasSubs} />}
             </>
-          )}
+          ))}
         </section>
 
       </div>

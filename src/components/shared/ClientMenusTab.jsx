@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import {
   ChefHat, ExternalLink, FileText, Image as ImageIcon, Clock, Send, CheckCircle2, Archive,
-  Trash2, RefreshCw
+  Trash2, RefreshCw, ChevronDown, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,6 +31,7 @@ export default function ClientMenusTab({ clientId, staffLinked }) {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [signedUrls, setSignedUrls] = useState({}); // path -> url
+  const [open, setOpen] = useState(false);
   const confirm = useConfirm();
 
   const load = async () => {
@@ -86,13 +87,23 @@ export default function ClientMenusTab({ clientId, staffLinked }) {
     load();
   };
 
+  const Chevron = open ? ChevronDown : ChevronRight;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          aria-expanded={open}
+          className="flex items-center gap-2"
+        >
+          <Chevron className="w-4 h-4 text-slate-400" aria-hidden="true" />
           <ChefHat className="w-4 h-4 text-slate-400" aria-hidden="true" />
-          <span className="text-label-mono" style={{ margin: 0 }}>Staff menu submissions</span>
-        </div>
+          <span className="text-label-mono" style={{ margin: 0 }}>
+            Staff menu submissions{submissions.length > 0 ? ` (${submissions.length})` : ""}
+          </span>
+        </button>
         <Button variant="outline" size="sm" onClick={load} aria-label="Refresh">
           <RefreshCw className="w-3.5 h-3.5 mr-1.5" aria-hidden="true" />Refresh
         </Button>
@@ -104,7 +115,7 @@ export default function ClientMenusTab({ clientId, staffLinked }) {
         </p>
       )}
 
-      {loading ? (
+      {open && (loading ? (
         <div className="space-y-2">
           {[...Array(2)].map((_, i) => <div key={i} className="skeleton" style={{ height: 110 }} aria-hidden="true" />)}
         </div>
@@ -187,7 +198,7 @@ export default function ClientMenusTab({ clientId, staffLinked }) {
             );
           })}
         </ul>
-      )}
+      ))}
     </div>
   );
 }
