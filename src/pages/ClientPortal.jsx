@@ -2037,21 +2037,21 @@ function ClientDocumentsDownloadTab({ clientId, dateLocale }) {
     setLoading(true);
     supabase
       .from("client_documents")
-      .select("id, title, file_path, file_name, file_size, mime_type, created_at")
+      .select("id, title, files, created_at")
       .eq("client_id", clientId)
       .order("created_at", { ascending: false })
       .then(({ data }) => { setDocs(data || []); setLoading(false); });
   }, [clientId]);
 
-  const openDoc = async (doc) => {
+  const openFile = async (path) => {
     try {
-      const cached = signedUrls[doc.file_path];
+      const cached = signedUrls[path];
       if (cached) { window.open(cached, "_blank", "noopener,noreferrer"); return; }
       const { data, error } = await supabase.storage
         .from("client-documents")
-        .createSignedUrl(doc.file_path, 3600);
+        .createSignedUrl(path, 3600);
       if (error) throw error;
-      setSignedUrls((m) => ({ ...m, [doc.file_path]: data.signedUrl }));
+      setSignedUrls((m) => ({ ...m, [path]: data.signedUrl }));
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     } catch (e) {
       console.error(e);
@@ -2077,30 +2077,42 @@ function ClientDocumentsDownloadTab({ clientId, dateLocale }) {
         </div>
       ) : (
         <ul className="space-y-2" aria-label="Documents">
-          {docs.map((d) => (
-            <li key={d.id} className="rounded-2xl p-3" style={{ background: 'var(--card)', boxShadow: 'var(--card-shadow)' }}>
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="min-w-0 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
-                    <FileText className="w-4 h-4" style={{ color: 'var(--brand)' }} aria-hidden="true" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-h3" style={{ margin: 0 }}>{d.title}</p>
-                    <p className="text-body-sm" style={{ marginTop: 2 }}>
-                      {d.file_name} · {format(new Date(d.created_at), "d MMM yyyy", { locale: dateLocale })}
-                    </p>
+          {docs.map((d) => {
+            const files = Array.isArray(d.files) ? d.files : [];
+            return (
+              <li key={d.id} className="rounded-2xl p-3" style={{ background: 'var(--card)', boxShadow: 'var(--card-shadow)' }}>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="min-w-0 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
+                      <FileText className="w-4 h-4" style={{ color: 'var(--brand)' }} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-h3" style={{ margin: 0 }}>{d.title}</p>
+                      <p className="text-body-sm" style={{ marginTop: 2 }}>
+                        {format(new Date(d.created_at), "d MMM yyyy", { locale: dateLocale })} · {files.length} file{files.length > 1 ? "s" : ""}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => openDoc(d)}
-                  className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border"
-                  style={{ borderColor: 'var(--divider)', background: 'var(--bg)' }}
-                >
-                  <Download className="w-3.5 h-3.5" aria-hidden="true" />Open
-                </button>
-              </div>
-            </li>
-          ))}
+                {files.length > 0 && (
+                  <ul className="mt-2 flex flex-wrap gap-2" aria-label="Attached files">
+                    {files.map((f) => (
+                      <li key={f.path}>
+                        <button
+                          onClick={() => openFile(f.path)}
+                          className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border"
+                          style={{ borderColor: 'var(--divider)', background: 'var(--bg)' }}
+                        >
+                          <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span className="truncate max-w-[220px]">{f.name}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

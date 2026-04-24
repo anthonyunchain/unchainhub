@@ -1,23 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/api/base44Client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import {
-  FileText, Image as ImageIcon, Upload, Trash2, RefreshCw, Download, Loader2,
+  FileText, Image as ImageIcon, Upload, Trash2, RefreshCw, Download, Loader2, ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import FileDropzone from "@/components/shared/FileDropzone";
 import EmptyState from "@/components/shared/EmptyState";
 import { useConfirm } from "@/lib/confirm";
 
 const BUCKET = "client-documents";
 const ACCEPT = "application/pdf,image/*";
-const MAX_BYTES = 50 * 1024 * 1024;
 
-function isImage(mime, name = "") {
-  if (mime?.startsWith("image/")) return true;
+function isImage(file) {
+  const name = (file?.name || "").toLowerCase();
+  if (file?.type?.startsWith?.("image/")) return true;
   return /\.(png|jpe?g|gif|webp|heic|heif|bmp)$/i.test(name);
 }
 
@@ -32,10 +33,9 @@ export default function ClientDocumentsTab({ clientId }) {
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
-  const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [files, setFiles] = useState([]);
+  const [saving, setSaving] = useState(false);
   const [signedUrls, setSignedUrls] = useState({});
-  const fileRef = useRef(null);
   const confirm = useConfirm();
 
   const load = async () => {
@@ -43,7 +43,7 @@ export default function ClientDocumentsTab({ clientId }) {
     setLoading(true);
     const { data, error } = await supabase
       .from("client_documents")
-      .select("id, title, file_path, file_name, file_size, mime_type, created_at")
+      .select("id, title, files, created_at")
       .eq("client_id", clientId)
       .order("created_at", { ascending: false });
     if (error) toast.error("Failed to load documents: " + error.message);
@@ -55,52 +55,33 @@ export default function ClientDocumentsTab({ clientId }) {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !file) return;
-    if (file.size > MAX_BYTES) {
-      toast.error("File exceeds 50 MB");
-      return;
-    }
-    setUploading(true);
+    if (!title.trim() || files.length === 0) return;
+    setSaving(true);
     try {
-      const ext = file.name.includes(".") ? file.name.split(".").pop() : "";
-      const rand = Math.random().toString(36).slice(2, 10);
-      const path = `${clientId}/${Date.now()}-${rand}${ext ? "." + ext : ""}`;
-      const { error: upErr } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, file, { upsert: false, contentType: file.type || undefined });
-      if (upErr) throw upErr;
-
-      const { error: insErr } = await supabase.from("client_documents").insert({
+      const { error } = await supabase.from("client_documents").insert({
         client_id: clientId,
         title: title.trim(),
-        file_path: path,
-        file_name: file.name,
-        file_size: file.size,
-        mime_type: file.type || null,
+        files,
       });
-      if (insErr) {
-        await supabase.storage.from(BUCKET).remove([path]);
-        throw insErr;
-      }
-      toast.success("Document uploaded");
+      if (error) throw error;
+      toast.success("Document saved");
       setTitle("");
-      setFile(null);
-      if (fileRef.current) fileRef.current.value = "";
+      setFiles([]);
       load();
     } catch (err) {
-      toast.error("Upload failed: " + (err?.message || err));
+      toast.error("Save failed: " + (err?.message || err));
     } finally {
-      setUploading(false);
+      setSaving(false);
     }
   };
 
-  const openFile = async (doc) => {
+  const openFile = async (path) => {
     try {
-      const cached = signedUrls[doc.file_path];
+      const cached = signedUrls[path];
       if (cached) { window.open(cached, "_blank", "noopener,noreferrer"); return; }
-      const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(doc.file_path, 3600);
+      const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
       if (error) throw error;
-      setSignedUrls((m) => ({ ...m, [doc.file_path]: data.signedUrl }));
+      setSignedUrls((m) => ({ ...m, [path]: data.signedUrl }));
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     } catch (e) {
       toast.error("Could not open file: " + (e?.message || e));
@@ -110,19 +91,20 @@ export default function ClientDocumentsTab({ clientId }) {
   const remove = async (doc) => {
     const ok = await confirm({
       title: "Delete this document?",
-      description: "The file will also be removed from storage. This cannot be undone.",
+      description: "All attached files will also be removed from storage. This cannot be undone.",
       confirmLabel: "Delete",
       destructive: true,
     });
     if (!ok) return;
-    await supabase.storage.from(BUCKET).remove([doc.file_path]);
+    const paths = (doc.files || []).map(f => f.path).filter(Boolean);
+    if (paths.length > 0) await supabase.storage.from(BUCKET).remove(paths);
     const { error } = await supabase.from("client_documents").delete().eq("id", doc.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Document deleted");
     load();
   };
 
-  const canSubmit = title.trim().length > 0 && !!file && !uploading;
+  const canSubmit = title.trim().length > 0 && files.length > 0 && !saving;
 
   return (
     <div className="space-y-4">
@@ -139,7 +121,7 @@ export default function ClientDocumentsTab({ clientId }) {
       </div>
 
       <p className="text-body-sm" style={{ color: 'var(--muted)' }}>
-        Upload documents (PDF or images) that staff and the client can download from their portals.
+        Upload documents (PDF or images) that staff and the client can download from their portals. You can attach multiple files under one title.
       </p>
 
       <form
@@ -153,37 +135,34 @@ export default function ClientDocumentsTab({ clientId }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Menu template – July"
-            disabled={uploading}
+            disabled={saving}
           />
         </div>
         <div>
-          <Label htmlFor="doc-file">File (PDF or image — max 50 MB)</Label>
-          <Input
-            id="doc-file"
-            ref={fileRef}
-            type="file"
-            accept={ACCEPT}
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            disabled={uploading}
-          />
-          {file && (
-            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-              {file.name} · {fmtSize(file.size)}
-            </p>
-          )}
+          <Label>Files (PDF or images — max 50 MB each)</Label>
+          <div className="mt-1">
+            <FileDropzone
+              files={files}
+              onChange={setFiles}
+              bucket={BUCKET}
+              pathPrefix={clientId || "unknown"}
+              accept={ACCEPT}
+              disabled={saving}
+            />
+          </div>
         </div>
         <div className="flex items-center justify-end">
           <Button type="submit" disabled={!canSubmit} className="bg-brand hover:bg-brand/90 text-brand-foreground">
-            {uploading
-              ? <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />Uploading…</>
-              : <><Upload className="w-4 h-4 mr-1.5" />Upload</>}
+            {saving
+              ? <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />Saving…</>
+              : <><Upload className="w-4 h-4 mr-1.5" />Save</>}
           </Button>
         </div>
       </form>
 
       {loading ? (
         <div className="space-y-2">
-          {[...Array(2)].map((_, i) => <div key={i} className="skeleton" style={{ height: 72 }} aria-hidden="true" />)}
+          {[...Array(2)].map((_, i) => <div key={i} className="skeleton" style={{ height: 92 }} aria-hidden="true" />)}
         </div>
       ) : docs.length === 0 ? (
         <EmptyState
@@ -194,36 +173,45 @@ export default function ClientDocumentsTab({ clientId }) {
       ) : (
         <ul className="space-y-2" aria-label="Client documents">
           {docs.map((d) => {
-            const Icon = isImage(d.mime_type, d.file_name) ? ImageIcon : FileText;
+            const docFiles = Array.isArray(d.files) ? d.files : [];
             return (
               <li key={d.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-3 sm:p-4">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="min-w-0 flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
-                      <Icon className="w-4 h-4" style={{ color: 'var(--brand)' }} aria-hidden="true" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-h3" style={{ margin: 0 }}>{d.title}</p>
-                      <p className="text-body-sm" style={{ marginTop: 2 }}>
-                        {d.file_name}{d.file_size ? ` · ${fmtSize(d.file_size)}` : ""} · {format(new Date(d.created_at), "d MMM yyyy", { locale: enUS })}
-                      </p>
-                    </div>
+                  <div className="min-w-0">
+                    <p className="text-h3" style={{ margin: 0 }}>{d.title}</p>
+                    <p className="text-body-sm" style={{ marginTop: 2 }}>
+                      {format(new Date(d.created_at), "d MMM yyyy", { locale: enUS })} · {docFiles.length} file{docFiles.length > 1 ? "s" : ""}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button variant="outline" size="sm" onClick={() => openFile(d)}>
-                      <Download className="w-3.5 h-3.5 mr-1.5" aria-hidden="true" />Open
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-slate-400 hover:text-red-500"
-                      aria-label={`Delete ${d.title}`}
-                      onClick={() => remove(d)}
-                    >
-                      <Trash2 className="w-4 h-4" aria-hidden="true" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-slate-400 hover:text-red-500"
+                    aria-label={`Delete ${d.title}`}
+                    onClick={() => remove(d)}
+                  >
+                    <Trash2 className="w-4 h-4" aria-hidden="true" />
+                  </Button>
                 </div>
+
+                {docFiles.length > 0 && (
+                  <ul className="mt-3 flex flex-wrap gap-2" aria-label="Attached files">
+                    {docFiles.map((f) => (
+                      <li key={f.path}>
+                        <button
+                          type="button"
+                          onClick={() => openFile(f.path)}
+                          className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 transition-colors"
+                        >
+                          {isImage(f) ? <ImageIcon className="w-3.5 h-3.5" aria-hidden="true" /> : <FileText className="w-3.5 h-3.5" aria-hidden="true" />}
+                          <span className="truncate max-w-[180px]">{f.name}</span>
+                          {f.size ? <span className="text-slate-400">· {fmtSize(f.size)}</span> : null}
+                          <ExternalLink className="w-3 h-3 opacity-50" aria-hidden="true" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             );
           })}

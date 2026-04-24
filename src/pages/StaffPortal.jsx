@@ -132,7 +132,7 @@ export default function StaffPortal() {
     setDocsLoading(true);
     const { data } = await supabase
       .from("client_documents")
-      .select("id, title, file_path, file_name, file_size, mime_type, created_at")
+      .select("id, title, files, created_at")
       .eq("client_id", clientId)
       .order("created_at", { ascending: false });
     setDocs(data || []);
@@ -143,15 +143,15 @@ export default function StaffPortal() {
     if (client?.id) loadDocs(client.id);
   }, [client?.id]);
 
-  const openDoc = async (doc) => {
+  const openDocFile = async (path) => {
     try {
-      const cached = docSignedUrls[doc.file_path];
+      const cached = docSignedUrls[path];
       if (cached) { window.open(cached, "_blank", "noopener,noreferrer"); return; }
       const { data, error } = await supabase.storage
         .from("client-documents")
-        .createSignedUrl(doc.file_path, 3600);
+        .createSignedUrl(path, 3600);
       if (error) throw error;
-      setDocSignedUrls((m) => ({ ...m, [doc.file_path]: data.signedUrl }));
+      setDocSignedUrls((m) => ({ ...m, [path]: data.signedUrl }));
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     } catch (e) {
       toast.error("Could not open file: " + (e?.message || e));
@@ -481,26 +481,43 @@ export default function StaffPortal() {
           ) : (
             <ul className="space-y-2" aria-label="Shared documents">
               {docs.map((d) => {
-                const Icon = (d.mime_type?.startsWith("image/") || /\.(png|jpe?g|gif|webp|heic|heif|bmp)$/i.test(d.file_name || ""))
-                  ? ImageIcon : FileText;
+                const docFiles = Array.isArray(d.files) ? d.files : [];
                 return (
                   <li key={d.id} className="rounded-2xl p-3" style={{ background: 'var(--card)', boxShadow: 'var(--card-shadow)' }}>
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div className="min-w-0 flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
-                          <Icon className="w-4 h-4" style={{ color: 'var(--brand)' }} aria-hidden="true" />
+                          <FileText className="w-4 h-4" style={{ color: 'var(--brand)' }} aria-hidden="true" />
                         </div>
                         <div className="min-w-0">
                           <p className="text-h3" style={{ margin: 0 }}>{d.title}</p>
                           <p className="text-body-sm" style={{ marginTop: 2 }}>
-                            {d.file_name} · {format(new Date(d.created_at), "d MMM yyyy", { locale: enUS })}
+                            {format(new Date(d.created_at), "d MMM yyyy", { locale: enUS })} · {docFiles.length} file{docFiles.length > 1 ? "s" : ""}
                           </p>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => openDoc(d)}>
-                        <Download className="w-3.5 h-3.5 mr-1.5" aria-hidden="true" />Open
-                      </Button>
                     </div>
+                    {docFiles.length > 0 && (
+                      <ul className="mt-2 flex flex-wrap gap-2" aria-label="Attached files">
+                        {docFiles.map((f) => {
+                          const isImg = f?.type?.startsWith?.("image/") || /\.(png|jpe?g|gif|webp|heic|heif|bmp)$/i.test(f?.name || "");
+                          const Icon = isImg ? ImageIcon : FileText;
+                          return (
+                            <li key={f.path}>
+                              <button
+                                type="button"
+                                onClick={() => openDocFile(f.path)}
+                                className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 transition-colors"
+                              >
+                                <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+                                <span className="truncate max-w-[180px]">{f.name}</span>
+                                <Download className="w-3 h-3 opacity-60" aria-hidden="true" />
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
                   </li>
                 );
               })}

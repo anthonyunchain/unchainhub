@@ -88,6 +88,7 @@ export default function ClientMenusTab({ clientId, staffLinked }) {
   };
 
   const Chevron = open ? ChevronDown : ChevronRight;
+  const latest = submissions[0];
 
   return (
     <div className="space-y-4">
@@ -108,6 +109,14 @@ export default function ClientMenusTab({ clientId, staffLinked }) {
           <RefreshCw className="w-3.5 h-3.5 mr-1.5" aria-hidden="true" />Refresh
         </Button>
       </div>
+
+      {!open && latest && (
+        <p className="text-xs pl-6" style={{ color: 'var(--muted)' }}>
+          Latest: <span style={{ color: 'var(--ink)' }}>{latest.title}</span>
+          {" · "}{format(new Date(latest.created_at), "d MMM", { locale: enUS })}
+          {" · "}{(STATUS_META[latest.status] || STATUS_META.received).label}
+        </p>
+      )}
 
       {!staffLinked && (
         <p className="text-sm p-3 rounded-lg" style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>
