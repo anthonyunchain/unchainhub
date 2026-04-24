@@ -80,7 +80,6 @@ export default function StaffPortal() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [docs, setDocs] = useState([]);
   const [docsLoading, setDocsLoading] = useState(false);
-  const [docsOpen, setDocsOpen] = useState(false);
   const [docSignedUrls, setDocSignedUrls] = useState({});
 
   useEffect(() => {
@@ -453,77 +452,77 @@ export default function StaffPortal() {
         </section>
 
         {/* Shared documents — uploaded by admin, download-only for staff */}
-        <section aria-labelledby="docs-heading" className="space-y-3">
-          {(() => {
-            const DocsChevron = docsOpen ? ChevronDown : ChevronRight;
-            return (
-              <button
-                type="button"
-                onClick={() => setDocsOpen(o => !o)}
-                aria-expanded={docsOpen}
-                className="flex items-center gap-2 w-full text-left"
+        {(docsLoading || docs.length > 0) && (
+          <section
+            aria-labelledby="docs-heading"
+            className="rounded-2xl p-4 sm:p-5 space-y-3"
+            style={{
+              background: 'var(--brand-muted)',
+              border: '1px solid var(--brand)',
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: 'var(--brand)' }}
               >
-                <FolderOpen className="w-4 h-4" style={{ color: 'var(--muted)' }} aria-hidden="true" />
-                <h2 id="docs-heading" className="text-label-mono" style={{ margin: 0 }}>
-                  Shared documents{docs.length > 0 ? ` (${docs.length})` : ""}
+                <FolderOpen className="w-4 h-4" style={{ color: '#fff' }} aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <h2 id="docs-heading" className="text-h3" style={{ margin: 0 }}>
+                  Documents from Unchain Studio
                 </h2>
-                <DocsChevron className="w-4 h-4 ml-auto" style={{ color: 'var(--muted)' }} aria-hidden="true" />
-              </button>
-            );
-          })()}
-
-          {docsOpen && (docsLoading ? (
-            <div className="space-y-2">
-              {[...Array(2)].map((_, i) => <div key={i} className="skeleton" style={{ height: 64 }} aria-hidden="true" />)}
+                <p className="text-body-sm" style={{ margin: 0, color: 'var(--muted)' }}>
+                  {docs.length > 0
+                    ? `${docs.length} document${docs.length > 1 ? "s" : ""} ready to download`
+                    : "Loading…"}
+                </p>
+              </div>
             </div>
-          ) : docs.length === 0 ? (
-            <EmptyState icon={FileText} title="No documents yet" description="Documents shared by Unchain Studio will appear here." />
-          ) : (
-            <ul className="space-y-2" aria-label="Shared documents">
-              {docs.map((d) => {
-                const docFiles = Array.isArray(d.files) ? d.files : [];
-                return (
-                  <li key={d.id} className="rounded-2xl p-3" style={{ background: 'var(--card)', boxShadow: 'var(--card-shadow)' }}>
-                    <div className="flex items-start justify-between gap-3 flex-wrap">
-                      <div className="min-w-0 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
-                          <FileText className="w-4 h-4" style={{ color: 'var(--brand)' }} aria-hidden="true" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-h3" style={{ margin: 0 }}>{d.title}</p>
-                          <p className="text-body-sm" style={{ marginTop: 2 }}>
-                            {format(new Date(d.created_at), "d MMM yyyy", { locale: enUS })} · {docFiles.length} file{docFiles.length > 1 ? "s" : ""}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    {docFiles.length > 0 && (
-                      <ul className="mt-2 flex flex-wrap gap-2" aria-label="Attached files">
-                        {docFiles.map((f) => {
-                          const isImg = f?.type?.startsWith?.("image/") || /\.(png|jpe?g|gif|webp|heic|heif|bmp)$/i.test(f?.name || "");
-                          const Icon = isImg ? ImageIcon : FileText;
-                          return (
-                            <li key={f.path}>
-                              <button
-                                type="button"
-                                onClick={() => openDocFile(f.path)}
-                                className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 transition-colors"
-                              >
-                                <Icon className="w-3.5 h-3.5" aria-hidden="true" />
-                                <span className="truncate max-w-[180px]">{f.name}</span>
-                                <Download className="w-3 h-3 opacity-60" aria-hidden="true" />
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          ))}
-        </section>
+
+            {docsLoading ? (
+              <div className="space-y-2">
+                {[...Array(2)].map((_, i) => <div key={i} className="skeleton" style={{ height: 64 }} aria-hidden="true" />)}
+              </div>
+            ) : (
+              <ul className="space-y-2" aria-label="Shared documents">
+                {docs.map((d) => {
+                  const docFiles = Array.isArray(d.files) ? d.files : [];
+                  return (
+                    <li key={d.id} className="rounded-xl p-3" style={{ background: 'var(--card)', boxShadow: 'var(--card-shadow)' }}>
+                      <p className="text-body" style={{ margin: 0, fontWeight: 600 }}>{d.title}</p>
+                      <p className="text-body-sm" style={{ marginTop: 2, color: 'var(--muted)' }}>
+                        {format(new Date(d.created_at), "d MMM yyyy", { locale: enUS })} · {docFiles.length} file{docFiles.length > 1 ? "s" : ""}
+                      </p>
+                      {docFiles.length > 0 && (
+                        <ul className="mt-2 flex flex-wrap gap-2" aria-label="Attached files">
+                          {docFiles.map((f) => {
+                            const isImg = f?.type?.startsWith?.("image/") || /\.(png|jpe?g|gif|webp|heic|heif|bmp)$/i.test(f?.name || "");
+                            const Icon = isImg ? ImageIcon : FileText;
+                            return (
+                              <li key={f.path}>
+                                <button
+                                  type="button"
+                                  onClick={() => openDocFile(f.path)}
+                                  className="inline-flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg transition-colors"
+                                  style={{ background: 'var(--brand)', color: '#fff' }}
+                                >
+                                  <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+                                  <span className="truncate max-w-[200px]">{f.name}</span>
+                                  <Download className="w-3.5 h-3.5 opacity-90" aria-hidden="true" />
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        )}
 
         {/* History — filtered by active role */}
         <section aria-labelledby="history-heading" className="space-y-3">
