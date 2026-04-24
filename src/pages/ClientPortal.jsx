@@ -1731,11 +1731,12 @@ export default function ClientPortal() {
     { key: "brief",     label: tr.brief,       icon: ClipboardList },
     { key: "reports",   label: tr.reports,     icon: BarChart2 },
     { key: "tutorials", label: tr.tutorials || "Tutorials", icon: GraduationCap },
+    { key: "documents", label: "Documents",    icon: FileText },
     { key: "messages",  label: "Messages",     icon: MessageSquare },
     { key: "admin",     label: tr.admin,       icon: Settings },
   ];
   const MOBILE_TABS = TABS.filter(t => ["dashboard", "shootings", "brief"].includes(t.key));
-  const MORE_TABS = TABS.filter(t => ["reports", "tutorials", "messages", "admin"].includes(t.key));
+  const MORE_TABS = TABS.filter(t => ["reports", "tutorials", "documents", "messages", "admin"].includes(t.key));
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1 }}>
@@ -1878,6 +1879,7 @@ export default function ClientPortal() {
         {activeTab === "brief"     && <BriefTab clientName={clientName} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "reports"   && <ReportsTab stats={stats} content={content} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "tutorials" && <ClientTutorialsTab tr={tr} />}
+        {activeTab === "documents" && <ClientDocumentsDownloadTab clientId={clientRecord?.id} dateLocale={dateLocale} />}
         {activeTab === "messages"  && <MessagesPage />}
         {activeTab === "admin"     && (
           <div style={{ maxWidth: 640, margin: '0 auto' }}>
@@ -2021,6 +2023,86 @@ export default function ClientPortal() {
       </nav>
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} tr={tr} />
+    </div>
+  );
+}
+
+function ClientDocumentsDownloadTab({ clientId, dateLocale }) {
+  const [docs, setDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [signedUrls, setSignedUrls] = useState({});
+
+  useEffect(() => {
+    if (!clientId) return;
+    setLoading(true);
+    supabase
+      .from("client_documents")
+      .select("id, title, file_path, file_name, file_size, mime_type, created_at")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => { setDocs(data || []); setLoading(false); });
+  }, [clientId]);
+
+  const openDoc = async (doc) => {
+    try {
+      const cached = signedUrls[doc.file_path];
+      if (cached) { window.open(cached, "_blank", "noopener,noreferrer"); return; }
+      const { data, error } = await supabase.storage
+        .from("client-documents")
+        .createSignedUrl(doc.file_path, 3600);
+      if (error) throw error;
+      setSignedUrls((m) => ({ ...m, [doc.file_path]: data.signedUrl }));
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: 760, margin: '0 auto' }} className="space-y-4">
+      <div className="flex items-center gap-2">
+        <FileText className="w-4 h-4" style={{ color: 'var(--muted)' }} aria-hidden="true" />
+        <h2 className="text-label-mono" style={{ margin: 0 }}>
+          Documents{docs.length > 0 ? ` (${docs.length})` : ""}
+        </h2>
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">
+          {[...Array(2)].map((_, i) => <div key={i} className="skeleton" style={{ height: 72 }} aria-hidden="true" />)}
+        </div>
+      ) : docs.length === 0 ? (
+        <div className="text-center py-10 text-sm" style={{ color: 'var(--muted)' }}>
+          No documents shared yet.
+        </div>
+      ) : (
+        <ul className="space-y-2" aria-label="Documents">
+          {docs.map((d) => (
+            <li key={d.id} className="rounded-2xl p-3" style={{ background: 'var(--card)', boxShadow: 'var(--card-shadow)' }}>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="min-w-0 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
+                    <FileText className="w-4 h-4" style={{ color: 'var(--brand)' }} aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-h3" style={{ margin: 0 }}>{d.title}</p>
+                    <p className="text-body-sm" style={{ marginTop: 2 }}>
+                      {d.file_name} · {format(new Date(d.created_at), "d MMM yyyy", { locale: dateLocale })}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => openDoc(d)}
+                  className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border"
+                  style={{ borderColor: 'var(--divider)', background: 'var(--bg)' }}
+                >
+                  <Download className="w-3.5 h-3.5" aria-hidden="true" />Open
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

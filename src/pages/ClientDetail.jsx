@@ -9,6 +9,7 @@ import ClientManagerRequestsTab from "../components/shared/ClientManagerRequests
 import ClientPastryRequestsTab from "../components/shared/ClientPastryRequestsTab";
 import ClientMusicTab from "../components/shared/ClientMusicTab";
 import ClientCredentialsTab from "../components/shared/ClientCredentialsTab";
+import ClientDocumentsTab from "../components/shared/ClientDocumentsTab";
 import {
   ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt,
   Pencil, Upload, X, ExternalLink, Briefcase, Trash2, UserPlus,
@@ -51,6 +52,7 @@ const TABS = [
   { id: "manager",   label: "Manager", staffRole: "manager" },
   { id: "pastry",    label: "Pastry",  staffRole: "pastry"  },
   { id: "music",     label: "Music"     },
+  { id: "documents", label: "Documents" },
   { id: "credentials", label: "Passwords" },
 ];
 
@@ -765,6 +767,11 @@ export default function ClientDetail() {
       {/* MUSIC — curated library per client (for video editors) */}
       {activeTab === "music" && (
         <ClientMusicTab clientId={client.id} clientName={client.company_name} canEdit />
+      )}
+
+      {/* DOCUMENTS — shared docs (PDF/images) visible to staff and client */}
+      {activeTab === "documents" && (
+        <ClientDocumentsTab clientId={client.id} />
       )}
 
       {/* CREDENTIALS — per-client third-party login vault */}

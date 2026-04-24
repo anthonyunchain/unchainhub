@@ -5,7 +5,8 @@ import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import {
   ChefHat, ClipboardList, Croissant, LogOut, Send, History, CheckCircle2,
-  Clock, FileText, Image as ImageIcon, CalendarClock, Flame, ChevronDown, ChevronRight
+  Clock, FileText, Image as ImageIcon, CalendarClock, Flame, ChevronDown, ChevronRight,
+  Download, FolderOpen
 } from "lucide-react";
 import FileDropzone from "@/components/shared/FileDropzone";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,10 @@ export default function StaffPortal() {
   const [pasSubs, setPasSubs]       = useState([]);
   const [loadingList, setLoadingList] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [docs, setDocs] = useState([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [docsOpen, setDocsOpen] = useState(false);
+  const [docSignedUrls, setDocSignedUrls] = useState({});
 
   useEffect(() => {
     (async () => {
@@ -121,6 +126,37 @@ export default function StaffPortal() {
   useEffect(() => {
     if (client?.id) loadHistory(client.id);
   }, [client?.id]);
+
+  const loadDocs = async (clientId) => {
+    if (!clientId) return;
+    setDocsLoading(true);
+    const { data } = await supabase
+      .from("client_documents")
+      .select("id, title, file_path, file_name, file_size, mime_type, created_at")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false });
+    setDocs(data || []);
+    setDocsLoading(false);
+  };
+
+  useEffect(() => {
+    if (client?.id) loadDocs(client.id);
+  }, [client?.id]);
+
+  const openDoc = async (doc) => {
+    try {
+      const cached = docSignedUrls[doc.file_path];
+      if (cached) { window.open(cached, "_blank", "noopener,noreferrer"); return; }
+      const { data, error } = await supabase.storage
+        .from("client-documents")
+        .createSignedUrl(doc.file_path, 3600);
+      if (error) throw error;
+      setDocSignedUrls((m) => ({ ...m, [doc.file_path]: data.signedUrl }));
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      toast.error("Could not open file: " + (e?.message || e));
+    }
+  };
 
   const pathPrefix = useMemo(() => client?.id || "unknown", [client?.id]);
 
@@ -414,6 +450,62 @@ export default function StaffPortal() {
               </form>
             </>
           )}
+        </section>
+
+        {/* Shared documents — uploaded by admin, download-only for staff */}
+        <section aria-labelledby="docs-heading" className="space-y-3">
+          {(() => {
+            const DocsChevron = docsOpen ? ChevronDown : ChevronRight;
+            return (
+              <button
+                type="button"
+                onClick={() => setDocsOpen(o => !o)}
+                aria-expanded={docsOpen}
+                className="flex items-center gap-2 w-full text-left"
+              >
+                <FolderOpen className="w-4 h-4" style={{ color: 'var(--muted)' }} aria-hidden="true" />
+                <h2 id="docs-heading" className="text-label-mono" style={{ margin: 0 }}>
+                  Shared documents{docs.length > 0 ? ` (${docs.length})` : ""}
+                </h2>
+                <DocsChevron className="w-4 h-4 ml-auto" style={{ color: 'var(--muted)' }} aria-hidden="true" />
+              </button>
+            );
+          })()}
+
+          {docsOpen && (docsLoading ? (
+            <div className="space-y-2">
+              {[...Array(2)].map((_, i) => <div key={i} className="skeleton" style={{ height: 64 }} aria-hidden="true" />)}
+            </div>
+          ) : docs.length === 0 ? (
+            <EmptyState icon={FileText} title="No documents yet" description="Documents shared by Unchain Studio will appear here." />
+          ) : (
+            <ul className="space-y-2" aria-label="Shared documents">
+              {docs.map((d) => {
+                const Icon = (d.mime_type?.startsWith("image/") || /\.(png|jpe?g|gif|webp|heic|heif|bmp)$/i.test(d.file_name || ""))
+                  ? ImageIcon : FileText;
+                return (
+                  <li key={d.id} className="rounded-2xl p-3" style={{ background: 'var(--card)', boxShadow: 'var(--card-shadow)' }}>
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div className="min-w-0 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
+                          <Icon className="w-4 h-4" style={{ color: 'var(--brand)' }} aria-hidden="true" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-h3" style={{ margin: 0 }}>{d.title}</p>
+                          <p className="text-body-sm" style={{ marginTop: 2 }}>
+                            {d.file_name} · {format(new Date(d.created_at), "d MMM yyyy", { locale: enUS })}
+                          </p>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => openDoc(d)}>
+                        <Download className="w-3.5 h-3.5 mr-1.5" aria-hidden="true" />Open
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ))}
         </section>
 
         {/* History — filtered by active role */}
