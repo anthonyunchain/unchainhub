@@ -20,6 +20,18 @@ function validateNote({ title }) {
 function sanitizeTag(t) { return (t || "").trim().slice(0, 50); }
 function stripHtml(html) { return (html || "").replace(/<[^>]*>/g, ""); }
 
+// Convert plain-text (legacy) content to safe HTML for contenteditable.
+// If the string already contains HTML tags it's returned as-is.
+function toEditorHtml(content) {
+  if (!content) return "";
+  if (/<[a-z][\s\S]*?>/i.test(content)) return content; // already HTML
+  return content
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
+}
+
 const TAG_COLORS = ["#2A69FF", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#6B7280"];
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
@@ -346,7 +358,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
       update("content", content);
       const el = editorRef.current;
       if (el && document.activeElement !== el) {
-        el.innerHTML = content;
+        el.innerHTML = toEditorHtml(content);
       }
     },
   });
@@ -357,7 +369,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   // guaranteeing this runs with the correct element before the first paint.
   const setEditorRef = useCallback((el) => {
     editorRef.current = el;
-    if (el) el.innerHTML = editData?.content || "";
+    if (el) el.innerHTML = toEditorHtml(editData?.content || "");
   }, [editData?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyFormat = useCallback((cmd) => {
