@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
+import { useYjsNote } from "@/hooks/useYjsNote";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { supabase, base44 } from "@/api/base44Client";
 import {
   Plus, Search, Trash2, X, Check, NotebookPen,
-  ChevronLeft, Share2, Tag, Cloud, CloudOff,
+  ChevronLeft, Share2, Tag, Cloud, CloudOff, Eye, Pencil,
 } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -43,10 +44,11 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   const [focusTitle, setFocusTitle]         = useState(false); // triggers title focus after render
 
   // Track last-saved snapshot to avoid redundant auto-saves
-  const lastSavedRef  = useRef(null);
-  const saveTimerRef  = useRef(null);
-  const titleInputRef = useRef(null);
+  const lastSavedRef   = useRef(null);
+  const saveTimerRef   = useRef(null);
+  const titleInputRef  = useRef(null);
   const undoToastTimer = useRef(null);
+  const getYdocStateRef = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(u => setCurrentUser(u)).catch(() => {});
@@ -137,8 +139,11 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
         content: (note.content || "").slice(0, 50000),
         tags: (note.tags || []).map(sanitizeTag).filter(Boolean).slice(0, 20),
         shared_with: (note.shared_with || []).slice(0, 50),
+        shared_with_edit: (note.shared_with_edit || []).filter(id => (note.shared_with || []).includes(id)).slice(0, 50),
         created_by: currentUser.id,
       };
+      const ydocState = getYdocStateRef.current?.();
+      if (ydocState) payload.ydoc_state = ydocState;
       if (note.id) {
         const { data, error } = await supabase.from("notes").update(payload).eq("id", note.id).select().single();
         if (error) throw error;
@@ -154,7 +159,9 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
       lastSavedRef.current = stableKey(saved);
       qc.invalidateQueries({ queryKey: ["notes"] });
       setSelectedId(saved.id);
-      setEditData(saved);
+      // Only update metadata (id, timestamps) — never overwrite content the user may have typed
+      // since the autosave was triggered, to avoid content loss during fast editing.
+      setEditData(prev => prev ? { ...prev, id: saved.id, created_at: saved.created_at, updated_at: saved.updated_at } : saved);
       setSaveError(null);
       setSaveStatus("saved");
       // fade out "Saved" indicator after 2s
@@ -288,7 +295,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     clearTimeout(saveTimerRef.current);
     lastSavedRef.current = null;
     setSelectedId(null);
-    setEditData({ title: "", content: "", tags: [], shared_with: [], created_by: currentUser?.id });
+    setEditData({ title: "", content: "", tags: [], shared_with: [], shared_with_edit: [], created_by: currentUser?.id });
     setSaveError(null);
     setShowShare(false);
     setMobileView("editor");
@@ -305,10 +312,35 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
 
   const toggleShare = (uid) => {
     const cur = editData?.shared_with || [];
-    update("shared_with", cur.includes(uid) ? cur.filter(id => id !== uid) : [...cur, uid]);
+    const isRemoving = cur.includes(uid);
+    update("shared_with", isRemoving ? cur.filter(id => id !== uid) : [...cur, uid]);
+    if (isRemoving) {
+      const curEdit = editData?.shared_with_edit || [];
+      update("shared_with_edit", curEdit.filter(id => id !== uid));
+    }
   };
 
+  const toggleEdit = (uid) => {
+    const cur = editData?.shared_with_edit || [];
+    update("shared_with_edit", cur.includes(uid) ? cur.filter(id => id !== uid) : [...cur, uid]);
+  };
+
+  const canEdit = isOwner || (editData?.shared_with_edit || []).includes(currentUser?.id);
+
   const isOwner = !editData?.id || editData?.created_by === currentUser?.id;
+  const isCollaborative = !!editData?.id && (
+    editData?.shared_with_edit?.length > 0 ||
+    (editData?.created_by !== currentUser?.id && (editData?.shared_with_edit || []).includes(currentUser?.id))
+  );
+
+  const { peers, applyLocalChange, getYdocState } = useYjsNote({
+    noteId: editData?.id,
+    enabled: isCollaborative,
+    initialContent: editData?.content,
+    currentUser,
+    onContentUpdate: (content) => update("content", content),
+  });
+  getYdocStateRef.current = getYdocState;
 
   // ── Filtered note list ────────────────────────────────────────────────────
   const filtered = notes.filter(n => {
@@ -503,6 +535,29 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
 
         {/* Right: status + actions */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {/* Live peers */}
+          {peers.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              {peers.map(p => (
+                <span
+                  key={p.userId}
+                  title={`${p.name} is editing`}
+                  style={{
+                    width: 22, height: 22, borderRadius: "50%",
+                    background: "var(--brand)", color: "#fff",
+                    fontSize: 9, fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  {(p.name || "?")[0].toUpperCase()}
+                </span>
+              ))}
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--brand)" }}>
+                live
+              </span>
+            </div>
+          )}
           {/* Save status */}
           {saveStatus === "saving" && (
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--muted)", display: "flex", alignItems: "center", gap: 4 }}>
@@ -521,8 +576,15 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
           )}
 
           {/* Read-only badge */}
-          {!isOwner && (
-            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--brand)", background: "rgba(42,105,255,0.07)", padding: "3px 8px", borderRadius: 6 }}>read only</span>
+          {!isOwner && !canEdit && (
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--muted)", background: "rgba(0,0,0,0.04)", padding: "3px 8px", borderRadius: 6, display: "flex", alignItems: "center", gap: 4 }}>
+              <Eye style={{ width: 10, height: 10 }} /> view only
+            </span>
+          )}
+          {!isOwner && canEdit && (
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#10b981", background: "rgba(16,185,129,0.07)", padding: "3px 8px", borderRadius: 6, display: "flex", alignItems: "center", gap: 4 }}>
+              <Pencil style={{ width: 10, height: 10 }} /> can edit
+            </span>
           )}
 
           {/* Share button (owner only) */}
@@ -582,26 +644,50 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             {shareableProfiles.map(p => {
               const isShared = editData.shared_with?.includes(p.id);
+              const hasEdit = editData.shared_with_edit?.includes(p.id);
               return (
-                <button
+                <div
                   key={p.id}
-                  onClick={() => toggleShare(p.id)}
                   style={{
-                    display: "flex", alignItems: "center", gap: 10, padding: "7px 10px",
+                    display: "flex", alignItems: "center", gap: 8, padding: "7px 10px",
                     borderRadius: 10, border: `1px solid ${isShared ? "var(--brand)" : "var(--divider)"}`,
                     background: isShared ? "rgba(42,105,255,0.05)" : "transparent",
-                    cursor: "pointer", width: "100%", textAlign: "left",
                     transition: "all 150ms",
                   }}
                 >
-                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: isShared ? "var(--brand)" : "rgba(0,0,0,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: isShared ? "#fff" : "var(--muted)", flexShrink: 0 }}>
-                    {p.full_name?.charAt(0).toUpperCase() || "?"}
-                  </div>
-                  <span style={{ flex: 1, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>
-                    {p.full_name || "Unknown"}
-                  </span>
+                  <button
+                    onClick={() => toggleShare(p.id)}
+                    style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}
+                  >
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: isShared ? "var(--brand)" : "rgba(0,0,0,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: isShared ? "#fff" : "var(--muted)", flexShrink: 0 }}>
+                      {p.full_name?.charAt(0).toUpperCase() || "?"}
+                    </div>
+                    <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>
+                      {p.full_name || "Unknown"}
+                    </span>
+                  </button>
+                  {isShared && (
+                    <button
+                      onClick={() => toggleEdit(p.id)}
+                      title={hasEdit ? "Switch to view only" : "Allow editing"}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 4,
+                        padding: "3px 8px", borderRadius: 6,
+                        border: `1px solid ${hasEdit ? "#10b981" : "var(--divider)"}`,
+                        background: hasEdit ? "rgba(16,185,129,0.08)" : "var(--bg)",
+                        color: hasEdit ? "#10b981" : "var(--muted)",
+                        fontSize: 10, fontFamily: "'DM Mono', monospace",
+                        cursor: "pointer", flexShrink: 0, transition: "all 120ms",
+                      }}
+                    >
+                      {hasEdit
+                        ? <><Pencil style={{ width: 9, height: 9 }} /> edit</>
+                        : <><Eye style={{ width: 9, height: 9 }} /> view</>
+                      }
+                    </button>
+                  )}
                   {isShared && <Check style={{ width: 13, height: 13, color: "var(--brand)", flexShrink: 0 }} />}
-                </button>
+                </div>
               );
             })}
           </div>
@@ -613,8 +699,9 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
         ref={titleInputRef}
         value={editData.title}
         onChange={e => update("title", e.target.value.slice(0, 200))}
+        onKeyDown={e => { if (e.key === "Enter") e.preventDefault(); }}
         placeholder="Note title..."
-        readOnly={!isOwner}
+        readOnly={!canEdit}
         style={{
           padding: "22px 24px 8px", border: "none", outline: "none",
           fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 24, fontWeight: 700,
@@ -626,9 +713,13 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
       {/* Content */}
       <textarea
         value={editData.content}
-        onChange={e => update("content", e.target.value.slice(0, 50000))}
+        onChange={e => {
+          const value = e.target.value.slice(0, 50000);
+          update("content", value);
+          if (isCollaborative) applyLocalChange(value);
+        }}
         placeholder="Start writing..."
-        readOnly={!isOwner}
+        readOnly={!canEdit}
         style={{
           flex: 1, padding: "8px 24px 16px", border: "none", outline: "none",
           resize: "none", fontFamily: "'DM Mono', monospace", fontSize: 14,
