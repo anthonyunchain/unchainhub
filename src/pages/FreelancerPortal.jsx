@@ -10,7 +10,7 @@ import {
   FileText, CalendarDays, FileCheck, Wrench, Upload, ExternalLink,
   Clock, CheckCircle2, Square, AlertTriangle, FolderOpen, ClipboardList,
   LayoutDashboard, User, Bell, Briefcase, Plus, Trash2, ListTodo, Lightbulb, X,
-  MoreHorizontal, AlignLeft, Music, MessageSquare
+  MoreHorizontal, AlignLeft, Music, MessageSquare, KeyRound
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -1269,6 +1269,7 @@ export default function FreelancerPortal() {
                 ...(profile?.can_see_crm ? [{ id: 'crm', label: 'CRM' }] : []),
                 { id: 'messages', label: 'Messages' },
                 { id: 'notes', label: 'Notes' },
+                { id: 'credentials', label: 'Passwords' },
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
                 { id: 'invoices', label: 'Admin' },
@@ -1558,18 +1559,19 @@ export default function FreelancerPortal() {
               </p>
               <div className="grid grid-cols-4 gap-2">
                 {(() => {
-                  const mobileIcons = { LayoutDashboard, ListTodo, ClipboardList, Briefcase, FileText, CalendarDays, User, Wrench, AlignLeft, Lightbulb, MessageSquare };
+                  const mobileIcons = { LayoutDashboard, ListTodo, ClipboardList, Briefcase, FileText, CalendarDays, User, Wrench, AlignLeft, Lightbulb, MessageSquare, KeyRound };
                   const customMore = MOBILE_NAV_BY_ID[profile?.id]?.moreItems;
                   const defaultMore = [
-                    { id: 'messages',  label: 'Messages',  Icon: MessageSquare },
-                    { id: 'profile',   label: 'Profile',   Icon: User },
-                    { id: 'tasks',     label: 'Tasks',     Icon: ClipboardList },
-                    { id: 'todo',      label: 'To-Do',     Icon: ListTodo },
-                    { id: 'captions',  label: 'Captions',  Icon: AlignLeft },
+                    { id: 'messages',    label: 'Messages',  Icon: MessageSquare },
+                    { id: 'profile',     label: 'Profile',   Icon: User },
+                    { id: 'tasks',       label: 'Tasks',     Icon: ClipboardList },
+                    { id: 'todo',        label: 'To-Do',     Icon: ListTodo },
+                    { id: 'credentials', label: 'Passwords', Icon: KeyRound },
+                    { id: 'captions',    label: 'Captions',  Icon: AlignLeft },
                     ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas', Icon: Lightbulb }] : []),
                     ...(profile?.can_see_crm ? [{ id: 'crm', label: 'CRM', Icon: MoreHorizontal }] : []),
-                    { id: 'tools',     label: 'Tools',     Icon: Wrench },
-                    { id: 'meetings',  label: 'Meetings',  Icon: CalendarDays },
+                    { id: 'tools',       label: 'Tools',     Icon: Wrench },
+                    { id: 'meetings',    label: 'Meetings',  Icon: CalendarDays },
                   ];
                   return (customMore ? customMore(mobileIcons) : defaultMore)
                     .filter(item => !getHiddenNav(profile).includes(item.id));

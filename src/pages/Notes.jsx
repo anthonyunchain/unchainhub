@@ -18,6 +18,7 @@ function validateNote({ title }) {
   return null;
 }
 function sanitizeTag(t) { return (t || "").trim().slice(0, 50); }
+function stripHtml(html) { return (html || "").replace(/<[^>]*>/g, ""); }
 
 const TAG_COLORS = ["#2A69FF", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#6B7280"];
 
@@ -45,12 +46,14 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   const [focusTitle, setFocusTitle]         = useState(false); // triggers title focus after render
 
   // Track last-saved snapshot to avoid redundant auto-saves
-  const lastSavedRef   = useRef(null);
-  const saveTimerRef   = useRef(null);
-  const titleInputRef  = useRef(null);
-  const textareaRef    = useRef(null);
-  const undoToastTimer = useRef(null);
-  const getYdocStateRef = useRef(null);
+  const lastSavedRef      = useRef(null);
+  const saveTimerRef      = useRef(null);
+  const titleInputRef     = useRef(null);
+  const editorRef         = useRef(null);
+  const isEditingRef      = useRef(false);
+  const editorNoteIdRef   = useRef(null);
+  const undoToastTimer    = useRef(null);
+  const getYdocStateRef   = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(u => setCurrentUser(u)).catch(() => {});
@@ -339,39 +342,41 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     enabled: isCollaborative,
     initialContent: editData?.content,
     currentUser,
-    onContentUpdate: (content) => update("content", content),
+    onContentUpdate: (content) => {
+      update("content", content);
+      const el = editorRef.current;
+      if (el && document.activeElement !== el) {
+        el.innerHTML = content;
+      }
+    },
   });
   getYdocStateRef.current = getYdocState;
 
-  const applyFormat = useCallback((marker) => {
-    const el = textareaRef.current;
-    if (!el || !canEdit) return;
-    const { selectionStart: start, selectionEnd: end, value } = el;
-    const selected = value.slice(start, end);
-    const len = marker.length;
-    const before = value.slice(start - len, start);
-    const after = value.slice(end, end + len);
-    let newValue, newStart, newEnd;
-    if (before === marker && after === marker) {
-      newValue = value.slice(0, start - len) + selected + value.slice(end + len);
-      newStart = start - len;
-      newEnd = end - len;
-    } else {
-      newValue = value.slice(0, start) + marker + selected + marker + value.slice(end);
-      newStart = start + len;
-      newEnd = end + len;
+  // Sync editor innerHTML when switching between notes
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el || !editData) return;
+    const noteKey = editData.id ?? "new";
+    if (editorNoteIdRef.current !== noteKey) {
+      editorNoteIdRef.current = noteKey;
+      el.innerHTML = editData.content || "";
     }
-    const clamped = newValue.slice(0, 50000);
-    update("content", clamped);
-    if (isCollaborative) applyLocalChange(clamped);
-    requestAnimationFrame(() => { el.focus(); el.setSelectionRange(newStart, newEnd); });
+  }, [editData?.id]);
+
+  const applyFormat = useCallback((cmd) => {
+    if (!canEdit || !editorRef.current) return;
+    editorRef.current.focus();
+    document.execCommand(cmd, false, null);
+    const newContent = editorRef.current.innerHTML.slice(0, 50000);
+    update("content", newContent);
+    if (isCollaborative) applyLocalChange(newContent);
   }, [canEdit, isCollaborative, applyLocalChange]);
 
   // ── Filtered note list ────────────────────────────────────────────────────
   const filtered = notes.filter(n => {
     if (search) {
       const q = search.toLowerCase();
-      if (!n.title?.toLowerCase().includes(q) && !n.content?.toLowerCase().includes(q)) return false;
+      if (!n.title?.toLowerCase().includes(q) && !stripHtml(n.content).toLowerCase().includes(q)) return false;
     }
     if (filterTag === "shared") return (n.shared_with?.length > 0) || n.created_by !== currentUser?.id;
     if (filterTag === "mine")   return n.created_by === currentUser?.id;
@@ -504,7 +509,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
                 </span>
               </div>
               <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--muted)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {note.content?.slice(0, 60) || "—"}
+                {stripHtml(note.content)?.slice(0, 60) || "—"}
               </p>
               <div style={{ display: "flex", gap: 4, marginTop: 5, flexWrap: "wrap", alignItems: "center" }}>
                 {!isMine && (
@@ -739,12 +744,12 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
       {canEdit && (
         <div style={{ padding: "0 20px 6px", display: "flex", gap: 2, flexShrink: 0 }}>
           {[
-            { icon: Bold,   marker: "**", title: "Bold (Ctrl+B)" },
-            { icon: Italic, marker: "*",  title: "Italic (Ctrl+I)" },
-          ].map(({ icon: Icon, marker, title }) => (
+            { icon: Bold,   cmd: "bold",   title: "Bold (Ctrl+B)" },
+            { icon: Italic, cmd: "italic", title: "Italic (Ctrl+I)" },
+          ].map(({ icon: Icon, cmd, title }) => (
             <button
-              key={marker}
-              onMouseDown={e => { e.preventDefault(); applyFormat(marker); }}
+              key={cmd}
+              onMouseDown={e => { e.preventDefault(); applyFormat(cmd); }}
               title={title}
               style={{
                 width: 28, height: 28, borderRadius: 6, border: "1px solid transparent",
@@ -762,27 +767,37 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
       )}
 
       {/* Content */}
-      <textarea
-        ref={textareaRef}
-        value={editData.content}
-        onChange={e => {
-          const value = e.target.value.slice(0, 50000);
-          update("content", value);
-          if (isCollaborative) applyLocalChange(value);
-        }}
-        onKeyDown={e => {
-          if ((e.ctrlKey || e.metaKey) && e.key === "b") { e.preventDefault(); applyFormat("**"); }
-          if ((e.ctrlKey || e.metaKey) && e.key === "i") { e.preventDefault(); applyFormat("*"); }
-        }}
-        placeholder="Start writing..."
-        readOnly={!canEdit}
-        style={{
-          flex: 1, padding: "8px 24px 16px", border: "none", outline: "none",
-          resize: "none", fontFamily: "'DM Mono', monospace", fontSize: 14,
-          lineHeight: 1.8, color: "var(--ink)", background: "transparent",
-          minHeight: 0,
-        }}
-      />
+      <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        {(!editData.content || editData.content === "" || editData.content === "<br>") && (
+          <span style={{
+            position: "absolute", top: 8, left: 24, pointerEvents: "none", userSelect: "none",
+            fontFamily: "'DM Mono', monospace", fontSize: 14, color: "var(--muted)", lineHeight: 1.8,
+          }}>
+            Start writing...
+          </span>
+        )}
+        <div
+          ref={editorRef}
+          contentEditable={canEdit}
+          suppressContentEditableWarning
+          onInput={() => {
+            if (!canEdit) return;
+            const newContent = editorRef.current.innerHTML.slice(0, 50000);
+            update("content", newContent);
+            if (isCollaborative) applyLocalChange(newContent);
+          }}
+          onKeyDown={e => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "b") { e.preventDefault(); applyFormat("bold"); }
+            if ((e.ctrlKey || e.metaKey) && e.key === "i") { e.preventDefault(); applyFormat("italic"); }
+          }}
+          style={{
+            flex: 1, padding: "8px 24px 16px", border: "none", outline: "none",
+            fontFamily: "'DM Mono', monospace", fontSize: 14,
+            lineHeight: 1.8, color: "var(--ink)", background: "transparent",
+            overflowY: "auto", wordBreak: "break-word",
+          }}
+        />
+      </div>
 
       {/* Footer: tags */}
       {(isOwner || editData.tags?.length > 0) && (
