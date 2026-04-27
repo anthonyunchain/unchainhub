@@ -325,9 +325,8 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     update("shared_with_edit", cur.includes(uid) ? cur.filter(id => id !== uid) : [...cur, uid]);
   };
 
-  const canEdit = isOwner || (editData?.shared_with_edit || []).includes(currentUser?.id);
-
   const isOwner = !editData?.id || editData?.created_by === currentUser?.id;
+  const canEdit = isOwner || (editData?.shared_with_edit || []).includes(currentUser?.id);
   const isCollaborative = !!editData?.id && (
     editData?.shared_with_edit?.length > 0 ||
     (editData?.created_by !== currentUser?.id && (editData?.shared_with_edit || []).includes(currentUser?.id))
