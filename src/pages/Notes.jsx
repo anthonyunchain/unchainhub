@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useYjsNote } from "@/hooks/useYjsNote";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
@@ -6,6 +6,7 @@ import { supabase, base44 } from "@/api/base44Client";
 import {
   Plus, Search, Trash2, X, Check, NotebookPen,
   ChevronLeft, Share2, Tag, Cloud, CloudOff, Eye, Pencil,
+  Bold, Italic,
 } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -47,6 +48,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   const lastSavedRef   = useRef(null);
   const saveTimerRef   = useRef(null);
   const titleInputRef  = useRef(null);
+  const textareaRef    = useRef(null);
   const undoToastTimer = useRef(null);
   const getYdocStateRef = useRef(null);
 
@@ -340,6 +342,30 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     onContentUpdate: (content) => update("content", content),
   });
   getYdocStateRef.current = getYdocState;
+
+  const applyFormat = useCallback((marker) => {
+    const el = textareaRef.current;
+    if (!el || !canEdit) return;
+    const { selectionStart: start, selectionEnd: end, value } = el;
+    const selected = value.slice(start, end);
+    const len = marker.length;
+    const before = value.slice(start - len, start);
+    const after = value.slice(end, end + len);
+    let newValue, newStart, newEnd;
+    if (before === marker && after === marker) {
+      newValue = value.slice(0, start - len) + selected + value.slice(end + len);
+      newStart = start - len;
+      newEnd = end - len;
+    } else {
+      newValue = value.slice(0, start) + marker + selected + marker + value.slice(end);
+      newStart = start + len;
+      newEnd = end + len;
+    }
+    const clamped = newValue.slice(0, 50000);
+    update("content", clamped);
+    if (isCollaborative) applyLocalChange(clamped);
+    requestAnimationFrame(() => { el.focus(); el.setSelectionRange(newStart, newEnd); });
+  }, [canEdit, isCollaborative, applyLocalChange]);
 
   // ── Filtered note list ────────────────────────────────────────────────────
   const filtered = notes.filter(n => {
@@ -709,13 +735,44 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
         }}
       />
 
+      {/* Format toolbar */}
+      {canEdit && (
+        <div style={{ padding: "0 20px 6px", display: "flex", gap: 2, flexShrink: 0 }}>
+          {[
+            { icon: Bold,   marker: "**", title: "Bold (Ctrl+B)" },
+            { icon: Italic, marker: "*",  title: "Italic (Ctrl+I)" },
+          ].map(({ icon: Icon, marker, title }) => (
+            <button
+              key={marker}
+              onMouseDown={e => { e.preventDefault(); applyFormat(marker); }}
+              title={title}
+              style={{
+                width: 28, height: 28, borderRadius: 6, border: "1px solid transparent",
+                background: "transparent", cursor: "pointer", color: "var(--muted)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 120ms",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.05)"; e.currentTarget.style.color = "var(--ink)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--muted)"; }}
+            >
+              <Icon style={{ width: 13, height: 13 }} />
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Content */}
       <textarea
+        ref={textareaRef}
         value={editData.content}
         onChange={e => {
           const value = e.target.value.slice(0, 50000);
           update("content", value);
           if (isCollaborative) applyLocalChange(value);
+        }}
+        onKeyDown={e => {
+          if ((e.ctrlKey || e.metaKey) && e.key === "b") { e.preventDefault(); applyFormat("**"); }
+          if ((e.ctrlKey || e.metaKey) && e.key === "i") { e.preventDefault(); applyFormat("*"); }
         }}
         placeholder="Start writing..."
         readOnly={!canEdit}
