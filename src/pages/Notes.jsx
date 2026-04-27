@@ -352,16 +352,13 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   });
   getYdocStateRef.current = getYdocState;
 
-  // Sync editor innerHTML when switching between notes
-  useEffect(() => {
-    const el = editorRef.current;
-    if (!el || !editData) return;
-    const noteKey = editData.id ?? "new";
-    if (editorNoteIdRef.current !== noteKey) {
-      editorNoteIdRef.current = noteKey;
-      el.innerHTML = editData.content || "";
-    }
-  }, [editData?.id]);
+  // Ref callback — fires on mount of the contenteditable div.
+  // key={editData.id ?? "new"} on the div forces a remount when switching notes,
+  // guaranteeing this runs with the correct element before the first paint.
+  const setEditorRef = useCallback((el) => {
+    editorRef.current = el;
+    if (el) el.innerHTML = editData?.content || "";
+  }, [editData?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyFormat = useCallback((cmd) => {
     if (!canEdit || !editorRef.current) return;
@@ -777,7 +774,8 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
           </span>
         )}
         <div
-          ref={editorRef}
+          key={editData.id ?? "new"}
+          ref={setEditorRef}
           contentEditable={canEdit}
           suppressContentEditableWarning
           onInput={() => {
