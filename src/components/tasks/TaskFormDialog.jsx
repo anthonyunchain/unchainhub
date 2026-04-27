@@ -223,7 +223,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
           is_read: false,
           action_required: false,
           created_at: now,
-        }).catch(e => console.error('admin-reply notification insert failed:', e));
+        }).then(({ error }) => { if (error) console.error('admin-reply notification insert failed:', error); });
       }
 
       setData(d => ({ ...d, note_thread: nextThread }));
