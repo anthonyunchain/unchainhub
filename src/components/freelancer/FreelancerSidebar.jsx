@@ -157,11 +157,12 @@ export default function FreelancerSidebar({ activeTab, onTabChange, user, freela
                 : item.id === "messages" && messagesUnreadCount > 0 ? messagesUnreadCount
                 : null;
               return (
-                <button
+                <a
                   key={item.id}
-                  onClick={() => onTabChange(item.id)}
+                  href={`?tab=${item.id}`}
+                  onClick={(e) => { e.preventDefault(); onTabChange(item.id); }}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 w-full text-left",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 w-full text-left no-underline",
                     isActive
                       ? "bg-brand/20 text-brand"
                       : "text-slate-400 hover:text-white hover:bg-slate-800/50"
@@ -174,7 +175,7 @@ export default function FreelancerSidebar({ activeTab, onTabChange, user, freela
                   </div>
                   {!collapsed && <span>{item.label}</span>}
                   {!collapsed && badge && <span className="ml-auto bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{badge}</span>}
-                </button>
+                </a>
               );
             })}
           </div>

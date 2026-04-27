@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -966,11 +967,17 @@ const TAB_TITLES = {
 };
 
 export default function FreelancerPortal() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [user, setUser] = useState(null);
   const [freelancerData, setFreelancerData] = useState(null); // { profile, tasks, projects, meetings, payments, tools }
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "dashboard");
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab }, { replace: true });
+  };
   const [todoNewTrigger, setTodoNewTrigger] = useState(0);
   const [invoiceOpenTrigger, setInvoiceOpenTrigger] = useState(0);
   const [notesNewTrigger, setNotesNewTrigger] = useState(0);
@@ -1174,7 +1181,7 @@ export default function FreelancerPortal() {
 
   const renderTab = () => {
     switch (activeTab) {
-      case "dashboard": return <DashboardTab tasks={tasks} projects={editorialProjects} payments={payments} freelancerName={freelancerName} freelancerFirstName={freelancerFirstName} onTabChange={setActiveTab} userId={user?.id} />;
+      case "dashboard": return <DashboardTab tasks={tasks} projects={editorialProjects} payments={payments} freelancerName={freelancerName} freelancerFirstName={freelancerFirstName} onTabChange={handleTabChange} userId={user?.id} />;
       case "todo": return <PersonalTasksTab userId={user?.id} newTrigger={todoNewTrigger} />;
       case "tasks": return <TasksTabComponent tasks={tasks} onUpdateTask={handleUpdateTask} />;
       case "myprojects": return <FreelancerProjects projects={myProjects} editorialItems={editorialProjects} onRefresh={handleProjectUpdate} freelancerName={freelancerName} />;
@@ -1182,7 +1189,7 @@ export default function FreelancerPortal() {
       case "captions": return <CaptionsTab items={[...editorialProjects, ...visibleCalendars.filter(vc => !editorialProjects.find(ep => ep.id === vc.id))]} />;
       case "calendar": return <CalendarsTab visibleCalendars={visibleCalendars} />;
       case "ideas": return <Ideas currentUserId={user?.id} currentUserName={profile?.name || user?.email} isFreelancer={true} />;
-      case "tools": return <ToolsTab tools={tools} onNavigate={setActiveTab} />;
+      case "tools": return <ToolsTab tools={tools} onNavigate={handleTabChange} />;
       case "music": return <FreelancerMusicTab />;
       case "meetings": return <MeetingsTab meetings={meetings} />;
       case "shootings": return <ShootingsTab freelancerId={profile?.id} />;
@@ -1270,7 +1277,7 @@ export default function FreelancerPortal() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveTab(item.id)}
+                    onClick={() => handleTabChange(item.id)}
                     style={{
                       fontFamily: "'DM Mono', monospace",
                       fontSize: '11px',
@@ -1321,7 +1328,7 @@ export default function FreelancerPortal() {
                 {format(new Date(), "EEE, MMM d", { locale: enUS })} · {localTime}
                 {showHelsinkiToo && ` · ${helsinkiTime} Helsinki`}
               </div>
-              <NotesFABFreelancer onNewNote={() => { setActiveTab("notes"); setNotesNewTrigger(n => n + 1); }} />
+              <NotesFABFreelancer onNewNote={() => { handleTabChange("notes"); setNotesNewTrigger(n => n + 1); }} />
               <NotificationBell
                 notifications={notifications}
                 onMarkRead={notifMarkRead}
@@ -1333,7 +1340,7 @@ export default function FreelancerPortal() {
                 userName={freelancerName}
                 userEmail={user?.email}
                 initials={freelancerName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'US'}
-                onSettingsClick={() => setActiveTab('profile')}
+                onSettingsClick={() => handleTabChange('profile')}
               />
             </div>
 
@@ -1345,7 +1352,7 @@ export default function FreelancerPortal() {
                   <div style={{ fontSize: '9px' }}>{helsinkiTime} Helsinki</div>
                 )}
               </div>
-              <NotesFABFreelancer onNewNote={() => { setActiveTab("notes"); setNotesNewTrigger(n => n + 1); }} />
+              <NotesFABFreelancer onNewNote={() => { handleTabChange("notes"); setNotesNewTrigger(n => n + 1); }} />
               <NotificationBell
                 notifications={notifications}
                 onMarkRead={notifMarkRead}
@@ -1357,7 +1364,7 @@ export default function FreelancerPortal() {
                 userName={freelancerName}
                 userEmail={user?.email}
                 initials={freelancerName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'US'}
-                onSettingsClick={() => setActiveTab('profile')}
+                onSettingsClick={() => handleTabChange('profile')}
               />
             </div>
           </div>
@@ -1407,7 +1414,7 @@ export default function FreelancerPortal() {
                   )}
                   {activeTab === 'projects' && (
                     <button
-                      onClick={() => setActiveTab('captions')}
+                      onClick={() => handleTabChange('captions')}
                       style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 12, background: 'var(--card)', color: 'var(--brand)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: "'DM Mono', monospace", whiteSpace: 'nowrap', flexShrink: 0 }}
                     >
                       Captions →
@@ -1415,7 +1422,7 @@ export default function FreelancerPortal() {
                   )}
                   {activeTab === 'captions' && (
                     <button
-                      onClick={() => setActiveTab('projects')}
+                      onClick={() => handleTabChange('projects')}
                       style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 12, background: 'var(--card)', color: 'var(--muted)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: "'DM Mono', monospace", whiteSpace: 'nowrap', flexShrink: 0 }}
                     >
                       ← <span className="hidden sm:inline">Calendar</span><span className="sm:hidden">Cal.</span>
@@ -1476,7 +1483,7 @@ export default function FreelancerPortal() {
           })().map(({ id, label, Icon }) => {
             const isActive = activeTab === id;
             return (
-              <button key={id} onClick={() => { setActiveTab(id); setMoreOpen(false); }}
+              <button key={id} onClick={() => { handleTabChange(id); setMoreOpen(false); }}
                 className="flex-1 flex flex-col items-center justify-center gap-1 relative"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', height: '100%' }}
               >
@@ -1570,7 +1577,7 @@ export default function FreelancerPortal() {
                   const isActive = activeTab === id;
                   return (
                     <button key={id}
-                      onClick={() => { setActiveTab(id); setMoreOpen(false); }}
+                      onClick={() => { handleTabChange(id); setMoreOpen(false); }}
                       className="flex flex-col items-center gap-1.5 py-3.5"
                       style={{
                         borderRadius: 16,
