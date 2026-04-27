@@ -53,6 +53,9 @@ const TABLE_MAP = {
   ShootingContent:    'shooting_content',
   FreelancerService:  'freelancer_services',
   MonthlyServiceOrder:'monthly_service_orders',
+  CompetitorStats:    'competitor_stats',
+  ContentTrend:       'content_trends',
+  ScrapeJob:          'scrape_jobs',
 };
 
 
