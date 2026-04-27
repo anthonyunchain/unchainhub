@@ -277,7 +277,7 @@ export default function Reports() {
                   <BarChart data={platformData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} />
-                    <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} />
+                    <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} tickFormatter={v => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}K` : v} />
                     <Tooltip />
                     <Bar dataKey="value" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                   </BarChart>

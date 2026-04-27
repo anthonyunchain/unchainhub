@@ -655,7 +655,7 @@ export default function ClientDetail() {
                   <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis dataKey="period" tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} tickFormatter={v => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}K` : v} />
                     <Tooltip formatter={(v) => v.toLocaleString("fr-FR")} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     <Bar dataKey="Instagram Vues" fill="#ec4899" radius={[3, 3, 0, 0]} />
