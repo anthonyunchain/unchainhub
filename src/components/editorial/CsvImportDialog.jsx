@@ -7,7 +7,8 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Expected CSV columns (order doesn't matter, matched by header name):
-// client_name, title, post_type, scheduled_date, platform, status, description, notes, drive_link
+// client_name, title, post_type, scheduled_date, status, description, notes,
+// drive_link, needs_shooting, shoot_timing, editing_instructions
 
 function parseCsv(text) {
   const lines = text.trim().split(/\r?\n/);
@@ -24,6 +25,7 @@ function parseCsv(text) {
 const STATUS_OPTIONS = ["Planifié", "En cours", "Publié", "Annulé"];
 const STATUS_EN_TO_FR = { "planned": "Planifié", "in progress": "En cours", "published": "Publié", "cancelled": "Annulé" };
 const TYPE_OPTIONS = ["Reel", "Story", "Carousel"];
+const SHOOT_TIMING_OPTIONS = ["advance", "in-month", "no-shoot"];
 
 export default function CsvImportDialog({ open, onOpenChange }) {
   const [rows, setRows] = useState([]);
@@ -65,6 +67,23 @@ export default function CsvImportDialog({ open, onOpenChange }) {
     return match || "Planifié";
   };
 
+  const normalizeShootTiming = (v) => {
+    if (!v) return "in-month";
+    const lower = v.toLowerCase().trim();
+    if (SHOOT_TIMING_OPTIONS.includes(lower)) return lower;
+    if (lower.includes("advance") || lower.includes("prior")) return "advance";
+    if (lower.includes("no") || lower.includes("none")) return "no-shoot";
+    return "in-month";
+  };
+
+  const normalizeBool = (v, fallback = true) => {
+    if (v === undefined || v === null || v === "") return fallback;
+    const lower = String(v).toLowerCase().trim();
+    if (["false", "0", "no", "non", "n"].includes(lower)) return false;
+    if (["true", "1", "yes", "oui", "y"].includes(lower)) return true;
+    return fallback;
+  };
+
   const handleImport = async () => {
     if (!rows.length) return;
     setImporting(true);
@@ -82,6 +101,10 @@ export default function CsvImportDialog({ open, onOpenChange }) {
         status: normalizeStatus(row.status || row.statut || ""),
         description: row.description || "",
         notes: row.notes || "",
+        drive_link: row.drive_link || "",
+        needs_shooting: normalizeBool(row.needs_shooting, true),
+        shoot_timing: normalizeShootTiming(row.shoot_timing || ""),
+        editing_instructions: row.editing_instructions || "",
       };
       try {
         await base44.entities.EditorialContent.create(record);
@@ -105,7 +128,9 @@ export default function CsvImportDialog({ open, onOpenChange }) {
   };
 
   const downloadTemplate = () => {
-    const csv = "client_name;title;post_type;scheduled_date;platform;status;description;notes;drive_link\nClient Name;My title;Reel;2026-05-01;Instagram;Planned;Post description;;";
+    const headers = "client_name;title;post_type;scheduled_date;status;description;notes;drive_link;needs_shooting;shoot_timing;editing_instructions";
+    const example = "Client Name;My title;Reel;2026-05-01;Planned;Post description;Internal note;https://drive.google.com/...;true;in-month;Start on wide shot, music from 0:03";
+    const csv = `${headers}\n${example}`;
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = "editorial_template.csv"; a.click();
