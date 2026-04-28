@@ -6,7 +6,7 @@ import { supabase, base44 } from "@/api/base44Client";
 import {
   Plus, Search, Trash2, X, Check, NotebookPen,
   ChevronLeft, Share2, Tag, Cloud, CloudOff, Eye, Pencil,
-  Bold, Italic,
+  Bold, Italic, ListChecks, Users, Briefcase,
 } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -37,6 +37,57 @@ const TAG_COLORS = ["#2A69FF", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4
 // ─── Shared styles ────────────────────────────────────────────────────────────
 const CARD = { background: "var(--card)", borderRadius: "var(--card-radius)", boxShadow: "var(--card-shadow)" };
 const LABEL = { fontFamily: "'DM Mono', monospace", fontSize: "10px", fontWeight: 500, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.12em" };
+
+// ─── Note templates ───────────────────────────────────────────────────────────
+const NOTE_TEMPLATES = [
+  {
+    id: "todo",
+    label: "To do list",
+    Icon: ListChecks,
+    title: "To do list",
+    content:
+      "<b>Tasks</b><br>" +
+      "☐&nbsp;&nbsp;Task 1<br>" +
+      "☐&nbsp;&nbsp;Task 2<br>" +
+      "☐&nbsp;&nbsp;Task 3<br>",
+  },
+  {
+    id: "meeting",
+    label: "Meeting notes",
+    Icon: Users,
+    title: "Meeting notes",
+    content:
+      "<b>Date</b>&nbsp;&nbsp;...<br>" +
+      "<b>Attendees</b>&nbsp;&nbsp;...<br>" +
+      "<br>" +
+      "<b>Agenda</b><br>" +
+      "1.&nbsp;...<br>" +
+      "<br>" +
+      "<b>Notes</b><br>" +
+      "...<br>" +
+      "<br>" +
+      "<b>Action items</b><br>" +
+      "☐&nbsp;&nbsp;...<br>",
+  },
+  {
+    id: "project",
+    label: "Project brief",
+    Icon: Briefcase,
+    title: "Project brief",
+    content:
+      "<b>Overview</b><br>" +
+      "...<br>" +
+      "<br>" +
+      "<b>Goals</b><br>" +
+      "...<br>" +
+      "<br>" +
+      "<b>Scope</b><br>" +
+      "...<br>" +
+      "<br>" +
+      "<b>Timeline</b><br>" +
+      "...<br>",
+  },
+];
 
 export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   const [searchParams] = useSearchParams();
@@ -365,6 +416,12 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   const toggleTag = (name) => {
     const cur = editData?.tags || [];
     update("tags", cur.includes(name) ? cur.filter(t => t !== name) : [...cur, name]);
+  };
+
+  const applyTemplate = (tpl) => {
+    if (!editData.title) update("title", tpl.title);
+    update("content", tpl.content);
+    if (editorRef.current) editorRef.current.innerHTML = tpl.content;
   };
 
   const toggleShare = (uid) => {
@@ -788,6 +845,40 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
           letterSpacing: "-0.3px",
         }}
       />
+
+      {/* Template picker — only on new unsaved notes */}
+      {!editData.id && canEdit && (
+        <div style={{ padding: "0 20px 10px", display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap" }}>
+          {NOTE_TEMPLATES.map(tpl => (
+            <button
+              key={tpl.id}
+              onClick={() => applyTemplate(tpl)}
+              style={{
+                display: "flex", alignItems: "center", gap: 5,
+                padding: "5px 11px", borderRadius: 99,
+                border: "1.5px dashed var(--divider)",
+                background: "transparent", cursor: "pointer",
+                color: "var(--muted)",
+                fontSize: 11, fontFamily: "'DM Mono', monospace",
+                transition: "all 120ms",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.border = "1.5px solid var(--brand)";
+                e.currentTarget.style.color = "var(--brand)";
+                e.currentTarget.style.background = "rgba(42,105,255,0.06)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.border = "1.5px dashed var(--divider)";
+                e.currentTarget.style.color = "var(--muted)";
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <tpl.Icon style={{ width: 12, height: 12 }} />
+              {tpl.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Format toolbar */}
       {canEdit && (
