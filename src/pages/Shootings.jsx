@@ -305,8 +305,13 @@ export default function Shootings() {
     }));
   };
 
-  // Editorial content filtered by selected client
-  const clientContent = editorial.filter(e => !form.client_name || e.client_name === form.client_name);
+  // Editorial content filtered by client + not yet published/cancelled
+  // Already-selected items always shown so they can be unchecked
+  const clientContent = editorial.filter(e => {
+    if (form.client_name && e.client_name !== form.client_name) return false;
+    if (e.status === "Publié" || e.status === "Annulé") return false;
+    return true;
+  });
 
   // ── Date badge ──
   const dateBadge = (s) => {
