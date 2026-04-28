@@ -303,12 +303,25 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   // Immediately save the current note if there are unsaved changes, then call cb.
+  // Uses a direct Supabase call (fire-and-forget) to avoid the saveMut onSuccess
+  // corrupting the next note's editData with the old note's id.
   const flushAndSwitch = (cb) => {
     clearTimeout(saveTimerRef.current);
     const cur = editDataRef.current;
-    if (cur && stableKey(cur) !== lastSavedRef.current && cur.title?.trim()) {
-      const isOwner = !cur.id || cur.created_by === currentUser?.id;
-      if (isOwner) saveMut.mutate(cur);
+    if (cur?.id && stableKey(cur) !== lastSavedRef.current && cur.title?.trim() && currentUser) {
+      const isOwner = cur.created_by === currentUser.id;
+      if (isOwner) {
+        const payload = {
+          title: cur.title.trim().slice(0, 200),
+          content: (cur.content || "").slice(0, 50000),
+          tags: (cur.tags || []).map(sanitizeTag).filter(Boolean).slice(0, 20),
+          shared_with: (cur.shared_with || []).slice(0, 50),
+          shared_with_edit: (cur.shared_with_edit || [])
+            .filter(id => (cur.shared_with || []).includes(id)).slice(0, 50),
+          created_by: currentUser.id,
+        };
+        supabase.from("notes").update(payload).eq("id", cur.id); // fire-and-forget
+      }
     }
     cb();
   };
@@ -795,7 +808,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
 
       {/* Content */}
       <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-        {(!editData.content || editData.content === "" || editData.content === "<br>") && (
+        {!stripHtml(editData.content || "").trim() && (
           <span style={{
             position: "absolute", top: 8, left: 24, pointerEvents: "none", userSelect: "none",
             fontFamily: "'DM Mono', monospace", fontSize: 14, color: "var(--muted)", lineHeight: 1.8,
