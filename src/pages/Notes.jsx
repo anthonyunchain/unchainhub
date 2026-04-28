@@ -48,6 +48,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   const [filterTag, setFilterTag]           = useState(null);
   const [search, setSearch]                 = useState("");
   const [mobileView, setMobileView]         = useState(selectedId ? "editor" : "list");
+  const [isMobile, setIsMobile]             = useState(() => window.matchMedia("(max-width: 639px)").matches);
   const [saveError, setSaveError]           = useState(null);
   const [saveStatus, setSaveStatus]         = useState(null); // "saving" | "saved" | "error"
   const [newTagInput, setNewTagInput]       = useState("");
@@ -73,6 +74,14 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
 
   useEffect(() => {
     base44.auth.me().then(u => setCurrentUser(u)).catch(() => {});
+  }, []);
+
+  // Track mobile breakpoint so editorPanel is never mounted twice (desktop + mobile containers).
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
   }, []);
 
   // On mobile, force white background on the page (hides grain texture below the panel)
@@ -903,19 +912,18 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
 
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", position: "relative" }}>
-      {/* Desktop + tablet: 2-panel */}
-      <div
-        className="hidden sm:grid"
-        style={{ gridTemplateColumns: "320px 1fr", gap: 12, height: panelHeight }}
-      >
-        {leftPanel}
-        {editorPanel}
-      </div>
-
-      {/* Phone: toggle list / editor in-place, no overlay */}
-      <div className="sm:hidden notes-mobile" style={{ margin: '0 -16px', height: panelHeight, background: 'var(--card)' }}>
-        {mobileView === "list" ? leftPanel : editorPanel}
-      </div>
+      {/* Single layout — editorPanel must never be in the DOM twice or the
+          shared ref will point to the wrong (hidden) element, breaking onInput. */}
+      {isMobile ? (
+        <div className="notes-mobile" style={{ margin: '0 -16px', height: panelHeight, background: 'var(--card)' }}>
+          {mobileView === "list" ? leftPanel : editorPanel}
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 12, height: panelHeight }}>
+          {leftPanel}
+          {editorPanel}
+        </div>
+      )}
 
       {/* Undo toast */}
       {undoToast && undoStack.length > 0 && (
