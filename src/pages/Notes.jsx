@@ -911,7 +911,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
         {!stripHtml(editData.content || "").trim() && (
           <span style={{
             position: "absolute", top: 8, left: 24, pointerEvents: "none", userSelect: "none",
-            fontFamily: "'DM Mono', monospace", fontSize: 14, color: "var(--muted)", lineHeight: 1.8,
+            fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, color: "var(--muted)", lineHeight: 1.8,
           }}>
             Start writing...
           </span>
@@ -933,8 +933,8 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
           }}
           style={{
             flex: 1, padding: "8px 24px 16px", border: "none", outline: "none",
-            fontFamily: "'DM Mono', monospace", fontSize: 14,
-            lineHeight: 1.8, color: "var(--ink)", background: "transparent",
+            fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15,
+            lineHeight: 1.75, color: "var(--ink)", background: "transparent",
             overflowY: "auto", wordBreak: "break-word",
           }}
         />
