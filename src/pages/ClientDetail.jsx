@@ -46,26 +46,22 @@ const TYPE_COLORS = {
 };
 
 const TABS = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "reports",   label: "Reports"   },
-  { id: "socials",   label: "Socials"   },
-  { id: "invoices",  label: "Invoices"  },
-  { id: "contract",  label: "Contract"  },
-  { id: "calendars", label: "Calendars" },
-  { id: "menus",     label: "Menus",   staffRole: "chef"    },
-  { id: "manager",   label: "Manager", staffRole: "manager" },
-  { id: "pastry",    label: "Pastry",  staffRole: "pastry"  },
-  { id: "music",     label: "Music"     },
-  { id: "documents", label: "Documents" },
-  { id: "credentials", label: "Passwords" },
+  { id: "dashboard",   label: "Dashboard"  },
+  { id: "reports",     label: "Reports"    },
+  { id: "socials",     label: "Socials"    },
+  { id: "invoices",    label: "Invoices"   },
+  { id: "contract",    label: "Contract"   },
+  { id: "calendars",   label: "Calendars"  },
+  { id: "staff",       label: "Staff"      },
+  { id: "music",       label: "Music"      },
+  { id: "documents",   label: "Documents"  },
+  { id: "credentials", label: "Passwords"  },
 ];
 
-// Hide staff-portal submission tabs (menus/manager/pastry) that the client
-// hasn't enabled in their staff_roles setting. NULL/empty = show all three.
+// Show "Staff" tab only if client has at least one staff role configured
+// (or if staff_roles is null/empty = show by default)
 function visibleTabs(client) {
-  const roles = client?.staff_roles;
-  if (!Array.isArray(roles) || roles.length === 0) return TABS;
-  return TABS.filter(t => !t.staffRole || roles.includes(t.staffRole));
+  return TABS;
 }
 
 /* ─── Sub-components ──────────────────────────────────────────────────────── */
@@ -903,20 +899,49 @@ export default function ClientDetail() {
         </div>
       )}
 
-      {/* MENUS — staff submissions */}
-      {activeTab === "menus" && (
-        <ClientMenusTab clientId={client.id} staffLinked={!!client.staff_user_id} />
-      )}
+      {/* STAFF — all staff submissions in one view */}
+      {activeTab === "staff" && (() => {
+        const roles = client.staff_roles;
+        const hasRoles = Array.isArray(roles) && roles.length > 0;
+        const showChef    = !hasRoles || roles.includes("chef");
+        const showManager = !hasRoles || roles.includes("manager");
+        const showPastry  = !hasRoles || roles.includes("pastry");
 
-      {/* MANAGER — staff requests */}
-      {activeTab === "manager" && (
-        <ClientManagerRequestsTab clientId={client.id} staffLinked={!!client.staff_user_id} />
-      )}
-
-      {/* PASTRY / BAKER CHEF — staff requests */}
-      {activeTab === "pastry" && (
-        <ClientPastryRequestsTab clientId={client.id} staffLinked={!!client.staff_user_id} />
-      )}
+        return (
+          <div className="space-y-6">
+            {showChef && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <ChefHat className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Menus</span>
+                </div>
+                <ClientMenusTab clientId={client.id} staffLinked={!!client.staff_user_id} />
+              </div>
+            )}
+            {showManager && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Briefcase className="w-4 h-4 text-blue-500" />
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Manager</span>
+                </div>
+                <ClientManagerRequestsTab clientId={client.id} staffLinked={!!client.staff_user_id} />
+              </div>
+            )}
+            {showPastry && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-base">🥐</span>
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pastry</span>
+                </div>
+                <ClientPastryRequestsTab clientId={client.id} staffLinked={!!client.staff_user_id} />
+              </div>
+            )}
+            {!showChef && !showManager && !showPastry && (
+              <p className="text-sm text-slate-400 text-center py-10">No staff roles configured for this client.</p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* MUSIC — curated library per client (for video editors) */}
       {activeTab === "music" && (
