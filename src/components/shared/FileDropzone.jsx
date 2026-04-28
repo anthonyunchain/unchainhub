@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { supabase } from "@/api/base44Client";
 import { Upload, X, File as FileIcon, Loader2, AlertCircle } from "lucide-react";
 
-const MAX_BYTES = 50 * 1024 * 1024; // 50 MB — Supabase Free plan limit
+const MAX_BYTES = 100 * 1024 * 1024; // 100 MB
 
 function fmtSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
@@ -27,7 +27,7 @@ export default function FileDropzone({
 
   const uploadOne = async (file) => {
     if (file.size > MAX_BYTES) {
-      throw new Error(`${file.name} exceeds 50 MB (Supabase Free limit)`);
+      throw new Error(`${file.name} exceeds 100 MB`);
     }
     const ext = file.name.includes(".") ? file.name.split(".").pop() : "";
     const rand = Math.random().toString(36).slice(2, 10);
@@ -106,7 +106,7 @@ export default function FileDropzone({
           <>
             <Upload className="w-5 h-5 text-slate-400" />
             <span className="text-xs text-slate-600 font-medium">Drop files or click to upload</span>
-            <span className="text-[10px] text-slate-400">Max 50 MB · MP4, MOV, images, PDF, ZIP…</span>
+            <span className="text-[10px] text-slate-400">Max 100 MB · MP4, MOV, images, PDF, ZIP…</span>
           </>
         )}
         <input
