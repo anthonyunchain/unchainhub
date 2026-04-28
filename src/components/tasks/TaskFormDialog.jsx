@@ -14,7 +14,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Plus, X, UserCheck, MessageCircle, Send, Trash2, AlertTriangle, Paperclip, FileText, Loader2, ThumbsUp, CalendarIcon, Link2 } from "lucide-react";
 
-const isPdfUrl = (url) => typeof url === "string" && /\.pdf(\?|#|$)/i.test(url);
+const isPdfUrl   = (url) => typeof url === "string" && /\.pdf(\?|#|$)/i.test(url);
+const isVideoUrl = (url) => typeof url === "string" && /\.(mp4|mov|webm|avi|mkv)(\?|#|$)/i.test(url);
 const fileNameFromUrl = (url) => {
   try {
     const clean = url.split("?")[0].split("#")[0];
@@ -270,6 +271,8 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
     setConvImageFile(file);
     if (file.type === "application/pdf") {
       setConvImagePreview({ type: "pdf", name: file.name });
+    } else if (file.type.startsWith("video/")) {
+      setConvImagePreview({ type: "video", name: file.name });
     } else {
       const reader = new FileReader();
       reader.onload = (ev) => setConvImagePreview({ type: "image", dataUrl: ev.target.result });
@@ -491,6 +494,14 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                         <FileText className="w-6 h-6 md:w-7 md:h-7 text-red-500" />
                         <span className="text-[9px] md:text-[10px] font-semibold text-red-600 truncate max-w-full px-0.5">PDF</span>
                       </a>
+                    ) : isVideoUrl(url) ? (
+                      <a href={url} target="_blank" rel="noopener noreferrer" title={fileNameFromUrl(url)}
+                        className="w-14 h-14 md:w-20 md:h-20 rounded-lg border border-slate-200 bg-slate-900 flex flex-col items-center justify-center gap-1 hover:opacity-80 transition-opacity overflow-hidden relative">
+                        <video src={url} className="absolute inset-0 w-full h-full object-cover opacity-60" muted preload="metadata" />
+                        <span className="relative z-10 text-[9px] md:text-[10px] font-bold text-white bg-black/50 px-1 py-0.5 rounded">
+                          {fileNameFromUrl(url).split('.').pop().toUpperCase()}
+                        </span>
+                      </a>
                     ) : (
                       <a href={url} target="_blank" rel="noopener noreferrer">
                         <img src={url} alt="" className="w-14 h-14 md:w-20 md:h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90" />
@@ -504,7 +515,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                 ))}
                 <label className={`w-14 h-14 md:w-20 md:h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-slate-400 transition-colors ${uploadingTaskImage ? "opacity-50 pointer-events-none" : ""}`}>
                   {uploadingTaskImage ? <Loader2 className="w-5 h-5 animate-spin text-slate-400" /> : <Paperclip className="w-5 h-5 text-slate-400" />}
-                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={handleTaskImageUpload} />
+                  <input type="file" accept="image/*,application/pdf,video/mp4,video/quicktime,video/webm" className="hidden" onChange={handleTaskImageUpload} />
                 </label>
               </div>
             </div>
@@ -617,6 +628,11 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                         <FileText className="w-4 h-4 text-red-500 shrink-0" />
                         <span className="text-xs text-slate-700 truncate">{convImagePreview.name}</span>
                       </div>
+                    ) : convImagePreview.type === "video" ? (
+                      <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-slate-200 bg-slate-800 max-w-[200px]">
+                        <span className="text-base">🎬</span>
+                        <span className="text-xs text-white truncate">{convImagePreview.name}</span>
+                      </div>
                     ) : (
                       <img src={convImagePreview.dataUrl} alt="Preview" className="max-w-[100px] max-h-[60px] rounded-md border border-slate-200 object-cover" />
                     )}
@@ -629,7 +645,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                 <div className="flex items-end gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 focus-within:border-brand/50 focus-within:bg-white transition-colors">
                   <label className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-600 cursor-pointer transition-colors" title="Attach image or PDF">
                     <Paperclip className="w-4 h-4" />
-                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={handleConvImageSelect} />
+                    <input type="file" accept="image/*,application/pdf,video/mp4,video/quicktime,video/webm" className="hidden" onChange={handleConvImageSelect} />
                   </label>
                   <textarea
                     value={messageDraft}
