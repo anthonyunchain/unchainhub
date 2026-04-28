@@ -206,6 +206,9 @@ const functions = {
 const integrations = {
   Core: {
     async UploadFile({ file, bucket = 'content' }) {
+      if (file.size > 100 * 1024 * 1024) {
+        throw new Error(`${file.name} exceeds 100 MB`);
+      }
       const ext      = file.name.split('.').pop();
       const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const path     = `uploads/${filename}`;

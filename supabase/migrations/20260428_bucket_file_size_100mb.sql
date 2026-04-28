@@ -3,4 +3,4 @@
 
 UPDATE storage.buckets
 SET file_size_limit = 104857600
-WHERE name IN ('deliverables', 'menu-submissions', 'messages');
+WHERE name IN ('deliverables', 'menu-submissions', 'messages', 'content');
