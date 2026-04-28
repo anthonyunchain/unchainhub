@@ -7,6 +7,7 @@ import {
   Plus, Search, Trash2, X, Check, NotebookPen,
   ChevronLeft, Share2, Tag, Cloud, CloudOff, Eye, Pencil,
   Bold, Italic, ListChecks, Users, Briefcase, CheckSquare,
+  Folder, FolderOpen, FolderPlus,
 } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -32,7 +33,8 @@ function toEditorHtml(content) {
     .replace(/\n/g, "<br>");
 }
 
-const TAG_COLORS = ["#2A69FF", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#6B7280"];
+const TAG_COLORS    = ["#2A69FF", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#6B7280"];
+const FOLDER_COLORS = ["#6B7280", "#2A69FF", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 const CARD = { background: "var(--card)", borderRadius: "var(--card-radius)", boxShadow: "var(--card-shadow)" };
@@ -104,6 +106,9 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   const [saveStatus, setSaveStatus]         = useState(null); // "saving" | "saved" | "error"
   const [newTagInput, setNewTagInput]       = useState("");
   const [showNewTag, setShowNewTag]         = useState(false);
+  const [showNewFolder, setShowNewFolder]   = useState(false);
+  const [newFolderInput, setNewFolderInput] = useState("");
+  const [filterFolder, setFilterFolder]     = useState(null); // null=all | "none"=unfiled | uuid
   const [showShare, setShowShare]           = useState(false);
   const [undoStack, setUndoStack]           = useState([]); // deleted notes for Ctrl+Z
   const [undoToast, setUndoToast]           = useState(false);
@@ -201,6 +206,16 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     enabled: !!currentUser,
   });
 
+  const { data: folders = [] } = useQuery({
+    queryKey: ["note-folders"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("note_folders").select("*").order("sort_order").order("name");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!currentUser,
+  });
+
   // Open note from URL param
   useEffect(() => {
     const id = searchParams.get("note");
@@ -221,6 +236,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
         tags: (note.tags || []).map(sanitizeTag).filter(Boolean).slice(0, 20),
         shared_with: (note.shared_with || []).slice(0, 50),
         shared_with_edit: (note.shared_with_edit || []).filter(id => (note.shared_with || []).includes(id)).slice(0, 50),
+        folder_id: note.folder_id || null,
         created_by: currentUser.id,
       };
       const ydocState = getYdocStateRef.current?.();
@@ -308,6 +324,31 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     },
   });
 
+  const createFolderMut = useMutation({
+    mutationFn: async ({ name, color }) => {
+      const clean = name.trim().slice(0, 50);
+      if (!clean) throw new Error("Folder name required");
+      const { data, error } = await supabase.from("note_folders").insert({
+        user_id: currentUser.id, name: clean, color, sort_order: folders.length,
+      }).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["note-folders"] }); setNewFolderInput(""); setShowNewFolder(false); },
+  });
+
+  const deleteFolderMut = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("note_folders").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ["note-folders"] });
+      qc.invalidateQueries({ queryKey: ["notes"] });
+      if (filterFolder === id) setFilterFolder(null);
+    },
+  });
+
   // ── Auto-save ─────────────────────────────────────────────────────────────
   // Produces a stable string key from note data (excluding fields we don't save)
   function stableKey(d) {
@@ -315,6 +356,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     return JSON.stringify({
       title: d.title, content: d.content,
       tags: d.tags, shared_with: d.shared_with,
+      folder_id: d.folder_id ?? null,
     });
   }
 
@@ -402,7 +444,8 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     flushAndSwitch(() => {
       lastSavedRef.current = null;
       setSelectedId(null);
-      setEditData({ title: "", content: "", tags: [], shared_with: [], shared_with_edit: [], created_by: currentUser?.id });
+      const defaultFolder = filterFolder && filterFolder !== "none" ? filterFolder : null;
+      setEditData({ title: "", content: "", tags: [], shared_with: [], shared_with_edit: [], folder_id: defaultFolder, created_by: currentUser?.id });
       setSaveError(null);
       setShowShare(false);
       setMobileView("editor");
@@ -417,6 +460,8 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     const cur = editData?.tags || [];
     update("tags", cur.includes(name) ? cur.filter(t => t !== name) : [...cur, name]);
   };
+
+  const moveToFolder = (folderId) => update("folder_id", folderId || null);
 
   const applyTemplate = (tpl) => {
     if (!editData.title) update("title", tpl.title);
@@ -488,6 +533,8 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
 
   // ── Filtered note list ────────────────────────────────────────────────────
   const filtered = notes.filter(n => {
+    if (filterFolder === "none" && n.folder_id) return false;
+    if (filterFolder && filterFolder !== "none" && n.folder_id !== filterFolder) return false;
     if (search) {
       const q = search.toLowerCase();
       if (!n.title?.toLowerCase().includes(q) && !stripHtml(n.content).toLowerCase().includes(q)) return false;
@@ -534,6 +581,80 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
               outline: "none", boxSizing: "border-box",
             }}
           />
+        </div>
+      </div>
+
+      {/* Folders */}
+      <div style={{ borderBottom: "1px solid var(--divider)", flexShrink: 0 }}>
+        {/* All notes row */}
+        <button
+          onClick={() => setFilterFolder(null)}
+          style={{
+            width: "100%", textAlign: "left", padding: "8px 14px",
+            display: "flex", alignItems: "center", gap: 7, border: "none",
+            background: filterFolder === null ? "rgba(42,105,255,0.06)" : "transparent",
+            cursor: "pointer", borderLeft: `3px solid ${filterFolder === null ? "var(--brand)" : "transparent"}`,
+          }}
+        >
+          <Folder style={{ width: 13, height: 13, color: filterFolder === null ? "var(--brand)" : "var(--muted)", flexShrink: 0 }} />
+          <span style={{ flex: 1, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: filterFolder === null ? 600 : 500, color: filterFolder === null ? "var(--ink)" : "var(--muted)" }}>All notes</span>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--muted)" }}>{notes.length}</span>
+        </button>
+
+        {/* User folders */}
+        {folders.map(f => (
+          <div key={f.id} style={{ display: "flex", alignItems: "center" }}>
+            <button
+              onClick={() => setFilterFolder(filterFolder === f.id ? null : f.id)}
+              style={{
+                flex: 1, textAlign: "left", padding: "8px 14px 8px 14px",
+                display: "flex", alignItems: "center", gap: 7, border: "none",
+                background: filterFolder === f.id ? `${f.color}12` : "transparent",
+                cursor: "pointer",
+                borderLeft: `3px solid ${filterFolder === f.id ? f.color : "transparent"}`,
+              }}
+            >
+              <FolderOpen style={{ width: 13, height: 13, color: f.color, flexShrink: 0 }} />
+              <span style={{ flex: 1, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: filterFolder === f.id ? 600 : 500, color: filterFolder === f.id ? "var(--ink)" : "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.name}</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--muted)", flexShrink: 0 }}>{notes.filter(n => n.folder_id === f.id).length}</span>
+            </button>
+            <button
+              onClick={() => deleteFolderMut.mutate(f.id)}
+              title="Delete folder"
+              style={{ padding: "0 10px 0 4px", background: "none", border: "none", cursor: "pointer", color: "var(--muted)", opacity: 0.5, flexShrink: 0 }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = "#ef4444"; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = "0.5"; e.currentTarget.style.color = "var(--muted)"; }}
+            >
+              <X style={{ width: 10, height: 10 }} />
+            </button>
+          </div>
+        ))}
+
+        {/* New folder */}
+        <div style={{ padding: "4px 14px 8px" }}>
+          {!showNewFolder ? (
+            <button
+              onClick={() => setShowNewFolder(true)}
+              style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 11, fontFamily: "'DM Mono', monospace", padding: "2px 0" }}
+            >
+              <FolderPlus style={{ width: 12, height: 12 }} /> New folder
+            </button>
+          ) : (
+            <form
+              onSubmit={e => { e.preventDefault(); createFolderMut.mutate({ name: newFolderInput, color: FOLDER_COLORS[folders.length % FOLDER_COLORS.length] }); }}
+              style={{ display: "flex", gap: 4, alignItems: "center" }}
+            >
+              <input
+                autoFocus
+                value={newFolderInput}
+                onChange={e => setNewFolderInput(e.target.value.slice(0, 50))}
+                placeholder="Folder name"
+                style={{ flex: 1, padding: "3px 7px", borderRadius: 6, border: "1px solid var(--brand)", fontSize: 11, fontFamily: "'DM Mono', monospace", outline: "none", background: "var(--bg)", color: "var(--ink)" }}
+              />
+              <button type="submit" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--brand)", padding: 0 }}><Check style={{ width: 13, height: 13 }} /></button>
+              <button type="button" onClick={() => { setShowNewFolder(false); setNewFolderInput(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", padding: 0 }}><X style={{ width: 13, height: 13 }} /></button>
+            </form>
+          )}
         </div>
       </div>
 
@@ -972,9 +1093,54 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
         />
       </div>
 
-      {/* Footer: tags */}
+      {/* Footer: folder + tags */}
       {(isOwner || editData.tags?.length > 0) && (
         <div style={{ padding: "12px 20px 14px", borderTop: "1px solid var(--divider)", flexShrink: 0 }}>
+          {/* Folder picker (owner only) */}
+          {isOwner && folders.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
+                <FolderOpen style={{ width: 11, height: 11, color: "var(--muted)" }} />
+                <span style={LABEL}>Folder</span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                <button
+                  onClick={() => moveToFolder(null)}
+                  style={{
+                    padding: "3px 10px", borderRadius: 99,
+                    border: `1.5px solid ${!editData.folder_id ? "var(--brand)" : "var(--divider)"}`,
+                    background: !editData.folder_id ? "rgba(42,105,255,0.08)" : "transparent",
+                    color: !editData.folder_id ? "var(--brand)" : "var(--muted)",
+                    fontSize: 11, cursor: "pointer", fontFamily: "'DM Mono', monospace",
+                    transition: "all 120ms",
+                  }}
+                >
+                  None
+                </button>
+                {folders.map(f => {
+                  const active = editData.folder_id === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => moveToFolder(f.id)}
+                      style={{
+                        padding: "3px 10px", borderRadius: 99,
+                        border: `1.5px solid ${active ? f.color : "var(--divider)"}`,
+                        background: active ? `${f.color}18` : "transparent",
+                        color: active ? f.color : "var(--muted)",
+                        fontSize: 11, cursor: "pointer", fontFamily: "'DM Mono', monospace",
+                        display: "flex", alignItems: "center", gap: 5,
+                        transition: "all 120ms",
+                      }}
+                    >
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: active ? f.color : "var(--muted)", flexShrink: 0 }} />
+                      {f.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {/* Tags (owner only) */}
           {isOwner && (
             <div>

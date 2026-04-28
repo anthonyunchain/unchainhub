@@ -58,6 +58,7 @@ const ClientPortal        = lazy(() => import('./pages/ClientPortal'));
 const StaffPortal         = lazy(() => import('./pages/StaffPortal'));
 const Ideas               = lazy(() => import('./pages/Ideas'));
 const Notes               = lazy(() => import('./pages/Notes'));
+const MeetingNotes        = lazy(() => import('./pages/MeetingNotes'));
 const FreelancerShop      = lazy(() => import('./pages/FreelancerShop'));
 const PlanningCalendar    = lazy(() => import('./pages/PlanningCalendar'));
 const MessagesPage        = lazy(() => import('./pages/Messages'));
@@ -235,6 +236,7 @@ const AuthenticatedApp = () => {
           <Route path="FreelancerAdmin" element={<AdminRoute><FreelancerAdmin /></AdminRoute>} />
           <Route path="Ideas" element={<AdminRoute><Ideas /></AdminRoute>} />
           <Route path="Notes" element={<AdminRoute><Notes /></AdminRoute>} />
+          <Route path="MeetingNotes" element={<AdminRoute><MeetingNotes /></AdminRoute>} />
           <Route path="FreelancerShop" element={<AdminRoute><FreelancerShop /></AdminRoute>} />
           <Route path="Planning" element={<AdminRoute><PlanningCalendar /></AdminRoute>} />
           <Route path="Messages" element={<AdminRoute><MessagesPage /></AdminRoute>} />

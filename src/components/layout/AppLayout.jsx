@@ -25,6 +25,7 @@ const PAGE_TITLES = {
   '/FreelancerAdmin':     'Freelancer Admin',
   '/Ideas':               'Ideas',
   '/Notes':               'Notes',
+  '/MeetingNotes':        'Meeting Notes',
   '/Planning':            'Planning',
   '/CRM':                 'CRM',
   '/FreelancerShop':      'Freelancer Shop',

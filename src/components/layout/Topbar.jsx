@@ -19,6 +19,7 @@ const NAV_LINKS = [
   { path: "/Clients",        label: "Clients"    },
   { path: "/Messages",       label: "Messages"   },
   { path: "/Notes",          label: "Notes"      },
+  { path: "/MeetingNotes",   label: "Meetings"   },
   { path: "/Admin",          label: "Admin"      },
 ];
 
