@@ -6,8 +6,8 @@ import PageHeader from "../components/shared/PageHeader";
 import StatusBadge from "../components/shared/StatusBadge";
 import EmptyState from "../components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, MapPin, Building2, ChevronRight, Trash2, Pencil, GripVertical, ArrowUpDown, UserPlus, RefreshCw, Copy, KeyRound, ChefHat, CheckCircle2, Circle } from "lucide-react";
-import { format } from "date-fns";
+import { Plus, Search, MapPin, Building2, ChevronRight, ChevronLeft, Trash2, Pencil, GripVertical, ArrowUpDown, UserPlus, RefreshCw, Copy, KeyRound, ChefHat, CheckCircle2, Circle } from "lucide-react";
+import { format, addMonths, subMonths, startOfMonth } from "date-fns";
 
 const STEPS = [
   { key: "meeting_prev",   label: "Review meeting",         week: "W−1", color: "#8B5CF6", bg: "rgba(139,92,246,0.1)" },
@@ -67,7 +67,8 @@ export default function Clients() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const qc = useQueryClient();
 
-  const month = format(new Date(), "yyyy-MM");
+  const [workflowDate, setWorkflowDate] = useState(() => startOfMonth(new Date()));
+  const month = format(workflowDate, "yyyy-MM");
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
 
@@ -326,7 +327,23 @@ export default function Clients() {
           <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--divider)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
               <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 15, color: "var(--ink)", margin: 0 }}>Monthly workflow</p>
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--muted)", marginTop: 2 }}>{format(new Date(), "MMMM yyyy")}</p>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                onClick={() => setWorkflowDate(d => subMonths(d, 1))}
+                style={{ background: "var(--bg)", border: "1px solid var(--divider)", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--muted)" }}
+              >
+                <ChevronLeft style={{ width: 14, height: 14 }} />
+              </button>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--ink)", margin: 0, minWidth: 90, textAlign: "center", fontWeight: 600 }}>
+                {format(workflowDate, "MMMM yyyy")}
+              </p>
+              <button
+                onClick={() => setWorkflowDate(d => addMonths(d, 1))}
+                style={{ background: "var(--bg)", border: "1px solid var(--divider)", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--muted)" }}
+              >
+                <ChevronRight style={{ width: 14, height: 14 }} />
+              </button>
             </div>
           </div>
           {/* Header row */}
