@@ -30,6 +30,39 @@
   }
 }
 
+/* ── Notes: interactive todo checkboxes ─────────────────────────────────── */
+.todo-check {
+  cursor: pointer;
+  display: inline-block;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 1.5px solid #9ca3af;
+  vertical-align: text-bottom;
+  margin-right: 6px;
+  background: transparent;
+  box-sizing: border-box;
+  position: relative;
+  flex-shrink: 0;
+  transition: border-color 150ms, background 150ms;
+}
+.todo-check[data-checked="true"] {
+  border-color: #2a69ff;
+  background: #2a69ff;
+}
+.todo-check[data-checked="true"]::after {
+  content: '';
+  position: absolute;
+  left: 3.5px;
+  top: 1.5px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
 /* Global focus-visible ring for keyboard navigation */
 @layer base {
   :focus-visible {

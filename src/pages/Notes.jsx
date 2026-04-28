@@ -6,7 +6,7 @@ import { supabase, base44 } from "@/api/base44Client";
 import {
   Plus, Search, Trash2, X, Check, NotebookPen,
   ChevronLeft, Share2, Tag, Cloud, CloudOff, Eye, Pencil,
-  Bold, Italic, ListChecks, Users, Briefcase,
+  Bold, Italic, ListChecks, Users, Briefcase, CheckSquare,
 } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -47,9 +47,9 @@ const NOTE_TEMPLATES = [
     title: "To do list",
     content:
       "<b>Tasks</b><br>" +
-      "☐&nbsp;&nbsp;Task 1<br>" +
-      "☐&nbsp;&nbsp;Task 2<br>" +
-      "☐&nbsp;&nbsp;Task 3<br>",
+      `<span contenteditable="false" class="todo-check" data-checked="false"></span>Task 1<br>` +
+      `<span contenteditable="false" class="todo-check" data-checked="false"></span>Task 2<br>` +
+      `<span contenteditable="false" class="todo-check" data-checked="false"></span>Task 3<br>`,
   },
   {
     id: "meeting",
@@ -67,7 +67,7 @@ const NOTE_TEMPLATES = [
       "...<br>" +
       "<br>" +
       "<b>Action items</b><br>" +
-      "☐&nbsp;&nbsp;...<br>",
+      `<span contenteditable="false" class="todo-check" data-checked="false"></span>...<br>`,
   },
   {
     id: "project",
@@ -478,6 +478,14 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
     if (isCollaborative) applyLocalChange(newContent);
   }, [canEdit, isCollaborative, applyLocalChange]);
 
+  const insertCheckbox = useCallback(() => {
+    if (!canEdit || !editorRef.current) return;
+    editorRef.current.focus();
+    const html = `<span contenteditable="false" class="todo-check" data-checked="false"></span>`;
+    document.execCommand("insertHTML", false, html);
+    update("content", editorRef.current.innerHTML);
+  }, [canEdit]);
+
   // ── Filtered note list ────────────────────────────────────────────────────
   const filtered = notes.filter(n => {
     if (search) {
@@ -882,7 +890,7 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
 
       {/* Format toolbar */}
       {canEdit && (
-        <div style={{ padding: "0 20px 6px", display: "flex", gap: 2, flexShrink: 0 }}>
+        <div style={{ padding: "0 20px 6px", display: "flex", gap: 2, alignItems: "center", flexShrink: 0 }}>
           {[
             { icon: Bold,   cmd: "bold",   title: "Bold (Ctrl+B)" },
             { icon: Italic, cmd: "italic", title: "Italic (Ctrl+I)" },
@@ -903,6 +911,23 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
               <Icon style={{ width: 13, height: 13 }} />
             </button>
           ))}
+          {/* Separator */}
+          <span style={{ width: 1, height: 16, background: "var(--divider)", margin: "0 4px" }} />
+          {/* Checkbox / todo button */}
+          <button
+            onMouseDown={e => { e.preventDefault(); insertCheckbox(); }}
+            title="Insert todo checkbox"
+            style={{
+              width: 28, height: 28, borderRadius: 6, border: "1px solid transparent",
+              background: "transparent", cursor: "pointer", color: "var(--muted)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all 120ms",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.05)"; e.currentTarget.style.color = "var(--ink)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--muted)"; }}
+          >
+            <CheckSquare style={{ width: 13, height: 13 }} />
+          </button>
         </div>
       )}
 
@@ -926,6 +951,13 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
             const newContent = editorRef.current.innerHTML.slice(0, 50000);
             update("content", newContent);
             if (isCollaborative) applyLocalChange(newContent);
+          }}
+          onClick={e => {
+            const el = e.target.closest(".todo-check");
+            if (!el || !editorRef.current) return;
+            const nowChecked = el.dataset.checked !== "true";
+            el.dataset.checked = String(nowChecked);
+            update("content", editorRef.current.innerHTML);
           }}
           onKeyDown={e => {
             if ((e.ctrlKey || e.metaKey) && e.key === "b") { e.preventDefault(); applyFormat("bold"); }
