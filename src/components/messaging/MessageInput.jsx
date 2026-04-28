@@ -25,6 +25,11 @@ export default function MessageInput({ conversationId, userId, replyTo, onClearR
   const handleFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error('File exceeds 100 MB');
+      e.target.value = '';
+      return;
+    }
     const isImage = file.type.startsWith('image/');
     const preview = isImage ? URL.createObjectURL(file) : null;
     setAttachment({ file, preview, type: isImage ? 'image' : 'file' });
