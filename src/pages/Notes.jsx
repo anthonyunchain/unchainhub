@@ -60,12 +60,16 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   // Track last-saved snapshot to avoid redundant auto-saves
   const lastSavedRef      = useRef(null);
   const saveTimerRef      = useRef(null);
+  const editDataRef       = useRef(null); // always-current editData for flush-before-switch
   const titleInputRef     = useRef(null);
   const editorRef         = useRef(null);
   const isEditingRef      = useRef(false);
   const editorNoteIdRef   = useRef(null);
   const undoToastTimer    = useRef(null);
   const getYdocStateRef   = useRef(null);
+
+  // Keep ref in sync so flush-before-switch always has the latest data
+  useEffect(() => { editDataRef.current = editData; }, [editData]);
 
   useEffect(() => {
     base44.auth.me().then(u => setCurrentUser(u)).catch(() => {});
@@ -297,27 +301,41 @@ export default function Notes({ embedded = false, autoNewTrigger = 0 }) {
   }, [selectedId, editData]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-  const openNote = (note) => {
+
+  // Immediately save the current note if there are unsaved changes, then call cb.
+  const flushAndSwitch = (cb) => {
     clearTimeout(saveTimerRef.current);
-    lastSavedRef.current = stableKey(note);
-    setSelectedId(note.id);
-    setEditData({ ...note });
-    setSaveError(null);
-    setShowShare(false);
-    setMobileView("editor");
-    setSaveStatus(null);
+    const cur = editDataRef.current;
+    if (cur && stableKey(cur) !== lastSavedRef.current && cur.title?.trim()) {
+      const isOwner = !cur.id || cur.created_by === currentUser?.id;
+      if (isOwner) saveMut.mutate(cur);
+    }
+    cb();
+  };
+
+  const openNote = (note) => {
+    flushAndSwitch(() => {
+      lastSavedRef.current = stableKey(note);
+      setSelectedId(note.id);
+      setEditData({ ...note });
+      setSaveError(null);
+      setShowShare(false);
+      setMobileView("editor");
+      setSaveStatus(null);
+    });
   };
 
   const newNote = () => {
-    clearTimeout(saveTimerRef.current);
-    lastSavedRef.current = null;
-    setSelectedId(null);
-    setEditData({ title: "", content: "", tags: [], shared_with: [], shared_with_edit: [], created_by: currentUser?.id });
-    setSaveError(null);
-    setShowShare(false);
-    setMobileView("editor");
-    setSaveStatus(null);
-    setFocusTitle(true); // focus after React re-renders the input
+    flushAndSwitch(() => {
+      lastSavedRef.current = null;
+      setSelectedId(null);
+      setEditData({ title: "", content: "", tags: [], shared_with: [], shared_with_edit: [], created_by: currentUser?.id });
+      setSaveError(null);
+      setShowShare(false);
+      setMobileView("editor");
+      setSaveStatus(null);
+      setFocusTitle(true); // focus after React re-renders the input
+    });
   };
 
   const update = (field, value) => setEditData(prev => ({ ...prev, [field]: value }));
