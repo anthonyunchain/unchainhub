@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Eye, TrendingUp, ChevronLeft, ChevronRight, Upload, Download, Check } from "lucide-react";
+import { Plus, Trash2, Eye, TrendingUp, ChevronLeft, ChevronRight, Upload, Download, Check, Bot, Loader2 } from "lucide-react";
 import StatsCsvImportDialog from "@/components/stats/StatsCsvImportDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,6 +37,41 @@ export default function Reports() {
   const { data: invoices = [] } = useQuery({ queryKey: ["invoices"], queryFn: () => base44.entities.Invoice.list() });
   const { data: payments = [] } = useQuery({ queryKey: ["freelancer-payments"], queryFn: () => base44.entities.FreelancerPayment.list() });
   const { data: allStats = [] } = useQuery({ queryKey: ["client-stats"], queryFn: () => base44.entities.ClientStats.list("-period") });
+
+  // Poll active scrape job every 8s until done/error
+  const { data: activeScrapeJob } = useQuery({
+    queryKey: ["scrape-job", scrapeJobId],
+    queryFn: () => base44.entities.ScrapeJob.filter({ id: scrapeJobId }).then(rows => rows[0]),
+    enabled: !!scrapeJobId,
+    refetchInterval: (data) => (data?.status === "running" ? 8000 : false),
+    onSuccess: (job) => {
+      if (job?.status === "done") {
+        setScraping(false);
+        qc.invalidateQueries({ queryKey: ["client-stats"] });
+        toast.success(`✓ Scraping terminé — ${job.results_count || 0} résultats importés`);
+        setScrapeJobId(null);
+      } else if (job?.status === "error") {
+        setScraping(false);
+        toast.error("Erreur Apify : " + (job.error_message || "Vérifier les logs"));
+        setScrapeJobId(null);
+      }
+    },
+  });
+
+  const handleApifyScrape = async () => {
+    setScraping(true);
+    try {
+      const { data } = await base44.functions.invoke("apifyStartScrape", { type: "social_stats", period: selectedMonth });
+      if (data?.error) throw new Error(data.error);
+      if (data?.jobId) {
+        setScrapeJobId(data.jobId);
+        toast.info(`Scraping démarré pour ${data.clientsCount || 0} client(s) — résultats dans quelques minutes`);
+      }
+    } catch (e) {
+      setScraping(false);
+      toast.error("Erreur au démarrage : " + (e?.message || "Inconnue"));
+    }
+  };
 
   const createStat = useMutation({ mutationFn: d => base44.entities.ClientStats.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); }, onError: (e) => toast.error("Error saving: " + (e?.message || e)) });
   const updateStat = useMutation({ mutationFn: ({ id, d }) => base44.entities.ClientStats.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-stats"] }); setStatDialog(false); }, onError: (e) => toast.error("Error saving: " + (e?.message || e)) });
@@ -67,6 +102,8 @@ export default function Reports() {
   };
 
   const [bulkSaving, setBulkSaving] = useState(false);
+  const [scrapeJobId, setScrapeJobId] = useState(null);
+  const [scraping, setScraping] = useState(false);
   const handleBulkSave = async () => {
     setBulkSaving(true);
     const filled = bulkRows.filter(r => r.views !== "" || r.likes !== "" || r.reach !== "");
@@ -181,6 +218,18 @@ export default function Reports() {
             <button onClick={() => { const csv = "client_name;period;platform;views;reach;likes;comments;shares;followers_gained\nClient Name;2025-06;Instagram;12000;8500;340;45;12;85"; const b = new Blob([csv], { type: "text/csv;charset=utf-8;" }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = "stats_template.csv"; a.click(); URL.revokeObjectURL(u); }} className="flex items-center gap-1 text-xs text-slate-400 hover:text-brand transition-colors"><Download className="w-3.5 h-3.5" />Template</button>
             <Button variant="outline" onClick={() => setCsvImportOpen(true)} className="h-9"><Upload className="w-4 h-4 mr-1" />Import CSV</Button>
             <Button variant="outline" onClick={openBulk} className="h-9">Bulk entry</Button>
+            <Button
+              variant="outline"
+              onClick={handleApifyScrape}
+              disabled={scraping}
+              className="h-9 border-violet-200 text-violet-700 hover:bg-violet-50"
+              title="Scraper automatiquement les stats via Apify"
+            >
+              {scraping
+                ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Scraping…</>
+                : <><Bot className="w-4 h-4 mr-1" />Apify</>
+              }
+            </Button>
             <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" />Add stats</Button>
           </div>
         )}
@@ -228,7 +277,7 @@ export default function Reports() {
                   <BarChart data={platformData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} />
-                    <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} />
+                    <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} tickFormatter={v => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}K` : v} />
                     <Tooltip />
                     <Bar dataKey="value" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                   </BarChart>

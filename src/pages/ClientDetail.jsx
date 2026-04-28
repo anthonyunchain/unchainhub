@@ -14,8 +14,11 @@ import {
   ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt,
   Pencil, Upload, X, ExternalLink, Briefcase, Trash2, UserPlus,
   ChevronLeft, ChevronRight, RefreshCw, Copy, KeyRound, Plus, Paperclip,
-  ChefHat,
+  ChefHat, Instagram, TrendingUp, Users, Eye, Heart, AtSign,
 } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from "recharts";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,25 +46,22 @@ const TYPE_COLORS = {
 };
 
 const TABS = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "reports",   label: "Reports"   },
-  { id: "invoices",  label: "Invoices"  },
-  { id: "contract",  label: "Contract"  },
-  { id: "calendars", label: "Calendars" },
-  { id: "menus",     label: "Menus",   staffRole: "chef"    },
-  { id: "manager",   label: "Manager", staffRole: "manager" },
-  { id: "pastry",    label: "Pastry",  staffRole: "pastry"  },
-  { id: "music",     label: "Music"     },
-  { id: "documents", label: "Documents" },
-  { id: "credentials", label: "Passwords" },
+  { id: "dashboard",   label: "Dashboard"  },
+  { id: "reports",     label: "Reports"    },
+  { id: "socials",     label: "Socials"    },
+  { id: "invoices",    label: "Invoices"   },
+  { id: "contract",    label: "Contract"   },
+  { id: "calendars",   label: "Calendars"  },
+  { id: "staff",       label: "Staff"      },
+  { id: "music",       label: "Music"      },
+  { id: "documents",   label: "Documents"  },
+  { id: "credentials", label: "Passwords"  },
 ];
 
-// Hide staff-portal submission tabs (menus/manager/pastry) that the client
-// hasn't enabled in their staff_roles setting. NULL/empty = show all three.
+// Show "Staff" tab only if client has at least one staff role configured
+// (or if staff_roles is null/empty = show by default)
 function visibleTabs(client) {
-  const roles = client?.staff_roles;
-  if (!Array.isArray(roles) || roles.length === 0) return TABS;
-  return TABS.filter(t => !t.staffRole || roles.includes(t.staffRole));
+  return TABS;
 }
 
 /* ─── Sub-components ──────────────────────────────────────────────────────── */
@@ -230,6 +230,8 @@ export default function ClientDetail() {
   const { data: contracts = [] } = useQuery({ queryKey: ["contracts"],  queryFn: () => base44.entities.Contract.list() });
   const { data: invoices  = [] } = useQuery({ queryKey: ["invoices"],   queryFn: () => base44.entities.Invoice.list() });
   const { data: content   = [] } = useQuery({ queryKey: ["editorial"],  queryFn: () => base44.entities.EditorialContent.list() });
+  const { data: allClientStats = [] } = useQuery({ queryKey: ["client-stats"], queryFn: () => base44.entities.ClientStats.list("-period"), enabled: activeTab === "socials" });
+  const { data: competitorStats = [] } = useQuery({ queryKey: ["competitor-stats", id], queryFn: () => base44.entities.CompetitorStats.filter({ client_id: id }), enabled: !!id && activeTab === "socials" });
 
   const updateMut = useMutation({
     mutationFn: ({ id, d }) => base44.entities.Client.update(id, d),
@@ -554,6 +556,154 @@ export default function ClientDetail() {
         </div>
       )}
 
+      {/* SOCIALS */}
+      {activeTab === "socials" && (() => {
+        const clientStats = allClientStats.filter(s => s.client_name === client.company_name);
+        const latestPeriod = clientStats[0]?.period || "";
+        const latestStats = clientStats.filter(s => s.period === latestPeriod);
+        const igStats  = latestStats.find(s => s.platform === "Instagram");
+        const ttkStats = latestStats.find(s => s.platform === "TikTok");
+
+        // Build chart data: last 6 months
+        const periods = [...new Set(clientStats.map(s => s.period))].sort().slice(-6);
+        const chartData = periods.map(p => {
+          const ig  = clientStats.find(s => s.period === p && s.platform === "Instagram");
+          const ttk = clientStats.find(s => s.period === p && s.platform === "TikTok");
+          return {
+            period: p.slice(5),  // "MM"
+            "Instagram Vues": ig?.views || 0,
+            "TikTok Vues": ttk?.views || 0,
+            "Instagram Likes": ig?.likes || 0,
+            "TikTok Likes": ttk?.likes || 0,
+          };
+        });
+
+        const latestCompetitors = competitorStats.length > 0
+          ? Object.values(
+              competitorStats.reduce((acc, c) => {
+                const key = `${c.competitor_handle}-${c.platform}`;
+                if (!acc[key] || c.period > acc[key].period) acc[key] = c;
+                return acc;
+              }, {})
+            )
+          : [];
+
+        const hasHandles = client.instagram_handle || client.tiktok_handle || client.linkedin_url;
+
+        return (
+          <div className="space-y-4">
+            {/* No handles warning */}
+            {!hasHandles && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700 flex items-center gap-2">
+                <AtSign className="w-4 h-4 shrink-0" />
+                No social handles configured yet. Edit the client to add Instagram/TikTok handles.
+              </div>
+            )}
+
+            {/* Handles summary */}
+            {hasHandles && (
+              <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-wrap gap-4 text-sm text-slate-600">
+                {client.instagram_handle && (
+                  <span className="flex items-center gap-1.5"><Instagram className="w-4 h-4 text-pink-500" />{client.instagram_handle}</span>
+                )}
+                {client.tiktok_handle && (
+                  <span className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-black" />{client.tiktok_handle}</span>
+                )}
+                {client.linkedin_url && (
+                  <a href={client.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-blue-600 hover:underline">
+                    <ExternalLink className="w-3.5 h-3.5" />LinkedIn
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Latest stats KPIs */}
+            {latestStats.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 ml-1">
+                  {latestPeriod} — dernières métriques
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label: "Vues Instagram", value: (igStats?.views || 0).toLocaleString("fr-FR"), icon: <Eye className="w-4 h-4 text-pink-400" /> },
+                    { label: "Likes Instagram", value: (igStats?.likes || 0).toLocaleString("fr-FR"), icon: <Heart className="w-4 h-4 text-pink-400" /> },
+                    { label: "Vues TikTok", value: (ttkStats?.views || 0).toLocaleString("fr-FR"), icon: <Eye className="w-4 h-4 text-slate-400" /> },
+                    { label: "Likes TikTok", value: (ttkStats?.likes || 0).toLocaleString("fr-FR"), icon: <Heart className="w-4 h-4 text-slate-400" /> },
+                    { label: "Followers IG", value: (igStats?.followers_gained || 0).toLocaleString("fr-FR"), icon: <Users className="w-4 h-4 text-pink-400" /> },
+                    { label: "Followers TikTok", value: (ttkStats?.followers_gained || 0).toLocaleString("fr-FR"), icon: <Users className="w-4 h-4 text-slate-400" /> },
+                    { label: "Commentaires IG", value: (igStats?.comments || 0).toLocaleString("fr-FR"), icon: <TrendingUp className="w-4 h-4 text-pink-400" /> },
+                    { label: "Commentaires TikTok", value: (ttkStats?.comments || 0).toLocaleString("fr-FR"), icon: <TrendingUp className="w-4 h-4 text-slate-400" /> },
+                  ].map(kpi => (
+                    <div key={kpi.label} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
+                      <div className="flex items-center gap-1.5 mb-1">{kpi.icon}<p className="text-xs text-slate-400">{kpi.label}</p></div>
+                      <p className="text-xl font-bold text-slate-800">{kpi.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Evolution chart */}
+            {chartData.length > 1 && (
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Évolution des vues</p>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="period" tick={{ fontSize: 11, fill: "#94a3b8" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} tickFormatter={v => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}K` : v} />
+                    <Tooltip formatter={(v) => v.toLocaleString("fr-FR")} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey="Instagram Vues" fill="#ec4899" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="TikTok Vues" fill="#334155" radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* No data yet */}
+            {latestStats.length === 0 && (
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 text-center text-slate-400 text-sm">
+                Aucune donnée disponible. Lance un scraping depuis la page Reports pour importer les métriques automatiquement.
+              </div>
+            )}
+
+            {/* Competitor comparison */}
+            {latestCompetitors.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Veille concurrentielle</p>
+                </div>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="text-left text-xs font-medium text-slate-400 px-5 py-2.5">Compte</th>
+                      <th className="text-left text-xs font-medium text-slate-400 px-5 py-2.5">Plateforme</th>
+                      <th className="text-right text-xs font-medium text-slate-400 px-5 py-2.5">Followers</th>
+                      <th className="text-right text-xs font-medium text-slate-400 px-5 py-2.5">Moy. Likes</th>
+                      <th className="text-right text-xs font-medium text-slate-400 px-5 py-2.5">Moy. Vues</th>
+                      <th className="text-right text-xs font-medium text-slate-400 px-5 py-2.5">Posts</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {latestCompetitors.map((c, i) => (
+                      <tr key={i} className="border-b border-slate-50 hover:bg-slate-50/30">
+                        <td className="px-5 py-3 text-sm font-medium text-slate-700">{c.competitor_handle}</td>
+                        <td className="px-5 py-3 text-sm text-slate-500">{c.platform}</td>
+                        <td className="px-5 py-3 text-sm text-slate-700 text-right">{(c.followers || 0).toLocaleString("fr-FR")}</td>
+                        <td className="px-5 py-3 text-sm text-slate-700 text-right">{Math.round(c.avg_likes || 0).toLocaleString("fr-FR")}</td>
+                        <td className="px-5 py-3 text-sm text-slate-700 text-right">{Math.round(c.avg_views || 0).toLocaleString("fr-FR")}</td>
+                        <td className="px-5 py-3 text-sm text-slate-700 text-right">{c.posts_count || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* INVOICES */}
       {activeTab === "invoices" && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -749,20 +899,49 @@ export default function ClientDetail() {
         </div>
       )}
 
-      {/* MENUS — staff submissions */}
-      {activeTab === "menus" && (
-        <ClientMenusTab clientId={client.id} staffLinked={!!client.staff_user_id} />
-      )}
+      {/* STAFF — all staff submissions in one view */}
+      {activeTab === "staff" && (() => {
+        const roles = client.staff_roles;
+        const hasRoles = Array.isArray(roles) && roles.length > 0;
+        const showChef    = !hasRoles || roles.includes("chef");
+        const showManager = !hasRoles || roles.includes("manager");
+        const showPastry  = !hasRoles || roles.includes("pastry");
 
-      {/* MANAGER — staff requests */}
-      {activeTab === "manager" && (
-        <ClientManagerRequestsTab clientId={client.id} staffLinked={!!client.staff_user_id} />
-      )}
-
-      {/* PASTRY / BAKER CHEF — staff requests */}
-      {activeTab === "pastry" && (
-        <ClientPastryRequestsTab clientId={client.id} staffLinked={!!client.staff_user_id} />
-      )}
+        return (
+          <div className="space-y-6">
+            {showChef && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <ChefHat className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Menus</span>
+                </div>
+                <ClientMenusTab clientId={client.id} staffLinked={!!client.staff_user_id} />
+              </div>
+            )}
+            {showManager && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Briefcase className="w-4 h-4 text-blue-500" />
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Manager</span>
+                </div>
+                <ClientManagerRequestsTab clientId={client.id} staffLinked={!!client.staff_user_id} />
+              </div>
+            )}
+            {showPastry && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-base">🥐</span>
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pastry</span>
+                </div>
+                <ClientPastryRequestsTab clientId={client.id} staffLinked={!!client.staff_user_id} />
+              </div>
+            )}
+            {!showChef && !showManager && !showPastry && (
+              <p className="text-sm text-slate-400 text-center py-10">No staff roles configured for this client.</p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* MUSIC — curated library per client (for video editors) */}
       {activeTab === "music" && (
@@ -881,6 +1060,52 @@ export default function ClientDetail() {
                 <Label className="mb-2 block">Active services</Label>
                 <ServicesEditor value={editData.active_services || []} onChange={v => setEditData({ ...editData, active_services: v })} />
               </div>
+
+              {/* Social handles */}
+              <div className="border-t border-slate-100 pt-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <Instagram className="w-3.5 h-3.5" /> Réseaux sociaux (Apify)
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Instagram handle</Label>
+                    <Input value={editData.instagram_handle || ""} onChange={e => setEditData({ ...editData, instagram_handle: e.target.value })} placeholder="@compte" className="mt-1 text-sm" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">TikTok handle</Label>
+                    <Input value={editData.tiktok_handle || ""} onChange={e => setEditData({ ...editData, tiktok_handle: e.target.value })} placeholder="@compte" className="mt-1 text-sm" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <Label className="text-xs">LinkedIn URL</Label>
+                  <Input value={editData.linkedin_url || ""} onChange={e => setEditData({ ...editData, linkedin_url: e.target.value })} placeholder="https://linkedin.com/company/..." className="mt-1 text-sm" />
+                </div>
+                <div className="mt-3">
+                  <Label className="text-xs">Hashtags tendances (sans #, séparés par virgule)</Label>
+                  <Input
+                    value={(editData.trend_hashtags || []).join(", ")}
+                    onChange={e => setEditData({ ...editData, trend_hashtags: e.target.value.split(",").map(h => h.trim()).filter(Boolean) })}
+                    placeholder="reels, foodie, tampere"
+                    className="mt-1 text-sm"
+                  />
+                </div>
+                <div className="mt-3">
+                  <Label className="text-xs">Comptes concurrents (format: @handle:instagram ou @handle:tiktok, séparés par virgule)</Label>
+                  <Input
+                    value={(editData.competitor_handles || []).map(c => `${c.handle}:${c.platform?.toLowerCase()}`).join(", ")}
+                    onChange={e => {
+                      const parsed = e.target.value.split(",").map(s => {
+                        const [h, p] = s.trim().split(":");
+                        return h ? { handle: h.trim(), platform: p ? p.charAt(0).toUpperCase() + p.slice(1) : "Instagram" } : null;
+                      }).filter(Boolean);
+                      setEditData({ ...editData, competitor_handles: parsed });
+                    }}
+                    placeholder="@concurrenta:instagram, @concurrentb:tiktok"
+                    className="mt-1 text-sm"
+                  />
+                </div>
+              </div>
+
               <div><Label>Notes</Label><Textarea value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} rows={2} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Portal language</Label>
