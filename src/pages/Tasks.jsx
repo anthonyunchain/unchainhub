@@ -429,7 +429,7 @@ export default function Tasks() {
               {taskAssignees.map((a) =>
                 <button key={a} onClick={() => setActiveAssignee(activeAssignee === a ? "all" : a)}
                   className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeAssignee === a ? "bg-violet-600 text-white" : "bg-violet-50 text-violet-700 hover:bg-violet-100"}`}>
-                  {a}<span className="ml-1 text-[10px] opacity-70">{tasks.filter(t => t.assigned_to === a).length}</span>
+                  {a}<span className="ml-1 text-[10px] opacity-70">{tasks.filter(t => t.assigned_to === a && t.status !== "Terminé").length}</span>
                 </button>
               )}
             </div>
