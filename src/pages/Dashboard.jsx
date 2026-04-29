@@ -237,7 +237,7 @@ export default function Dashboard() {
             onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--card-shadow)'; e.currentTarget.style.transform = 'translateY(0)'; }}
           >
             <span style={{ ...LABEL, flexShrink: 0 }}>Upcoming content</span>
-            <div style={{ overflowY: 'auto', flex: 1 }}>
+            <div className="scrollbar-none" style={{ overflowY: 'auto', flex: 1 }}>
               {loadingContent ? (
                 <div className="space-y-2">
                   {[...Array(3)].map((_, i) => <div key={i} className="skeleton" style={{ height: 56 }} aria-hidden="true" />)}
@@ -292,7 +292,7 @@ export default function Dashboard() {
               <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>No upcoming events in the next 14 days</p>
             </div>
           ) : (
-            <div style={{ overflowY: 'auto', flex: 1 }}>
+            <div className="scrollbar-none" style={{ overflowY: 'auto', flex: 1 }}>
               {gcalData.events.slice(0, 8).map((ev, i) => {
                 const isAllDay = !!ev.start?.date;
                 const startDate = isAllDay ? new Date(ev.start.date + 'T00:00:00') : new Date(ev.start.dateTime);

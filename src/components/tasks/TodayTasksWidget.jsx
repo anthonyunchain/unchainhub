@@ -87,7 +87,7 @@ export default function TodayTasksWidget() {
       </div>
 
       {/* Task list */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="scrollbar-none" style={{ flex: 1, overflowY: 'auto' }}>
         {todayTasks.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px 0' }}>
             <CheckSquare style={{ width: 32, height: 32, color: 'var(--divider)', margin: '0 auto 8px' }} />
