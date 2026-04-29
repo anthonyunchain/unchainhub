@@ -850,8 +850,9 @@ export default function ClientDetail() {
                   const now = new Date(); now.setDate(1);
                   const start = client.start_date ? new Date(client.start_date) : new Date(now.getFullYear() - 1, now.getMonth(), 1);
                   start.setDate(1);
+                  const end = new Date(now.getFullYear(), now.getMonth() + 3, 1);
                   const months = [];
-                  const cur = new Date(now);
+                  const cur = new Date(end);
                   while (cur >= start) {
                     const val = format(cur, "yyyy-MM");
                     months.push(<option key={val} value={val}>{format(cur, "MMMM yyyy", { locale: enUS })}</option>);
