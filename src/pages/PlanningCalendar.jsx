@@ -454,9 +454,14 @@ export default function PlanningCalendar() {
                         {visibleGcal.map(ev => {
                           const calColor = ev._calendarColor || "#4285F4";
                           const calBg = hexToRgba(calColor, 0.1);
+                          const startD = ev.start?.dateTime ? new Date(ev.start.dateTime) : null;
+                          const timeStr = startD ? format(startD, startD.getMinutes() === 0 ? "ha" : "h:mma") : null;
                           return (
                             <div key={ev.id} style={{ padding: "3px 7px", borderRadius: 5, background: calBg, borderLeft: `2px solid ${calColor}`, overflow: "hidden" }}>
-                              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 600, color: calColor, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ev.summary || "(No title)"}</p>
+                              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 600, color: calColor, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {timeStr && <span style={{ opacity: 0.7, marginRight: 4 }}>{timeStr}</span>}
+                                {ev.summary || "(No title)"}
+                              </p>
                             </div>
                           );
                         })}
