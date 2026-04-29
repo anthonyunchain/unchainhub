@@ -306,9 +306,7 @@ export default function Shootings() {
   };
 
   // Editorial content filtered by client + not yet published/cancelled + needs shooting
-  // Already-selected items always shown so they can be unchecked
   const clientContent = editorial.filter(e => {
-    if (form.content_ids?.includes(e.id)) return true;
     if (form.client_name && e.client_name !== form.client_name) return false;
     if (e.status === "Publié" || e.status === "Annulé") return false;
     if (e.needs_shooting === false) return false;
