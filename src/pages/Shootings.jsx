@@ -81,8 +81,8 @@ export default function Shootings() {
     queryFn: () => base44.entities.ShootingContent.list(),
   });
   const { data: clients = [] } = useQuery({
-    queryKey: ["clients"],
-    queryFn: () => base44.entities.Client.list(),
+    queryKey: ["clients_active"],
+    queryFn: () => base44.entities.Client.filter({ status: "Actif" }),
   });
   const { data: freelancers = [] } = useQuery({
     queryKey: ["freelancers"],
