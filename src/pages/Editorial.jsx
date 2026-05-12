@@ -151,8 +151,8 @@ export default function Editorial() {
     const file = e.target.files?.[0];
     if (!file || !editData?.id) return;
 
-    if (file.size > 150 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Maximum size is 150 MB", variant: "destructive" });
+    if (file.size > 50 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Maximum size is 50 MB (upgrade Supabase plan for larger files)", variant: "destructive" });
       return;
     }
 
@@ -979,7 +979,7 @@ export default function Editorial() {
                     <div className="flex items-center gap-2 mb-3">
                       <FileVideo className="w-4 h-4 text-emerald-600" />
                       <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Final file</p>
-                      <span className="text-xs text-slate-400">— max 150 MB</span>
+                      <span className="text-xs text-slate-400">— max 50 MB</span>
                     </div>
 
                     {!editData.id && (
@@ -1031,7 +1031,7 @@ export default function Editorial() {
                           <>
                             <Upload className="w-6 h-6 text-slate-400" />
                             <span className="text-sm text-slate-500 font-medium">Upload final file</span>
-                            <span className="text-xs text-slate-400">MP4, MOV, ZIP, PDF… up to 150 MB</span>
+                            <span className="text-xs text-slate-400">MP4, MOV, ZIP, PDF… up to 50 MB</span>
                           </>
                         )}
                         <input type="file" className="hidden" onChange={handleFinalFileUpload} disabled={uploadingFinalFile} />
