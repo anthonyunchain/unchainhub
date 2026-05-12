@@ -50,10 +50,13 @@ export default function Editorial() {
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      // Freelancers and 'user' role are read-only
       setIsReadOnly(u?.role === 'user' || u?.role === 'freelancer');
     }).catch(() => setIsReadOnly(true));
   }, []);
+
+  const isFreelancer = user?.role === 'freelancer';
+  // Freelancers can edit description + manage final file
+  const canEditDescription = !isReadOnly || isFreelancer;
 
   const [trendsOpen, setTrendsOpen] = useState(false);
 
@@ -800,9 +803,14 @@ export default function Editorial() {
 
                 {/* ── Left column ── */}
                 <div className="space-y-3">
-                  {isReadOnly && (
+                  {isFreelancer && (
                     <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-xs text-blue-700 font-medium">📖 View-only mode: descriptions only</p>
+                      <p className="text-xs text-blue-700 font-medium">✏️ You can edit the description and upload the final file</p>
+                    </div>
+                  )}
+                  {isReadOnly && !isFreelancer && (
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs text-blue-700 font-medium">📖 View-only mode</p>
                     </div>
                   )}
                   <div>
@@ -867,7 +875,7 @@ export default function Editorial() {
                   </div>
                   <div>
                     <Label>Description</Label>
-                    <Textarea value={editData.description || ""} onChange={e => setEditData({ ...editData, description: e.target.value })} rows={3} disabled={isReadOnly} />
+                    <Textarea value={editData.description || ""} onChange={e => setEditData({ ...editData, description: e.target.value })} rows={3} disabled={!canEditDescription} />
                   </div>
                   <div>
                     <Label className="flex items-center gap-1.5"><Link2 className="w-3.5 h-3.5" />Drive link (content)</Label>
@@ -1056,7 +1064,7 @@ export default function Editorial() {
                 ) : <div />}
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setDialogOpen(false)}>Close</Button>
-                  {!isReadOnly && <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground">Save</Button>}
+                  {(!isReadOnly || isFreelancer) && <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground">Save</Button>}
                 </div>
               </div>
             </div>
