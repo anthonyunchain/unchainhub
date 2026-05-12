@@ -305,8 +305,18 @@ export default function Shootings({ onOrganize } = {}) {
     }));
   };
 
-  // Editorial content filtered by selected client
-  const clientContent = editorial.filter(e => !form.client_name || e.client_name === form.client_name);
+  // Editorial content filtered by selected client — exclude published and already linked to another shooting
+  const alreadyLinkedContentIds = new Set(
+    contentLinks
+      .filter(c => c.shooting_id !== editId)
+      .map(c => c.content_id)
+  );
+  const clientContent = editorial.filter(e => {
+    if (form.client_name && e.client_name !== form.client_name) return false;
+    if (e.status === "Publié") return false;
+    if (alreadyLinkedContentIds.has(e.id) && !form.content_ids.includes(e.id)) return false;
+    return true;
+  });
 
   // ── Date badge ──
   const dateBadge = (s) => {
@@ -689,25 +699,29 @@ export default function Shootings({ onOrganize } = {}) {
             </div>
 
             {/* ── Linked content ── */}
-            {form.client_name && clientContent.length > 0 && (
+            {form.client_name && (
               <div>
                 <Label>Linked content ({form.content_ids.length})</Label>
-                <div className="max-h-[140px] overflow-y-auto border border-slate-200 rounded-lg mt-1.5 divide-y divide-slate-100">
-                  {clientContent.map(c => {
-                    const selected = form.content_ids.includes(c.id);
-                    return (
-                      <button key={c.id} type="button" onClick={() => toggleContent(c.id)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-left text-xs transition-colors ${selected ? "bg-blue-50" : "hover:bg-slate-50"}`}>
-                        <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${selected ? "bg-brand border-brand text-white" : "border-slate-300"}`}>
-                          {selected && <CheckCircle2 className="w-3 h-3" />}
-                        </span>
-                        <span className="flex-1 truncate font-medium text-slate-700">{c.title || "Untitled"}</span>
-                        <span className="text-[10px] text-slate-400">{c.post_type}</span>
-                        {c.scheduled_date && <span className="text-[10px] text-slate-400">{format(parseISO(c.scheduled_date), "d MMM", { locale: enUS })}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
+                {clientContent.length === 0 ? (
+                  <p className="text-xs text-slate-400 mt-2">No upcoming content to link.</p>
+                ) : (
+                  <div className="flex flex-col gap-2 mt-2">
+                    {clientContent.map(c => {
+                      const selected = form.content_ids.includes(c.id);
+                      return (
+                        <button key={c.id} type="button" onClick={() => toggleContent(c.id)}
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors ${selected ? "bg-blue-50 border-blue-200" : "bg-white border-slate-200 hover:bg-slate-50"}`}>
+                          <span className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${selected ? "bg-brand border-brand text-white" : "border-slate-300"}`}>
+                            {selected && <CheckCircle2 className="w-3.5 h-3.5" />}
+                          </span>
+                          <span className="flex-1 font-medium text-sm text-slate-700">{c.title || "Untitled"}</span>
+                          <span className="text-xs text-slate-400 shrink-0">{c.post_type}</span>
+                          {c.scheduled_date && <span className="text-xs text-slate-400 shrink-0">{format(parseISO(c.scheduled_date), "d MMM", { locale: enUS })}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
