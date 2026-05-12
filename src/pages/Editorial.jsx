@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft, ChevronRight, Upload, X, Clapperboard, Link2, Trash2, Pencil, List, Calendar as CalendarIcon, Sparkles, Hash, ChevronDown } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Upload, X, Clapperboard, Link2, Trash2, Pencil, List, Calendar as CalendarIcon, Sparkles, Hash, ChevronDown, Download, Loader2, FileVideo } from "lucide-react";
 import CsvImportDialog from "../components/editorial/CsvImportDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,8 @@ export default function Editorial() {
   const [filterTypes, setFilterTypes] = useState(["Reel", "Story", "Carousel"]);
   const [draggingId, setDraggingId] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadingFinalFile, setUploadingFinalFile] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [csvOpen, setCsvOpen] = useState(false);
   const qc = useQueryClient();
 
@@ -136,6 +138,74 @@ export default function Editorial() {
     if (deleteConfirmId) deleteMut.mutate(deleteConfirmId);
     setDeleteConfirmOpen(false);
     setDeleteConfirmId(null);
+  };
+
+  const handleFinalFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !editData?.id) return;
+
+    if (file.size > 150 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Maximum size is 150 MB", variant: "destructive" });
+      return;
+    }
+
+    setUploadingFinalFile(true);
+    setUploadProgress(0);
+
+    try {
+      const ext = file.name.split('.').pop();
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `final-files/${filename}`;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      const fileUrl = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener('progress', (ev) => {
+          if (ev.lengthComputable) setUploadProgress(Math.round((ev.loaded / ev.total) * 100));
+        });
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const { data } = supabase.storage.from('content').getPublicUrl(path);
+            resolve(data.publicUrl);
+          } else {
+            reject(new Error(`Upload failed: ${xhr.status}`));
+          }
+        });
+        xhr.addEventListener('error', () => reject(new Error('Network error')));
+        xhr.open('POST', `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/content/${path}`);
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.setRequestHeader('apikey', import.meta.env.VITE_SUPABASE_ANON_KEY);
+        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+        xhr.setRequestHeader('x-upsert', 'false');
+        xhr.send(file);
+      });
+
+      await supabase.from('editorial_content')
+        .update({ final_file_url: fileUrl, final_file_name: file.name })
+        .eq('id', editData.id);
+
+      setEditData(d => ({ ...d, final_file_url: fileUrl, final_file_name: file.name }));
+      qc.invalidateQueries({ queryKey: ["editorial"] });
+      toast({ title: "File uploaded", description: file.name });
+    } catch (err) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingFinalFile(false);
+      setUploadProgress(0);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveFinalFile = async () => {
+    if (!editData?.id) return;
+    await supabase.from('editorial_content')
+      .update({ final_file_url: null, final_file_name: null })
+      .eq('id', editData.id);
+    setEditData(d => ({ ...d, final_file_url: null, final_file_name: null }));
+    qc.invalidateQueries({ queryKey: ["editorial"] });
+    toast({ title: "File removed" });
   };
 
   const navigate = (dir) => {
@@ -911,6 +981,71 @@ export default function Editorial() {
                   </div>
                 </div>
 
+              </div>
+
+              {/* ── Final file (full width) ── */}
+              <div className="pt-5 mt-2 border-t border-slate-100">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileVideo className="w-4 h-4 text-emerald-600" />
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Final file</p>
+                  <span className="text-xs text-slate-400">— max 150 MB</span>
+                </div>
+
+                {!editData.id && (
+                  <p className="text-xs text-slate-400 italic">Save the content first to attach a final file.</p>
+                )}
+
+                {editData.id && editData.final_file_url && (
+                  <div className="flex items-center justify-between px-4 py-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileVideo className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="text-sm text-emerald-800 font-medium truncate">{editData.final_file_name || "Final file"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      <a
+                        href={editData.final_file_url}
+                        download={editData.final_file_name}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 bg-white border border-emerald-200 px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Download
+                      </a>
+                      <label className={`cursor-pointer flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-slate-50 transition-colors ${uploadingFinalFile ? "opacity-50 pointer-events-none" : ""}`}>
+                        <Upload className="w-3.5 h-3.5" /> Replace
+                        <input type="file" className="hidden" onChange={handleFinalFileUpload} disabled={uploadingFinalFile} />
+                      </label>
+                      <button onClick={handleRemoveFinalFile} className="text-slate-300 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-50">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {editData.id && !editData.final_file_url && (
+                  <label className={`flex flex-col items-center justify-center gap-2 py-8 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/40 transition-all ${uploadingFinalFile ? "opacity-60 pointer-events-none" : ""}`}>
+                    {uploadingFinalFile ? (
+                      <>
+                        <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+                        <span className="text-sm text-emerald-700 font-medium">
+                          Uploading{uploadProgress > 0 ? ` ${uploadProgress}%` : "…"}
+                        </span>
+                        {uploadProgress > 0 && (
+                          <div className="w-48 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-slate-400" />
+                        <span className="text-sm text-slate-500 font-medium">Upload final file</span>
+                        <span className="text-xs text-slate-400">MP4, MOV, ZIP, PDF… up to 150 MB</span>
+                      </>
+                    )}
+                    <input type="file" className="hidden" onChange={handleFinalFileUpload} disabled={uploadingFinalFile} />
+                  </label>
+                )}
               </div>
 
               <div className="flex justify-between items-center pt-4">
