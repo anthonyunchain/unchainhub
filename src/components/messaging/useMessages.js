@@ -62,7 +62,7 @@ export function useMessages(conversationId, userId) {
   return query;
 }
 
-export async function sendMessage({ conversationId, senderId: _senderId, content, messageType = 'text', fileUrl = null, fileName = null, replyToId = null }) {
+export async function sendMessage({ conversationId, senderId: _senderId, content, messageType = 'text', fileUrl = null, fileName = null, replyToId = null, audioDuration = null }) {
   // Route through the edge function so recipients get a push notification.
   // The function infers sender_id from the JWT, so we don't send it.
   const { data } = await base44.functions.invoke('sendMessage', {
@@ -72,6 +72,7 @@ export async function sendMessage({ conversationId, senderId: _senderId, content
     file_url: fileUrl,
     file_name: fileName,
     reply_to_id: replyToId,
+    ...(messageType === 'audio' && audioDuration != null ? { audio_duration: audioDuration } : {}),
   });
   if (data?.error) throw new Error(data.error);
   return data?.message;
@@ -84,7 +85,23 @@ export async function sendMessage({ conversationId, senderId: _senderId, content
 export function useSendMessage(conversationId, userId) {
   const qc = useQueryClient();
 
-  return async ({ content = '', messageType = 'text', fileUrl = null, fileName = null, replyToId = null }) => {
+  // Also subscribe to UPDATE events so transcription patches arrive live.
+  useEffect(() => {
+    if (!conversationId) return;
+    const channel = supabase
+      .channel(`messages-update-${conversationId}-${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
+        (payload) => {
+          qc.setQueryData(['messages', conversationId], (old = []) =>
+            old.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m)
+          );
+        })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [conversationId, qc]);
+
+  return async ({ content = '', messageType = 'text', fileUrl = null, fileName = null, replyToId = null, audioDuration = null }) => {
     if (!conversationId || !userId) throw new Error('Missing conversation or user');
     const tempId = `optimistic-${Math.random().toString(36).slice(2)}-${Date.now()}`;
     const optimistic = {
@@ -96,6 +113,8 @@ export function useSendMessage(conversationId, userId) {
       file_url: fileUrl,
       file_name: fileName,
       reply_to_id: replyToId,
+      audio_duration: audioDuration,
+      transcription: null,
       created_at: new Date().toISOString(),
       deleted_at: null,
       _pending: true,
@@ -112,6 +131,7 @@ export function useSendMessage(conversationId, userId) {
         fileUrl,
         fileName,
         replyToId,
+        audioDuration,
       });
       qc.setQueryData(['messages', conversationId], (old = []) => {
         const withoutTemp = old.filter(m => m.id !== tempId);

@@ -4,11 +4,13 @@ import { base44 } from '@/api/base44Client';
 import { useSendMessage } from './useMessages';
 import { toast } from 'sonner';
 import { t } from './i18n';
+import VoiceRecorder from './VoiceRecorder';
 
 export default function MessageInput({ conversationId, userId, replyTo, onClearReply, isMobile, locale = 'en' }) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false); // only true during attachment upload
   const [attachment, setAttachment] = useState(null); // { file, preview, type }
+  const [voiceActive, setVoiceActive] = useState(false);
   const fileRef = useRef(null);
   const textareaRef = useRef(null);
   const sendOptimistic = useSendMessage(conversationId, userId);
@@ -143,68 +145,120 @@ export default function MessageInput({ conversationId, userId, replyTo, onClearR
       )}
 
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-        {/* File attach */}
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          style={{
-            width: 34, height: 34, borderRadius: '50%',
-            background: 'var(--bg)',
-            border: '1px solid var(--divider)',
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <Paperclip style={{ width: 15, height: 15, color: 'var(--muted)' }} />
-        </button>
-        <input ref={fileRef} type="file" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.zip" onChange={handleFile} style={{ display: 'none' }} />
+        {/* Voice recorder (takes over full row when active) */}
+        {voiceActive ? (
+          <VoiceRecorder
+            disabled={sending}
+            onCancel={() => setVoiceActive(false)}
+            onSend={async ({ file_url, file_name, audio_duration }) => {
+              setVoiceActive(false);
+              if (onClearReply) onClearReply();
+              try {
+                await sendOptimistic({
+                  content: '',
+                  messageType: 'audio',
+                  fileUrl: file_url,
+                  fileName: file_name,
+                  audioDuration: audio_duration,
+                  replyToId: replyTo?.id || null,
+                });
+              } catch (err) {
+                toast.error(t(locale, 'failedToSend'));
+                console.error('[MessageInput] audio send:', err);
+              }
+            }}
+          />
+        ) : (
+          <>
+            {/* File attach */}
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              style={{
+                width: 34, height: 34, borderRadius: '50%',
+                background: 'var(--bg)',
+                border: '1px solid var(--divider)',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Paperclip style={{ width: 15, height: 15, color: 'var(--muted)' }} />
+            </button>
+            <input ref={fileRef} type="file" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.zip" onChange={handleFile} style={{ display: 'none' }} />
 
-        {/* Text input */}
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={e => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={t(locale, isMobile ? 'messagePlaceholderShort' : 'messagePlaceholder')}
-          rows={1}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            resize: 'none',
-            border: '1px solid var(--divider)',
-            borderRadius: 12,
-            padding: '8px 12px',
-            // 16px on mobile prevents iOS Safari from auto-zooming on focus.
-            fontSize: isMobile ? 16 : 13,
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            color: 'var(--ink)',
-            background: 'var(--bg)',
-            outline: 'none',
-            lineHeight: 1.5,
-            minHeight: 38,
-            maxHeight: 120,
-            overflowY: 'auto',
-          }}
-        />
+            {/* Text input */}
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t(locale, isMobile ? 'messagePlaceholderShort' : 'messagePlaceholder')}
+              rows={1}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                resize: 'none',
+                border: '1px solid var(--divider)',
+                borderRadius: 12,
+                padding: '8px 12px',
+                // 16px on mobile prevents iOS Safari from auto-zooming on focus.
+                fontSize: isMobile ? 16 : 13,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                color: 'var(--ink)',
+                background: 'var(--bg)',
+                outline: 'none',
+                lineHeight: 1.5,
+                minHeight: 38,
+                maxHeight: 120,
+                overflowY: 'auto',
+              }}
+            />
 
-        {/* Send */}
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={!canSend}
-          style={{
-            width: 34, height: 34, borderRadius: '50%',
-            background: canSend ? 'var(--brand)' : 'var(--divider)',
-            border: 'none',
-            cursor: canSend ? 'pointer' : 'not-allowed',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-            transition: 'background 150ms',
-          }}
-        >
-          <Send style={{ width: 15, height: 15, color: '#fff' }} />
-        </button>
+            {/* Mic button (shown only when no text typed) */}
+            {!text.trim() && !attachment && (
+              <button
+                type="button"
+                onClick={() => setVoiceActive(true)}
+                title="Note vocale"
+                style={{
+                  width: 34, height: 34, borderRadius: '50%',
+                  background: 'var(--bg)',
+                  border: '1px solid var(--divider)',
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                {/* Mic SVG inline to avoid extra import */}
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" y1="19" x2="12" y2="23"/>
+                  <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+              </button>
+            )}
+
+            {/* Send */}
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!canSend}
+              style={{
+                width: 34, height: 34, borderRadius: '50%',
+                background: canSend ? 'var(--brand)' : 'var(--divider)',
+                border: 'none',
+                cursor: canSend ? 'pointer' : 'not-allowed',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'background 150ms',
+              }}
+            >
+              <Send style={{ width: 15, height: 15, color: '#fff' }} />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

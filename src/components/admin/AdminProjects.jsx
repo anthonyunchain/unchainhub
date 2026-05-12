@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
+import { useDraft, draftStatusLabel } from "@/hooks/useDraft";
 import { toast } from "sonner";
 import { Plus, RotateCcw, CheckCircle2, RefreshCw, Trash2, ImagePlus, X, Loader2, ExternalLink, Download, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,13 @@ export default function AdminProjects() {
   const [loading, setLoading] = useState(false);
   const [uploadingImg, setUploadingImg] = useState(false);
   const [uploadingEditImg, setUploadingEditImg] = useState(false);
+
+  const { status: createDraftStatus, clearDraft: clearCreateDraft, loadDraft: loadCreateDraft } = useDraft({
+    entityType: 'project',
+    entityId: null,
+    content: form,
+    enabled: createOpen,
+  });
 
   useEffect(() => {
     base44.auth.me().then(u => setCurrentAdminName(u?.full_name || u?.email || "Admin")).catch(() => {});
@@ -161,6 +169,7 @@ export default function AdminProjects() {
           'project_assigned'
         );
       }
+      clearCreateDraft();
       await refetch();
       setCreateOpen(false);
       setForm({ ...emptyForm });
@@ -294,7 +303,14 @@ export default function AdminProjects() {
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
-        <Button onClick={() => { setForm({ ...emptyForm }); setCreateOpen(true); }} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
+        <Button onClick={() => {
+          setForm({ ...emptyForm });
+          setCreateOpen(true);
+          // Restore any saved draft after the dialog opens
+          setTimeout(() => {
+            loadCreateDraft().then(d => { if (d?.content) setForm(f => ({ ...emptyForm, ...d.content })); });
+          }, 0);
+        }} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
           <Plus className="w-4 h-4 mr-1" /> New project
         </Button>
         <div className="flex gap-1 bg-white border border-slate-100 rounded-lg p-1 shadow-sm ml-auto">
@@ -418,7 +434,14 @@ export default function AdminProjects() {
       {/* Create project dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>New Project</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <div className="flex items-center justify-between gap-2">
+              <DialogTitle>New Project</DialogTitle>
+              {draftStatusLabel(createDraftStatus) && (
+                <span className="text-xs text-slate-400">{draftStatusLabel(createDraftStatus)}</span>
+              )}
+            </div>
+          </DialogHeader>
           <div className="space-y-3 mt-2">
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Title *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useDraft, draftStatusLabel } from "@/hooks/useDraft";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
@@ -318,6 +319,13 @@ function PersonalTasksTab({ userId, newTrigger }) {
   const emptyForm = { title: "", description: "", status: "Non commencé", priority: "Normale", due_date: "" };
   const [form, setForm] = useState(emptyForm);
 
+  const { status: draftStatus, clearDraft, loadDraft } = useDraft({
+    entityType: 'personal_task',
+    entityId: editTask?.id || null,
+    content: form,
+    enabled: dialogOpen,
+  });
+
   const fetchTasks = async () => {
     const { data } = await supabase.from('personal_tasks').select('*').order('created_at', { ascending: false });
     setTasks(data || []);
@@ -329,11 +337,19 @@ function PersonalTasksTab({ userId, newTrigger }) {
     if (newTrigger > 0) { setEditTask(null); setForm(emptyForm); setDialogOpen(true); }
   }, [newTrigger]);
 
-  const openNew = () => { setEditTask(null); setForm(emptyForm); setDialogOpen(true); };
+  const openNew = () => {
+    setEditTask(null);
+    setForm(emptyForm);
+    setDialogOpen(true);
+    setTimeout(() => {
+      loadDraft().then(d => { if (d?.content) setForm(f => ({ ...emptyForm, ...d.content })); });
+    }, 0);
+  };
   const openEdit = (t) => { setEditTask(t); setForm({ title: t.title, description: t.description || "", status: t.status, priority: t.priority || "Normale", due_date: t.due_date || "" }); setDialogOpen(true); };
 
   const handleSave = async () => {
     if (!form.title.trim()) return;
+    clearDraft();
     if (editTask) {
       await supabase.from('personal_tasks').update(form).eq('id', editTask.id);
     } else {
@@ -419,7 +435,12 @@ function PersonalTasksTab({ userId, newTrigger }) {
       {dialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDialogOpen(false)}>
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-slate-800 mb-4">{editTask ? "Edit task" : "New task"}</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-slate-800">{editTask ? "Edit task" : "New task"}</h3>
+              {draftStatusLabel(draftStatus) && (
+                <span className="text-xs text-slate-400">{draftStatusLabel(draftStatus)}</span>
+              )}
+            </div>
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-slate-600 mb-1 block">Title *</label>

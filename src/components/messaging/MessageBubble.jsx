@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { FileText, CornerUpLeft } from 'lucide-react';
 import { t } from './i18n';
+import AudioMessage from './AudioMessage';
 
 export default function MessageBubble({ message, isOwn, senderName, replyTo, locale = 'en' }) {
   const isDeleted = !!message.deleted_at;
@@ -62,6 +63,12 @@ export default function MessageBubble({ message, isOwn, senderName, replyTo, loc
           }}>
             {t(locale, 'messageDeleted')}
           </p>
+        ) : message.message_type === 'audio' && message.file_url ? (
+          <AudioMessage
+            message={message}
+            isMine={isOwn}
+            messageId={message.id}
+          />
         ) : message.message_type === 'image' && message.file_url ? (
           <img
             src={message.file_url}

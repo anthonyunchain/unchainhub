@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
+import { useDraft, draftStatusLabel } from "@/hooks/useDraft";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -166,6 +167,27 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
   const [convImagePreview, setConvImagePreview] = useState(null);
   const [uploadingConvImage, setUploadingConvImage] = useState(false);
   const [uploadingTaskImage, setUploadingTaskImage] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  const { status: draftStatus, clearDraft, loadDraft } = useDraft({
+    entityType: 'task',
+    entityId: task?.id || null,
+    content: data,
+    enabled: open,
+  });
+
+  // Restore draft on open (new tasks only, to avoid overwriting server data)
+  useEffect(() => {
+    if (!open) { setDraftRestored(false); return; }
+    if (task?.id) return; // editing existing task — server data is authoritative
+    loadDraft().then(draft => {
+      if (draft?.content) {
+        setData({ ...empty, ...draft.content });
+        setDraftRestored(true);
+        setTimeout(() => setDraftRestored(false), 3000);
+      }
+    });
+  }, [open, task?.id]);
 
   useEffect(() => {
     setData(task ? { ...task, category_meta: task.category_meta || {} } : empty);
@@ -297,6 +319,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
 
   const handleSave = () => {
     if (!data.title.trim()) return;
+    clearDraft();
     onSave(data);
   };
 
@@ -308,7 +331,15 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
         className={`!left-2 !right-2 !translate-x-0 !w-auto !max-w-none sm:!left-[50%] sm:!right-auto sm:!translate-x-[-50%] sm:!w-[80vw] ${hasConversation ? "sm:!max-w-5xl" : "sm:!max-w-xl"} !max-h-[92vh] md:!max-h-[90vh] p-0 overflow-hidden flex flex-col`}
       >
         <DialogHeader className="px-5 pt-4 pb-3 border-b border-slate-100 flex-shrink-0">
-          <DialogTitle>{task?.id ? "Edit task" : "New task"}</DialogTitle>
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle>{task?.id ? "Edit task" : "New task"}</DialogTitle>
+            {draftRestored && (
+              <span className="text-xs text-amber-600 font-medium">Brouillon restauré</span>
+            )}
+            {!draftRestored && draftStatusLabel(draftStatus) && (
+              <span className="text-xs text-slate-400">{draftStatusLabel(draftStatus)}</span>
+            )}
+          </div>
         </DialogHeader>
 
         <div className={`flex-1 min-h-0 flex flex-col ${hasConversation ? "lg:flex-row" : ""}`}>

@@ -39,6 +39,7 @@ Deno.serve(async (req) => {
       file_url = null,
       file_name = null,
       reply_to_id = null,
+      audio_duration = null,
     } = await req.json();
 
     if (!conversation_id) return respond({ error: 'conversation_id required' }, 400);
@@ -67,12 +68,32 @@ Deno.serve(async (req) => {
         file_url,
         file_name,
         reply_to_id,
+        ...(message_type === 'audio' && audio_duration != null ? { audio_duration } : {}),
       })
       .select()
       .single();
 
     if (insertErr || !message) {
       return respond({ error: insertErr?.message || 'Failed to insert message' }, 500);
+    }
+
+    // Trigger async transcription for audio messages — non-blocking.
+    if (message_type === 'audio' && file_url) {
+      queueMicrotask(async () => {
+        try {
+          const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+          await fetch(`${supabaseUrl}/functions/v1/transcribeAudio`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            },
+            body: JSON.stringify({ message_id: message.id, file_url }),
+          });
+        } catch (e) {
+          console.error('[sendMessage] transcription trigger failed:', (e as Error)?.message);
+        }
+      });
     }
 
     // Fire push to every other participant — non-blocking.
@@ -100,7 +121,9 @@ Deno.serve(async (req) => {
         const senderName = senderProfile?.full_name || user.email?.split('@')[0] || 'Someone';
         const preview = message_type === 'text'
           ? (String(content || '').slice(0, 140))
-          : (file_name || (message_type === 'image' ? '📎 Image' : '📎 File'));
+          : message_type === 'audio'
+            ? '🎙️ Note vocale'
+            : (file_name || (message_type === 'image' ? '📎 Image' : '📎 File'));
         const title = conv?.type === 'group' && conv?.name
           ? `💬 ${senderName} · ${conv.name}`
           : `💬 ${senderName}`;
