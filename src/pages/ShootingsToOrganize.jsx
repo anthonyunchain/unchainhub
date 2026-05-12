@@ -78,48 +78,56 @@ export default function ShootingsToOrganize({ onBack } = {}) {
           <p className="text-slate-500 text-sm font-medium">All content is linked to a shooting!</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="text-left text-xs font-medium text-slate-400 px-4 py-3">Client</th>
-                <th className="text-left text-xs font-medium text-slate-400 px-4 py-3">Type</th>
-                <th className="text-left text-xs font-medium text-slate-400 px-4 py-3">Title</th>
-                <th className="text-left text-xs font-medium text-slate-400 px-4 py-3">Status</th>
-                <th className="text-left text-xs font-medium text-slate-400 px-4 py-3">Scheduled</th>
-              </tr>
-            </thead>
-            <tbody>
-              {unlinked.map((e, i) => {
-                const showClient = i === 0 || e.client_name !== unlinked[i - 1]?.client_name;
-                return (
-                  <tr key={e.id} className="border-b border-slate-50 hover:bg-slate-50/50">
-                    <td className="px-4 py-3">
-                      {showClient ? (
-                        <span className="text-sm font-semibold text-slate-800">{e.client_name || "—"}</span>
-                      ) : (
-                        <span className="text-sm text-slate-300">↳</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${TYPE_COLOR[e.post_type] || "bg-slate-100 text-slate-500"}`}>
-                        {e.post_type || "—"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{e.title || "Untitled"}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[e.status] || "bg-slate-100 text-slate-500"}`}>
-                        {e.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-500">
-                      {e.scheduled_date ? format(parseISO(e.scheduled_date), "d MMM yyyy", { locale: enUS }) : "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="space-y-3">
+          {(() => {
+            const groups = [];
+            unlinked.forEach(e => {
+              const last = groups[groups.length - 1];
+              if (!last || last.client !== e.client_name) {
+                groups.push({ client: e.client_name, items: [e] });
+              } else {
+                last.items.push(e);
+              }
+            });
+            return groups.map(group => (
+              <div key={group.client} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-800">{group.client || "—"}</span>
+                  <span className="text-xs text-slate-400 font-normal">{group.items.length} content{group.items.length !== 1 ? "s" : ""}</span>
+                </div>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5">Type</th>
+                      <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5">Title</th>
+                      <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5">Status</th>
+                      <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5">Scheduled</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.items.map(e => (
+                      <tr key={e.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                        <td className="px-4 py-3">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${TYPE_COLOR[e.post_type] || "bg-slate-100 text-slate-500"}`}>
+                            {e.post_type || "—"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{e.title || "Untitled"}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[e.status] || "bg-slate-100 text-slate-500"}`}>
+                            {e.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-500">
+                          {e.scheduled_date ? format(parseISO(e.scheduled_date), "d MMM yyyy", { locale: enUS }) : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ));
+          })()}
         </div>
       )}
     </div>
