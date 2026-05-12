@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/api/base44Client';
 
 const DEBOUNCE_MS = 1500;
 
