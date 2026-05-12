@@ -299,10 +299,10 @@ export default function Editorial() {
   // WEEK VIEW
   const WeekView = () => {
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-    const days = Array.from({ length: 6 }, (_, i) => addDays(weekStart, i)); // Mon–Sat, no Sunday
+    const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i)); // Mon–Fri only
     return (
       <div className="overflow-x-auto -mx-1 px-1">
-      <div className="grid grid-cols-6 gap-3 min-w-[680px]">
+      <div className="grid grid-cols-5 gap-3 min-w-[560px]">
         {days.map(day => {
           const dayContent = filtered.filter(c => c.scheduled_date && isSameDay(new Date(c.scheduled_date), day));
           const isToday = isSameDay(day, new Date());
@@ -346,11 +346,11 @@ export default function Editorial() {
     const weeks = [];
     for (let i = 0; i < allDays.length; i += 7) weeks.push(allDays.slice(i, i + 7));
     const allWeeks = weeks.filter(week => week.some(d => isSameMonth(d, currentDate)));
-    const visibleDays = allWeeks.flat().filter(d => d.getDay() !== 0); // desktop: Mon–Sat, no Sunday
+    const visibleDays = allWeeks.flat().filter(d => d.getDay() !== 0 && d.getDay() !== 6); // desktop: Mon–Fri only
 
-    const weekDayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]; // no Sunday
-    // Mobile: 2 pages of 3 days. page 0 → Mon/Tue/Wed  page 1 → Thu/Fri/Sat
-    const mobileColIdx = dayPage === 0 ? [0, 1, 2] : [3, 4, 5];
+    const weekDayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri"]; // Mon–Fri only
+    // Mobile: 2 pages. page 0 → Mon/Tue/Wed  page 1 → Wed/Thu/Fri (overlap on Wed)
+    const mobileColIdx = dayPage === 0 ? [0, 1, 2] : [2, 3, 4];
     const mobileDays = allWeeks.flatMap(week => mobileColIdx.map(i => week[i]).filter(Boolean));
     const mobileHeaders = mobileColIdx.map(i => weekDayLabels[i]);
 
@@ -402,16 +402,16 @@ export default function Editorial() {
           {/* Swipe dots */}
           <div className="flex justify-center gap-1.5 py-2.5">
             <button aria-label="Show Mon–Wed" onClick={() => setDayPage(0)} className={`w-1.5 h-1.5 rounded-full transition-all ${dayPage === 0 ? "bg-[#2A69FF] w-3" : "bg-slate-200"}`} />
-            <button aria-label="Show Thu–Sat" onClick={() => setDayPage(1)} className={`w-1.5 h-1.5 rounded-full transition-all ${dayPage === 1 ? "bg-[#2A69FF] w-3" : "bg-slate-200"}`} />
+            <button aria-label="Show Wed–Fri" onClick={() => setDayPage(1)} className={`w-1.5 h-1.5 rounded-full transition-all ${dayPage === 1 ? "bg-[#2A69FF] w-3" : "bg-slate-200"}`} />
           </div>
         </div>
 
-        {/* ── Desktop (6 cols, no Sunday) ── */}
+        {/* ── Desktop (5 cols, Mon–Fri) ── */}
         <div className="hidden sm:block">
-          <div className="grid grid-cols-6 border-b border-slate-100">
+          <div className="grid grid-cols-5 border-b border-slate-100">
             {weekDayLabels.map(d => <div key={d} className="text-center text-xs font-medium text-slate-400 py-2">{d}</div>)}
           </div>
-          <div className="grid grid-cols-6">
+          <div className="grid grid-cols-5">
             {visibleDays.map(day => <DayCell key={day.toISOString()} day={day} />)}
           </div>
         </div>
