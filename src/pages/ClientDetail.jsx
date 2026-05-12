@@ -14,7 +14,7 @@ import {
   ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Receipt,
   Pencil, Upload, X, ExternalLink, Briefcase, Trash2, UserPlus,
   ChevronLeft, ChevronRight, RefreshCw, Copy, KeyRound, Plus, Paperclip,
-  ChefHat, Instagram, TrendingUp, Users, Eye, Heart, AtSign,
+  ChefHat, Instagram, TrendingUp, Users, Eye, Heart, AtSign, CheckCircle2, Clock,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -33,6 +33,14 @@ import {
 import { enUS } from "date-fns/locale";
 
 /* ─── Constants ───────────────────────────────────────────────────────────── */
+const BRIEF_FIELDS = [
+  { key: "key_events", label: "Key dates & events" },
+  { key: "campaigns",  label: "Campaigns & promotions" },
+  { key: "themes",     label: "Main themes / topics" },
+  { key: "products",   label: "Products / services to highlight" },
+  { key: "notes",      label: "Additional notes" },
+];
+
 const ALL_SERVICES = [
   "Community Management", "Content Creation", "Photography", "Video",
   "Digital Strategy", "Meta Ads", "Influencers", "Email Marketing",
@@ -232,6 +240,25 @@ export default function ClientDetail() {
   const { data: content   = [] } = useQuery({ queryKey: ["editorial"],  queryFn: () => base44.entities.EditorialContent.list() });
   const { data: allClientStats = [] } = useQuery({ queryKey: ["client-stats"], queryFn: () => base44.entities.ClientStats.list("-period"), enabled: activeTab === "socials" });
   const { data: competitorStats = [] } = useQuery({ queryKey: ["competitor-stats", id], queryFn: () => base44.entities.CompetitorStats.filter({ client_id: id }), enabled: !!id && activeTab === "socials" });
+
+  const [briefMonth, setBriefMonth]         = useState(format(new Date(), "yyyy-MM"));
+  const [selectedBriefId, setSelectedBriefId] = useState(null);
+  const { data: clientBriefs = [], isLoading: briefsLoading } = useQuery({
+    queryKey: ["monthly_briefs_client", client?.company_name, briefMonth],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("monthly_briefs")
+        .select("*")
+        .eq("client_name", client.company_name)
+        .order("month", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!client?.company_name && activeTab === "dashboard",
+  });
+  const briefMonthLabel = format(new Date(briefMonth + "-01"), "MMMM yyyy", { locale: enUS });
+  const briefForMonth   = clientBriefs.find(b => b.month === briefMonth) || null;
+  const selectedBrief   = selectedBriefId ? clientBriefs.find(b => b.id === selectedBriefId) : null;
 
   const updateMut = useMutation({
     mutationFn: ({ id, d }) => base44.entities.Client.update(id, d),
@@ -498,6 +525,74 @@ export default function ClientDetail() {
               ? <p className="text-sm text-slate-400">No content scheduled for this client.</p>
               : <EditorialCalendar content={clientContent} />
             }
+          </div>
+
+          {/* Monthly Brief */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-slate-400" />
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+                  Monthly Brief
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => { const d = new Date(briefMonth + "-01"); d.setMonth(d.getMonth() - 1); setBriefMonth(format(d, "yyyy-MM")); setSelectedBriefId(null); }}
+                  className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-xs font-semibold text-slate-700 w-32 text-center capitalize">{briefMonthLabel}</span>
+                <button
+                  onClick={() => { const d = new Date(briefMonth + "-01"); d.setMonth(d.getMonth() + 1); setBriefMonth(format(d, "yyyy-MM")); setSelectedBriefId(null); }}
+                  className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {briefsLoading && <p className="text-sm text-slate-400 py-6 text-center">Loading…</p>}
+
+            {!briefsLoading && !briefForMonth && (
+              <div className="py-8 text-center">
+                <Clock className="w-7 h-7 text-slate-200 mx-auto mb-2" />
+                <p className="text-sm text-slate-400">No brief submitted for {briefMonthLabel} yet.</p>
+              </div>
+            )}
+
+            {!briefsLoading && briefForMonth && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    {briefForMonth.title?.trim() && (
+                      <p className="text-sm font-semibold text-slate-800">{briefForMonth.title}</p>
+                    )}
+                    <p className="text-xs text-slate-400">
+                      {briefForMonth.submitted_at
+                        ? `Submitted ${format(new Date(briefForMonth.submitted_at), "d MMM yyyy 'at' HH:mm", { locale: enUS })}`
+                        : "Draft — not yet submitted"}
+                    </p>
+                  </div>
+                  {briefForMonth.submitted_at
+                    ? <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-semibold"><CheckCircle2 className="w-3.5 h-3.5" /> Submitted</span>
+                    : <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-semibold"><Clock className="w-3.5 h-3.5" /> Draft</span>
+                  }
+                </div>
+                <div className="space-y-2">
+                  {BRIEF_FIELDS.map(f => briefForMonth[f.key]?.trim() ? (
+                    <div key={f.key} className="bg-slate-50 rounded-xl px-4 py-3">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{f.label}</p>
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{briefForMonth[f.key]}</p>
+                    </div>
+                  ) : null)}
+                  {BRIEF_FIELDS.every(f => !briefForMonth[f.key]?.trim()) && (
+                    <p className="text-sm text-slate-400 italic text-center py-4">No content filled yet.</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
         </div>
