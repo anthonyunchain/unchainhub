@@ -19,7 +19,7 @@ const STATUS_COLOR = {
   "À tourner": "bg-indigo-50 text-indigo-600",
 };
 
-export default function ShootingsToOrganize() {
+export default function ShootingsToOrganize({ onBack } = {}) {
   const { data: editorial = [] } = useQuery({
     queryKey: ["editorial-organize"],
     queryFn: () => base44.entities.EditorialContent.list(),
@@ -46,18 +46,30 @@ export default function ShootingsToOrganize() {
     <div className="mx-auto px-4 md:px-6" style={{ maxWidth: '1400px' }}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-6 pt-2">
-        <Link to="/Shootings" className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-slate-700 hover:border-slate-300 transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-        </Link>
+        {onBack ? (
+          <button onClick={onBack} className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-slate-700 hover:border-slate-300 transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+        ) : (
+          <Link to="/Shootings" className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-slate-700 hover:border-slate-300 transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+        )}
         <div className="flex-1">
           <h1 className="text-xl font-bold text-slate-800">Shootings to organize</h1>
           <p className="text-xs text-slate-400 mt-0.5">{unlinked.length} content{unlinked.length !== 1 ? "s" : ""} not yet linked to a shooting</p>
         </div>
-        <Link to="/Shootings?new=1">
-          <Button className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
+        {onBack ? (
+          <Button onClick={onBack} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
             <Plus className="w-4 h-4 mr-1" /> New shooting
           </Button>
-        </Link>
+        ) : (
+          <Link to="/Shootings?new=1">
+            <Button className="bg-brand hover:bg-brand/90 text-brand-foreground h-9">
+              <Plus className="w-4 h-4 mr-1" /> New shooting
+            </Button>
+          </Link>
+        )}
       </div>
 
       {unlinked.length === 0 ? (

@@ -43,7 +43,7 @@ const emptyForm = {
   assignments: [], content_ids: [], gcal_event_id: null,
 };
 
-export default function Shootings() {
+export default function Shootings({ onOrganize } = {}) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
   const [editId, setEditId] = useState(null);
@@ -374,11 +374,19 @@ export default function Shootings() {
         if (unlinkedCount === 0) return null;
         return (
           <div className="mb-5">
-            <Link to="/ShootingsToOrganize" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 transition-colors">
-              <Camera className="w-4 h-4" />
-              <span className="text-sm font-semibold">{unlinkedCount} content{unlinkedCount > 1 ? "s" : ""} still need a shooting</span>
-              <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
-            </Link>
+            {onOrganize ? (
+              <button onClick={onOrganize} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 transition-colors">
+                <Camera className="w-4 h-4" />
+                <span className="text-sm font-semibold">{unlinkedCount} content{unlinkedCount > 1 ? "s" : ""} still need a shooting</span>
+                <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
+              </button>
+            ) : (
+              <Link to="/ShootingsToOrganize" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 transition-colors">
+                <Camera className="w-4 h-4" />
+                <span className="text-sm font-semibold">{unlinkedCount} content{unlinkedCount > 1 ? "s" : ""} still need a shooting</span>
+                <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
+              </Link>
+            )}
           </div>
         );
       })()}

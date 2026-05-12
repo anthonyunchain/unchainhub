@@ -32,6 +32,8 @@ import TasksTabComponent from "@/components/freelancer/TasksTab";
 import FreelancerProjects from "@/components/freelancer/FreelancerProjects";
 import NotificationsPanel from "@/components/freelancer/NotificationsPanel";
 import ShootingsTab from "@/components/freelancer/ShootingsTab";
+import Shootings from "./Shootings";
+import ShootingsToOrganize from "./ShootingsToOrganize";
 import FreelancerMusicTab from "@/components/freelancer/FreelancerMusicTab";
 import FreelancerCredentialsTab from "@/components/shared/FreelancerCredentialsTab";
 import { TASK_STATUS_CONFIG as TASK_STATUS } from "@/lib/taskStatus";
@@ -1192,7 +1194,10 @@ export default function FreelancerPortal() {
       case "tools": return <ToolsTab tools={tools} onNavigate={handleTabChange} />;
       case "music": return <FreelancerMusicTab />;
       case "meetings": return <MeetingsTab meetings={meetings} />;
-      case "shootings": return <ShootingsTab freelancerId={profile?.id} />;
+      case "shootings": return profile?.can_manage_shootings
+        ? <Shootings onOrganize={() => handleTabChange("shootingsorganize")} />
+        : <ShootingsTab freelancerId={profile?.id} />;
+      case "shootingsorganize": return <ShootingsToOrganize onBack={() => handleTabChange("shootings")} />;
       case "credentials": return profile?.id
         ? <FreelancerCredentialsTab freelancerId={profile.id} freelancerName={freelancerName} canEdit={false} />
         : null;
@@ -1386,7 +1391,8 @@ export default function FreelancerPortal() {
                 tools:       { title: 'Tools',           subtitle: 'Your tools & resources' },
                 music:       { title: 'Music Library',   subtitle: 'Music curated per client' },
                 meetings:    { title: 'Meetings',        subtitle: 'Upcoming & past meetings' },
-                shootings:   { title: 'Shootings',       subtitle: 'Photo & video shoots' },
+                shootings:          { title: 'Shootings',          subtitle: 'Photo & video shoots' },
+                shootingsorganize:  { title: 'Shootings to organize', subtitle: 'Content not yet linked to a shooting' },
                 invoices:    { title: 'Invoices & Contract', subtitle: 'Your payments and contract' },
                 contract:    { title: 'Invoices & Contract', subtitle: 'Your payments and contract' },
                 profile:     { title: 'Profile',         subtitle: 'Your information & settings' },
