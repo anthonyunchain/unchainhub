@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Mic, Square, Trash2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/api/base44Client';
 
 const MAX_SECONDS = 300; // 5 min cap
 

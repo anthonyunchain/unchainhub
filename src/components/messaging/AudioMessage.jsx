@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Play, Pause } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/api/base44Client';
 
 function formatTime(s) {
   if (!s || isNaN(s)) return '0:00';
