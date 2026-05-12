@@ -241,7 +241,8 @@ export default function ClientDetail() {
   const { data: allClientStats = [] } = useQuery({ queryKey: ["client-stats"], queryFn: () => base44.entities.ClientStats.list("-period"), enabled: activeTab === "socials" });
   const { data: competitorStats = [] } = useQuery({ queryKey: ["competitor-stats", id], queryFn: () => base44.entities.CompetitorStats.filter({ client_id: id }), enabled: !!id && activeTab === "socials" });
 
-  const [briefMonth, setBriefMonth]         = useState(format(new Date(), "yyyy-MM"));
+  const [briefMonth, setBriefMonth]           = useState(format(new Date(), "yyyy-MM"));
+  const [briefOpen, setBriefOpen]             = useState(true);
   const [selectedBriefId, setSelectedBriefId] = useState(null);
   const { data: clientBriefs = [], isLoading: briefsLoading } = useQuery({
     queryKey: ["monthly_briefs_client", client?.company_name, briefMonth],
@@ -528,69 +529,80 @@ export default function ClientDetail() {
           </div>
 
           {/* Monthly Brief */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
+            {/* Header — always visible, click to toggle */}
+            <button
+              onClick={() => setBriefOpen(o => !o)}
+              className="w-full flex items-center justify-between px-6 py-4 text-left"
+            >
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-slate-400" />
                 <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
                   Monthly Brief
                 </span>
               </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => { const d = new Date(briefMonth + "-01"); d.setMonth(d.getMonth() - 1); setBriefMonth(format(d, "yyyy-MM")); setSelectedBriefId(null); }}
-                  className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </button>
-                <span className="text-xs font-semibold text-slate-700 w-32 text-center capitalize">{briefMonthLabel}</span>
-                <button
-                  onClick={() => { const d = new Date(briefMonth + "-01"); d.setMonth(d.getMonth() + 1); setBriefMonth(format(d, "yyyy-MM")); setSelectedBriefId(null); }}
-                  className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700"
-                >
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
+              <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${briefOpen ? "rotate-90" : ""}`} />
+            </button>
 
-            {briefsLoading && <p className="text-sm text-slate-400 py-6 text-center">Loading…</p>}
+            {briefOpen && (
+              <div className="px-6 pb-6">
+                {/* Month nav */}
+                <div className="flex items-center gap-1 mb-4">
+                  <button
+                    onClick={() => { const d = new Date(briefMonth + "-01"); d.setMonth(d.getMonth() - 1); setBriefMonth(format(d, "yyyy-MM")); }}
+                    className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="text-xs font-semibold text-slate-700 w-32 text-center capitalize">{briefMonthLabel}</span>
+                  <button
+                    onClick={() => { const d = new Date(briefMonth + "-01"); d.setMonth(d.getMonth() + 1); setBriefMonth(format(d, "yyyy-MM")); }}
+                    className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
 
-            {!briefsLoading && !briefForMonth && (
-              <div className="py-8 text-center">
-                <Clock className="w-7 h-7 text-slate-200 mx-auto mb-2" />
-                <p className="text-sm text-slate-400">No brief submitted for {briefMonthLabel} yet.</p>
-              </div>
-            )}
+                {briefsLoading && <p className="text-sm text-slate-400 py-6 text-center">Loading…</p>}
 
-            {!briefsLoading && briefForMonth && (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    {briefForMonth.title?.trim() && (
-                      <p className="text-sm font-semibold text-slate-800">{briefForMonth.title}</p>
-                    )}
-                    <p className="text-xs text-slate-400">
-                      {briefForMonth.submitted_at
-                        ? `Submitted ${format(new Date(briefForMonth.submitted_at), "d MMM yyyy 'at' HH:mm", { locale: enUS })}`
-                        : "Draft — not yet submitted"}
-                    </p>
+                {!briefsLoading && !briefForMonth && (
+                  <div className="py-8 text-center">
+                    <Clock className="w-7 h-7 text-slate-200 mx-auto mb-2" />
+                    <p className="text-sm text-slate-400">No brief submitted for {briefMonthLabel} yet.</p>
                   </div>
-                  {briefForMonth.submitted_at
-                    ? <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-semibold"><CheckCircle2 className="w-3.5 h-3.5" /> Submitted</span>
-                    : <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-semibold"><Clock className="w-3.5 h-3.5" /> Draft</span>
-                  }
-                </div>
-                <div className="space-y-2">
-                  {BRIEF_FIELDS.map(f => briefForMonth[f.key]?.trim() ? (
-                    <div key={f.key} className="bg-slate-50 rounded-xl px-4 py-3">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{f.label}</p>
-                      <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{briefForMonth[f.key]}</p>
+                )}
+
+                {!briefsLoading && briefForMonth && (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        {briefForMonth.title?.trim() && (
+                          <p className="text-sm font-semibold text-slate-800">{briefForMonth.title}</p>
+                        )}
+                        <p className="text-xs text-slate-400">
+                          {briefForMonth.submitted_at
+                            ? `Submitted ${format(new Date(briefForMonth.submitted_at), "d MMM yyyy 'at' HH:mm", { locale: enUS })}`
+                            : "Draft — not yet submitted"}
+                        </p>
+                      </div>
+                      {briefForMonth.submitted_at
+                        ? <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-semibold"><CheckCircle2 className="w-3.5 h-3.5" /> Submitted</span>
+                        : <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-semibold"><Clock className="w-3.5 h-3.5" /> Draft</span>
+                      }
                     </div>
-                  ) : null)}
-                  {BRIEF_FIELDS.every(f => !briefForMonth[f.key]?.trim()) && (
-                    <p className="text-sm text-slate-400 italic text-center py-4">No content filled yet.</p>
-                  )}
-                </div>
+                    <div className="space-y-2">
+                      {BRIEF_FIELDS.map(f => briefForMonth[f.key]?.trim() ? (
+                        <div key={f.key} className="bg-slate-50 rounded-xl px-4 py-3">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{f.label}</p>
+                          <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{briefForMonth[f.key]}</p>
+                        </div>
+                      ) : null)}
+                      {BRIEF_FIELDS.every(f => !briefForMonth[f.key]?.trim()) && (
+                        <p className="text-sm text-slate-400 italic text-center py-4">No content filled yet.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
