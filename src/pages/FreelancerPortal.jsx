@@ -1272,6 +1272,7 @@ export default function FreelancerPortal() {
                 { id: 'credentials', label: 'Passwords' },
                 { id: 'tools', label: 'Tools' },
                 { id: 'meetings', label: 'Meetings' },
+                ...(profile?.can_manage_shootings ? [{ id: 'shootings', label: 'Shootings' }] : []),
                 { id: 'invoices', label: 'Admin' },
               ].filter(item => !getHiddenNav(profile).includes(item.id)).map(item => {
                 const isActive = activeTab === item.id;
