@@ -335,8 +335,10 @@ export default function Editorial() {
 
   // MONTH VIEW
   const MonthView = () => {
-    const [dayPage, setDayPage] = useState(0); // 0 = Mon→Thu  1 = Thu→Sun
+    const [dayPage, setDayPage] = useState(0);
+    const [expandedDays, setExpandedDays] = useState({});
     const touchStartX = useRef(null);
+    const toggleExpand = (key) => setExpandedDays(prev => ({ ...prev, [key]: !prev[key] }));
 
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
@@ -363,9 +365,13 @@ export default function Editorial() {
     };
 
     const DayCell = ({ day, border = true }) => {
+      const dayKey = format(day, "yyyy-MM-dd");
       const dayContent = filtered.filter(c => c.scheduled_date && isSameDay(new Date(c.scheduled_date), day));
       const isToday = isSameDay(day, new Date());
       const inMonth = isSameMonth(day, currentDate);
+      const expanded = !!expandedDays[dayKey];
+      const visible = expanded ? dayContent : dayContent.slice(0, 2);
+      const hidden = dayContent.length - 2;
       return (
         <div
           className={`min-h-[100px] p-1.5 transition-colors ${border ? "border-b border-r border-slate-100" : ""} ${!inMonth ? "bg-slate-50/50" : ""} ${draggingId && inMonth ? "hover:bg-blue-50/40" : ""}`}
@@ -379,8 +385,23 @@ export default function Editorial() {
             {inMonth && !isReadOnly && <button onClick={() => openNew(day)} className="text-slate-200 hover:text-emerald-500 transition-colors"><Plus className="w-3 h-3" /></button>}
           </div>
           <div className="space-y-0.5">
-            {dayContent.slice(0, 2).map(c => <ContentCard key={c.id} c={c} compact />)}
-            {dayContent.length > 2 && <p className="text-[9px] text-slate-400 pl-1">+{dayContent.length - 2} more</p>}
+            {visible.map(c => <ContentCard key={c.id} c={c} compact />)}
+            {!expanded && hidden > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleExpand(dayKey); }}
+                className="text-[9px] text-[#2A69FF] hover:text-[#1a4fd6] pl-1 hover:underline transition-colors"
+              >
+                +{hidden} more
+              </button>
+            )}
+            {expanded && dayContent.length > 2 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleExpand(dayKey); }}
+                className="text-[9px] text-slate-400 hover:text-slate-600 pl-1 hover:underline transition-colors"
+              >
+                Show less
+              </button>
+            )}
           </div>
         </div>
       );
