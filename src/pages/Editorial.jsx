@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import * as tus from "tus-js-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
@@ -158,34 +159,41 @@ export default function Editorial() {
     setUploadingFinalFile(true);
     setUploadProgress(0);
 
-    try {
-      const ext = file.name.split('.').pop();
-      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const path = `final-files/${filename}`;
+    const ext = file.name.split('.').pop();
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const path = `final-files/${filename}`;
 
+    try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
       const fileUrl = await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.upload.addEventListener('progress', (ev) => {
-          if (ev.lengthComputable) setUploadProgress(Math.round((ev.loaded / ev.total) * 100));
-        });
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
+        const upload = new tus.Upload(file, {
+          endpoint: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/upload/resumable`,
+          retryDelays: [0, 3000, 5000, 10000],
+          headers: {
+            authorization: `Bearer ${token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          uploadDataDuringCreation: true,
+          removeFingerprintOnSuccess: true,
+          metadata: {
+            bucketName: 'content',
+            objectName: path,
+            contentType: file.type || 'application/octet-stream',
+            cacheControl: '3600',
+          },
+          chunkSize: 6 * 1024 * 1024, // 6 MB chunks
+          onError: reject,
+          onProgress: (bytesUploaded, bytesTotal) => {
+            setUploadProgress(Math.round((bytesUploaded / bytesTotal) * 100));
+          },
+          onSuccess: () => {
             const { data } = supabase.storage.from('content').getPublicUrl(path);
             resolve(data.publicUrl);
-          } else {
-            reject(new Error(`Upload failed: ${xhr.status}`));
-          }
+          },
         });
-        xhr.addEventListener('error', () => reject(new Error('Network error')));
-        xhr.open('POST', `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/content/${path}`);
-        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-        xhr.setRequestHeader('apikey', import.meta.env.VITE_SUPABASE_ANON_KEY);
-        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-        xhr.setRequestHeader('x-upsert', 'false');
-        xhr.send(file);
+        upload.start();
       });
 
       await supabase.from('editorial_content')
@@ -196,7 +204,7 @@ export default function Editorial() {
       qc.invalidateQueries({ queryKey: ["editorial"] });
       toast({ title: "File uploaded", description: file.name });
     } catch (err) {
-      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+      toast({ title: "Upload failed", description: err?.message || String(err), variant: "destructive" });
     } finally {
       setUploadingFinalFile(false);
       setUploadProgress(0);
