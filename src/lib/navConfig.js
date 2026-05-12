@@ -67,6 +67,7 @@ export const MOBILE_NAV_BY_ID = {
     ],
     showMore: true,
     moreItems: (icons) => [
+      { id: 'shootings',   label: 'Shootings', Icon: icons.Camera },
       { id: 'messages',    label: 'Messages',  Icon: icons.MessageSquare },
       { id: 'profile',     label: 'Profile',   Icon: icons.User },
       { id: 'myprojects',  label: 'Projects',  Icon: icons.Briefcase },

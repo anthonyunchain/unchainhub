@@ -10,7 +10,7 @@ import {
   FileText, CalendarDays, FileCheck, Wrench, Upload, ExternalLink,
   Clock, CheckCircle2, Square, AlertTriangle, FolderOpen, ClipboardList,
   LayoutDashboard, User, Bell, Briefcase, Plus, Trash2, ListTodo, Lightbulb, X,
-  MoreHorizontal, AlignLeft, Music, MessageSquare, KeyRound
+  MoreHorizontal, AlignLeft, Music, MessageSquare, KeyRound, Camera
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -1559,7 +1559,7 @@ export default function FreelancerPortal() {
               </p>
               <div className="grid grid-cols-4 gap-2">
                 {(() => {
-                  const mobileIcons = { LayoutDashboard, ListTodo, ClipboardList, Briefcase, FileText, CalendarDays, User, Wrench, AlignLeft, Lightbulb, MessageSquare, KeyRound };
+                  const mobileIcons = { LayoutDashboard, ListTodo, ClipboardList, Briefcase, FileText, CalendarDays, User, Wrench, AlignLeft, Lightbulb, MessageSquare, KeyRound, Camera };
                   const customMore = MOBILE_NAV_BY_ID[profile?.id]?.moreItems;
                   const defaultMore = [
                     { id: 'messages',    label: 'Messages',  Icon: MessageSquare },
