@@ -43,6 +43,7 @@ export default function Editorial() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadingFinalFile, setUploadingFinalFile] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [dialogTab, setDialogTab] = useState("general");
   const [csvOpen, setCsvOpen] = useState(false);
   const qc = useQueryClient();
 
@@ -112,10 +113,12 @@ export default function Editorial() {
   const openNew = (date) => {
     if (isReadOnly) return;
     setEditData({ client_id: "", client_name: "", title: "", post_type: "Reel", scheduled_date: format(date || new Date(), "yyyy-MM-dd"), status: "Planifié", description: "", notes: "", needs_shooting: true, shoot_timing: "in-month" });
+    setDialogTab("general");
     setDialogOpen(true);
   };
-  const openEdit = (c) => { 
+  const openEdit = (c) => {
     setEditData({ ...c });
+    setDialogTab("general");
     setDialogOpen(true);
   };
 
@@ -795,24 +798,39 @@ export default function Editorial() {
 
       {/* Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-3xl overflow-y-auto" style={{ maxHeight: '90vh' }}>
-          <DialogHeader><DialogTitle>{editData?.id ? (isReadOnly ? "View content" : "Edit content") : "New content"}</DialogTitle></DialogHeader>
-          {editData && (
-            <div className="mt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
+        <DialogContent className="max-w-xl overflow-y-auto" style={{ maxHeight: '90vh' }}>
+          <DialogHeader>
+            <DialogTitle>{editData?.id ? (isReadOnly && !isFreelancer ? "View content" : "Edit content") : "New content"}</DialogTitle>
+          </DialogHeader>
 
-                {/* ── Left column ── */}
-                <div className="space-y-3">
+          {editData && (
+            <div className="mt-1">
+
+              {/* ── Tab bar ── */}
+              <div className="flex gap-1 p-1 bg-slate-100 rounded-xl mb-5">
+                {[
+                  { key: "general", label: "General" },
+                  { key: "editing", label: "Video editing" },
+                ].map(t => (
+                  <button
+                    key={t.key}
+                    onClick={() => setDialogTab(t.key)}
+                    className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-all ${dialogTab === t.key ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* ── Tab: General ── */}
+              {dialogTab === "general" && (
+                <div className="space-y-4">
                   {isFreelancer && (
-                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                       <p className="text-xs text-blue-700 font-medium">✏️ You can edit the description and upload the final file</p>
                     </div>
                   )}
-                  {isReadOnly && !isFreelancer && (
-                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-xs text-blue-700 font-medium">📖 View-only mode</p>
-                    </div>
-                  )}
+
                   <div>
                     <Label>Client</Label>
                     {isReadOnly ? (
@@ -824,6 +842,7 @@ export default function Editorial() {
                       </Select>
                     )}
                   </div>
+
                   <div>
                     <Label>Title</Label>
                     {isReadOnly ? (
@@ -832,6 +851,7 @@ export default function Editorial() {
                       <Input value={editData.title || ""} onChange={e => setEditData({ ...editData, title: e.target.value })} />
                     )}
                   </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label>Type</Label>
@@ -865,6 +885,7 @@ export default function Editorial() {
                       )}
                     </div>
                   </div>
+
                   <div>
                     <Label>Scheduled date</Label>
                     {isReadOnly ? (
@@ -873,10 +894,12 @@ export default function Editorial() {
                       <Input type="date" value={editData.scheduled_date || ""} onChange={e => setEditData({ ...editData, scheduled_date: e.target.value })} />
                     )}
                   </div>
+
                   <div>
                     <Label>Description</Label>
-                    <Textarea value={editData.description || ""} onChange={e => setEditData({ ...editData, description: e.target.value })} rows={3} disabled={!canEditDescription} />
+                    <Textarea value={editData.description || ""} onChange={e => setEditData({ ...editData, description: e.target.value })} rows={4} disabled={!canEditDescription} />
                   </div>
+
                   <div>
                     <Label className="flex items-center gap-1.5"><Link2 className="w-3.5 h-3.5" />Drive link (content)</Label>
                     {isReadOnly ? (
@@ -891,9 +914,9 @@ export default function Editorial() {
                       <Input value={editData.drive_link || ""} onChange={e => setEditData({ ...editData, drive_link: e.target.value })} placeholder="https://drive.google.com/..." />
                     )}
                   </div>
-                  {/* Need a shooting switch */}
+
                   {!isReadOnly && (
-                    <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center justify-between py-1">
                       <Label className="text-sm text-slate-600">Need a shooting</Label>
                       <button
                         type="button"
@@ -904,7 +927,7 @@ export default function Editorial() {
                       </button>
                     </div>
                   )}
-                  {/* Shoot timing */}
+
                   <div>
                     <Label>Shoot timing</Label>
                     {isReadOnly ? (
@@ -922,11 +945,77 @@ export default function Editorial() {
                       </Select>
                     )}
                   </div>
-                </div>
 
-                {/* ── Right column — Montage ── */}
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><Clapperboard className="w-3.5 h-3.5" />Video editing</p>
+                  {/* ── Final file ── */}
+                  <div className="pt-3 border-t border-slate-100">
+                    <div className="flex items-center gap-2 mb-3">
+                      <FileVideo className="w-4 h-4 text-emerald-600" />
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Final file</p>
+                      <span className="text-xs text-slate-400">— max 150 MB</span>
+                    </div>
+
+                    {!editData.id && (
+                      <p className="text-xs text-slate-400 italic">Save the content first to attach a final file.</p>
+                    )}
+
+                    {editData.id && editData.final_file_url && (
+                      <div className="flex items-center justify-between px-4 py-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileVideo className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="text-sm text-emerald-800 font-medium truncate">{editData.final_file_name || "Final file"}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 ml-3">
+                          <a
+                            href={editData.final_file_url}
+                            download={editData.final_file_name}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 bg-white border border-emerald-200 px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Download
+                          </a>
+                          <label className={`cursor-pointer flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-slate-50 transition-colors ${uploadingFinalFile ? "opacity-50 pointer-events-none" : ""}`}>
+                            <Upload className="w-3.5 h-3.5" /> Replace
+                            <input type="file" className="hidden" onChange={handleFinalFileUpload} disabled={uploadingFinalFile} />
+                          </label>
+                          <button onClick={handleRemoveFinalFile} className="text-slate-300 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-50">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {editData.id && !editData.final_file_url && (
+                      <label className={`flex flex-col items-center justify-center gap-2 py-7 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/40 transition-all ${uploadingFinalFile ? "opacity-60 pointer-events-none" : ""}`}>
+                        {uploadingFinalFile ? (
+                          <>
+                            <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+                            <span className="text-sm text-emerald-700 font-medium">
+                              Uploading{uploadProgress > 0 ? ` ${uploadProgress}%` : "…"}
+                            </span>
+                            {uploadProgress > 0 && (
+                              <div className="w-48 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-6 h-6 text-slate-400" />
+                            <span className="text-sm text-slate-500 font-medium">Upload final file</span>
+                            <span className="text-xs text-slate-400">MP4, MOV, ZIP, PDF… up to 150 MB</span>
+                          </>
+                        )}
+                        <input type="file" className="hidden" onChange={handleFinalFileUpload} disabled={uploadingFinalFile} />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Tab: Video editing ── */}
+              {dialogTab === "editing" && (
+                <div className="space-y-4">
                   <div>
                     <Label>Assigned editor</Label>
                     <Select value={editData.assigned_editor_id || "__none__"} onValueChange={v => {
@@ -945,6 +1034,7 @@ export default function Editorial() {
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div>
                     <Label>Editing status</Label>
                     <Select value={editData.editing_status || "Non assigné"} onValueChange={v => setEditData({ ...editData, editing_status: v })}>
@@ -959,10 +1049,12 @@ export default function Editorial() {
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div>
                     <Label>Editing instructions</Label>
-                    <Textarea value={editData.editing_instructions || ""} onChange={e => setEditData({ ...editData, editing_instructions: e.target.value })} rows={4} placeholder="e.g. Start on wide shot, music from 0:03..." />
+                    <Textarea value={editData.editing_instructions || ""} onChange={e => setEditData({ ...editData, editing_instructions: e.target.value })} rows={5} placeholder="e.g. Start on wide shot, music from 0:03..." />
                   </div>
+
                   <div>
                     <Label>Reference files</Label>
                     <div className="mt-1 space-y-1.5">
@@ -970,7 +1062,7 @@ export default function Editorial() {
                         const name = decodeURIComponent(url.split("/").pop().split("?")[0]);
                         return (
                           <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                            <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#2A69FF] hover:underline truncate max-w-[200px]">{name}</a>
+                            <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#2A69FF] hover:underline truncate max-w-[240px]">{name}</a>
                             <button onClick={() => setEditData({ ...editData, editing_files: editData.editing_files.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 ml-2"><X className="w-3.5 h-3.5" /></button>
                           </div>
                         );
@@ -988,75 +1080,9 @@ export default function Editorial() {
                     </div>
                   </div>
                 </div>
+              )}
 
-              </div>
-
-              {/* ── Final file (full width) ── */}
-              <div className="pt-5 mt-2 border-t border-slate-100">
-                <div className="flex items-center gap-2 mb-3">
-                  <FileVideo className="w-4 h-4 text-emerald-600" />
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Final file</p>
-                  <span className="text-xs text-slate-400">— max 150 MB</span>
-                </div>
-
-                {!editData.id && (
-                  <p className="text-xs text-slate-400 italic">Save the content first to attach a final file.</p>
-                )}
-
-                {editData.id && editData.final_file_url && (
-                  <div className="flex items-center justify-between px-4 py-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FileVideo className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span className="text-sm text-emerald-800 font-medium truncate">{editData.final_file_name || "Final file"}</span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-3">
-                      <a
-                        href={editData.final_file_url}
-                        download={editData.final_file_name}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 bg-white border border-emerald-200 px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors"
-                      >
-                        <Download className="w-3.5 h-3.5" /> Download
-                      </a>
-                      <label className={`cursor-pointer flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-slate-50 transition-colors ${uploadingFinalFile ? "opacity-50 pointer-events-none" : ""}`}>
-                        <Upload className="w-3.5 h-3.5" /> Replace
-                        <input type="file" className="hidden" onChange={handleFinalFileUpload} disabled={uploadingFinalFile} />
-                      </label>
-                      <button onClick={handleRemoveFinalFile} className="text-slate-300 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-50">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {editData.id && !editData.final_file_url && (
-                  <label className={`flex flex-col items-center justify-center gap-2 py-8 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/40 transition-all ${uploadingFinalFile ? "opacity-60 pointer-events-none" : ""}`}>
-                    {uploadingFinalFile ? (
-                      <>
-                        <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
-                        <span className="text-sm text-emerald-700 font-medium">
-                          Uploading{uploadProgress > 0 ? ` ${uploadProgress}%` : "…"}
-                        </span>
-                        {uploadProgress > 0 && (
-                          <div className="w-48 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-6 h-6 text-slate-400" />
-                        <span className="text-sm text-slate-500 font-medium">Upload final file</span>
-                        <span className="text-xs text-slate-400">MP4, MOV, ZIP, PDF… up to 150 MB</span>
-                      </>
-                    )}
-                    <input type="file" className="hidden" onChange={handleFinalFileUpload} disabled={uploadingFinalFile} />
-                  </label>
-                )}
-              </div>
-
-              <div className="flex justify-between items-center pt-4">
+              <div className="flex justify-between items-center pt-5 mt-2 border-t border-slate-100">
                 {!isReadOnly && editData.id ? (
                   <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleDelete}>
                     <Trash2 className="w-4 h-4 mr-1" /> Delete
