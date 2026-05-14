@@ -219,7 +219,6 @@ export default function Editorial() {
       .eq('id', editData.id);
     setEditData(d => ({ ...d, final_file_url: null, final_file_name: null }));
     qc.invalidateQueries({ queryKey: ["editorial"] });
-    toast({ title: "File removed" });
   };
 
   const navigate = (dir) => {
