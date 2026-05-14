@@ -1969,7 +1969,12 @@ export default function Admin() {
           {section === 'tasks'        && <AdminTasks />}
           {section === 'crm'          && <CRM />}
           {section === 'meetings'     && <BoardMeetings />}
-          {section === 'freelancer-meetings' && <MeetingsManagement />}
+          {section === 'freelancer-meetings' && (
+            <>
+              <PageHeader title="Freelancer Meetings" subtitle="Schedule & track meetings with your team" />
+              <MeetingsManagement />
+            </>
+          )}
           {section === 'legal'        && <LegalDocuments />}
           {section === 'shareholders' && <Shareholders />}
           {section === 'salaries'     && <ShareholderSalaries />}
