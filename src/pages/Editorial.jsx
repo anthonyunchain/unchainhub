@@ -737,19 +737,10 @@ export default function Editorial() {
         </div>
       </div>
 
-      <div className={`flex gap-4 items-start transition-all ${ideasPanelOpen ? "" : ""}`}>
-        {/* Calendar views */}
-        <div className="flex-1 min-w-0">
-          {view === "day" && <DayView />}
-          {view === "week" && <WeekView />}
-          {view === "month" && <MonthView />}
-          {view === "list" && <ListView />}
-          {view === "planner" && <ShootingPlannerView />}
-        </div>
-
-        {/* Ideas side panel */}
+      <div className="flex gap-4 items-start">
+        {/* Ideas side panel — LEFT */}
         {ideasPanelOpen && (
-          <div className="hidden lg:flex flex-col w-72 shrink-0 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden" style={{ maxHeight: 'calc(100vh - 160px)', position: 'sticky', top: 16 }}>
+          <div className="hidden lg:flex flex-col w-64 shrink-0 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden" style={{ maxHeight: 'calc(100vh - 160px)', position: 'sticky', top: 16 }}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <Lightbulb className="w-4 h-4 text-amber-500" />
@@ -812,6 +803,15 @@ export default function Editorial() {
             </div>
           </div>
         )}
+
+        {/* Calendar views */}
+        <div className="flex-1 min-w-0">
+          {view === "day" && <DayView />}
+          {view === "week" && <WeekView />}
+          {view === "month" && <MonthView />}
+          {view === "list" && <ListView />}
+          {view === "planner" && <ShootingPlannerView />}
+        </div>
       </div>
 
       {/* ── Tendances Apify ── */}
