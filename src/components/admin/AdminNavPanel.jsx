@@ -28,8 +28,11 @@ export const ADMIN_NAV_SECTIONS = [
     { id: 'shareholders', label: 'Shareholders' },
   ]},
   { label: "Team", items: [
+    { id: 'clients',             label: 'Clients',            href: '/Clients' },
+    { id: 'freelancers-page',    label: 'Freelancers',        href: '/FreelancerAdmin' },
+    { id: 'meetings-page',       label: 'Meetings',           href: '/MeetingNotes' },
     { id: 'freelancer-meetings', label: 'Freelancer Meetings' },
-    { id: 'shop',                label: 'Freelancer Shop', href: '/FreelancerShop' },
+    { id: 'shop',                label: 'Freelancer Shop',    href: '/FreelancerShop' },
     { id: 'users',               label: 'Users' },
     { id: 'permissions',         label: 'Permissions' },
   ]},
