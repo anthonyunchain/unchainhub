@@ -29,6 +29,10 @@ import MonthlyBriefs from "../components/admin/MonthlyBriefs";
 import Templates from "../components/admin/Templates";
 import AdminTutorials from "../components/admin/AdminTutorials";
 import { MeetingsManagement } from "./FreelancerAdmin";
+import FreelancerAdmin from "./FreelancerAdmin";
+import Clients from "./Clients";
+import MeetingNotes from "./MeetingNotes";
+import FreelancerShop from "./FreelancerShop";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { useAuth } from "@/lib/AuthContext";
@@ -1981,8 +1985,12 @@ export default function Admin() {
           {section === 'users'        && <UserManagement />}
           {section === 'permissions'  && <Permissions />}
           {section === 'ideas'        && <Ideas currentUserId={user?.id} currentUserName={user?.full_name || user?.email} />}
-          {section === 'briefs'       && <MonthlyBriefs />}
-          {section === 'tutorials'    && <AdminTutorials />}
+          {section === 'briefs'            && <MonthlyBriefs />}
+          {section === 'tutorials'         && <AdminTutorials />}
+          {section === 'clients'           && <Clients />}
+          {section === 'freelancers-page'  && <FreelancerAdmin />}
+          {section === 'meetings-page'     && <MeetingNotes />}
+          {section === 'shop'              && <FreelancerShop />}
         </div>
       </div>
     </div>
