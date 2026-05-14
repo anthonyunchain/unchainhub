@@ -1,6 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
-import { verifyAuth } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -14,13 +13,18 @@ Deno.serve(async (req) => {
     });
 
   try {
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    // Internal function — only callable with the service role key (sent by sendMessage).
+    const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
+    if (token !== serviceRoleKey) {
+      return respond({ error: 'Unauthorized' }, 401);
+    }
+
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      serviceRoleKey,
     );
-
-    const authResult = await verifyAuth(req, supabaseAdmin);
-    if (authResult instanceof Response) return authResult;
 
     const { message_id, file_url } = await req.json();
     if (!message_id || !file_url) {
