@@ -30,6 +30,9 @@ export default function Reports() {
   const [bulkMonth, setBulkMonth] = useState(format(new Date(), "yyyy-MM"));
   const [bulkRows, setBulkRows] = useState([]);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [scrapeJobId, setScrapeJobId] = useState(null);
+  const [scraping, setScraping] = useState(false);
   const qc = useQueryClient();
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.list() });
@@ -101,9 +104,6 @@ export default function Reports() {
     setBulkOpen(true);
   };
 
-  const [bulkSaving, setBulkSaving] = useState(false);
-  const [scrapeJobId, setScrapeJobId] = useState(null);
-  const [scraping, setScraping] = useState(false);
   const handleBulkSave = async () => {
     setBulkSaving(true);
     const filled = bulkRows.filter(r => r.views !== "" || r.likes !== "" || r.reach !== "");
