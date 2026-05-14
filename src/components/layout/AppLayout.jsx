@@ -28,6 +28,7 @@ const PAGE_TITLES = {
   '/MeetingNotes':        'Meeting Notes',
   '/Planning':            'Planning',
   '/CRM':                 'CRM',
+  '/ContentIdeas':        'Content Ideas',
   '/FreelancerShop':      'Freelancer Shop',
 };
 

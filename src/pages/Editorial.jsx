@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft, ChevronRight, Upload, X, Clapperboard, Link2, Trash2, Pencil, List, Calendar as CalendarIcon, Sparkles, Hash, ChevronDown, Download, Loader2, FileVideo } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Upload, X, Clapperboard, Link2, Trash2, Pencil, List, Calendar as CalendarIcon, Sparkles, Hash, ChevronDown, Download, Loader2, FileVideo, Lightbulb, Repeat2, PanelRight } from "lucide-react";
 import CsvImportDialog from "../components/editorial/CsvImportDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,8 @@ export default function Editorial() {
   const [filterClient, setFilterClient] = useState("all");
   const [filterTypes, setFilterTypes] = useState(["Reel", "Story", "Carousel"]);
   const [draggingId, setDraggingId] = useState(null);
+  const [draggingIdeaId, setDraggingIdeaId] = useState(null);
+  const [ideasPanelOpen, setIdeasPanelOpen] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadingFinalFile, setUploadingFinalFile] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -66,6 +68,15 @@ export default function Editorial() {
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.filter({ status: "Actif" }) });
   const { data: allFreelancers = [] } = useQuery({ queryKey: ["freelancers"], queryFn: () => base44.entities.Freelancer.list() });
   const { data: allTrends = [] } = useQuery({ queryKey: ["content-trends"], queryFn: () => base44.entities.ContentTrend.list("-scraped_at"), enabled: trendsOpen });
+  const { data: ideas = [] } = useQuery({
+    queryKey: ["content-ideas"],
+    enabled: ideasPanelOpen,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("content_ideas").select("*").is("used_at", null).order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
   // Only video editors can be assigned to montage
   const videoEditors = allFreelancers.filter(f => (f.tags || []).map(t => t.toLowerCase()).includes("video editor") || f.role?.toLowerCase().includes("monteur") || f.role?.toLowerCase().includes("video editor"));
 
@@ -105,8 +116,34 @@ export default function Editorial() {
   };
 
   const handleDrop = (date) => {
-    if (!draggingId || isReadOnly) return;
+    if (isReadOnly) return;
     const newDate = format(date, "yyyy-MM-dd");
+
+    if (draggingIdeaId) {
+      const idea = ideas.find(i => i.id === draggingIdeaId);
+      if (!idea) { setDraggingIdeaId(null); return; }
+      // Create editorial content from the idea
+      createMut.mutate({
+        client_name: idea.client_name,
+        title: idea.title,
+        post_type: idea.post_type,
+        scheduled_date: newDate,
+        status: "Planifié",
+        description: idea.caption || "",
+        notes: "",
+        needs_shooting: false,
+        shoot_timing: "in-month",
+      });
+      // Mark specific ideas as used
+      if (idea.category === "specific") {
+        supabase.from("content_ideas").update({ used_at: new Date().toISOString() }).eq("id", idea.id)
+          .then(() => qc.invalidateQueries({ queryKey: ["content-ideas"] }));
+      }
+      setDraggingIdeaId(null);
+      return;
+    }
+
+    if (!draggingId) return;
     updateMut.mutate({ id: draggingId, d: { scheduled_date: newDate } });
     setDraggingId(null);
   };
@@ -316,7 +353,7 @@ export default function Editorial() {
           return (
             <div
             key={day.toISOString()}
-            className={`bg-white rounded-xl border p-3 min-h-[200px] transition-colors ${isToday ? "border-[#2A69FF] ring-1 ring-[#2A69FF]/10" : "border-slate-100"} ${draggingId ? "hover:bg-blue-50/40 hover:border-blue-200" : ""}`}
+            className={`bg-white rounded-xl border p-3 min-h-[200px] transition-colors ${isToday ? "border-[#2A69FF] ring-1 ring-[#2A69FF]/10" : "border-slate-100"} ${(draggingId || draggingIdeaId) ? "hover:bg-blue-50/40 hover:border-blue-200" : ""}`}
             onDragOver={e => e.preventDefault()}
             onDrop={() => handleDrop(day)}
           >
@@ -381,7 +418,7 @@ export default function Editorial() {
       const hidden = dayContent.length - 2;
       return (
         <div
-          className={`min-h-[100px] p-1.5 transition-colors ${border ? "border-b border-r border-slate-100" : ""} ${!inMonth ? "bg-slate-50/50" : ""} ${draggingId && inMonth ? "hover:bg-blue-50/40" : ""}`}
+          className={`min-h-[100px] p-1.5 transition-colors ${border ? "border-b border-r border-slate-100" : ""} ${!inMonth ? "bg-slate-50/50" : ""} ${(draggingId || draggingIdeaId) && inMonth ? "hover:bg-blue-50/40" : ""}`}
           onDragOver={e => e.preventDefault()}
           onDrop={() => inMonth && handleDrop(day)}
         >
@@ -592,6 +629,11 @@ export default function Editorial() {
     );
   };
 
+  // Filter ideas for the currently selected client
+  const panelIdeas = filterClient === "all" ? ideas : ideas.filter(i => i.client_name === filterClient);
+  const panelGeneral = panelIdeas.filter(i => i.category === "general");
+  const panelSpecific = panelIdeas.filter(i => i.category === "specific");
+
   return (
     <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <PageHeader title="Editorial Calendar" subtitle="Content planning">
@@ -604,6 +646,13 @@ export default function Editorial() {
               {clients.map(c => <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Button
+            variant="outline"
+            className={`h-9 ${ideasPanelOpen ? "bg-amber-50 border-amber-300 text-amber-700" : ""}`}
+            onClick={() => setIdeasPanelOpen(v => !v)}
+          >
+            <Lightbulb className="w-4 h-4 mr-1" /> Ideas
+          </Button>
           <Link to="/ContentDescriptions">
             <Button variant="outline" className="h-9">
               <AlignLeft className="w-4 h-4 mr-1" /> Descriptions
@@ -688,11 +737,82 @@ export default function Editorial() {
         </div>
       </div>
 
-      {view === "day" && <DayView />}
-      {view === "week" && <WeekView />}
-      {view === "month" && <MonthView />}
-      {view === "list" && <ListView />}
-      {view === "planner" && <ShootingPlannerView />}
+      <div className={`flex gap-4 items-start transition-all ${ideasPanelOpen ? "" : ""}`}>
+        {/* Calendar views */}
+        <div className="flex-1 min-w-0">
+          {view === "day" && <DayView />}
+          {view === "week" && <WeekView />}
+          {view === "month" && <MonthView />}
+          {view === "list" && <ListView />}
+          {view === "planner" && <ShootingPlannerView />}
+        </div>
+
+        {/* Ideas side panel */}
+        {ideasPanelOpen && (
+          <div className="hidden lg:flex flex-col w-72 shrink-0 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden" style={{ maxHeight: 'calc(100vh - 160px)', position: 'sticky', top: 16 }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-amber-500" />
+                <span className="text-sm font-semibold text-slate-800">Ideas</span>
+                {filterClient !== "all" && <span className="text-xs text-slate-400 truncate max-w-[80px]">{filterClient}</span>}
+              </div>
+              <button onClick={() => setIdeasPanelOpen(false)} className="text-slate-300 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 px-3 py-3 space-y-4">
+              {filterClient === "all" && (
+                <p className="text-xs text-slate-400 text-center py-4">Select a client to see their ideas</p>
+              )}
+
+              {filterClient !== "all" && panelIdeas.length === 0 && (
+                <p className="text-xs text-slate-400 text-center py-4">No ideas for {filterClient}</p>
+              )}
+
+              {filterClient !== "all" && panelGeneral.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Repeat2 className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">General</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full">{panelGeneral.length}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {panelGeneral.map(idea => (
+                      <IdeaPanelCard
+                        key={idea.id}
+                        idea={idea}
+                        onDragStart={() => setDraggingIdeaId(idea.id)}
+                        onDragEnd={() => setDraggingIdeaId(null)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {filterClient !== "all" && panelSpecific.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Specific</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full">{panelSpecific.length}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {panelSpecific.map(idea => (
+                      <IdeaPanelCard
+                        key={idea.id}
+                        idea={idea}
+                        onDragStart={() => setDraggingIdeaId(idea.id)}
+                        onDragEnd={() => setDraggingIdeaId(null)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ── Tendances Apify ── */}
       {!isReadOnly && (() => {
@@ -1124,6 +1244,37 @@ export default function Editorial() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+const IDEA_TYPE_COLORS = {
+  Reel:     "bg-pink-100 text-pink-700",
+  Story:    "bg-amber-100 text-amber-700",
+  Carousel: "bg-violet-100 text-violet-700",
+};
+
+function IdeaPanelCard({ idea, onDragStart, onDragEnd }) {
+  return (
+    <div
+      draggable
+      onDragStart={(e) => { e.stopPropagation(); onDragStart(); }}
+      onDragEnd={onDragEnd}
+      className="bg-slate-50 border border-slate-200 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:border-brand/40 hover:bg-blue-50/40 transition-colors select-none"
+    >
+      <p className="text-xs font-semibold text-slate-800 leading-tight mb-1.5">{idea.title}</p>
+      <div className="flex items-center gap-1 flex-wrap">
+        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${IDEA_TYPE_COLORS[idea.post_type] || "bg-slate-100 text-slate-600"}`}>
+          {idea.post_type}
+        </span>
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-500">{idea.platform}</span>
+      </div>
+      {idea.caption && (
+        <p className="text-[10px] text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">{idea.caption}</p>
+      )}
+      {idea.reference_file_url && (
+        <img src={idea.reference_file_url} alt="" className="mt-2 h-16 w-full object-cover rounded-lg" />
+      )}
     </div>
   );
 }

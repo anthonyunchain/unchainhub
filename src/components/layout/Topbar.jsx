@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { path: "/Tasks",          label: "Tasks"      },
   { path: "/Planning",       label: "Planning"   },
   { path: "/Editorial",      label: "Calendars"  },
+  { path: "/ContentIdeas",   label: "Ideas"      },
   { path: "/Shootings",      label: "Shootings"  },
   { path: "/FreelancerAdmin",label: "Freelancers"},
   { path: "/Clients",        label: "Clients"    },
