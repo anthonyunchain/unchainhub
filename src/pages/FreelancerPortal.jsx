@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import Ideas from "./Ideas";
 import CRM from "./CRM";
+import ContentIdeas from "./ContentIdeas";
 
 import FreelancerSidebar from "@/components/freelancer/FreelancerSidebar";
 import UserMenu from "@/components/layout/UserMenu";
@@ -1212,6 +1213,7 @@ export default function FreelancerPortal() {
       case "captions": return <CaptionsTab items={[...editorialProjects, ...visibleCalendars.filter(vc => !editorialProjects.find(ep => ep.id === vc.id))]} />;
       case "calendar": return <CalendarsTab visibleCalendars={visibleCalendars} />;
       case "ideas": return <Ideas currentUserId={user?.id} currentUserName={profile?.name || user?.email} isFreelancer={true} />;
+      case "content_ideas": return <ContentIdeas />;
       case "tools": return <ToolsTab tools={tools} onNavigate={handleTabChange} />;
       case "music": return <FreelancerMusicTab />;
       case "meetings": return <MeetingsTab meetings={meetings} />;
@@ -1292,6 +1294,7 @@ export default function FreelancerPortal() {
                 { id: 'projects', label: 'Calendar' },
 
                 ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas' }] : []),
+                ...(profile?.content_ideas_access ? [{ id: 'content_ideas', label: 'Content Ideas' }] : []),
                 ...(profile?.can_see_crm ? [{ id: 'crm', label: 'CRM' }] : []),
                 { id: 'messages', label: 'Messages' },
                 { id: 'notes', label: 'Notes' },
@@ -1408,7 +1411,8 @@ export default function FreelancerPortal() {
                 projects:    { title: 'Editorial Calendar', subtitle: 'Content schedule & captions' },
                 calendar:    { title: 'Shared Calendars', subtitle: 'Editorial calendars shared with you' },
                 captions:    { title: 'Captions',         subtitle: 'Write captions for this month\'s content' },
-                ideas:       { title: 'Ideas',           subtitle: 'Brainstorm content ideas' },
+                ideas:         { title: 'Ideas',         subtitle: 'Brainstorm content ideas' },
+                content_ideas: { title: 'Content Ideas', subtitle: 'Per-client idea bank' },
                 tools:       { title: 'Tools',           subtitle: 'Your tools & resources' },
                 music:       { title: 'Music Library',   subtitle: 'Music curated per client' },
                 meetings:    { title: 'Meetings',        subtitle: 'Upcoming & past meetings' },
@@ -1597,6 +1601,7 @@ export default function FreelancerPortal() {
                     { id: 'credentials', label: 'Passwords', Icon: KeyRound },
                     { id: 'captions',    label: 'Captions',  Icon: AlignLeft },
                     ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas', Icon: Lightbulb }] : []),
+                    ...(profile?.content_ideas_access ? [{ id: 'content_ideas', label: 'Content Ideas', Icon: Lightbulb }] : []),
                     ...(profile?.can_see_crm ? [{ id: 'crm', label: 'CRM', Icon: MoreHorizontal }] : []),
                     { id: 'tools',       label: 'Tools',     Icon: Wrench },
                     { id: 'meetings',    label: 'Meetings',  Icon: CalendarDays },

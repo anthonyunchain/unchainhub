@@ -1431,7 +1431,8 @@ function Subscriptions() {
 
 // ─── PERMISSIONS ─────────────────────────────────────────────────────────────
 const FREELANCER_PERMISSIONS = [
-  { key: 'ideas_access', label: 'Ideas', icon: Shield, description: 'Access to the brainstorm ideas board' },
+  { key: 'ideas_access',         label: 'Ideas',         icon: Shield, description: 'Access to the brainstorm ideas board' },
+  { key: 'content_ideas_access', label: 'Content Ideas', icon: Shield, description: 'Access to the content ideas bank (per-client idea database)' },
 ];
 
 const CLIENT_PERMISSIONS = [
