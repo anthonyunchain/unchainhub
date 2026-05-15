@@ -103,8 +103,8 @@ export function useDraft({ entityType, entityId = null, content, enabled = true 
 }
 
 export function draftStatusLabel(status) {
-  if (status === 'saving') return 'Sauvegarde…';
-  if (status === 'saved') return 'Brouillon sauvegardé';
-  if (status === 'error') return 'Erreur de sauvegarde';
+  if (status === 'saving') return 'Saving…';
+  if (status === 'saved') return 'Draft saved';
+  if (status === 'error') return 'Save error';
   return null;
 }

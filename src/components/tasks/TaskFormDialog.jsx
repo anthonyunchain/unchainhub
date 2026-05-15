@@ -331,10 +331,10 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
         className={`!left-2 !right-2 !translate-x-0 !w-auto !max-w-none sm:!left-[50%] sm:!right-auto sm:!translate-x-[-50%] sm:!w-[80vw] ${hasConversation ? "sm:!max-w-5xl" : "sm:!max-w-xl"} !max-h-[92vh] md:!max-h-[90vh] p-0 overflow-hidden flex flex-col`}
       >
         <DialogHeader className="px-5 pt-4 pb-3 border-b border-slate-100 flex-shrink-0">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 pr-8">
             <DialogTitle>{task?.id ? "Edit task" : "New task"}</DialogTitle>
             {draftRestored && (
-              <span className="text-xs text-amber-600 font-medium">Brouillon restauré</span>
+              <span className="text-xs text-amber-600 font-medium">Draft restored</span>
             )}
             {!draftRestored && draftStatusLabel(draftStatus) && (
               <span className="text-xs text-slate-400">{draftStatusLabel(draftStatus)}</span>

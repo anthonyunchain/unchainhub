@@ -435,7 +435,7 @@ export default function AdminProjects() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 pr-8">
               <DialogTitle>New Project</DialogTitle>
               {draftStatusLabel(createDraftStatus) && (
                 <span className="text-xs text-slate-400">{draftStatusLabel(createDraftStatus)}</span>
