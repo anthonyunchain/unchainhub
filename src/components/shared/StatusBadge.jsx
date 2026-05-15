@@ -22,6 +22,7 @@ const STATUS_LABELS = {
 };
 
 const statusStyles = {
+  "Draft":         { bg: "#F1F0FF", color: "#5B4FCF" },
   "Active":        { bg: "#E8F5EE", color: "#1A5C33" },
   "Inactive":      { bg: "var(--divider)", color: "var(--muted)" },
   "On hold":       { bg: "#FFF8E6", color: "#9A6700" },

@@ -192,10 +192,11 @@ Deno.serve(async (req) => {
       projectsByNameRes,
       toolsRes,
     ] = await Promise.all([
-      // Tasks by freelancer name (case-insensitive)
+      // Tasks by freelancer name (case-insensitive) — exclude drafts
       name
         ? supabaseAdmin.from('tasks').select('*')
             .ilike('assigned_to', name)
+            .neq('status', 'Draft')
             .order('due_date', { ascending: false })
             .limit(200)
         : Promise.resolve({ data: [] }),
@@ -224,13 +225,14 @@ Deno.serve(async (req) => {
             .order('date', { ascending: false })
             .limit(100)
         : Promise.resolve({ data: [] }),
-      // Assigned projects by ID
-      supabaseAdmin.from('projects').select('*').eq('freelancer_id', fId).order('updated_at', { ascending: false }),
-      // Assigned projects by name fallback
+      // Assigned projects by ID — exclude drafts
+      supabaseAdmin.from('projects').select('*').eq('freelancer_id', fId).neq('status', 'Draft').order('updated_at', { ascending: false }),
+      // Assigned projects by name fallback — exclude drafts
       name
         ? supabaseAdmin.from('projects').select('*')
             .ilike('freelancer_name', name)
             .neq('freelancer_id', fId)
+            .neq('status', 'Draft')
             .order('updated_at', { ascending: false })
             .limit(50)
         : Promise.resolve({ data: [] }),

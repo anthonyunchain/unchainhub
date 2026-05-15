@@ -404,6 +404,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                 <Select value={data.status} onValueChange={v => set("status", v)}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Draft">Draft (hidden from freelancer)</SelectItem>
                     <SelectItem value="Non commencé">Not started</SelectItem>
                     <SelectItem value="En cours">In progress</SelectItem>
                     <SelectItem value="Terminé">Done</SelectItem>

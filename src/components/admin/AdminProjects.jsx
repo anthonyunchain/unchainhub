@@ -39,16 +39,17 @@ function groupDeliveriesIntoRounds(files, revisions) {
 //               freelancer_id, freelancer_name, created_at, updated_at
 
 const STATUS_CONFIG = {
-  "Unassigned":         { color: "bg-slate-100 text-slate-500", order: 0 },
-  "Pending acceptance": { color: "bg-amber-100 text-amber-700", order: 1 },
-  "Accepted":           { color: "bg-blue-100 text-blue-700", order: 2 },
-  "In progress":        { color: "bg-indigo-100 text-indigo-700", order: 3 },
-  "Delivered":          { color: "bg-violet-100 text-violet-700", order: 4 },
-  "Revision requested": { color: "bg-red-100 text-red-700", order: 5 },
-  "Completed":          { color: "bg-emerald-100 text-emerald-700", order: 6 },
+  "Draft":              { color: "bg-violet-100 text-violet-600", order: 0 },
+  "Unassigned":         { color: "bg-slate-100 text-slate-500", order: 1 },
+  "Pending acceptance": { color: "bg-amber-100 text-amber-700", order: 2 },
+  "Accepted":           { color: "bg-blue-100 text-blue-700", order: 3 },
+  "In progress":        { color: "bg-indigo-100 text-indigo-700", order: 4 },
+  "Delivered":          { color: "bg-violet-100 text-violet-700", order: 5 },
+  "Revision requested": { color: "bg-red-100 text-red-700", order: 6 },
+  "Completed":          { color: "bg-emerald-100 text-emerald-700", order: 7 },
 };
 
-const PIPELINE_STATUSES = ["Unassigned", "Pending acceptance", "Accepted", "In progress", "Delivered", "Completed"];
+const PIPELINE_STATUSES = ["Draft", "Unassigned", "Pending acceptance", "Accepted", "In progress", "Delivered", "Completed"];
 
 const emptyForm = { title: "", client_name: "", description: "", notes: "", freelancer_id: "", freelancer_name: "", url: "", images: [], brief_files: [] };
 
@@ -145,14 +146,14 @@ export default function AdminProjects() {
     }
   };
 
-  const handleCreate = async () => {
+  const handleCreate = async (forceStatus) => {
     if (!form.title || !form.client_name) return;
     try {
       setLoading(true);
       const payload = {
         title: form.title,
         client_name: form.client_name,
-        status: form.freelancer_id ? "Pending acceptance" : "Unassigned",
+        status: forceStatus ?? (form.freelancer_id ? "Pending acceptance" : "Unassigned"),
         ...(form.description && { description: form.description }),
         ...(form.notes && { notes: form.notes }),
         ...(form.url && { url: form.url }),
@@ -403,6 +404,12 @@ export default function AdminProjects() {
                     <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.color}`}>{p.status}</span></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
+                        {p.status === "Draft" && (
+                          <Button size="sm" variant="outline" className="h-7 text-xs border-violet-200 text-violet-700 hover:bg-violet-50"
+                            onClick={() => base44.entities.Project.update(p.id, { status: "Unassigned" }).then(() => refetch())}>
+                            Publish
+                          </Button>
+                        )}
                         {(p.status === "Unassigned" || p.status === "Pending acceptance") && (
                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setReassignOpen(p)}>
                             <RotateCcw className="w-3 h-3 mr-1" /> Assign
@@ -510,7 +517,11 @@ export default function AdminProjects() {
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreate} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!form.title || !form.client_name || loading}>
+              <Button variant="outline" onClick={() => handleCreate("Draft")} disabled={!form.title || !form.client_name || loading}
+                className="border-violet-200 text-violet-700 hover:bg-violet-50">
+                Save as draft
+              </Button>
+              <Button onClick={() => handleCreate()} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!form.title || !form.client_name || loading}>
                 {loading ? "Creating..." : "Create project"}
               </Button>
             </div>
