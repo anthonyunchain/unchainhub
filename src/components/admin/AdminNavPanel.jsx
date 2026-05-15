@@ -3,12 +3,13 @@ import {
   ClipboardList, Users, FileText, Lightbulb, BookOpen, BarChart2, Target,
   TrendingUp, Receipt, RefreshCw, Wrench, Wallet, FileCheck, Scale,
   LayoutTemplate, CalendarDays, PieChart, Building2, ShoppingBag,
-  UserCog, Shield, MessageSquare, ExternalLink, ChevronDown, ChevronRight
+  UserCog, Shield, MessageSquare, ExternalLink, ChevronDown, ChevronRight,
+  GripVertical,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export const ADMIN_NAV_SECTIONS = [
+const DEFAULT_SECTIONS = [
   { label: "Operations", items: [
     { id: 'tasks',     label: 'Admin Tasks',     icon: ClipboardList },
     { id: 'crm',       label: 'CRM',             icon: Users },
@@ -44,11 +45,62 @@ export const ADMIN_NAV_SECTIONS = [
   ]},
 ];
 
+// Icon registry for serialization round-trip
+const ICON_MAP = {
+  ClipboardList, Users, FileText, Lightbulb, BookOpen, BarChart2, Target,
+  TrendingUp, Receipt, RefreshCw, Wrench, Wallet, FileCheck, Scale,
+  LayoutTemplate, CalendarDays, PieChart, Building2, ShoppingBag,
+  UserCog, Shield, MessageSquare,
+};
+
+function serializeSections(sections) {
+  return sections.map(sec => ({
+    label: sec.label,
+    items: sec.items.map(item => ({
+      ...item,
+      icon: Object.entries(ICON_MAP).find(([, v]) => v === item.icon)?.[0] || 'FileText',
+    })),
+  }));
+}
+
+function deserializeSections(raw) {
+  return raw.map(sec => ({
+    ...sec,
+    items: sec.items.map(item => ({ ...item, icon: ICON_MAP[item.icon] || FileText })),
+  }));
+}
+
+function loadSections() {
+  try {
+    const saved = localStorage.getItem('adminNavOrder');
+    if (saved) return deserializeSections(JSON.parse(saved));
+  } catch {}
+  return DEFAULT_SECTIONS;
+}
+
+function saveSections(sections) {
+  try {
+    localStorage.setItem('adminNavOrder', JSON.stringify(serializeSections(sections)));
+  } catch {}
+}
+
+// Re-export for other files that import ADMIN_NAV_SECTIONS
+export const ADMIN_NAV_SECTIONS = DEFAULT_SECTIONS;
+
 export default function AdminNavPanel({ section, onSelect, badges = {} }) {
   const navigate = useNavigate();
+  const [sections, setSections] = useState(loadSections);
   const [collapsed, setCollapsed] = useState({});
 
-  const allItems = ADMIN_NAV_SECTIONS.flatMap(s => s.items);
+  // Drag state refs (avoid re-renders during drag)
+  const dragSec = useRef(null);      // section label being dragged
+  const dragItem = useRef(null);     // { secLabel, itemId }
+  const dragOverSec = useRef(null);
+  const dragOverItem = useRef(null);
+  const [draggingSecLabel, setDraggingSecLabel] = useState(null);
+  const [draggingItemId, setDraggingItemId] = useState(null);
+
+  const allItems = sections.flatMap(s => s.items);
 
   const handleMobileChange = (val) => {
     const item = allItems.find(i => i.id === val);
@@ -60,6 +112,67 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
     setCollapsed(prev => ({ ...prev, [label]: !prev[label] }));
   };
 
+  // ── Section drag ────────────────────────────────────────────────────────────
+  const onSecDragStart = (e, label) => {
+    dragSec.current = label;
+    setDraggingSecLabel(label);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+  const onSecDragOver = (e, label) => {
+    e.preventDefault();
+    dragOverSec.current = label;
+  };
+  const onSecDrop = (e, targetLabel) => {
+    e.preventDefault();
+    const from = dragSec.current;
+    if (!from || from === targetLabel) return;
+    setSections(prev => {
+      const next = [...prev];
+      const fromIdx = next.findIndex(s => s.label === from);
+      const toIdx = next.findIndex(s => s.label === targetLabel);
+      const [removed] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, removed);
+      saveSections(next);
+      return next;
+    });
+    dragSec.current = null;
+    setDraggingSecLabel(null);
+  };
+  const onSecDragEnd = () => { dragSec.current = null; setDraggingSecLabel(null); };
+
+  // ── Item drag ───────────────────────────────────────────────────────────────
+  const onItemDragStart = (e, secLabel, itemId) => {
+    dragItem.current = { secLabel, itemId };
+    setDraggingItemId(itemId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.stopPropagation();
+  };
+  const onItemDragOver = (e, secLabel, itemId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragOverItem.current = { secLabel, itemId };
+  };
+  const onItemDrop = (e, targetSecLabel, targetItemId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const from = dragItem.current;
+    if (!from || from.itemId === targetItemId) return;
+    setSections(prev => {
+      const next = prev.map(s => ({ ...s, items: [...s.items] }));
+      const fromSec = next.find(s => s.label === from.secLabel);
+      const toSec = next.find(s => s.label === targetSecLabel);
+      const fromIdx = fromSec.items.findIndex(i => i.id === from.itemId);
+      const [removed] = fromSec.items.splice(fromIdx, 1);
+      const toIdx = toSec.items.findIndex(i => i.id === targetItemId);
+      toSec.items.splice(toIdx, 0, removed);
+      saveSections(next);
+      return next;
+    });
+    dragItem.current = null;
+    setDraggingItemId(null);
+  };
+  const onItemDragEnd = () => { dragItem.current = null; setDraggingItemId(null); };
+
   return (
     <>
       {/* Mobile dropdown */}
@@ -69,7 +182,7 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {ADMIN_NAV_SECTIONS.map(sec => (
+            {sections.map(sec => (
               <SelectGroup key={sec.label}>
                 <SelectLabel className="text-[10px] uppercase tracking-widest text-slate-400 font-medium">{sec.label}</SelectLabel>
                 {sec.items.map(item => (
@@ -83,53 +196,96 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
 
       {/* Desktop vertical sidebar */}
       <nav className="hidden md:flex flex-col w-52 shrink-0 gap-1" style={{ position: 'sticky', top: 16, maxHeight: 'calc(100vh - 80px)', overflowY: 'auto' }}>
-        {ADMIN_NAV_SECTIONS.map(sec => {
+        {sections.map(sec => {
           const isCollapsed = collapsed[sec.label];
+          const isDraggingSec = draggingSecLabel === sec.label;
+
           return (
-            <div key={sec.label} className="mb-1">
-              <button
-                onClick={() => toggleCollapse(sec.label)}
-                className="flex items-center justify-between w-full px-2 py-1.5 mb-0.5 group"
-              >
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">
-                  {sec.label}
-                </span>
-                {isCollapsed
-                  ? <ChevronRight className="w-3 h-3 text-slate-300" />
-                  : <ChevronDown className="w-3 h-3 text-slate-300" />
-                }
-              </button>
+            <div
+              key={sec.label}
+              className="mb-1"
+              draggable
+              onDragStart={e => onSecDragStart(e, sec.label)}
+              onDragOver={e => onSecDragOver(e, sec.label)}
+              onDrop={e => onSecDrop(e, sec.label)}
+              onDragEnd={onSecDragEnd}
+              style={{ opacity: isDraggingSec ? 0.4 : 1, transition: 'opacity 150ms' }}
+            >
+              <div className="flex items-center justify-between w-full px-2 py-1.5 mb-0.5 group/sec">
+                {/* Grip for section */}
+                <GripVertical
+                  className="w-3 h-3 text-slate-200 group-hover/sec:text-slate-400 transition-colors shrink-0 cursor-grab active:cursor-grabbing mr-1"
+                />
+                <button
+                  onClick={() => toggleCollapse(sec.label)}
+                  className="flex items-center justify-between flex-1 min-w-0"
+                >
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest group-hover/sec:text-slate-600 transition-colors truncate">
+                    {sec.label}
+                  </span>
+                  {isCollapsed
+                    ? <ChevronRight className="w-3 h-3 text-slate-300 shrink-0" />
+                    : <ChevronDown className="w-3 h-3 text-slate-300 shrink-0" />
+                  }
+                </button>
+              </div>
 
               {!isCollapsed && sec.items.map(item => {
                 const Icon = item.icon;
                 const isActive = section === item.id;
                 const badge = badges[item.id];
-                const cls = `flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-xs font-medium transition-all duration-150 ${
+                const isDraggingItem = draggingItemId === item.id;
+
+                const cls = `flex items-center gap-2 w-full pl-2 pr-3 py-2 rounded-xl text-xs font-medium transition-all duration-150 group/item ${
                   isActive
                     ? 'bg-brand text-white shadow-sm'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`;
 
+                const grip = (
+                  <GripVertical
+                    className={`w-3 h-3 shrink-0 cursor-grab active:cursor-grabbing transition-colors ${
+                      isActive ? 'text-white/30 group-hover/item:text-white/60' : 'text-slate-200 group-hover/item:text-slate-400'
+                    }`}
+                    onMouseDown={e => e.stopPropagation()}
+                  />
+                );
+
+                const itemDragProps = {
+                  draggable: true,
+                  onDragStart: e => onItemDragStart(e, sec.label, item.id),
+                  onDragOver: e => onItemDragOver(e, sec.label, item.id),
+                  onDrop: e => onItemDrop(e, sec.label, item.id),
+                  onDragEnd: onItemDragEnd,
+                  style: { opacity: isDraggingItem ? 0.4 : 1, transition: 'opacity 150ms' },
+                };
+
                 if (item.href) {
                   return (
-                    <Link key={item.id} to={item.href} className={cls} style={{ textDecoration: 'none' }}>
-                      <Icon className="w-3.5 h-3.5 shrink-0 opacity-70" />
-                      <span className="flex-1 truncate">{item.label}</span>
-                      <ExternalLink className="w-3 h-3 opacity-40 shrink-0" />
-                    </Link>
+                    <div key={item.id} {...itemDragProps}>
+                      <Link to={item.href} className={cls} style={{ textDecoration: 'none' }}>
+                        {grip}
+                        <Icon className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                        <span className="flex-1 truncate">{item.label}</span>
+                        <ExternalLink className="w-3 h-3 opacity-40 shrink-0" />
+                      </Link>
+                    </div>
                   );
                 }
 
                 return (
-                  <button key={item.id} onClick={() => onSelect?.(item.id)} className={cls}>
-                    <Icon className="w-3.5 h-3.5 shrink-0 opacity-70" />
-                    <span className="flex-1 truncate text-left">{item.label}</span>
-                    {badge && (
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none shrink-0 ${
-                        isActive ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-500'
-                      }`}>{badge}</span>
-                    )}
-                  </button>
+                  <div key={item.id} {...itemDragProps}>
+                    <button onClick={() => onSelect?.(item.id)} className={cls}>
+                      {grip}
+                      <Icon className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                      <span className="flex-1 truncate text-left">{item.label}</span>
+                      {badge && (
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none shrink-0 ${
+                          isActive ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-500'
+                        }`}>{badge}</span>
+                      )}
+                    </button>
+                  </div>
                 );
               })}
             </div>
