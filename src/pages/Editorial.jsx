@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft, ChevronRight, Upload, X, Clapperboard, Link2, Trash2, Pencil, List, Calendar as CalendarIcon, Sparkles, Hash, ChevronDown, Download, Loader2, FileVideo, Lightbulb, Repeat2, PanelRight } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Upload, X, Clapperboard, Link2, Trash2, Pencil, List, Calendar as CalendarIcon, Download, Loader2, FileVideo, Lightbulb, Repeat2, PanelRight } from "lucide-react";
 import CsvImportDialog from "../components/editorial/CsvImportDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -62,12 +62,9 @@ export default function Editorial() {
   // Freelancers can edit description + manage final file
   const canEditDescription = !isReadOnly || isFreelancer;
 
-  const [trendsOpen, setTrendsOpen] = useState(false);
-
   const { data: content = [] } = useQuery({ queryKey: ["editorial"], queryFn: () => base44.entities.EditorialContent.list() });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.filter({ status: "Actif" }) });
   const { data: allFreelancers = [] } = useQuery({ queryKey: ["freelancers"], queryFn: () => base44.entities.Freelancer.list() });
-  const { data: allTrends = [] } = useQuery({ queryKey: ["content-trends"], queryFn: () => base44.entities.ContentTrend.list("-scraped_at"), enabled: trendsOpen });
   const { data: ideas = [] } = useQuery({
     queryKey: ["content-ideas"],
     enabled: ideasPanelOpen,
@@ -813,119 +810,6 @@ export default function Editorial() {
           {view === "planner" && <ShootingPlannerView />}
         </div>
       </div>
-
-      {/* ── Tendances Apify ── */}
-      {!isReadOnly && (() => {
-        const clientTrends = allTrends.filter(t =>
-          filterClient === "all" || t.client_name === filterClient
-        );
-        // Keep only latest period per hashtag
-        const latestByHashtag = Object.values(
-          clientTrends.reduce((acc, t) => {
-            const key = `${t.hashtag}-${t.platform}-${t.client_name}`;
-            if (!acc[key] || t.period > acc[key].period) acc[key] = t;
-            return acc;
-          }, {})
-        ).sort((a, b) => (b.trend_score || 0) - (a.trend_score || 0)).slice(0, 12);
-
-        return (
-          <div className="mt-4 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <button
-              onClick={() => setTrendsOpen(o => !o)}
-              className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-violet-500" />
-                <span className="text-sm font-semibold text-slate-700">
-                  Tendances du moment
-                  {latestByHashtag.length > 0 && (
-                    <span className="ml-2 text-xs font-normal text-violet-500 bg-violet-50 px-2 py-0.5 rounded-full">
-                      {latestByHashtag.length}
-                    </span>
-                  )}
-                </span>
-                <span className="text-xs text-slate-400">Auto-scrapé via Apify</span>
-              </div>
-              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${trendsOpen ? "rotate-180" : ""}`} />
-            </button>
-
-            {trendsOpen && (
-              <div className="border-t border-slate-100 p-4">
-                {latestByHashtag.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-4">
-                    Aucune tendance disponible.
-                    {filterClient === "all"
-                      ? " Configure des hashtags sur chaque client et lance un scraping depuis Reports."
-                      : " Configure des hashtags sur ce client dans sa fiche et lance un scraping depuis Reports."}
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {latestByHashtag.map((trend, i) => {
-                      const samples = (trend.sample_posts || []).slice(0, 3);
-                      return (
-                        <div key={i} className="border border-slate-100 rounded-xl p-3 hover:border-violet-200 hover:bg-violet-50/30 transition-all">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-1.5">
-                              <Hash className="w-3.5 h-3.5 text-violet-400" />
-                              <span className="text-sm font-semibold text-slate-800">{trend.hashtag}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-slate-400">{trend.platform}</span>
-                              {trend.trend_score > 0 && (
-                                <span className="text-[10px] px-1.5 py-0.5 bg-violet-50 text-violet-600 rounded-full font-medium">
-                                  {trend.trend_score.toLocaleString("fr-FR")}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {trend.client_name && filterClient === "all" && (
-                            <p className="text-[10px] text-slate-400 mb-1.5">{trend.client_name}</p>
-                          )}
-
-                          {samples.length > 0 && (
-                            <div className="space-y-1 mb-2">
-                              {samples.map((post, j) => (
-                                <div key={j} className="flex items-start gap-1.5 text-[10px] text-slate-500">
-                                  <span className="text-violet-300 shrink-0">▸</span>
-                                  <span className="line-clamp-2">
-                                    {post.caption ? post.caption.slice(0, 80) : `${(post.likes || 0).toLocaleString("fr-FR")} likes`}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          <button
-                            onClick={() => {
-                              setEditData({
-                                client_id: "",
-                                client_name: filterClient !== "all" ? filterClient : (trend.client_name || ""),
-                                title: `#${trend.hashtag}`,
-                                post_type: "Reel",
-                                scheduled_date: format(new Date(), "yyyy-MM-dd"),
-                                status: "Planifié",
-                                description: `Inspiration tendance #${trend.hashtag} (${trend.platform})`,
-                                notes: "",
-                                needs_shooting: false,
-                                shoot_timing: "no-shoot",
-                              });
-                              setDialogOpen(true);
-                            }}
-                            className="w-full text-[10px] text-violet-600 hover:text-violet-800 bg-violet-50 hover:bg-violet-100 rounded-lg py-1.5 transition-colors font-medium"
-                          >
-                            + Ajouter à l'éditorial
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })()}
 
       <CsvImportDialog open={csvOpen} onOpenChange={setCsvOpen} />
 

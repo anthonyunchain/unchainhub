@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
-import { Heart, Plus, Trash2, X } from "lucide-react";
+import { Heart, Plus, Trash2, X, Sparkles, Hash, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { base44 } from "@/api/base44Client";
@@ -30,6 +30,7 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
   const [selectedClient, setSelectedClient] = useState("");
   const [filterClient, setFilterClient] = useState("all");
   const [showClient, setShowClient] = useState(false);
+  const [trendsOpen, setTrendsOpen] = useState(false);
   const qc = useQueryClient();
 
   const { data: clients = [] } = useQuery({
@@ -40,6 +41,12 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
   const activeClients = [...clients]
     .filter(c => c.status === "Actif")
     .sort((a, b) => (a.company_name || "").localeCompare(b.company_name || ""));
+
+  const { data: allTrends = [] } = useQuery({
+    queryKey: ["content-trends"],
+    queryFn: () => base44.entities.ContentTrend.list("-scraped_at"),
+    enabled: trendsOpen,
+  });
 
   const { data: ideas = [], isLoading } = useQuery({
     queryKey: ["ideas"],
@@ -194,7 +201,7 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
         </div>
       )}
 
-      <div className="columns-1 sm:columns-2 gap-3 space-y-3">
+      <div className="columns-1 sm:columns-2 gap-3 space-y-3 mb-6">
         {filtered.map(idea => {
           const liked = currentUserId && (idea.likes || []).includes(currentUserId);
           const likeCount = (idea.likes || []).length;
@@ -241,6 +248,96 @@ export default function Ideas({ currentUserId, currentUserName, isFreelancer = f
           );
         })}
       </div>
+      {/* ── Tendances Apify ── */}
+      {!isFreelancer && (() => {
+        const clientTrends = allTrends.filter(t =>
+          filterClient === "all" || t.client_name === filterClient
+        );
+        const latestByHashtag = Object.values(
+          clientTrends.reduce((acc, t) => {
+            const key = `${t.hashtag}-${t.platform}-${t.client_name}`;
+            if (!acc[key] || t.period > acc[key].period) acc[key] = t;
+            return acc;
+          }, {})
+        ).sort((a, b) => (b.trend_score || 0) - (a.trend_score || 0)).slice(0, 12);
+
+        return (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <button
+              onClick={() => setTrendsOpen(o => !o)}
+              className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-violet-500" />
+                <span className="text-sm font-semibold text-slate-700">
+                  Tendances du moment
+                  {latestByHashtag.length > 0 && (
+                    <span className="ml-2 text-xs font-normal text-violet-500 bg-violet-50 px-2 py-0.5 rounded-full">
+                      {latestByHashtag.length}
+                    </span>
+                  )}
+                </span>
+                <span className="text-xs text-slate-400">Auto-scrapé via Apify</span>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${trendsOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {trendsOpen && (
+              <div className="border-t border-slate-100 p-4">
+                {latestByHashtag.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-4">
+                    Aucune tendance disponible.
+                    {filterClient === "all"
+                      ? " Configure des hashtags sur chaque client et lance un scraping depuis Reports."
+                      : " Configure des hashtags sur ce client dans sa fiche et lance un scraping depuis Reports."}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {latestByHashtag.map((trend, i) => {
+                      const samples = (trend.sample_posts || []).slice(0, 3);
+                      return (
+                        <div key={i} className="border border-slate-100 rounded-xl p-3 hover:border-violet-200 hover:bg-violet-50/30 transition-all">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-1.5">
+                              <Hash className="w-3.5 h-3.5 text-violet-400" />
+                              <span className="text-sm font-semibold text-slate-800">{trend.hashtag}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-400">{trend.platform}</span>
+                              {trend.trend_score > 0 && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-violet-50 text-violet-600 rounded-full font-medium">
+                                  {trend.trend_score.toLocaleString("fr-FR")}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {trend.client_name && filterClient === "all" && (
+                            <p className="text-[10px] text-slate-400 mb-1.5">{trend.client_name}</p>
+                          )}
+
+                          {samples.length > 0 && (
+                            <div className="space-y-1">
+                              {samples.map((post, j) => (
+                                <div key={j} className="flex items-start gap-1.5 text-[10px] text-slate-500">
+                                  <span className="text-violet-300 shrink-0">▸</span>
+                                  <span className="line-clamp-2">
+                                    {post.caption ? post.caption.slice(0, 80) : `${(post.likes || 0).toLocaleString("fr-FR")} likes`}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
