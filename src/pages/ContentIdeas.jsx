@@ -98,7 +98,7 @@ export default function ContentIdeas() {
     setScraping(true);
     try {
       const period = format(new Date(), "yyyy-MM");
-      const { data } = await base44.functions.invoke("apifyStartScrape", { type: "social_stats", period });
+      const { data } = await base44.functions.invoke("apifyStartScrape", { type: "trends", period });
       if (data?.error) throw new Error(data.error);
       if (data?.jobId) {
         setScrapeJobId(data.jobId);
