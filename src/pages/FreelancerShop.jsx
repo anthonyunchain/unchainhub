@@ -1,10 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "@/components/shared/PageHeader";
 import KpiCard from "@/components/shared/KpiCard";
-import AdminNavPanel from "@/components/admin/AdminNavPanel";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -51,7 +49,6 @@ function InlinePrice({ value, onSave }) {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function FreelancerShop() {
-  const navigate = useNavigate();
   const [tab, setTab] = useState("monthly");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [serviceDialog, setServiceDialog] = useState(false);
@@ -139,11 +136,6 @@ export default function FreelancerShop() {
           <Plus className="w-4 h-4" /> New service
         </Button>
       </PageHeader>
-
-      {/* Admin nav */}
-      <div className="mb-5">
-        <AdminNavPanel section={null} onSelect={id => navigate(`/Admin?s=${id}`)} />
-      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
