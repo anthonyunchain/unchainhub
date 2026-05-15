@@ -45,7 +45,6 @@ const DEFAULT_SECTIONS = [
   ]},
 ];
 
-// Icon registry for serialization round-trip
 const ICON_MAP = {
   ClipboardList, Users, FileText, Lightbulb, BookOpen, BarChart2, Target,
   TrendingUp, Receipt, RefreshCw, Wrench, Wallet, FileCheck, Scale,
@@ -84,21 +83,19 @@ function saveSections(sections) {
   } catch {}
 }
 
-// Re-export for other files that import ADMIN_NAV_SECTIONS
 export const ADMIN_NAV_SECTIONS = DEFAULT_SECTIONS;
 
 export default function AdminNavPanel({ section, onSelect, badges = {} }) {
   const navigate = useNavigate();
   const [sections, setSections] = useState(loadSections);
   const [collapsed, setCollapsed] = useState({});
-
-  // Drag state refs (avoid re-renders during drag)
-  const dragSec = useRef(null);      // section label being dragged
-  const dragItem = useRef(null);     // { secLabel, itemId }
-  const dragOverSec = useRef(null);
-  const dragOverItem = useRef(null);
   const [draggingSecLabel, setDraggingSecLabel] = useState(null);
   const [draggingItemId, setDraggingItemId] = useState(null);
+
+  // Track which type of drag is active so we don't mix them
+  const dragType = useRef(null); // 'section' | 'item'
+  const dragSec = useRef(null);
+  const dragItem = useRef(null);
 
   const allItems = sections.flatMap(s => s.items);
 
@@ -108,21 +105,29 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
     else onSelect?.(val);
   };
 
-  const toggleCollapse = (label) => {
-    setCollapsed(prev => ({ ...prev, [label]: !prev[label] }));
-  };
-
-  // ── Section drag ────────────────────────────────────────────────────────────
+  // ── Section drag (only from header) ────────────────────────────────────────
   const onSecDragStart = (e, label) => {
+    dragType.current = 'section';
     dragSec.current = label;
     setDraggingSecLabel(label);
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', 'section:' + label);
   };
-  const onSecDragOver = (e, label) => {
+
+  const onSecDragEnd = () => {
+    dragType.current = null;
+    dragSec.current = null;
+    setDraggingSecLabel(null);
+  };
+
+  // Drop zone on the whole section block (accepts section drops only)
+  const onSecBlockDragOver = (e) => {
+    if (dragType.current !== 'section') return;
     e.preventDefault();
-    dragOverSec.current = label;
   };
-  const onSecDrop = (e, targetLabel) => {
+
+  const onSecBlockDrop = (e, targetLabel) => {
+    if (dragType.current !== 'section') return;
     e.preventDefault();
     const from = dragSec.current;
     if (!from || from === targetLabel) return;
@@ -137,22 +142,33 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
     });
     dragSec.current = null;
     setDraggingSecLabel(null);
+    dragType.current = null;
   };
-  const onSecDragEnd = () => { dragSec.current = null; setDraggingSecLabel(null); };
 
   // ── Item drag ───────────────────────────────────────────────────────────────
   const onItemDragStart = (e, secLabel, itemId) => {
+    dragType.current = 'item';
     dragItem.current = { secLabel, itemId };
     setDraggingItemId(itemId);
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', 'item:' + itemId);
     e.stopPropagation();
   };
+
+  const onItemDragEnd = () => {
+    dragType.current = null;
+    dragItem.current = null;
+    setDraggingItemId(null);
+  };
+
   const onItemDragOver = (e, secLabel, itemId) => {
+    if (dragType.current !== 'item') return;
     e.preventDefault();
     e.stopPropagation();
-    dragOverItem.current = { secLabel, itemId };
   };
+
   const onItemDrop = (e, targetSecLabel, targetItemId) => {
+    if (dragType.current !== 'item') return;
     e.preventDefault();
     e.stopPropagation();
     const from = dragItem.current;
@@ -170,8 +186,8 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
     });
     dragItem.current = null;
     setDraggingItemId(null);
+    dragType.current = null;
   };
-  const onItemDragEnd = () => { dragItem.current = null; setDraggingItemId(null); };
 
   return (
     <>
@@ -204,20 +220,21 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
             <div
               key={sec.label}
               className="mb-1"
-              draggable
-              onDragStart={e => onSecDragStart(e, sec.label)}
-              onDragOver={e => onSecDragOver(e, sec.label)}
-              onDrop={e => onSecDrop(e, sec.label)}
-              onDragEnd={onSecDragEnd}
-              style={{ opacity: isDraggingSec ? 0.4 : 1, transition: 'opacity 150ms' }}
+              onDragOver={onSecBlockDragOver}
+              onDrop={e => onSecBlockDrop(e, sec.label)}
+              style={{ opacity: isDraggingSec ? 0.35 : 1, transition: 'opacity 150ms' }}
             >
-              <div className="flex items-center justify-between w-full px-2 py-1.5 mb-0.5 group/sec">
-                {/* Grip for section */}
-                <GripVertical
-                  className="w-3 h-3 text-slate-200 group-hover/sec:text-slate-400 transition-colors shrink-0 cursor-grab active:cursor-grabbing mr-1"
-                />
+              {/* Section header — this is the draggable element for sections */}
+              <div
+                draggable
+                onDragStart={e => onSecDragStart(e, sec.label)}
+                onDragEnd={onSecDragEnd}
+                className="flex items-center w-full px-2 py-1.5 mb-0.5 group/sec cursor-grab active:cursor-grabbing"
+              >
+                <GripVertical className="w-3 h-3 text-slate-200 group-hover/sec:text-slate-400 transition-colors shrink-0 mr-1" />
                 <button
-                  onClick={() => toggleCollapse(sec.label)}
+                  onClick={() => setCollapsed(prev => ({ ...prev, [sec.label]: !prev[sec.label] }))}
+                  onMouseDown={e => e.stopPropagation()}
                   className="flex items-center justify-between flex-1 min-w-0"
                 >
                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest group-hover/sec:text-slate-600 transition-colors truncate">
@@ -244,25 +261,26 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
 
                 const grip = (
                   <GripVertical
-                    className={`w-3 h-3 shrink-0 cursor-grab active:cursor-grabbing transition-colors ${
-                      isActive ? 'text-white/30 group-hover/item:text-white/60' : 'text-slate-200 group-hover/item:text-slate-400'
+                    className={`w-3 h-3 shrink-0 transition-colors ${
+                      isActive
+                        ? 'text-white/30 group-hover/item:text-white/60'
+                        : 'text-slate-200 group-hover/item:text-slate-400'
                     }`}
-                    onMouseDown={e => e.stopPropagation()}
                   />
                 );
 
-                const itemDragProps = {
+                const itemWrapProps = {
                   draggable: true,
                   onDragStart: e => onItemDragStart(e, sec.label, item.id),
                   onDragOver: e => onItemDragOver(e, sec.label, item.id),
                   onDrop: e => onItemDrop(e, sec.label, item.id),
                   onDragEnd: onItemDragEnd,
-                  style: { opacity: isDraggingItem ? 0.4 : 1, transition: 'opacity 150ms' },
+                  style: { opacity: isDraggingItem ? 0.35 : 1, transition: 'opacity 150ms', cursor: 'grab' },
                 };
 
                 if (item.href) {
                   return (
-                    <div key={item.id} {...itemDragProps}>
+                    <div key={item.id} {...itemWrapProps}>
                       <Link to={item.href} className={cls} style={{ textDecoration: 'none' }}>
                         {grip}
                         <Icon className="w-3.5 h-3.5 shrink-0 opacity-70" />
@@ -274,8 +292,12 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
                 }
 
                 return (
-                  <div key={item.id} {...itemDragProps}>
-                    <button onClick={() => onSelect?.(item.id)} className={cls}>
+                  <div key={item.id} {...itemWrapProps}>
+                    <button
+                      onClick={() => onSelect?.(item.id)}
+                      onMouseDown={e => e.stopPropagation()}
+                      className={cls}
+                    >
                       {grip}
                       <Icon className="w-3.5 h-3.5 shrink-0 opacity-70" />
                       <span className="flex-1 truncate text-left">{item.label}</span>
