@@ -51,7 +51,7 @@ export default function Topbar() {
   const messagesUnread = useUnreadCount(userId);
 
   return (
-    <nav aria-label="Primary" style={{ padding: '0 0 20px 0', position: 'relative', zIndex: 10 }}>
+    <nav aria-label="Primary" style={{ padding: '0 0 20px 0', position: 'relative', zIndex: 200 }}>
       <div className="flex items-center justify-between gap-4">
         {/* Logo */}
         <Link to="/Dashboard" aria-label="Unchain Studio — Dashboard" className="flex items-center gap-2.5 shrink-0" style={{ textDecoration: 'none' }}>
