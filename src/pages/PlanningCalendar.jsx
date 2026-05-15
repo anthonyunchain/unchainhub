@@ -104,13 +104,6 @@ function MonthBlock({ date, gcalConnected, hiddenCalendars, expandedGcalDay, set
         {gcalLoading && <Loader2 style={{ width: 12, height: 12 }} className="animate-spin" />}
       </div>
 
-      {/* day-of-week header — only on first month or repeat for clarity */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderTop: "1px solid var(--divider)", borderBottom: "1px solid var(--divider)" }}>
-        {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
-          <div key={d} style={{ padding: "6px 0", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{d}</div>
-        ))}
-      </div>
-
       {/* day cells */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
         {monthCells.map((day, i) => {
@@ -546,7 +539,14 @@ export default function PlanningCalendar() {
             ref={scrollRef}
             style={{ overflowY: "auto", maxHeight: "calc(100vh - 160px)" }}
           >
-            {/* top sentinel */}
+            {/* sticky day-of-week header */}
+            <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--card)", borderBottom: "1px solid var(--divider)", display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+              {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
+                <div key={d} style={{ padding: "7px 0", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{d}</div>
+              ))}
+            </div>
+
+            {/* top sentinel — placed after sticky header so it doesn't interfere */}
             <div ref={topRef} style={{ height: 1 }} />
 
             {months.map(m => {
