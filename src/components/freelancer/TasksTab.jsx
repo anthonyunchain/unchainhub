@@ -463,7 +463,7 @@ export default function TasksTab({ tasks, onUpdateTask }) {
                 onClick={() => setFilterCategory(active ? "all" : c)}
                 className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${base}`}>
                 {CATEGORY_LABEL[c] || c}
-                <span className="ml-1 text-[10px] opacity-70">{tasks.filter(t => t.category === c).length}</span>
+                <span className="ml-1 text-[10px] opacity-70">{tasks.filter(t => t.category === c && t.status !== "Terminé").length || ""}</span>
               </button>
             );
           })}
