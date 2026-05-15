@@ -429,7 +429,7 @@ export default function Tasks() {
               {taskAssignees.map((a) =>
                 <button key={a} onClick={() => setActiveAssignee(activeAssignee === a ? "all" : a)}
                   className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeAssignee === a ? "bg-violet-600 text-white" : "bg-violet-50 text-violet-700 hover:bg-violet-100"}`}>
-                  {a}<span className="ml-1 text-[10px] opacity-70">{tasks.filter(t => t.assigned_to === a).length}</span>
+                  {a}<span className="ml-1 text-[10px] opacity-70">{tasks.filter(t => t.assigned_to === a && t.status !== "Terminé").length || ""}</span>
                 </button>
               )}
             </div>
@@ -444,12 +444,12 @@ export default function Tasks() {
             <button onClick={() => setActiveCategory(activeCategory === "Personal" ? "all" : "Personal")}
               className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${activeCategory === "Personal" ? "bg-purple-600 text-white" : "bg-purple-50 text-purple-700 hover:bg-purple-100"}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${activeCategory === "Personal" ? "bg-white" : "bg-purple-400"}`} />
-              Personal<span className="text-[10px] opacity-70">{tasks.filter(t => t.category === "Personal" || t.category === "Vie perso").length}</span>
+              Personal<span className="text-[10px] opacity-70">{tasks.filter(t => (t.category === "Personal" || t.category === "Vie perso") && t.status !== "Terminé").length || ""}</span>
             </button>
             {["Design", "Video Editing", "Web", "Merch", "Analytics", "Administrative", "Posting", "Update"].filter(k => tasks.some(t => t.category === k)).map((k) =>
               <button key={k} onClick={() => setActiveCategory(activeCategory === k ? "all" : k)}
                 className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${activeCategory === k ? "bg-slate-700 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
-                {CATEGORY_LABEL[k] || k}<span className="ml-1 text-[10px] opacity-60">{tasks.filter(t => t.category === k).length}</span>
+                {CATEGORY_LABEL[k] || k}<span className="ml-1 text-[10px] opacity-60">{tasks.filter(t => t.category === k && t.status !== "Terminé").length || ""}</span>
               </button>
             )}
           </div>
