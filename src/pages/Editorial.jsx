@@ -287,16 +287,20 @@ export default function Editorial() {
           onClick={() => openEdit(c)}
           className={`p-2 rounded-lg border transition-colors pr-6 ${
             isCancelled
-              ? "bg-slate-100 border-slate-200 opacity-50 grayscale cursor-pointer"
+              ? "bg-slate-100 border-slate-200 cursor-pointer"
               : "bg-slate-50 hover:bg-slate-100 cursor-grab active:cursor-grabbing border-slate-100"
           }`}
+          style={isCancelled ? { filter: "grayscale(1)", opacity: 0.45 } : undefined}
         >
           <div className="flex items-center gap-1 mb-0.5 flex-wrap">
             <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
             {isCancelled && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-slate-200 text-slate-500">Cancelled</span>}
             {!isCancelled && c.shoot_timing === "advance" && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700">📅 Advance</span>}
           </div>
-          <p className={`font-medium line-clamp-2 ${compact ? "text-[10px]" : "text-[11px]"} ${isCancelled ? "text-slate-400 line-through" : "text-slate-700"}`}>
+          <p
+            className={`font-medium line-clamp-2 ${compact ? "text-[10px]" : "text-[11px]"} ${isCancelled ? "text-slate-400" : "text-slate-700"}`}
+            style={isCancelled ? { textDecoration: "line-through" } : undefined}
+          >
             {c.title || c.description || "Untitled"}
           </p>
           {!compact && <p className="text-[9px] text-slate-400 mt-0.5">{c.client_name}</p>}
