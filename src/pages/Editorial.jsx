@@ -274,34 +274,44 @@ export default function Editorial() {
   };
 
   // CONTENT CARD (calendar views)
-  const ContentCard = ({ c, compact = false }) => (
-    <div
-      className="group relative"
-      draggable={!isReadOnly}
-      onDragStart={(e) => { if (!isReadOnly) { e.stopPropagation(); setDraggingId(c.id); } }}
-      onDragEnd={() => setDraggingId(null)}
-    >
+  const ContentCard = ({ c, compact = false }) => {
+    const isCancelled = c.status === "Annulé";
+    return (
       <div
-        onClick={() => openEdit(c)}
-        className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 cursor-grab active:cursor-grabbing border border-slate-100 transition-colors pr-6"
+        className="group relative"
+        draggable={!isReadOnly && !isCancelled}
+        onDragStart={(e) => { if (!isReadOnly && !isCancelled) { e.stopPropagation(); setDraggingId(c.id); } }}
+        onDragEnd={() => setDraggingId(null)}
       >
-        <div className="flex items-center gap-1 mb-0.5 flex-wrap">
-          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
-          {c.shoot_timing === "advance" && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700">📅 Advance</span>}
-        </div>
-        <p className={`font-medium text-slate-700 line-clamp-2 ${compact ? "text-[10px]" : "text-[11px]"}`}>{c.title || c.description || "Untitled"}</p>
-        {!compact && <p className="text-[9px] text-slate-400 mt-0.5">{c.client_name}</p>}
-      </div>
-      {!isReadOnly && (
-        <button
-          onClick={(e) => handleQuickDelete(e, c.id)}
-          className="absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all"
+        <div
+          onClick={() => openEdit(c)}
+          className={`p-2 rounded-lg border transition-colors pr-6 ${
+            isCancelled
+              ? "bg-slate-100 border-slate-200 opacity-50 grayscale cursor-pointer"
+              : "bg-slate-50 hover:bg-slate-100 cursor-grab active:cursor-grabbing border-slate-100"
+          }`}
         >
-          <X className="w-3 h-3" />
-        </button>
-      )}
-    </div>
-  );
+          <div className="flex items-center gap-1 mb-0.5 flex-wrap">
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
+            {isCancelled && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-slate-200 text-slate-500">Cancelled</span>}
+            {!isCancelled && c.shoot_timing === "advance" && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700">📅 Advance</span>}
+          </div>
+          <p className={`font-medium line-clamp-2 ${compact ? "text-[10px]" : "text-[11px]"} ${isCancelled ? "text-slate-400 line-through" : "text-slate-700"}`}>
+            {c.title || c.description || "Untitled"}
+          </p>
+          {!compact && <p className="text-[9px] text-slate-400 mt-0.5">{c.client_name}</p>}
+        </div>
+        {!isReadOnly && (
+          <button
+            onClick={(e) => handleQuickDelete(e, c.id)}
+            className="absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+    );
+  };
 
   // DAY VIEW
   const DayView = () => {
