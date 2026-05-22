@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Pencil, Link2, Image, Paperclip, X, RefreshCw, Lightbulb, Repeat2, Sparkles, Hash, ChevronDown, Loader2 } from "lucide-react";
+import { Plus, Trash2, Pencil, Link2, Image, Paperclip, X, RefreshCw, Lightbulb, Repeat2, Sparkles, Hash, ChevronDown, Loader2, Ban } from "lucide-react";
 import { format } from "date-fns";
 
 const POST_TYPES = ["Reel", "Story", "Carousel"];
@@ -45,6 +45,14 @@ async function fetchIdeas() {
   return data || [];
 }
 
+async function fetchCurrentUser() {
+  try {
+    return await base44.auth.me();
+  } catch {
+    return null;
+  }
+}
+
 export default function ContentIdeas() {
   const qc = useQueryClient();
   const [selectedClient, setSelectedClient] = useState("all");
@@ -58,6 +66,12 @@ export default function ContentIdeas() {
   const [uploading, setUploading] = useState(false);
   const refFileRef = useRef(null);
   const attachFileRef = useRef(null);
+
+  const { data: currentUser } = useQuery({
+    queryKey: ["current-user"],
+    queryFn: fetchCurrentUser,
+  });
+  const isClient = currentUser?.role === "user";
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
@@ -137,6 +151,18 @@ export default function ContentIdeas() {
     onError: (e) => toast.error("Error: " + e.message),
   });
 
+  const cancelMut = useMutation({
+    mutationFn: async ({ id, is_cancelled }) => {
+      const { error } = await supabase
+        .from("content_ideas")
+        .update({ is_cancelled })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["content-ideas"] }),
+    onError: (e) => toast.error("Error: " + e.message),
+  });
+
   const openNew = (client_name) => {
     setEditIdea({ ...EMPTY_IDEA, client_name: client_name !== "all" ? client_name : "" });
     setDialogOpen(true);
@@ -176,7 +202,8 @@ export default function ContentIdeas() {
     }
   };
 
-  const clientIdeas = selectedClient === "all" ? ideas : ideas.filter(i => i.client_name === selectedClient);
+  const clientIdeas = (selectedClient === "all" ? ideas : ideas.filter(i => i.client_name === selectedClient))
+    .filter(i => !isClient || !i.is_cancelled);
   const generalIdeas = clientIdeas.filter(i => i.category === "general");
   const specificIdeas = clientIdeas.filter(i => i.category === "specific");
 
@@ -219,7 +246,7 @@ export default function ContentIdeas() {
             >
               <Repeat2 className="w-4 h-4 text-emerald-500 shrink-0" />
               <h2 className="text-sm font-semibold text-slate-800">General ideas</h2>
-              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{generalIdeas.length}</span>
+              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{generalIdeas.filter(i => !i.is_cancelled).length}</span>
               <span className="text-xs text-slate-400">— Recurring templates, never consumed</span>
               <ChevronDown className={`w-4 h-4 text-slate-300 ml-auto transition-transform ${generalOpen ? "rotate-180" : ""}`} />
             </button>
@@ -229,7 +256,7 @@ export default function ContentIdeas() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {generalIdeas.map(idea => (
-                    <IdeaCard key={idea.id} idea={idea} onEdit={openEdit} onDelete={id => deleteMut.mutate(id)} />
+                    <IdeaCard key={idea.id} idea={idea} onEdit={openEdit} onDelete={id => deleteMut.mutate(id)} onToggleCancel={idea => cancelMut.mutate({ id: idea.id, is_cancelled: !idea.is_cancelled })} canManage={!isClient} />
                   ))}
                 </div>
               )
@@ -244,7 +271,7 @@ export default function ContentIdeas() {
             >
               <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
               <h2 className="text-sm font-semibold text-slate-800">Specific ideas</h2>
-              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{specificIdeas.length}</span>
+              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{specificIdeas.filter(i => !i.is_cancelled).length}</span>
               <span className="text-xs text-slate-400">— One-shot, consumed when added to calendar</span>
               <ChevronDown className={`w-4 h-4 text-slate-300 ml-auto transition-transform ${specificOpen ? "rotate-180" : ""}`} />
             </button>
@@ -254,7 +281,7 @@ export default function ContentIdeas() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {specificIdeas.map(idea => (
-                    <IdeaCard key={idea.id} idea={idea} onEdit={openEdit} onDelete={id => deleteMut.mutate(id)} />
+                    <IdeaCard key={idea.id} idea={idea} onEdit={openEdit} onDelete={id => deleteMut.mutate(id)} onToggleCancel={idea => cancelMut.mutate({ id: idea.id, is_cancelled: !idea.is_cancelled })} canManage={!isClient} />
                   ))}
                 </div>
               )
@@ -483,43 +510,85 @@ export default function ContentIdeas() {
   );
 }
 
-function IdeaCard({ idea, onEdit, onDelete }) {
+function IdeaCard({ idea, onEdit, onDelete, onToggleCancel, canManage }) {
+  const cancelled = !!idea.is_cancelled;
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="text-sm font-semibold text-slate-800 leading-tight">{idea.title}</h3>
-        <button onClick={() => onEdit(idea)} className="shrink-0 text-slate-300 hover:text-slate-600 transition-colors">
-          <Pencil className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      <div className="flex items-center gap-1.5 flex-wrap mb-2">
-        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS[idea.post_type] || "bg-slate-100 text-slate-600"}`}>
-          {idea.post_type}
-        </span>
-        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{idea.platform}</span>
-        <span className="text-[10px] text-slate-400">{idea.client_name}</span>
-      </div>
-
-      {idea.caption && (
-        <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 mb-2">{idea.caption}</p>
+    <div className={`relative rounded-xl border p-4 shadow-sm transition-all ${
+      cancelled
+        ? "bg-slate-50 border-slate-200 opacity-60 grayscale"
+        : "bg-white border-slate-100 hover:shadow-md"
+    }`}>
+      {/* Cancelled banner */}
+      {cancelled && (
+        <div className="absolute top-2 left-2 flex items-center gap-1 bg-slate-200 text-slate-500 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+          <Ban className="w-2.5 h-2.5" />
+          Cancelled
+        </div>
       )}
 
-      <div className="flex items-center gap-2 mt-2">
-        {idea.reference_url && (
-          <a href={idea.reference_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 flex items-center gap-0.5 hover:underline">
-            <Link2 className="w-3 h-3" />Ref
-          </a>
-        )}
-        {idea.reference_file_url && (
-          <img src={idea.reference_file_url} alt="" className="h-8 w-8 rounded object-cover border border-slate-200" />
-        )}
-        {idea.attached_file_name && (
-          <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
-            <Paperclip className="w-3 h-3" />{idea.attached_file_name.slice(0, 20)}
-          </span>
+      <div className={`flex items-start justify-between gap-2 ${cancelled ? "mt-5" : "mb-2"}`}>
+        <h3 className={`text-sm font-semibold leading-tight ${cancelled ? "text-slate-400 line-through mt-1" : "text-slate-800"}`}>
+          {idea.title}
+        </h3>
+        {canManage && (
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              title={cancelled ? "Restore" : "Mark as cancelled"}
+              onClick={() => onToggleCancel(idea)}
+              className={`transition-colors ${cancelled ? "text-slate-400 hover:text-emerald-500" : "text-slate-300 hover:text-red-400"}`}
+            >
+              <Ban className="w-3.5 h-3.5" />
+            </button>
+            {!cancelled && (
+              <button onClick={() => onEdit(idea)} className="text-slate-300 hover:text-slate-600 transition-colors">
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         )}
       </div>
+
+      {!cancelled && (
+        <>
+          <div className="flex items-center gap-1.5 flex-wrap mb-2">
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS[idea.post_type] || "bg-slate-100 text-slate-600"}`}>
+              {idea.post_type}
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{idea.platform}</span>
+            <span className="text-[10px] text-slate-400">{idea.client_name}</span>
+          </div>
+
+          {idea.caption && (
+            <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 mb-2">{idea.caption}</p>
+          )}
+
+          <div className="flex items-center gap-2 mt-2">
+            {idea.reference_url && (
+              <a href={idea.reference_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 flex items-center gap-0.5 hover:underline">
+                <Link2 className="w-3 h-3" />Ref
+              </a>
+            )}
+            {idea.reference_file_url && (
+              <img src={idea.reference_file_url} alt="" className="h-8 w-8 rounded object-cover border border-slate-200" />
+            )}
+            {idea.attached_file_name && (
+              <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
+                <Paperclip className="w-3 h-3" />{idea.attached_file_name.slice(0, 20)}
+              </span>
+            )}
+          </div>
+        </>
+      )}
+
+      {cancelled && (
+        <div className="flex items-center gap-1.5 flex-wrap mt-1">
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS[idea.post_type] || "bg-slate-100 text-slate-600"}`}>
+            {idea.post_type}
+          </span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{idea.platform}</span>
+          <span className="text-[10px] text-slate-400">{idea.client_name}</span>
+        </div>
+      )}
     </div>
   );
 }
