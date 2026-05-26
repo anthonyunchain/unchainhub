@@ -102,9 +102,11 @@ export default function ProjectsTab({ projects = [] }) {
     };
 
     const DayCell = ({ day }) => {
+      const [expanded, setExpanded] = useState(false);
       const dayContent = filtered.filter(c => c.scheduled_date && isSameDay(new Date(c.scheduled_date), day));
       const isToday = isSameDay(day, new Date());
       const inMonth = isSameMonth(day, currentDate);
+      const visible = expanded ? dayContent : dayContent.slice(0, 2);
       return (
         <div className={`min-h-[100px] p-1.5 border-b border-r border-slate-100 ${!inMonth ? "bg-slate-50/50" : ""}`}>
           <div className="flex items-center justify-between mb-1">
@@ -113,8 +115,16 @@ export default function ProjectsTab({ projects = [] }) {
             </span>
           </div>
           <div className="space-y-0.5">
-            {dayContent.slice(0, 2).map(c => <ContentCard key={c.id} c={c} compact />)}
-            {dayContent.length > 2 && <p className="text-[9px] text-slate-400 pl-1">+{dayContent.length - 2} more</p>}
+            {visible.map(c => <ContentCard key={c.id} c={c} compact />)}
+            {dayContent.length > 2 && (
+              <button
+                type="button"
+                onClick={() => setExpanded(e => !e)}
+                className="text-[9px] text-[#2A69FF] pl-1 hover:underline cursor-pointer bg-transparent border-none"
+              >
+                {expanded ? `− less` : `+${dayContent.length - 2} more`}
+              </button>
+            )}
           </div>
         </div>
       );
