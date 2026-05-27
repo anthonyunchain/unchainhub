@@ -54,13 +54,13 @@ export default function Editorial() {
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      setIsReadOnly(u?.role === 'user' || u?.role === 'freelancer');
+      // Only 'user' (client portal) is fully read-only — freelancers can add/edit/delete
+      setIsReadOnly(u?.role === 'user');
     }).catch(() => setIsReadOnly(true));
   }, []);
 
   const isFreelancer = user?.role === 'freelancer';
-  // Freelancers can edit description + manage final file
-  const canEditDescription = !isReadOnly || isFreelancer;
+  const canEditDescription = true; // freelancers and admins can all edit description
 
   const { data: content = [] } = useQuery({ queryKey: ["editorial"], queryFn: () => base44.entities.EditorialContent.list() });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => base44.entities.Client.filter({ status: "Actif" }) });
@@ -858,7 +858,7 @@ export default function Editorial() {
                 <div className="space-y-4">
                   {isFreelancer && (
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-xs text-blue-700 font-medium">✏️ You can edit the description and upload the final file</p>
+                      <p className="text-xs text-blue-700 font-medium">✏️ You can create, edit and delete content for your assigned clients</p>
                     </div>
                   )}
 
