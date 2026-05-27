@@ -12,6 +12,7 @@ import { useUnreadCount } from "@/components/messaging/useUnreadCount";
 const NAV_LINKS = [
   { path: "/Dashboard",      label: "Dashboard"  },
   { path: "/Tasks",          label: "Tasks"      },
+  { path: "/Production",     label: "Production" },
   { path: "/Planning",       label: "Planning"   },
   { path: "/Editorial",      label: "Calendars"  },
   { path: "/ContentIdeas",   label: "Ideas"      },

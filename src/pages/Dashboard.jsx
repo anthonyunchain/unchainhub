@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { supabase } from "@/api/base44Client";
 import SmartAlertsWidget from "../components/dashboard/SmartAlertsWidget";
+import ProductionWidget from "../components/dashboard/ProductionWidget";
 import { Users, Kanban, Calendar, ArrowUpRight, FileBarChart, Eye, Camera, CalendarClock, CalendarDays } from "lucide-react";
 import KpiCard from "../components/shared/KpiCard";
 import StatusBadge from "../components/shared/StatusBadge";
@@ -264,6 +265,11 @@ export default function Dashboard() {
         {/* Today's Tasks */}
         <div className="h-auto lg:h-[420px]">
           <TodayTasksWidget />
+        </div>
+
+        {/* Production Tracker */}
+        <div className="h-auto lg:h-[420px]">
+          <ProductionWidget />
         </div>
 
         {/* Upcoming Events (Google Calendar) */}
