@@ -278,17 +278,26 @@ export default function Editorial({ onDescriptionsClick } = {}) {
   // CONTENT CARD (calendar views)
   const ContentCard = ({ c, compact = false }) => {
     const isCancelled = c.status === 'Annulé';
+    const isBeingDragged = draggingId === c.id;
     return (
       <div
         className="group relative"
         draggable={!isReadOnly && !isCancelled}
         onDragStart={(e) => { if (!isReadOnly && !isCancelled) { e.stopPropagation(); setDraggingId(c.id); } }}
         onDragEnd={() => setDraggingId(null)}
-        style={isCancelled ? { filter: 'grayscale(1)', opacity: 0.5 } : undefined}
+        style={{
+          ...(isCancelled ? { filter: 'grayscale(1)', opacity: 0.5 } : undefined),
+          ...(isBeingDragged ? { opacity: 0.4, transform: 'scale(0.97)' } : undefined),
+          transition: 'opacity 0.15s, transform 0.15s',
+        }}
       >
         <div
           onClick={() => openEdit(c)}
-          className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 cursor-grab active:cursor-grabbing border border-slate-100 transition-colors pr-6"
+          className={`p-2 rounded-lg border transition-all pr-6 select-none
+            ${isCancelled
+              ? 'bg-slate-50 border-slate-100 cursor-default'
+              : 'bg-slate-50 border-slate-200 cursor-grab active:cursor-grabbing hover:border-brand/40 hover:bg-blue-50/40'
+            }`}
         >
           <div className="flex items-center gap-1 mb-0.5 flex-wrap">
             {isCancelled
