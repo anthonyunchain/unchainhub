@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft, ChevronRight, Upload, X, Clapperboard, Link2, Trash2, Pencil, List, Calendar as CalendarIcon, Download, Loader2, FileVideo, Lightbulb, Repeat2, PanelRight } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Upload, X, Clapperboard, Link2, Trash2, Pencil, List, Calendar as CalendarIcon, Download, Loader2, FileVideo, Lightbulb, Repeat2, PanelRight, EyeOff } from "lucide-react";
 import CsvImportDialog from "../components/editorial/CsvImportDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,7 @@ export default function Editorial({ onDescriptionsClick } = {}) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dialogTab, setDialogTab] = useState("general");
   const [csvOpen, setCsvOpen] = useState(false);
+  const [hideCancelled, setHideCancelled] = useState(false);
   const qc = useQueryClient();
 
   // Check user role for read-only mode
@@ -104,7 +105,8 @@ export default function Editorial({ onDescriptionsClick } = {}) {
 
   const filtered = content
     .filter(c => filterClient === "all" || c.client_name === filterClient)
-    .filter(c => filterTypes.includes(c.post_type));
+    .filter(c => filterTypes.includes(c.post_type))
+    .filter(c => !hideCancelled || c.status !== 'Annulé');
 
   const toggleType = (type) => {
     setFilterTypes(prev =>
@@ -744,6 +746,18 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                 {type}
               </button>
             ))}
+            <button
+              onClick={() => setHideCancelled(v => !v)}
+              title={hideCancelled ? "Show cancelled" : "Hide cancelled"}
+              className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-all flex items-center gap-1 ${
+                hideCancelled
+                  ? "bg-slate-700 text-white border-transparent"
+                  : "bg-white text-slate-400 border-slate-200 hover:border-slate-400"
+              }`}
+            >
+              <EyeOff className="w-3 h-3" />
+              Cancelled
+            </button>
           </div>
           <div className="hidden sm:flex items-center bg-slate-100 rounded-lg p-1 gap-0.5">
             {[
