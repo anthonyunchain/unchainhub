@@ -69,8 +69,8 @@ export default function MeetingNotes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, name")
-        .order("name");
+        .select("id, company_name")
+        .order("company_name");
       if (error) throw error;
       return data || [];
     },
@@ -269,7 +269,7 @@ export default function MeetingNotes() {
                 color: filterClient === c.id ? "var(--brand)" : "var(--muted)",
               }}
             >
-              {c.name}
+              {c.company_name}
             </button>
           ))}
         </div>
@@ -395,7 +395,7 @@ export default function MeetingNotes() {
             value={editData.client_id || ""}
             onChange={e => {
               const id = e.target.value || null;
-              const name = id ? (clients.find(c => c.id === id)?.name || "") : "";
+              const name = id ? (clients.find(c => c.id === id)?.company_name || "") : "";
               setEditData(prev => ({ ...prev, client_id: id, client_name: name }));
             }}
             style={{
@@ -407,7 +407,7 @@ export default function MeetingNotes() {
           >
             <option value="">— No client —</option>
             {clients.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>{c.company_name}</option>
             ))}
           </select>
         </div>
