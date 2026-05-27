@@ -274,34 +274,44 @@ export default function Editorial({ onDescriptionsClick } = {}) {
   };
 
   // CONTENT CARD (calendar views)
-  const ContentCard = ({ c, compact = false }) => (
-    <div
-      className="group relative"
-      draggable={!isReadOnly}
-      onDragStart={(e) => { if (!isReadOnly) { e.stopPropagation(); setDraggingId(c.id); } }}
-      onDragEnd={() => setDraggingId(null)}
-    >
+  const ContentCard = ({ c, compact = false }) => {
+    const isCancelled = c.status === 'Annulé';
+    return (
       <div
-        onClick={() => openEdit(c)}
-        className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 cursor-grab active:cursor-grabbing border border-slate-100 transition-colors pr-6"
+        className="group relative"
+        draggable={!isReadOnly && !isCancelled}
+        onDragStart={(e) => { if (!isReadOnly && !isCancelled) { e.stopPropagation(); setDraggingId(c.id); } }}
+        onDragEnd={() => setDraggingId(null)}
+        style={isCancelled ? { filter: 'grayscale(1)', opacity: 0.5 } : undefined}
       >
-        <div className="flex items-center gap-1 mb-0.5 flex-wrap">
-          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
-          {c.shoot_timing === "advance" && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700">📅 Advance</span>}
-        </div>
-        <p className={`font-medium text-slate-700 line-clamp-2 ${compact ? "text-[10px]" : "text-[11px]"}`}>{c.title || c.description || "Untitled"}</p>
-        {!compact && <p className="text-[9px] text-slate-400 mt-0.5">{c.client_name}</p>}
-      </div>
-      {!isReadOnly && (
-        <button
-          onClick={(e) => handleQuickDelete(e, c.id)}
-          className="absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all"
+        <div
+          onClick={() => openEdit(c)}
+          className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 cursor-grab active:cursor-grabbing border border-slate-100 transition-colors pr-6"
         >
-          <X className="w-3 h-3" />
-        </button>
-      )}
-    </div>
-  );
+          <div className="flex items-center gap-1 mb-0.5 flex-wrap">
+            {isCancelled
+              ? <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-slate-200 text-slate-500">Cancelled</span>
+              : <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
+            }
+            {!isCancelled && c.shoot_timing === "advance" && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700">📅 Advance</span>}
+          </div>
+          <p
+            className={`font-medium text-slate-700 line-clamp-2 ${compact ? "text-[10px]" : "text-[11px]"}`}
+            style={isCancelled ? { textDecoration: 'line-through' } : undefined}
+          >{c.title || c.description || "Untitled"}</p>
+          {!compact && <p className="text-[9px] text-slate-400 mt-0.5">{c.client_name}</p>}
+        </div>
+        {!isReadOnly && (
+          <button
+            onClick={(e) => handleQuickDelete(e, c.id)}
+            className="absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+    );
+  };
 
   // DAY VIEW
   const DayView = () => {
@@ -316,21 +326,28 @@ export default function Editorial({ onDescriptionsClick } = {}) {
           <p className="text-sm text-slate-400 text-center py-12">No content this day</p>
         ) : (
           <div className="space-y-3">
-            {dayContent.map(c => (
-              <div key={c.id} className="group flex items-start gap-2 p-4 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 cursor-pointer" onClick={() => openEdit(c)}>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
-                    <span className="text-xs text-slate-400">{c.client_name}</span>
+            {dayContent.map(c => {
+              const isCancelled = c.status === 'Annulé';
+              return (
+                <div key={c.id} className="group flex items-start gap-2 p-4 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 cursor-pointer" onClick={() => openEdit(c)}
+                  style={isCancelled ? { filter: 'grayscale(1)', opacity: 0.5 } : undefined}>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      {isCancelled
+                        ? <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-200 text-slate-500">Cancelled</span>
+                        : <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
+                      }
+                      <span className="text-xs text-slate-400">{c.client_name}</span>
+                    </div>
+                    <p className="text-sm font-medium text-slate-800" style={isCancelled ? { textDecoration: 'line-through' } : undefined}>{c.title || "Untitled"}</p>
+                    {c.description && <p className="text-xs text-slate-500 mt-1">{c.description}</p>}
                   </div>
-                  <p className="text-sm font-medium text-slate-800">{c.title || "Untitled"}</p>
-                  {c.description && <p className="text-xs text-slate-500 mt-1">{c.description}</p>}
+                  {!isReadOnly && <button onClick={(e) => handleQuickDelete(e, c.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all shrink-0">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>}
                 </div>
-                {!isReadOnly && <button onClick={(e) => handleQuickDelete(e, c.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all shrink-0">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -503,15 +520,22 @@ export default function Editorial({ onDescriptionsClick } = {}) {
             {sorted.length === 0 && (
               <tr><td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-400">No content</td></tr>
             )}
-            {sorted.map(c => (
-              <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50/50 group">
+            {sorted.map(c => {
+              const isCancelled = c.status === 'Annulé';
+              return (
+              <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50/50 group"
+                style={isCancelled ? { filter: 'grayscale(1)', opacity: 0.5 } : undefined}>
                 <td className="px-5 py-3 text-sm text-slate-500 whitespace-nowrap">
                   {c.scheduled_date ? format(new Date(c.scheduled_date), "d MMM yyyy", { locale: fr }) : "—"}
                 </td>
                 <td className="px-5 py-3 text-sm font-medium text-slate-800">{c.client_name || "—"}</td>
-                <td className="px-5 py-3 text-sm text-slate-700 max-w-[200px] truncate">{c.title || c.description || "Untitled"}</td>
+                <td className="px-5 py-3 text-sm text-slate-700 max-w-[200px] truncate"
+                  style={isCancelled ? { textDecoration: 'line-through' } : undefined}>{c.title || c.description || "Untitled"}</td>
                 <td className="px-5 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
+                  {isCancelled
+                    ? <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-200 text-slate-500">Cancelled</span>
+                    : <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS[c.post_type] || "bg-slate-100 text-slate-600"}`}>{c.post_type}</span>
+                  }
                 </td>
                 <td className="px-5 py-3"><StatusBadge status={c.status} /></td>
                 <td className="px-5 py-3">
@@ -532,7 +556,8 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
