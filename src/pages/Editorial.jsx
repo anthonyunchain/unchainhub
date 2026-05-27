@@ -28,7 +28,7 @@ const TYPE_COLORS = {
   Carousel: "bg-violet-100 text-violet-700",
 };
 
-export default function Editorial() {
+export default function Editorial({ onDescriptionsClick } = {}) {
   const { toast } = useToast();
   const [view, setView] = useState("month");
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -650,11 +650,17 @@ export default function Editorial() {
           >
             <Lightbulb className="w-4 h-4 mr-1" /> Ideas
           </Button>
-          <Link to="/ContentDescriptions">
-            <Button variant="outline" className="h-9">
+          {onDescriptionsClick ? (
+            <Button variant="outline" className="h-9" onClick={onDescriptionsClick}>
               <AlignLeft className="w-4 h-4 mr-1" /> Descriptions
             </Button>
-          </Link>
+          ) : (
+            <Link to="/ContentDescriptions">
+              <Button variant="outline" className="h-9">
+                <AlignLeft className="w-4 h-4 mr-1" /> Descriptions
+              </Button>
+            </Link>
+          )}
           {!isReadOnly && (
             <>
               <Button variant="outline" className="h-9" onClick={() => setCsvOpen(true)}>

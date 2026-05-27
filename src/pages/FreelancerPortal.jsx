@@ -1209,7 +1209,7 @@ export default function FreelancerPortal() {
       case "todo": return <PersonalTasksTab userId={user?.id} newTrigger={todoNewTrigger} />;
       case "tasks": return <TasksTabComponent tasks={tasks} onUpdateTask={handleUpdateTask} />;
       case "myprojects": return <FreelancerProjects projects={myProjects} editorialItems={editorialProjects} onRefresh={handleProjectUpdate} freelancerName={freelancerName} />;
-      case "projects": return <Editorial />;
+      case "projects": return <Editorial onDescriptionsClick={() => handleTabChange('captions')} />;
       case "captions": return <CaptionsTab items={[...editorialProjects, ...visibleCalendars.filter(vc => !editorialProjects.find(ep => ep.id === vc.id))]} />;
       case "calendar": return <CalendarsTab visibleCalendars={visibleCalendars} />;
       case "ideas": return <Ideas currentUserId={user?.id} currentUserName={profile?.name || user?.email} isFreelancer={true} />;
@@ -1408,7 +1408,7 @@ export default function FreelancerPortal() {
                 todo:        { title: 'My To-Do',       subtitle: 'Your personal task list' },
                 tasks:       { title: 'Tasks',           subtitle: 'Tasks assigned to you' },
                 myprojects:  { title: 'Projects',        subtitle: 'Projects assigned to you' },
-                projects:    { title: 'Editorial Calendar', subtitle: 'Content schedule & captions' },
+                // 'projects' intentionally omitted — Editorial.jsx renders its own PageHeader
                 calendar:    { title: 'Shared Calendars', subtitle: 'Editorial calendars shared with you' },
                 captions:    { title: 'Captions',         subtitle: 'Write captions for this month\'s content' },
                 ideas:         { title: 'Ideas',         subtitle: 'Brainstorm content ideas' },
@@ -1445,14 +1445,7 @@ export default function FreelancerPortal() {
                       <Plus style={{ width: 14, height: 14 }} /> <span className="hidden sm:inline">New task</span><span className="sm:hidden">New</span>
                     </button>
                   )}
-                  {activeTab === 'projects' && (
-                    <button
-                      onClick={() => handleTabChange('captions')}
-                      style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 12, background: 'var(--card)', color: 'var(--brand)', border: '1px solid var(--divider)', cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: "'DM Mono', monospace", whiteSpace: 'nowrap', flexShrink: 0 }}
-                    >
-                      Captions →
-                    </button>
-                  )}
+                  {/* Captions button removed — Editorial.jsx handles its own navigation */}
                   {activeTab === 'captions' && (
                     <button
                       onClick={() => handleTabChange('projects')}
