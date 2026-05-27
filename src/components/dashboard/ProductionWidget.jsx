@@ -4,12 +4,13 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight, Clapperboard } from "lucide-react";
 
 const STATUS_DOT = {
-  "En cours":     "bg-blue-500",
-  "Non commencé": "bg-slate-300",
-};
-const STATUS_LABEL = {
-  "En cours":     "In progress",
-  "Non commencé": "Not started",
+  "In progress":        "bg-indigo-500",
+  "Delivered":          "bg-purple-500",
+  "Revision requested": "bg-red-500",
+  "Accepted":           "bg-blue-400",
+  "Pending acceptance": "bg-amber-400",
+  "Unassigned":         "bg-slate-300",
+  "Draft":              "bg-violet-400",
 };
 
 export default function ProductionWidget() {
@@ -29,7 +30,7 @@ export default function ProductionWidget() {
   const { data: allTasks = [] } = useQuery({
     queryKey: ["production-tasks"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("tasks").select("id, status, client_id");
+      const { data, error } = await supabase.from("tasks").select("id, status, client_name");
       if (error) throw error;
       return data || [];
     },
@@ -37,7 +38,7 @@ export default function ProductionWidget() {
   });
 
   const enriched = projects.slice(0, 6).map(p => {
-    const projectTasks = allTasks.filter(t => t.client_id === p.client_id);
+    const projectTasks = allTasks.filter(t => t.client_name && p.client_name && t.client_name === p.client_name);
     const done = projectTasks.filter(t => t.status === "Terminé").length;
     const total = projectTasks.length;
     const pct = total === 0 ? 0 : Math.round((done / total) * 100);
@@ -92,9 +93,9 @@ export default function ProductionWidget() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {enriched.map(p => (
-            <Link key={p.id} to={`/ClientDetail?id=${p.client_id}`} style={{ textDecoration: 'none' }}>
+            <Link key={p.id} to="/Production" style={{ textDecoration: 'none' }}>
               <div className="group" style={{ cursor: 'pointer' }}>
-                {/* Title + status */}
+                {/* Title + status dot */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
                   <span
                     style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0 }}
@@ -128,7 +129,7 @@ export default function ProductionWidget() {
                   </div>
                 ) : (
                   <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--muted)' }}>
-                    No tasks · {STATUS_LABEL[p.status] || p.status}
+                    {p.status}{p.freelancer_name ? ` · ${p.freelancer_name}` : ''}
                   </p>
                 )}
               </div>

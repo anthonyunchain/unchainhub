@@ -4,18 +4,24 @@ import { supabase } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/shared/PageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowUpRight, Clapperboard, CheckCircle2, Clock, CircleDashed } from "lucide-react";
+import { ArrowUpRight, Clapperboard, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 
 const STATUS_CONFIG = {
-  "En cours":      { label: "In progress", bg: "bg-blue-50",   text: "text-blue-700",   dot: "bg-blue-500"   },
-  "Non commencé":  { label: "Not started", bg: "bg-slate-50",  text: "text-slate-500",  dot: "bg-slate-400"  },
-  "Draft":         { label: "Draft",       bg: "bg-amber-50",  text: "text-amber-700",  dot: "bg-amber-400"  },
+  "Draft":              { label: "Draft",               bg: "bg-violet-50",  text: "text-violet-600", dot: "bg-violet-400"  },
+  "Unassigned":         { label: "Unassigned",          bg: "bg-slate-50",   text: "text-slate-500",  dot: "bg-slate-400"   },
+  "Pending acceptance": { label: "Pending acceptance",  bg: "bg-amber-50",   text: "text-amber-700",  dot: "bg-amber-400"   },
+  "Accepted":           { label: "Accepted",            bg: "bg-blue-50",    text: "text-blue-700",   dot: "bg-blue-400"    },
+  "In progress":        { label: "In progress",         bg: "bg-indigo-50",  text: "text-indigo-700", dot: "bg-indigo-500"  },
+  "Delivered":          { label: "Delivered",           bg: "bg-purple-50",  text: "text-purple-700", dot: "bg-purple-500"  },
+  "Revision requested": { label: "Revision requested",  bg: "bg-red-50",     text: "text-red-700",    dot: "bg-red-500"     },
 };
 
+const ACTIVE_STATUSES = Object.keys(STATUS_CONFIG);
+
 function StatusPill({ status }) {
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG["Non commencé"];
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG["Unassigned"];
   return (
     <span className={`inline-flex items-center gap-1.5 text-[10px] font-medium px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
@@ -50,7 +56,7 @@ export default function Production() {
   const [filterFreelancer, setFilterFreelancer] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // Active projects
+  // Active projects (all except Completed)
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ["production-projects"],
     queryFn: async () => {
@@ -64,13 +70,13 @@ export default function Production() {
     },
   });
 
-  // All tasks (to count per project via client_id)
+  // Tasks to count progress per client_name
   const { data: allTasks = [], isLoading: loadingTasks } = useQuery({
     queryKey: ["production-tasks"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
-        .select("id, status, client_id, client_name");
+        .select("id, status, client_name");
       if (error) throw error;
       return data || [];
     },
@@ -79,9 +85,9 @@ export default function Production() {
 
   const loading = loadingProjects || loadingTasks;
 
-  // Enrich projects with task counts
+  // Enrich projects with task counts (matched by client_name)
   const enriched = projects.map(p => {
-    const projectTasks = allTasks.filter(t => t.client_id === p.client_id);
+    const projectTasks = allTasks.filter(t => t.client_name && p.client_name && t.client_name === p.client_name);
     const done = projectTasks.filter(t => t.status === "Terminé").length;
     return { ...p, totalTasks: projectTasks.length, doneTasks: done };
   });
@@ -98,16 +104,24 @@ export default function Production() {
     return true;
   });
 
-  const inProgress = enriched.filter(p => p.status === "En cours").length;
-  const notStarted = enriched.filter(p => p.status === "Non commencé").length;
+  const inProgress = enriched.filter(p => p.status === "In progress").length;
+  const unassigned = enriched.filter(p => p.status === "Unassigned").length;
 
   return (
     <div className="mx-auto" style={{ maxWidth: "1400px" }}>
       <PageHeader title="Production" subtitle="Active projects">
-        <div className="hidden sm:flex items-center gap-2">
-          <span className="text-xs font-mono text-slate-400">
-            {inProgress} in progress · {notStarted} not started
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono text-slate-400 hidden sm:block">
+            {inProgress} in progress · {unassigned} unassigned
           </span>
+          <Link
+            to="/FreelancerAdmin"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+            style={{ background: 'var(--brand)', color: '#fff', textDecoration: 'none' }}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            New project
+          </Link>
         </div>
       </PageHeader>
 
@@ -128,11 +142,12 @@ export default function Production() {
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="All statuses" /></SelectTrigger>
+          <SelectTrigger className="w-44 h-8 text-xs"><SelectValue placeholder="All statuses" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="En cours">In progress</SelectItem>
-            <SelectItem value="Non commencé">Not started</SelectItem>
+            {ACTIVE_STATUSES.map(s => (
+              <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -154,14 +169,22 @@ export default function Production() {
             <Clapperboard className="w-6 h-6 text-slate-300" />
           </div>
           <p className="text-sm font-semibold text-slate-700 mb-1">No active projects</p>
-          <p className="text-xs text-slate-400">Projects with status "En cours" or "Non commencé" will appear here.</p>
+          <p className="text-xs text-slate-400 mb-4">Create projects in FreelancerAdmin to track them here.</p>
+          <Link
+            to="/FreelancerAdmin"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+            style={{ background: 'var(--brand)', color: '#fff', textDecoration: 'none' }}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Go to FreelancerAdmin
+          </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(p => (
             <Link
               key={p.id}
-              to={`/ClientDetail?id=${p.client_id}`}
+              to="/FreelancerAdmin"
               style={{ textDecoration: "none" }}
             >
               <div className="group bg-white rounded-2xl border border-slate-100 hover:border-[#2A69FF]/30 hover:shadow-md p-5 transition-all cursor-pointer h-full flex flex-col">
@@ -199,7 +222,7 @@ export default function Production() {
                   {p.totalTasks > 0 ? (
                     <ProgressBar done={p.doneTasks} total={p.totalTasks} />
                   ) : (
-                    <p className="text-[10px] text-slate-300 font-mono">No tasks yet</p>
+                    <p className="text-[10px] text-slate-300 font-mono">No tasks linked</p>
                   )}
                 </div>
               </div>
