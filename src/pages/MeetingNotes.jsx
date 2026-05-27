@@ -270,7 +270,7 @@ export default function MeetingNotes() {
                 color: filterClient === c.id ? "var(--brand)" : "var(--muted)",
               }}
             >
-              {c.company_name}
+              {c.name}
             </button>
           ))}
         </div>
