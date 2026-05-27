@@ -935,7 +935,7 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                       {isReadOnly ? (
                         <div className="p-2 bg-slate-50 rounded border border-slate-200 text-sm text-slate-700">{editData.status || "—"}</div>
                       ) : (
-                        <Select value={editData.status} onValueChange={v => setEditData({ ...editData, status: v })}>
+                        <Select value={editData.status} onValueChange={v => setEditData({ ...editData, status: v, ...(v === 'Annulé' ? { needs_shooting: false } : {}) })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Planifié">Planned</SelectItem>
@@ -978,7 +978,7 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                   </div>
 
                   {!isReadOnly && (
-                    <div className="flex items-center justify-between py-1">
+                    <div className={`flex items-center justify-between py-1 ${editData.status === 'Annulé' ? "opacity-40 pointer-events-none" : ""}`}>
                       <Label className="text-sm text-slate-600">Need a shooting</Label>
                       <button
                         type="button"
