@@ -262,11 +262,6 @@ export default function Dashboard() {
           </div>
         </Link>
 
-        {/* Today's Tasks */}
-        <div className="h-auto lg:h-[420px]">
-          <TodayTasksWidget />
-        </div>
-
         {/* Production Tracker */}
         <div className="h-auto lg:h-[420px]">
           <ProductionWidget />
