@@ -146,23 +146,35 @@ export default function AdminProjects() {
     }
   };
 
+  const isAdminAssign = (freelancerId) => freelancerId === "__admin__";
+
   const handleCreate = async (forceStatus) => {
     if (!form.title || !form.client_name) return;
     try {
       setLoading(true);
+      const adminSelf = isAdminAssign(form.freelancer_id);
+      const resolvedStatus = forceStatus ?? (
+        adminSelf ? "In progress" :
+        form.freelancer_id ? "Pending acceptance" : "Unassigned"
+      );
       const payload = {
         title: form.title,
         client_name: form.client_name,
-        status: forceStatus ?? (form.freelancer_id ? "Pending acceptance" : "Unassigned"),
+        status: resolvedStatus,
         ...(form.description && { description: form.description }),
         ...(form.notes && { notes: form.notes }),
         ...(form.url && { url: form.url }),
         images: form.images || [],
         brief_files: form.brief_files || [],
-        ...(form.freelancer_id && { freelancer_id: form.freelancer_id, freelancer_name: form.freelancer_name }),
+        ...(adminSelf
+          ? { freelancer_id: null, freelancer_name: form.freelancer_name }
+          : form.freelancer_id
+            ? { freelancer_id: form.freelancer_id, freelancer_name: form.freelancer_name }
+            : {}
+        ),
       };
       await base44.entities.Project.create(payload);
-      if (form.freelancer_id) {
+      if (form.freelancer_id && !adminSelf) {
         await sendFreelancerNotif(
           form.freelancer_id,
           `📋 New project: ${form.title}`,
@@ -185,13 +197,20 @@ export default function AdminProjects() {
     setLoading(true);
     try {
       const project = projects.find(p => p.id === projectId);
-      await base44.entities.Project.update(projectId, { freelancer_id: freelancerId, freelancer_name: freelancerName, status: "Pending acceptance" });
-      await sendFreelancerNotif(
-        freelancerId,
-        `📋 New project: ${project?.title || ""}`,
-        `You have been assigned the project "${project?.title || ""}"${project?.client_name ? ` for ${project.client_name}` : ""}. Please review and accept or decline.`,
-        'project_assigned'
-      );
+      const adminSelf = isAdminAssign(freelancerId);
+      await base44.entities.Project.update(projectId, {
+        freelancer_id: adminSelf ? null : freelancerId,
+        freelancer_name: freelancerName,
+        status: adminSelf ? "In progress" : "Pending acceptance",
+      });
+      if (!adminSelf) {
+        await sendFreelancerNotif(
+          freelancerId,
+          `📋 New project: ${project?.title || ""}`,
+          `You have been assigned the project "${project?.title || ""}"${project?.client_name ? ` for ${project.client_name}` : ""}. Please review and accept or decline.`,
+          'project_assigned'
+        );
+      }
       refetch();
       setReassignOpen(null);
     } catch (e) {
@@ -276,6 +295,11 @@ export default function AdminProjects() {
     setLoading(true);
     try {
       const { id, created_at, updated_at, status, ...payload } = editingProject;
+      // Resolve __admin__ sentinel: clear freelancer_id but keep name
+      if (payload.freelancer_id === "__admin__") {
+        payload.freelancer_id = null;
+        payload.freelancer_name = currentAdminName;
+      }
       await base44.entities.Project.update(id, payload);
       setEditingProject(null);
       refetch();
@@ -462,10 +486,12 @@ export default function AdminProjects() {
                 </Select>
               </div>
             </div>
-            <div><Label>Assign to freelancer</Label>
+            <div><Label>Assign to</Label>
               <Select value={form.freelancer_id || "_none"} onValueChange={v => {
                 if (v === "_none") {
                   setForm(f => ({ ...f, freelancer_id: "", freelancer_name: "" }));
+                } else if (v === "__admin__") {
+                  setForm(f => ({ ...f, freelancer_id: "__admin__", freelancer_name: currentAdminName }));
                 } else {
                   const fl = allFreelancers.find(x => x.id === v);
                   setForm(f => ({ ...f, freelancer_id: v, freelancer_name: fl?.name || "" }));
@@ -474,6 +500,7 @@ export default function AdminProjects() {
                 <SelectTrigger><SelectValue placeholder="None (assign later)" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_none">None (assign later)</SelectItem>
+                  <SelectItem value="__admin__">⭐ {currentAdminName} (me)</SelectItem>
                   {allFreelancers.map(fl => (
                     <SelectItem key={fl.id} value={fl.id}>
                       {fl.name}{fl.status === "Indisponible" ? " — unavailable" : ""}
@@ -534,6 +561,15 @@ export default function AdminProjects() {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Assign: {reassignOpen?.title}</DialogTitle></DialogHeader>
           <div className="space-y-2 mt-2">
+            {/* Admin self-assign */}
+            <button onClick={() => handleAssign(reassignOpen.id, "__admin__", currentAdminName)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-brand/30 bg-brand/5 hover:bg-brand/10 transition-all text-left">
+              <div>
+                <p className="text-sm font-medium text-slate-800">⭐ {currentAdminName} <span className="text-xs text-brand font-normal">(me)</span></p>
+                <p className="text-xs text-slate-400">Admin · starts immediately</p>
+              </div>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-brand/10 text-brand">In progress</span>
+            </button>
             {allFreelancers.map(f => (
               <button key={f.id} onClick={() => handleAssign(reassignOpen.id, f.id, f.name)}
                 className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-100 hover:border-brand/30 hover:bg-brand/5 transition-all text-left">
@@ -568,18 +604,27 @@ export default function AdminProjects() {
                   </Select>
                 </div>
               </div>
-              <div><Label>Freelancer</Label>
-                <Select value={editingProject.freelancer_id || "_none"} onValueChange={v => {
-                  if (v === "_none") {
-                    setEditingProject(p => ({ ...p, freelancer_id: "", freelancer_name: "" }));
-                  } else {
-                    const fl = allFreelancers.find(x => x.id === v);
-                    setEditingProject(p => ({ ...p, freelancer_id: v, freelancer_name: fl?.name || "" }));
+              <div><Label>Assign to</Label>
+                <Select
+                  value={
+                    !editingProject.freelancer_id && editingProject.freelancer_name === currentAdminName
+                      ? "__admin__"
+                      : editingProject.freelancer_id || "_none"
                   }
-                }}>
+                  onValueChange={v => {
+                    if (v === "_none") {
+                      setEditingProject(p => ({ ...p, freelancer_id: null, freelancer_name: "" }));
+                    } else if (v === "__admin__") {
+                      setEditingProject(p => ({ ...p, freelancer_id: null, freelancer_name: currentAdminName }));
+                    } else {
+                      const fl = allFreelancers.find(x => x.id === v);
+                      setEditingProject(p => ({ ...p, freelancer_id: v, freelancer_name: fl?.name || "" }));
+                    }
+                  }}>
                   <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="_none">None</SelectItem>
+                    <SelectItem value="__admin__">⭐ {currentAdminName} (me)</SelectItem>
                     {allFreelancers.map(fl => <SelectItem key={fl.id} value={fl.id}>{fl.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
