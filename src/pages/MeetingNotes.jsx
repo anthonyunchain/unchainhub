@@ -70,6 +70,7 @@ export default function MeetingNotes() {
       const { data, error } = await supabase
         .from("clients")
         .select("id, company_name")
+        .eq("status", "Actif")
         .order("company_name");
       if (error) throw error;
       return data || [];
