@@ -979,7 +979,7 @@ function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded, o
 const TAB_TITLES = {
   dashboard: "Dashboard",
   tasks: "My Tasks",
-  myprojects: "My Projects",
+  myprojects: "Production",
   projects: "Editorial Projects",
   tools: "Tools",
   meetings: "Meetings",
@@ -1290,7 +1290,7 @@ export default function FreelancerPortal() {
                 { id: 'todo', label: 'My To-Do' },
                 { id: 'tasks', label: 'Tasks' },
                 ...(workflowTaskCount > 0 ? [{ id: 'workflow', label: 'Workflow' }] : []),
-                { id: 'myprojects', label: 'Projects' },
+                { id: 'myprojects', label: 'Production' },
                 { id: 'projects', label: 'Calendar' },
 
                 ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas' }] : []),
@@ -1407,7 +1407,7 @@ export default function FreelancerPortal() {
               const TAB_TITLES = {
                 todo:        { title: 'My To-Do',       subtitle: 'Your personal task list' },
                 tasks:       { title: 'Tasks',           subtitle: 'Tasks assigned to you' },
-                myprojects:  { title: 'Projects',        subtitle: 'Projects assigned to you' },
+                myprojects:  { title: 'Production',      subtitle: 'Your projects & editorial to edit' },
                 // 'projects' intentionally omitted — Editorial.jsx renders its own PageHeader
                 calendar:    { title: 'Shared Calendars', subtitle: 'Editorial calendars shared with you' },
                 captions:    { title: 'Captions',         subtitle: 'Write captions for this month\'s content' },
@@ -1501,7 +1501,7 @@ export default function FreelancerPortal() {
               ? customNav.bottomBar(mobileIcons)
               : [
                 { id: "dashboard",  label: "Home",      Icon: LayoutDashboard },
-                { id: "myprojects", label: "Projects",  Icon: Briefcase },
+                { id: "myprojects", label: "Production", Icon: Briefcase },
                 { id: "projects",   label: "Editorial", Icon: CalendarDays },
                 { id: "invoices",   label: "Admin",     Icon: FileText },
               ];
