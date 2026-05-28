@@ -20,7 +20,7 @@ import {
   startOfMonth, endOfMonth, eachDayOfInterval, addMonths,
   isSameMonth
 } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 
 const TYPE_COLORS = {
   Reel: "bg-pink-100 text-pink-700",
@@ -266,13 +266,13 @@ export default function Editorial({ onDescriptionsClick } = {}) {
   const goToday = () => setCurrentDate(new Date());
 
   const navLabel = () => {
-    if (view === "day") return format(currentDate, "EEEE d MMMM yyyy", { locale: fr });
+    if (view === "day") return format(currentDate, "EEEE d MMMM yyyy", { locale: enUS });
     if (view === "week") {
       const ws = startOfWeek(currentDate, { weekStartsOn: 1 });
-      return `Week of ${format(ws, "d MMMM yyyy", { locale: fr })}`;
+      return `Week of ${format(ws, "d MMMM yyyy", { locale: enUS })}`;
     }
     if (view === "list") return "All content";
-    return format(currentDate, "MMMM yyyy", { locale: fr });
+    return format(currentDate, "MMMM yyyy", { locale: enUS });
   };
 
   // CONTENT CARD (calendar views)
@@ -330,7 +330,7 @@ export default function Editorial({ onDescriptionsClick } = {}) {
     return (
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-slate-800 capitalize">{format(currentDate, "EEEE d MMMM", { locale: fr })}</h3>
+          <h3 className="text-sm font-semibold text-slate-800 capitalize">{format(currentDate, "EEEE d MMMM", { locale: enUS })}</h3>
           {!isReadOnly && <button onClick={() => openNew(currentDate)} className="text-emerald-600 hover:text-emerald-700 text-sm flex items-center gap-1"><Plus className="w-3.5 h-3.5" />Add</button>}
         </div>
         {dayContent.length === 0 ? (
@@ -384,7 +384,7 @@ export default function Editorial({ onDescriptionsClick } = {}) {
           >
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <p className="text-[10px] text-slate-400 uppercase">{format(day, "EEE", { locale: fr })}</p>
+                  <p className="text-[10px] text-slate-400 uppercase">{format(day, "EEE", { locale: enUS })}</p>
                   <p className={`text-sm font-semibold ${isToday ? "text-[#2A69FF]" : "text-slate-700"}`}>{format(day, "d")}</p>
                 </div>
                 {!isReadOnly && <button onClick={() => openNew(day)} className="text-slate-300 hover:text-emerald-500 transition-colors">
@@ -537,7 +537,7 @@ export default function Editorial({ onDescriptionsClick } = {}) {
               <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50/50 group"
                 style={isCancelled ? { filter: 'grayscale(1)', opacity: 0.5 } : undefined}>
                 <td className="px-5 py-3 text-sm text-slate-500 whitespace-nowrap">
-                  {c.scheduled_date ? format(new Date(c.scheduled_date), "d MMM yyyy", { locale: fr }) : "—"}
+                  {c.scheduled_date ? format(new Date(c.scheduled_date), "d MMM yyyy", { locale: enUS }) : "—"}
                 </td>
                 <td className="px-5 py-3 text-sm font-medium text-slate-800">{c.client_name || "—"}</td>
                 <td className="px-5 py-3 text-sm text-slate-700 max-w-[200px] truncate"
@@ -629,7 +629,7 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                 {advanceItems.map(c => (
                   <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50/50 group">
                     <td className="px-5 py-3 text-sm text-slate-500 whitespace-nowrap">
-                      {c.scheduled_date ? format(new Date(c.scheduled_date), "d MMM yyyy", { locale: fr }) : "—"}
+                      {c.scheduled_date ? format(new Date(c.scheduled_date), "d MMM yyyy", { locale: enUS }) : "—"}
                     </td>
                     <td className="px-5 py-3 text-sm font-medium text-slate-800">{c.client_name || "—"}</td>
                     <td className="px-5 py-3 text-sm text-slate-700 max-w-[200px] truncate">{c.title || c.description || "Untitled"}</td>
