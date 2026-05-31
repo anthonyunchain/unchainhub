@@ -431,6 +431,16 @@ export default function ClientDetail() {
                 </Button>
               </>
             )}
+            {client.portal_token && (
+              <Button variant="outline" size="sm" className="h-8 gap-1"
+                onClick={() => {
+                  const url = `${window.location.origin}/portal/${client.portal_token}`;
+                  navigator.clipboard.writeText(url).catch(() => {});
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }}>
+                <ExternalLink className="w-3.5 h-3.5 text-violet-500" /> Portal V2
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={openEdit} className="h-8 gap-1">
               <Pencil className="w-3.5 h-3.5" /> Edit
             </Button>
@@ -1003,10 +1013,45 @@ export default function ClientDetail() {
               <p className="text-sm text-slate-400">No PDFs yet — upload one per month.</p>
             )}
           </div>
+
+          {/* Production Schedule PDFs */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <p className="text-sm font-semibold text-slate-700 mb-3">Production Schedule PDFs</p>
+            <div className="flex gap-2 mb-3">
+              <label className={`cursor-pointer text-xs text-white bg-[#2A69FF] hover:opacity-90 px-3 py-1.5 rounded-lg flex items-center gap-1 ${uploadingCalPdf ? "opacity-50 pointer-events-none" : ""}`}>
+                <Upload className="w-3 h-3" /> Upload PDF
+                <input type="file" className="hidden" accept=".pdf" onChange={async (e) => {
+                  const file = e.target.files?.[0]; if (!file) return;
+                  setUploadingCalPdf(true);
+                  const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                  const existing = Array.isArray(client.production_schedule_pdfs) ? client.production_schedule_pdfs : [];
+                  await updateMut.mutateAsync({ id: client.id, d: { ...client, production_schedule_pdfs: [...existing, file_url] } });
+                  setUploadingCalPdf(false); e.target.value = "";
+                }} />
+              </label>
+            </div>
+            {(client.production_schedule_pdfs || []).length > 0 ? (
+              <div className="space-y-1.5">
+                {(client.production_schedule_pdfs || []).map((url, i) => (
+                  <div key={i} className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-[#2A69FF] hover:underline truncate">
+                      <ExternalLink className="w-3 h-3 shrink-0" />Schedule {i + 1}
+                    </a>
+                    <button onClick={async () => {
+                      const updated = (client.production_schedule_pdfs || []).filter((_, idx) => idx !== i);
+                      await updateMut.mutateAsync({ id: client.id, d: { ...client, production_schedule_pdfs: updated } });
+                    }} className="text-slate-300 hover:text-red-400 ml-2 shrink-0"><X className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400">No production schedule PDFs yet.</p>
+            )}
+          </div>
         </div>
       )}
 
-      {/* STAFF — all staff submissions in one view */}
+      {/* STAFF ��� all staff submissions in one view */}
       {activeTab === "staff" && (() => {
         const roles = client.staff_roles;
         const hasRoles = Array.isArray(roles) && roles.length > 0;

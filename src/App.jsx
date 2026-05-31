@@ -9,6 +9,7 @@ import { useAppBadge } from '@/lib/useAppBadge';
 import { ConfirmProvider } from '@/lib/confirm';
 import LoginPage from './pages/LoginPage';
 import { useEffect, useState, Component, lazy, Suspense } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '@/api/base44Client';
 
 class ErrorBoundary extends Component {
@@ -55,6 +56,7 @@ const ContentDescriptions = lazy(() => import('./pages/ContentDescriptions'));
 const FreelancerPortal    = lazy(() => import('./pages/FreelancerPortal'));
 const FreelancerAdmin     = lazy(() => import('./pages/FreelancerAdmin'));
 const ClientPortal        = lazy(() => import('./pages/ClientPortal'));
+const ClientPortalV2      = lazy(() => import('./pages/ClientPortalV2'));
 const StaffPortal         = lazy(() => import('./pages/StaffPortal'));
 const Ideas               = lazy(() => import('./pages/Ideas'));
 const Production          = lazy(() => import('./pages/Production'));
@@ -76,6 +78,19 @@ const Spinner = () => (
 );
 
 const AuthenticatedApp = () => {
+  const location = useLocation();
+
+  // Public token-based portal — no auth required
+  if (location.pathname.startsWith('/portal/')) {
+    return (
+      <Suspense fallback={<Spinner />}>
+        <Routes>
+          <Route path="/portal/:token" element={<ClientPortalV2 />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   const { isLoadingAuth, isAuthenticated, isPasswordRecovery, user } = useAuth();
   useAppBadge(isAuthenticated ? user?.id : null);
 

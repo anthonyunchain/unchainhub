@@ -1164,6 +1164,32 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                       </label>
                     </div>
                   </div>
+
+                  {/* Portal V2 fields */}
+                  <div>
+                    <Label>Drive / content link (Portal V2)</Label>
+                    <input
+                      type="url"
+                      value={editData.drive_url || ""}
+                      onChange={e => setEditData({ ...editData, drive_url: e.target.value })}
+                      placeholder="https://drive.google.com/…"
+                      className="w-full mt-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#2A69FF]"
+                    />
+                  </div>
+                  <div>
+                    <Label>Cover image URL (Portal V2)</Label>
+                    <input
+                      type="url"
+                      value={editData.cover_image_url || ""}
+                      onChange={e => setEditData({ ...editData, cover_image_url: e.target.value })}
+                      placeholder="https://…"
+                      className="w-full mt-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#2A69FF]"
+                    />
+                  </div>
+                  <div>
+                    <Label>Reel caption / description (Portal V2)</Label>
+                    <Textarea value={editData.reel_description || ""} onChange={e => setEditData({ ...editData, reel_description: e.target.value })} rows={3} placeholder="Caption to copy-paste for this reel…" />
+                  </div>
                 </div>
               )}
 
