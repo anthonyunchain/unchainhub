@@ -29,6 +29,13 @@ const TR = {
     notifBlocked: "Blocked", notifBlockedHelp: "Notifications are blocked. Enable them in your browser settings (tap the lock icon in the address bar → Notifications → Allow), then reload this page.",
     postToday: "Post today", postsThisMonth: "Posts this month",
     nextShooting: "Next shooting", noNextShooting: "No upcoming shooting",
+    nextContent: "Next content", noUpcomingContent: "No upcoming content", notifications: "Notifications",
+    nextMeeting: "Next meeting", noNextMeeting: "No upcoming meeting",
+    leavePortal: "Leave portal", leaveConfirm: "Leave the portal?",
+    sendRequest: "Send a request", reqMeeting: "Meeting request", reqQuestion: "Question",
+    reqSubject: "Subject (optional)", reqMessage: "Message", reqMessagePh: "Write your message…",
+    reqMeetingPh: "What would you like to discuss?", reqPreferredDate: "Preferred date", reqPreferredTime: "Preferred time",
+    reqSend: "Send", reqSent: "Request sent!", reqSentDesc: "We'll get back to you shortly.", reqAnother: "Send another",
     calendarPdf: "Calendar PDF", schedulePdf: "Production Schedule",
     copyCaption: "Copy caption", download: "Download",
     noContent: "No content found", noDocuments: "No documents shared yet",
@@ -59,6 +66,13 @@ const TR = {
     notifBlocked: "Estetty", notifBlockedHelp: "Ilmoitukset on estetty. Salli ne selaimen asetuksissa (napauta lukkokuvaketta osoiterivillä → Ilmoitukset → Salli) ja lataa sivu uudelleen.",
     postToday: "Julkaise tänään", postsThisMonth: "Julkaisut tässä kuussa",
     nextShooting: "Seuraava kuvaus", noNextShooting: "Ei tulevia kuvauksia",
+    nextContent: "Seuraava sisältö", noUpcomingContent: "Ei tulevia sisältöjä", notifications: "Ilmoitukset",
+    nextMeeting: "Seuraava tapaaminen", noNextMeeting: "Ei tulevia tapaamisia",
+    leavePortal: "Poistu portaalista", leaveConfirm: "Haluatko poistua portaalista?",
+    sendRequest: "Lähetä viesti", reqMeeting: "Kokoustoive", reqQuestion: "Kysymys",
+    reqSubject: "Aihe (valinnainen)", reqMessage: "Viesti", reqMessagePh: "Kirjoita viestisi…",
+    reqMeetingPh: "Mitä haluaisit käsitellä?", reqPreferredDate: "Toivottu päivä", reqPreferredTime: "Toivottu aika",
+    reqSend: "Lähetä", reqSent: "Viesti lähetetty!", reqSentDesc: "Otamme sinuun yhteyttä pian.", reqAnother: "Lähetä uusi viesti",
     calendarPdf: "Kalenteri PDF", schedulePdf: "Tuotantoaikataulu",
     copyCaption: "Kopioi kuvateksti", download: "Lataa",
     noContent: "Sisältöä ei löydy", noDocuments: "Ei jaettuja dokumentteja",
@@ -89,6 +103,13 @@ const TR = {
     notifBlocked: "Bloqué", notifBlockedHelp: "Les notifications sont bloquées. Activez-les dans les réglages du navigateur (icône cadenas dans la barre d'adresse → Notifications → Autoriser), puis rechargez la page.",
     postToday: "À publier aujourd'hui", postsThisMonth: "Publications ce mois-ci",
     nextShooting: "Prochain shooting", noNextShooting: "Aucun shooting à venir",
+    nextContent: "Prochain contenu", noUpcomingContent: "Aucun contenu à venir", notifications: "Notifications",
+    nextMeeting: "Prochain rendez-vous", noNextMeeting: "Aucun rendez-vous à venir",
+    leavePortal: "Quitter le portail", leaveConfirm: "Quitter le portail ?",
+    sendRequest: "Envoyer une demande", reqMeeting: "Demande de rendez-vous", reqQuestion: "Question",
+    reqSubject: "Sujet (facultatif)", reqMessage: "Message", reqMessagePh: "Écrivez votre message…",
+    reqMeetingPh: "De quoi souhaitez-vous discuter ?", reqPreferredDate: "Date souhaitée", reqPreferredTime: "Heure souhaitée",
+    reqSend: "Envoyer", reqSent: "Demande envoyée !", reqSentDesc: "Nous vous répondrons rapidement.", reqAnother: "Envoyer une autre",
     calendarPdf: "Calendrier PDF", schedulePdf: "Planning de production",
     copyCaption: "Copier la légende", download: "Télécharger",
     noContent: "Aucun contenu", noDocuments: "Aucun document partagé",
@@ -119,6 +140,13 @@ const TR = {
     notifBlocked: "Blockiert", notifBlockedHelp: "Benachrichtigungen sind blockiert. Aktiviere sie in den Browser-Einstellungen (Schloss-Symbol in der Adressleiste → Benachrichtigungen → Zulassen) und lade die Seite neu.",
     postToday: "Heute posten", postsThisMonth: "Beiträge diesen Monat",
     nextShooting: "Nächstes Shooting", noNextShooting: "Kein anstehendes Shooting",
+    nextContent: "Nächster Inhalt", noUpcomingContent: "Keine anstehenden Inhalte", notifications: "Benachrichtigungen",
+    nextMeeting: "Nächstes Treffen", noNextMeeting: "Kein anstehendes Treffen",
+    leavePortal: "Portal verlassen", leaveConfirm: "Portal verlassen?",
+    sendRequest: "Anfrage senden", reqMeeting: "Terminanfrage", reqQuestion: "Frage",
+    reqSubject: "Betreff (optional)", reqMessage: "Nachricht", reqMessagePh: "Schreibe deine Nachricht…",
+    reqMeetingPh: "Worüber möchtest du sprechen?", reqPreferredDate: "Wunschdatum", reqPreferredTime: "Wunschzeit",
+    reqSend: "Senden", reqSent: "Anfrage gesendet!", reqSentDesc: "Wir melden uns in Kürze.", reqAnother: "Weitere senden",
     calendarPdf: "Kalender PDF", schedulePdf: "Produktionsplan",
     copyCaption: "Caption kopieren", download: "Herunterladen",
     noContent: "Keine Inhalte", noDocuments: "Noch keine Dokumente geteilt",
@@ -149,6 +177,13 @@ const TR = {
     notifBlocked: "Blockerad", notifBlockedHelp: "Notiser är blockerade. Aktivera dem i webbläsarinställningarna (låsikonen i adressfältet → Notiser → Tillåt) och ladda om sidan.",
     postToday: "Publicera idag", postsThisMonth: "Inlägg denna månad",
     nextShooting: "Nästa shooting", noNextShooting: "Ingen kommande shooting",
+    nextContent: "Nästa innehåll", noUpcomingContent: "Inget kommande innehåll", notifications: "Notiser",
+    nextMeeting: "Nästa möte", noNextMeeting: "Inget kommande möte",
+    leavePortal: "Lämna portalen", leaveConfirm: "Lämna portalen?",
+    sendRequest: "Skicka en förfrågan", reqMeeting: "Mötesförfrågan", reqQuestion: "Fråga",
+    reqSubject: "Ämne (valfritt)", reqMessage: "Meddelande", reqMessagePh: "Skriv ditt meddelande…",
+    reqMeetingPh: "Vad vill du diskutera?", reqPreferredDate: "Önskat datum", reqPreferredTime: "Önskad tid",
+    reqSend: "Skicka", reqSent: "Förfrågan skickad!", reqSentDesc: "Vi återkommer snart.", reqAnother: "Skicka en till",
     calendarPdf: "Kalender PDF", schedulePdf: "Produktionsschema",
     copyCaption: "Kopiera bildtext", download: "Ladda ner",
     noContent: "Inget innehåll", noDocuments: "Inga dokument delade ännu",
@@ -179,6 +214,13 @@ const TR = {
     notifBlocked: "Blokkert", notifBlockedHelp: "Varsler er blokkert. Aktiver dem i nettleserinnstillingene (låsikonet i adressefeltet → Varsler → Tillat) og last siden på nytt.",
     postToday: "Publiser i dag", postsThisMonth: "Innlegg denne måneden",
     nextShooting: "Neste shooting", noNextShooting: "Ingen kommende shooting",
+    nextContent: "Neste innhold", noUpcomingContent: "Ingen kommende innhold", notifications: "Varsler",
+    nextMeeting: "Neste møte", noNextMeeting: "Ingen kommende møte",
+    leavePortal: "Forlat portalen", leaveConfirm: "Forlate portalen?",
+    sendRequest: "Send en forespørsel", reqMeeting: "Møteforespørsel", reqQuestion: "Spørsmål",
+    reqSubject: "Emne (valgfritt)", reqMessage: "Melding", reqMessagePh: "Skriv meldingen din…",
+    reqMeetingPh: "Hva vil du diskutere?", reqPreferredDate: "Ønsket dato", reqPreferredTime: "Ønsket tid",
+    reqSend: "Send", reqSent: "Forespørsel sendt!", reqSentDesc: "Vi tar kontakt snart.", reqAnother: "Send en til",
     calendarPdf: "Kalender PDF", schedulePdf: "Produksjonsplan",
     copyCaption: "Kopier bildetekst", download: "Last ned",
     noContent: "Ingen innhold", noDocuments: "Ingen dokumenter delt ennå",
@@ -317,23 +359,53 @@ function CopyButton({ value, label }) {
 }
 
 // ── Rotating greetings ────────────────────────────────────────────────────────
-const GREETINGS_EN = [
-  (name) => `Good to see you, ${name}.`,
-  (name) => `Welcome back, ${name}.`,
-  (name) => `Hello, ${name}! Here's your overview.`,
-  (name) => `Hi ${name}, your content is ready.`,
-  (name) => `Everything's in order, ${name}.`,
-];
-const GREETINGS_FI = [
-  (name) => `Hienoa nähdä sinut, ${name}.`,
-  (name) => `Tervetuloa takaisin, ${name}.`,
-  (name) => `Hei ${name}! Tässä yhteenveto.`,
-  (name) => `Hei ${name}, sisältösi on valmis.`,
-  (name) => `Kaikki kunnossa, ${name}.`,
-];
+const GREETINGS = {
+  en: [
+    (n) => `Good to see you, ${n}.`,
+    (n) => `Welcome back, ${n}.`,
+    (n) => `Hello, ${n}! Here's your overview.`,
+    (n) => `Hi ${n}, your content is ready.`,
+    (n) => `Everything's in order, ${n}.`,
+  ],
+  fi: [
+    (n) => `Hienoa nähdä sinut, ${n}.`,
+    (n) => `Tervetuloa takaisin, ${n}.`,
+    (n) => `Hei ${n}! Tässä yhteenveto.`,
+    (n) => `Hei ${n}, sisältösi on valmis.`,
+    (n) => `Kaikki kunnossa, ${n}.`,
+  ],
+  fr: [
+    (n) => `Ravi de vous revoir, ${n}.`,
+    (n) => `Bon retour, ${n}.`,
+    (n) => `Bonjour ${n} ! Voici votre aperçu.`,
+    (n) => `Bonjour ${n}, votre contenu est prêt.`,
+    (n) => `Tout est en ordre, ${n}.`,
+  ],
+  de: [
+    (n) => `Schön, dich zu sehen, ${n}.`,
+    (n) => `Willkommen zurück, ${n}.`,
+    (n) => `Hallo ${n}! Hier ist deine Übersicht.`,
+    (n) => `Hallo ${n}, dein Content ist bereit.`,
+    (n) => `Alles in Ordnung, ${n}.`,
+  ],
+  sv: [
+    (n) => `Kul att se dig, ${n}.`,
+    (n) => `Välkommen tillbaka, ${n}.`,
+    (n) => `Hej ${n}! Här är din översikt.`,
+    (n) => `Hej ${n}, ditt innehåll är klart.`,
+    (n) => `Allt är i ordning, ${n}.`,
+  ],
+  no: [
+    (n) => `Hyggelig å se deg, ${n}.`,
+    (n) => `Velkommen tilbake, ${n}.`,
+    (n) => `Hei ${n}! Her er oversikten din.`,
+    (n) => `Hei ${n}, innholdet ditt er klart.`,
+    (n) => `Alt er i orden, ${n}.`,
+  ],
+};
 
 function getGreeting(lang, name) {
-  const list = lang === 'fi' ? GREETINGS_FI : GREETINGS_EN;
+  const list = GREETINGS[lang] || GREETINGS.en;
   const idx = new Date().getDay() % list.length;
   return list[idx](name);
 }
@@ -378,7 +450,7 @@ function HomeTab({ client = {}, content = [], shootings = [], onTabChange, tr, d
         style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 130 }}
         onClick={() => onTabChange('content')}>
         <p className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-          {lang === 'fi' ? 'Seuraava sisältö' : 'Next content'}
+          {tr.nextContent}
         </p>
         {nextContent ? (
           <div className="mt-2">
@@ -399,7 +471,7 @@ function HomeTab({ client = {}, content = [], shootings = [], onTabChange, tr, d
         ) : (
           <div className="mt-2">
             <p className="text-2xl font-bold" style={{ color: 'var(--ink)' }}>—</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{lang === 'fi' ? 'Ei tulevia sisältöjä' : 'No upcoming content'}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{tr.noUpcomingContent}</p>
           </div>
         )}
         <Image size={16} style={{ color: 'var(--brand)', marginTop: 8, opacity: 0.4 }} />
@@ -425,7 +497,7 @@ function HomeTab({ client = {}, content = [], shootings = [], onTabChange, tr, d
         style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 120 }}
         onClick={() => onTabChange('shootings')}>
         <p className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-          {lang === 'fi' ? 'Seuraava tapaaminen' : 'Next meeting'}
+          {tr.nextMeeting}
         </p>
         {nextShooting ? (
           <div>
@@ -434,7 +506,7 @@ function HomeTab({ client = {}, content = [], shootings = [], onTabChange, tr, d
             {nextShooting.location && <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'var(--muted)' }}><MapPin className="w-3 h-3" />{nextShooting.location}</p>}
           </div>
         ) : (
-          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>{lang === 'fi' ? 'Ei tulevia tapaamisia' : 'No upcoming meeting'}</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>{tr.noNextMeeting}</p>
         )}
         <Camera size={18} style={{ color: 'var(--brand)', marginTop: 8, opacity: 0.5 }} />
       </div>
@@ -994,8 +1066,8 @@ function TutorialsTab({ tutorials = [], trainingPdfUrl, tr }) {
 // ── Admin tab ─────────────────────────────────────────────────────────────────
 // ── Contact / Meeting Request Form ───────────────────────────────────────────
 const REQUEST_TYPES = [
-  { key: 'meeting',  labelEn: 'Meeting request',  labelFi: 'Kokoustoive',   icon: '📅' },
-  { key: 'question', labelEn: 'Question',          labelFi: 'Kysymys',       icon: '💬' },
+  { key: 'meeting',  trKey: 'reqMeeting',  icon: '📅' },
+  { key: 'question', trKey: 'reqQuestion', icon: '💬' },
 ];
 
 function ContactRequestForm({ token, tr }) {
@@ -1023,7 +1095,7 @@ function ContactRequestForm({ token, tr }) {
       });
       if (res?.data?.error) throw new Error(res.data.error);
       setSubmitted(true);
-      toast.success(lang === 'fi' ? 'Viesti lähetetty!' : 'Request sent!');
+      toast.success(tr.reqSent);
     } catch (e) {
       toast.error(e.message || 'Error sending request');
     } finally {
@@ -1036,19 +1108,15 @@ function ContactRequestForm({ token, tr }) {
 
   return (
     <div className="space-y-2">
-      <p className="text-label-mono">{lang === 'fi' ? 'Lähetä viesti' : 'Send a request'}</p>
+      <p className="text-label-mono">{tr.sendRequest}</p>
       <div className="rounded-2xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
         {submitted ? (
           <div className="py-6 text-center space-y-3">
             <p className="text-3xl">✅</p>
-            <p className="font-semibold text-sm" style={{ color: 'var(--ink)' }}>
-              {lang === 'fi' ? 'Viesti lähetetty!' : 'Request sent!'}
-            </p>
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>
-              {lang === 'fi' ? 'Otamme sinuun yhteyttä pian.' : "We'll get back to you shortly."}
-            </p>
+            <p className="font-semibold text-sm" style={{ color: 'var(--ink)' }}>{tr.reqSent}</p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>{tr.reqSentDesc}</p>
             <button onClick={reset} className="text-xs underline" style={{ color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer' }}>
-              {lang === 'fi' ? 'Lähetä uusi viesti' : 'Send another'}
+              {tr.reqAnother}
             </button>
           </div>
         ) : (
@@ -1059,7 +1127,7 @@ function ContactRequestForm({ token, tr }) {
                 <button type="button" key={t.key} onClick={() => setType(t.key)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
                   style={{ background: type === t.key ? 'var(--brand)' : 'var(--bg)', color: type === t.key ? '#fff' : 'var(--muted)', border: '1px solid var(--divider)', cursor: 'pointer' }}>
-                  {t.icon} {lang === 'fi' ? t.labelFi : t.labelEn}
+                  {t.icon} {tr[t.trKey]}
                 </button>
               ))}
             </div>
@@ -1069,7 +1137,7 @@ function ContactRequestForm({ token, tr }) {
               type="text"
               value={subject}
               onChange={e => setSubject(e.target.value)}
-              placeholder={lang === 'fi' ? 'Aihe (valinnainen)' : 'Subject (optional)'}
+              placeholder={tr.reqSubject}
               className="w-full px-3 py-2 text-sm rounded-xl border"
               style={inputStyle}
             />
@@ -1078,16 +1146,12 @@ function ContactRequestForm({ token, tr }) {
             {isMeeting && (
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>
-                    {lang === 'fi' ? 'Toivottu päivä' : 'Preferred date'}
-                  </label>
+                  <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>{tr.reqPreferredDate}</label>
                   <input type="date" value={preferredDate} onChange={e => setPreferredDate(e.target.value)}
                     className="w-full px-3 py-2 text-sm rounded-xl border" style={inputStyle} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>
-                    {lang === 'fi' ? 'Toivottu aika' : 'Preferred time'}
-                  </label>
+                  <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>{tr.reqPreferredTime}</label>
                   <input type="time" value={preferredTime} onChange={e => setPreferredTime(e.target.value)}
                     className="w-full px-3 py-2 text-sm rounded-xl border" style={inputStyle} />
                 </div>
@@ -1096,19 +1160,13 @@ function ContactRequestForm({ token, tr }) {
 
             {/* Message */}
             <div>
-              <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>
-                {lang === 'fi' ? 'Message *' : 'Message *'}
-              </label>
+              <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>{tr.reqMessage} *</label>
               <textarea
                 value={message}
                 onChange={e => setMessage(e.target.value)}
                 rows={4}
                 required
-                placeholder={
-                  isMeeting
-                    ? (lang === 'fi' ? 'Mitä haluaisit käsitellä?' : "What would you like to discuss?")
-                    : (lang === 'fi' ? 'Kirjoita viestisi…' : 'Write your message…')
-                }
+                placeholder={isMeeting ? tr.reqMeetingPh : tr.reqMessagePh}
                 className="w-full px-3 py-2 text-sm rounded-xl border resize-none"
                 style={inputStyle}
               />
@@ -1118,7 +1176,7 @@ function ContactRequestForm({ token, tr }) {
               <button type="submit" disabled={submitting || !message.trim()}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
                 style={{ background: 'var(--brand)', color: '#fff', border: 'none', cursor: submitting ? 'wait' : 'pointer', opacity: (submitting || !message.trim()) ? 0.6 : 1 }}>
-                {submitting ? '…' : (lang === 'fi' ? 'Lähetä' : 'Send')}
+                {submitting ? '…' : tr.reqSend}
               </button>
             </div>
           </form>
@@ -1369,7 +1427,7 @@ function AdminTab({ client = {}, contracts = [], invoices = [], credentials = []
 
       {/* Notifications — posting reminders + portal notifications */}
       <div className="space-y-2">
-        <p className="text-label-mono">{lang === 'fi' ? 'Ilmoitukset' : 'Notifications'}</p>
+        <p className="text-label-mono">{tr.notifications}</p>
         {denied && (
           <div className="rounded-xl p-3 text-xs" style={{ background: 'var(--urgent-bg, #fef2f2)', color: 'var(--urgent-text, #b91c1c)', border: '1px solid var(--divider)' }}>
             {tr.notifBlockedHelp}
@@ -1409,14 +1467,14 @@ function AdminTab({ client = {}, contracts = [], invoices = [], credentials = []
       <div className="pt-2">
         <button
           onClick={() => {
-            if (window.confirm(lang === 'fi' ? 'Haluatko poistua portaalista?' : 'Leave the portal?')) {
+            if (window.confirm(tr.leaveConfirm)) {
               window.location.href = '/';
             }
           }}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold"
           style={{ background: 'var(--card)', border: '1px solid var(--divider)', color: 'var(--muted)', cursor: 'pointer' }}>
           <ExternalLink size={14} />
-          {lang === 'fi' ? 'Poistu portaalista' : 'Leave portal'}
+          {tr.leavePortal}
         </button>
       </div>
     </div>
