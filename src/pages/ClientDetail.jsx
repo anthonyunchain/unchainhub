@@ -161,6 +161,57 @@ function HubFileList({ label, hint, accept = ".pdf", urls = [], onUpload, onRemo
   );
 }
 
+function PhotoBankUploader({ client, save }) {
+  const [busy, setBusy] = useState(false);
+  const photos = (Array.isArray(client.photo_bank) ? client.photo_bank : [])
+    .map(p => (typeof p === "string" ? { url: p } : p)).filter(p => p && p.url);
+
+  const onFiles = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    setBusy(true);
+    try {
+      const uploaded = [];
+      for (const file of files) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        uploaded.push({ url: file_url, name: file.name });
+      }
+      await save({ photo_bank: [...photos, ...uploaded] });
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-800">Photo bank</p>
+          <p className="text-xs text-slate-400 mt-0.5">Permanent collection of pictures — shown in the client portal Photo Bank.</p>
+        </div>
+        <label className={`cursor-pointer inline-flex items-center gap-1.5 text-xs text-white bg-[#2A69FF] hover:opacity-90 px-3 py-1.5 rounded-lg shrink-0 ${busy ? "opacity-50 pointer-events-none" : ""}`}>
+          <Upload className="w-3 h-3" />{busy ? "Uploading…" : "Add photos"}
+          <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => { onFiles(e.target.files); e.target.value = ""; }} />
+        </label>
+      </div>
+      {photos.length === 0 ? (
+        <p className="text-xs text-slate-400">No photos yet.</p>
+      ) : (
+        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2">
+          {photos.map((p, i) => (
+            <div key={i} className="relative group rounded-lg overflow-hidden" style={{ aspectRatio: "1" }}>
+              <img src={p.url} alt={p.name || ""} className="w-full h-full object-cover" />
+              <button onClick={() => save({ photo_bank: photos.filter((_, idx) => idx !== i) })}
+                className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}>
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PortalHubTab({ client, updateMut, navigate }) {
   const save = (patch) => updateMut.mutateAsync({ id: client.id, d: { ...client, ...patch } });
   const calPdfs = Array.isArray(client.editorial_calendar_pdfs) ? client.editorial_calendar_pdfs : [];
@@ -169,27 +220,19 @@ function PortalHubTab({ client, updateMut, navigate }) {
 
   return (
     <div className="space-y-4">
-      {/* Quick links to full pages */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <button onClick={() => navigate("/Editorial")} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-left hover:border-[#2A69FF] transition-colors">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-800">Content & captions</p>
-              <p className="text-xs text-slate-400 mt-0.5">Create posts, dates, platform, captions, cover & files</p>
-            </div>
-            <ExternalLink className="w-4 h-4 text-[#2A69FF]" />
+      {/* Quick link to content */}
+      <button onClick={() => navigate("/Editorial")} className="w-full bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-left hover:border-[#2A69FF] transition-colors">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-800">Content & captions</p>
+            <p className="text-xs text-slate-400 mt-0.5">Create posts, dates, platform, captions, cover & files</p>
           </div>
-        </button>
-        <button onClick={() => navigate("/Shootings")} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-left hover:border-[#2A69FF] transition-colors">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-800">Photo bank (shoots)</p>
-              <p className="text-xs text-slate-400 mt-0.5">Upload shooting photos shown in the client portal</p>
-            </div>
-            <ExternalLink className="w-4 h-4 text-[#2A69FF]" />
-          </div>
-        </button>
-      </div>
+          <ExternalLink className="w-4 h-4 text-[#2A69FF]" />
+        </div>
+      </button>
+
+      {/* Photo bank — permanent collection of pictures */}
+      <PhotoBankUploader client={client} save={save} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <HubFileList label="Editorial calendar PDFs" hint="One per month — shown in the portal Calendar tab."
