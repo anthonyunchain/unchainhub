@@ -75,11 +75,49 @@ function urlBase64ToUint8Array(b64) {
   return arr;
 }
 
+// Ensure SW is registered (portal may be opened directly without main app)
+async function ensureSW() {
+  if (!('serviceWorker' in navigator)) return null;
+  // If already registered, return it
+  const existing = await navigator.serviceWorker.getRegistration('/');
+  if (existing) return existing;
+  // Register from portal
+  try {
+    return await navigator.serviceWorker.register('/sw.js');
+  } catch { return null; }
+}
+
+async function getSwReg() {
+  const reg = await ensureSW();
+  if (!reg) return null;
+  // Wait up to 5s for SW to activate
+  if (reg.active) return reg;
+  return new Promise((resolve) => {
+    const sw = reg.installing || reg.waiting;
+    if (!sw) { resolve(reg); return; }
+    const timer = setTimeout(() => resolve(reg), 5000);
+    sw.addEventListener('statechange', () => {
+      if (sw.state === 'activated') { clearTimeout(timer); resolve(reg); }
+    });
+  });
+}
+
 async function subscribePush(clientId, portalUrl) {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  if (!('PushManager' in window)) throw new Error('push_unsupported');
+  if (!('Notification' in window)) throw new Error('push_unsupported');
+
+  // iOS PWA check
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (isIos && !isStandalone) throw new Error('ios_install');
+
   const perm = await Notification.requestPermission();
+  if (perm === 'denied') throw new Error('push_denied');
   if (perm !== 'granted') return null;
-  const reg = await navigator.serviceWorker.ready;
+
+  const reg = await getSwReg();
+  if (!reg) throw new Error('sw_unavailable');
+
   const sub = await reg.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
@@ -97,13 +135,15 @@ async function subscribePush(clientId, portalUrl) {
 
 async function unsubscribePush(clientId) {
   if (!('serviceWorker' in navigator)) return;
-  const reg = await navigator.serviceWorker.ready;
-  const sub = await reg.pushManager.getSubscription();
-  if (sub) {
-    await base44.functions.invoke('registerClientPush', {
-      client_id: clientId, endpoint: sub.endpoint, unsubscribe: true,
-    }).catch(() => {});
-    await sub.unsubscribe();
+  const regs = await navigator.serviceWorker.getRegistrations();
+  for (const reg of regs) {
+    const sub = await reg.pushManager.getSubscription().catch(() => null);
+    if (sub) {
+      await base44.functions.invoke('registerClientPush', {
+        client_id: clientId, endpoint: sub.endpoint, unsubscribe: true,
+      }).catch(() => {});
+      await sub.unsubscribe();
+    }
   }
 }
 
@@ -146,8 +186,30 @@ function CopyButton({ value, label }) {
   );
 }
 
+// ── Rotating greetings ────────────────────────────────────────────────────────
+const GREETINGS_EN = [
+  (name) => `Good to see you, ${name}.`,
+  (name) => `Welcome back, ${name}.`,
+  (name) => `Hello, ${name}! Here's your overview.`,
+  (name) => `Hi ${name}, your content is ready.`,
+  (name) => `Everything's in order, ${name}.`,
+];
+const GREETINGS_FI = [
+  (name) => `Hienoa nähdä sinut, ${name}.`,
+  (name) => `Tervetuloa takaisin, ${name}.`,
+  (name) => `Hei ${name}! Tässä yhteenveto.`,
+  (name) => `Hei ${name}, sisältösi on valmis.`,
+  (name) => `Kaikki kunnossa, ${name}.`,
+];
+
+function getGreeting(lang, name) {
+  const list = lang === 'fi' ? GREETINGS_FI : GREETINGS_EN;
+  const idx = new Date().getDay() % list.length;
+  return list[idx](name);
+}
+
 // ── Home (Bento) ──────────────────────────────────────────────────────────────
-function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, onTogglePush, onTabChange, tr, dateLocale }) {
+function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, onTogglePush, onTabChange, tr, dateLocale, lang }) {
   const today = format(new Date(), 'yyyy-MM-dd');
   const thisMonth = format(new Date(), 'yyyy-MM');
   const monthPosts = content.filter(c => c.scheduled_date?.startsWith(thisMonth));
@@ -168,7 +230,16 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, on
     contentByDay[k].push(c);
   });
 
+  const greeting = getGreeting(lang, client.company_name || '');
+
   return (
+    <div className="space-y-3">
+
+      {/* Greeting — small, subtle */}
+      <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', fontFamily: "'Plus Jakarta Sans', sans-serif", padding: '4px 0' }}>
+        {greeting}
+      </p>
+
     <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'auto' }}>
 
       {/* Content Bank — large card */}
@@ -243,9 +314,9 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, on
             const has = (contentByDay[k] || []).length > 0;
             const isToday = isSameDay(day, new Date());
             return (
-              <div key={k} className="flex items-center justify-center" style={{ height: 22 }}>
-                <div className="flex items-center justify-center rounded-full text-[9px] font-semibold"
-                  style={{ width: 20, height: 20, background: isToday ? 'var(--brand)' : has ? 'var(--brand-muted)' : 'transparent', color: isToday ? '#fff' : has ? 'var(--brand)' : 'var(--subtle)', fontWeight: has || isToday ? 700 : 400 }}>
+              <div key={k} className="flex items-center justify-center" style={{ height: 28 }}>
+                <div className="flex items-center justify-center rounded-full text-[10px] font-semibold"
+                  style={{ width: 24, height: 24, background: isToday ? 'var(--brand)' : has ? 'var(--brand-muted)' : 'transparent', color: isToday ? '#fff' : has ? 'var(--brand)' : 'var(--subtle)', fontWeight: has || isToday ? 700 : 400 }}>
                   {format(day, 'd')}
                 </div>
               </div>
@@ -269,6 +340,7 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, on
         </button>
       </div>
 
+    </div>
     </div>
   );
 }
@@ -823,12 +895,26 @@ export default function ClientPortalV2() {
         const sub = await subscribePush(client.id, portalUrl);
         if (sub) {
           setPushSubscribed(true);
-          toast.success(lang === 'fi' ? 'Ilmoitukset otettu käyttöön!' : 'Notifications enabled!');
-        } else {
-          toast.error(lang === 'fi' ? 'Tarkista selaimen luvat.' : 'Check browser permissions.');
+          toast.success(lang === 'fi' ? 'Ilmoitukset otettu käyttöön! 🔔' : 'Notifications enabled! 🔔');
         }
       }
-    } catch (e) { toast.error(e.message); }
+    } catch (e) {
+      if (e.message === 'ios_install') {
+        toast(lang === 'fi'
+          ? 'Lisää sivu kotinäyttöön Safarissa ottaaksesi ilmoitukset käyttöön.'
+          : 'Add this page to your Home Screen in Safari to enable notifications.', { duration: 6000 });
+      } else if (e.message === 'push_denied') {
+        toast.error(lang === 'fi'
+          ? 'Ilmoitukset on estetty — salli ne selaimen asetuksissa.'
+          : 'Notifications blocked — allow them in your browser settings.');
+      } else if (e.message === 'push_unsupported') {
+        toast.error(lang === 'fi' ? 'Selaimesi ei tue push-ilmoituksia.' : 'Your browser does not support push notifications.');
+      } else if (e.message === 'sw_unavailable') {
+        toast.error(lang === 'fi' ? 'Service worker ei ole käytettävissä.' : 'Service worker unavailable. Try reloading the page.');
+      } else {
+        toast.error(e.message);
+      }
+    }
   };
 
   const TABS = [
@@ -905,7 +991,7 @@ export default function ClientPortalV2() {
 
       {/* Content */}
       <div className="mx-auto px-5" style={{ maxWidth: 1400, paddingBottom: 120 }}>
-        {activeTab === 'home'      && <HomeTab client={client} content={content} shootings={shootings} pushSubscribed={pushSubscribed} onTogglePush={handleTogglePush} onTabChange={setActiveTab} tr={tr} dateLocale={dateLocale} />}
+        {activeTab === 'home'      && <HomeTab client={client} content={content} shootings={shootings} pushSubscribed={pushSubscribed} onTogglePush={handleTogglePush} onTabChange={setActiveTab} tr={tr} dateLocale={dateLocale} lang={lang} />}
         {activeTab === 'calendar'  && <CalendarTab content={content} calendarPdfs={client.editorial_calendar_pdfs || []} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'shootings' && <ShootingsTab shootings={shootings} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'content'   && <ContentBankTab content={content} tr={tr} dateLocale={dateLocale} />}
