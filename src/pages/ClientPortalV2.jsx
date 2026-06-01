@@ -961,16 +961,8 @@ function DownloadChips({ c, tr }) { return <DownloadActions c={c} tr={tr} />; }
 
 // ── Content Bank tab ──────────────────────────────────────────────────────────
 function ContentBankTab({ content = [], tr, dateLocale }) {
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('all');
-  const [view, setView] = useState('list'); // list | gallery | plan
-
-  const filtered = content.filter(c => {
-    const q = search.toLowerCase();
-    const matchSearch = !q || c.title?.toLowerCase().includes(q) || c.description?.toLowerCase().includes(q) || c.platform?.toLowerCase().includes(q);
-    const matchFilter = filter === 'all' || c.post_type === filter;
-    return matchSearch && matchFilter;
-  });
+  const [view, setView] = useState('list'); // list | plan
+  const filtered = content;
 
   const VIEWS = [
     { key: 'list',    label: tr.viewList,    icon: FileText },
@@ -979,20 +971,6 @@ function ContentBankTab({ content = [], tr, dateLocale }) {
 
   return (
     <div className="space-y-4">
-      {/* Controls */}
-      <div className="flex gap-2 flex-wrap items-center">
-        <div className="relative flex-1 min-w-[160px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--muted)' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
-            className="w-full pl-8 pr-3 py-2 text-sm rounded-xl border" style={{ borderColor: 'var(--divider)', background: 'var(--card)', color: 'var(--ink)', outline: 'none' }} />
-        </div>
-        <select value={filter} onChange={e => setFilter(e.target.value)}
-          className="text-sm px-3 py-2 rounded-xl border" style={{ borderColor: 'var(--divider)', background: 'var(--card)', color: 'var(--ink)' }}>
-          <option value="all">{tr.all}</option>
-          {['Reel','Story','Carousel'].map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-      </div>
-
       {/* View switcher */}
       <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
         {VIEWS.map(v => {
