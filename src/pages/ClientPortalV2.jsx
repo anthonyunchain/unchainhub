@@ -341,6 +341,13 @@ const TYPE_COLOR = {
   Post:     "bg-blue-100 text-blue-700",
 };
 
+const TYPE_DOT = {
+  Reel:     "#ec4899",
+  Story:    "#f59e0b",
+  Carousel: "#8b5cf6",
+  Post:     "#3b82f6",
+};
+
 function fmtDate(d, fmt, locale) {
   try { return format(typeof d === 'string' ? parseISO(d) : d, fmt, { locale }); }
   catch { return ''; }
@@ -763,12 +770,13 @@ function ShootingsTab({ shootings = [], client = {}, tr, dateLocale }) {
           {/* Content to shoot */}
           {s.shotContent?.length > 0 && (
             <Section icon={Image} label={`${tr.shootContent} (${s.shotContent.length})`}>
-              <div className="space-y-1">
-                {s.shotContent.map(c => (
-                  <div key={c.id} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2" style={{ background: 'var(--bg)' }}>
-                    {c.post_type && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
-                    <span className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>{c.title}</span>
-                    {c.platform && <span className="text-[10px] ml-auto shrink-0" style={{ color: 'var(--muted)' }}>{c.platform}</span>}
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--divider)' }}>
+                {s.shotContent.map((c, i) => (
+                  <div key={c.id} className="flex items-center gap-3 px-3 py-2.5"
+                    style={{ borderTop: i ? '1px solid var(--divider)' : 'none' }}>
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: TYPE_DOT[c.post_type] || 'var(--muted)' }} />
+                    <span className="text-sm font-medium truncate flex-1" style={{ color: 'var(--ink)' }}>{c.title}</span>
+                    {c.platform && <span className="text-[11px] shrink-0" style={{ color: 'var(--muted)' }}>{c.platform}</span>}
                   </div>
                 ))}
               </div>
