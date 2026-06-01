@@ -75,38 +75,23 @@ function urlBase64ToUint8Array(b64) {
   return arr;
 }
 
-// Ensure SW is registered (portal may be opened directly without main app)
-async function ensureSW() {
+async function getReadySW() {
   if (!('serviceWorker' in navigator)) return null;
-  // If already registered, return it
-  const existing = await navigator.serviceWorker.getRegistration('/');
-  if (existing) return existing;
-  // Register from portal
+  // Register if not yet registered
   try {
-    return await navigator.serviceWorker.register('/sw.js');
-  } catch { return null; }
-}
-
-async function getSwReg() {
-  const reg = await ensureSW();
-  if (!reg) return null;
-  // Wait up to 5s for SW to activate
-  if (reg.active) return reg;
-  return new Promise((resolve) => {
-    const sw = reg.installing || reg.waiting;
-    if (!sw) { resolve(reg); return; }
-    const timer = setTimeout(() => resolve(reg), 5000);
-    sw.addEventListener('statechange', () => {
-      if (sw.state === 'activated') { clearTimeout(timer); resolve(reg); }
-    });
-  });
+    const regs = await navigator.serviceWorker.getRegistrations();
+    if (!regs.length) await navigator.serviceWorker.register('/sw.js');
+  } catch {}
+  // Race: SW ready vs 8s timeout
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('sw_unavailable')), 8000)),
+  ]);
 }
 
 async function subscribePush(clientId, portalUrl) {
-  if (!('PushManager' in window)) throw new Error('push_unsupported');
-  if (!('Notification' in window)) throw new Error('push_unsupported');
+  if (!('Notification' in window) || !('PushManager' in window)) throw new Error('push_unsupported');
 
-  // iOS PWA check
   const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   if (isIos && !isStandalone) throw new Error('ios_install');
@@ -115,7 +100,7 @@ async function subscribePush(clientId, portalUrl) {
   if (perm === 'denied') throw new Error('push_denied');
   if (perm !== 'granted') return null;
 
-  const reg = await getSwReg();
+  const reg = await getReadySW();
   if (!reg) throw new Error('sw_unavailable');
 
   const sub = await reg.pushManager.subscribe({
@@ -209,7 +194,7 @@ function getGreeting(lang, name) {
 }
 
 // ── Home (Bento) ──────────────────────────────────────────────────────────────
-function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, onTogglePush, onTabChange, tr, dateLocale, lang }) {
+function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pushLoading, onTogglePush, onTabChange, tr, dateLocale, lang }) {
   const today = format(new Date(), 'yyyy-MM-dd');
   const thisMonth = format(new Date(), 'yyyy-MM');
   const monthPosts = content.filter(c => c.scheduled_date?.startsWith(thisMonth));
@@ -296,28 +281,30 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, on
         <Camera size={18} style={{ color: 'var(--brand)', marginTop: 8, opacity: 0.5 }} />
       </div>
 
-      {/* Mini calendar preview */}
-      <div className="rounded-2xl p-4 cursor-pointer overflow-hidden"
+      {/* Mini calendar preview — full width */}
+      <div className="rounded-2xl p-5 cursor-pointer overflow-hidden"
         style={{ gridColumn: 'span 3', background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}
         onClick={() => onTabChange('calendar')}>
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{fmtDate(new Date(), 'MMMM yyyy', dateLocale)}</p>
           <Calendar size={14} style={{ color: 'var(--muted)' }} />
         </div>
-        <div className="grid grid-cols-7 gap-0.5">
+        <div className="grid grid-cols-7 gap-1">
           {['M','T','W','T','F','S','S'].map((d, i) => (
-            <div key={i} className="text-center text-[9px] font-mono pb-1" style={{ color: 'var(--muted)' }}>{d}</div>
+            <div key={i} className="text-center text-[10px] font-mono pb-1.5" style={{ color: 'var(--muted)' }}>{d}</div>
           ))}
           {calDays.map((day, i) => {
             if (!day) return <div key={`p-${i}`} />;
             const k = format(day, 'yyyy-MM-dd');
-            const has = (contentByDay[k] || []).length > 0;
+            const count = (contentByDay[k] || []).length;
             const isToday = isSameDay(day, new Date());
             return (
-              <div key={k} className="flex items-center justify-center" style={{ height: 28 }}>
-                <div className="flex items-center justify-center rounded-full text-[10px] font-semibold"
-                  style={{ width: 24, height: 24, background: isToday ? 'var(--brand)' : has ? 'var(--brand-muted)' : 'transparent', color: isToday ? '#fff' : has ? 'var(--brand)' : 'var(--subtle)', fontWeight: has || isToday ? 700 : 400 }}>
+              <div key={k} className="flex items-center justify-center" style={{ height: 36 }}>
+                <div className="flex flex-col items-center justify-center rounded-xl text-[11px] font-semibold w-full h-full"
+                  style={{ background: isToday ? 'var(--brand)' : count ? 'var(--brand-muted)' : 'transparent', color: isToday ? '#fff' : count ? 'var(--brand)' : 'var(--subtle)', fontWeight: count || isToday ? 700 : 400 }}>
                   {format(day, 'd')}
+                  {count > 0 && !isToday && <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--brand)', marginTop: 1 }} />}
+                  {isToday && count > 0 && <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,0.7)', marginTop: 1 }} />}
                 </div>
               </div>
             );
@@ -326,17 +313,17 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, on
       </div>
 
       {/* Push notification — compact */}
-      <div className="rounded-2xl p-3 flex flex-col justify-between"
+      <div className="rounded-2xl p-4 flex flex-col justify-between"
         style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
         <div>
           <p className="text-xs font-semibold" style={{ color: 'var(--ink)' }}>{tr.notifTitle}</p>
-          <p className="text-[10px] mt-0.5 leading-tight" style={{ color: 'var(--muted)' }}>{tr.notifDesc}</p>
+          <p className="text-[10px] mt-1 leading-tight" style={{ color: 'var(--muted)' }}>{tr.notifDesc}</p>
         </div>
-        <button onClick={onTogglePush}
+        <button onClick={onTogglePush} disabled={pushLoading}
           className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold"
-          style={{ background: pushSubscribed ? 'var(--brand)' : 'var(--bg)', color: pushSubscribed ? '#fff' : 'var(--ink)', border: '1px solid var(--divider)', cursor: 'pointer' }}>
-          {pushSubscribed ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
-          {pushSubscribed ? tr.notifOn : tr.notifOff}
+          style={{ background: pushSubscribed ? 'var(--brand)' : 'var(--bg)', color: pushSubscribed ? '#fff' : 'var(--ink)', border: '1px solid var(--divider)', cursor: pushLoading ? 'wait' : 'pointer', opacity: pushLoading ? 0.6 : 1 }}>
+          {pushLoading ? <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} /> : pushSubscribed ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
+          {pushLoading ? '…' : pushSubscribed ? tr.notifOn : tr.notifOff}
         </button>
       </div>
 
@@ -848,6 +835,7 @@ export default function ClientPortalV2() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
   const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
@@ -885,7 +873,8 @@ export default function ClientPortalV2() {
   const portalUrl = `${window.location.origin}/portal/${token}`;
 
   const handleTogglePush = async () => {
-    if (!client?.id) return;
+    if (!client?.id || pushLoading) return;
+    setPushLoading(true);
     try {
       if (pushSubscribed) {
         await unsubscribePush(client.id);
@@ -895,25 +884,27 @@ export default function ClientPortalV2() {
         const sub = await subscribePush(client.id, portalUrl);
         if (sub) {
           setPushSubscribed(true);
-          toast.success(lang === 'fi' ? 'Ilmoitukset otettu käyttöön! 🔔' : 'Notifications enabled! 🔔');
+          toast.success(lang === 'fi' ? 'Ilmoitukset käytössä! 🔔' : 'Notifications enabled! 🔔');
         }
       }
     } catch (e) {
       if (e.message === 'ios_install') {
         toast(lang === 'fi'
           ? 'Lisää sivu kotinäyttöön Safarissa ottaaksesi ilmoitukset käyttöön.'
-          : 'Add this page to your Home Screen in Safari to enable notifications.', { duration: 6000 });
+          : '📱 Add this page to your Home Screen in Safari to enable notifications.', { duration: 7000 });
       } else if (e.message === 'push_denied') {
         toast.error(lang === 'fi'
-          ? 'Ilmoitukset on estetty — salli ne selaimen asetuksissa.'
+          ? 'Ilmoitukset estetty — salli ne selaimen asetuksissa.'
           : 'Notifications blocked — allow them in your browser settings.');
       } else if (e.message === 'push_unsupported') {
-        toast.error(lang === 'fi' ? 'Selaimesi ei tue push-ilmoituksia.' : 'Your browser does not support push notifications.');
+        toast.error(lang === 'fi' ? 'Selain ei tue push-ilmoituksia.' : 'Push notifications not supported on this browser.');
       } else if (e.message === 'sw_unavailable') {
-        toast.error(lang === 'fi' ? 'Service worker ei ole käytettävissä.' : 'Service worker unavailable. Try reloading the page.');
+        toast.error(lang === 'fi' ? 'Lataa sivu uudelleen ja yritä uudelleen.' : 'Could not connect — try reloading the page.');
       } else {
-        toast.error(e.message);
+        toast.error(e.message || 'Something went wrong');
       }
+    } finally {
+      setPushLoading(false);
     }
   };
 
@@ -991,7 +982,7 @@ export default function ClientPortalV2() {
 
       {/* Content */}
       <div className="mx-auto px-5" style={{ maxWidth: 1400, paddingBottom: 120 }}>
-        {activeTab === 'home'      && <HomeTab client={client} content={content} shootings={shootings} pushSubscribed={pushSubscribed} onTogglePush={handleTogglePush} onTabChange={setActiveTab} tr={tr} dateLocale={dateLocale} lang={lang} />}
+        {activeTab === 'home'      && <HomeTab client={client} content={content} shootings={shootings} pushSubscribed={pushSubscribed} pushLoading={pushLoading} onTogglePush={handleTogglePush} onTabChange={setActiveTab} tr={tr} dateLocale={dateLocale} lang={lang} />}
         {activeTab === 'calendar'  && <CalendarTab content={content} calendarPdfs={client.editorial_calendar_pdfs || []} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'shootings' && <ShootingsTab shootings={shootings} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'content'   && <ContentBankTab content={content} tr={tr} dateLocale={dateLocale} />}
