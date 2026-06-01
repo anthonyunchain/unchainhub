@@ -438,7 +438,7 @@ export default function Clients() {
       </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setConfirmDelete(false); }}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editData?.id ? "Edit client" : "New client"}</DialogTitle></DialogHeader>
           {editData && (
             <div className="mt-2">
@@ -515,6 +515,19 @@ export default function Clients() {
                     <div>
                       <label htmlFor="editorial_visible" className="text-sm font-medium text-slate-700 cursor-pointer">Editorial calendar visible to freelancers</label>
                       <p className="text-xs text-slate-400 mt-0.5">Freelancers will see this client's calendar (read-only).</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-violet-50 border border-violet-200">
+                    <input
+                      type="checkbox"
+                      id="portal_v2_enabled"
+                      checked={editData.portal_v2_enabled || false}
+                      onChange={e => setEditData({ ...editData, portal_v2_enabled: e.target.checked })}
+                      className="w-4 h-4 accent-violet-600 cursor-pointer"
+                    />
+                    <div>
+                      <label htmlFor="portal_v2_enabled" className="text-sm font-medium text-slate-700 cursor-pointer">Activer Portal V2</label>
+                      <p className="text-xs text-slate-400 mt-0.5">Donne accès au nouveau portail client via un lien secret (sans connexion requise).</p>
                     </div>
                   </div>
                 </div>
