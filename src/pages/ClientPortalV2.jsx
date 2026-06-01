@@ -1051,30 +1051,82 @@ function ContentListView({ content, tr, dateLocale }) {
 
 // Gallery view — visual grid of covers
 function ContentGalleryView({ content, tr, dateLocale }) {
-  const [active, setActive] = useState(null);
   const sorted = [...content].sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || ''));
   return (
-    <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {sorted.map(c => (
-          <button key={c.id} onClick={() => setActive(c)} className="text-left rounded-xl overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--divider)', cursor: 'pointer', padding: 0 }}>
-            <div className="aspect-square bg-slate-100 overflow-hidden">
-              {c.cover_image_url
-                ? <img src={c.cover_image_url} alt={c.title} loading="lazy" className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--brand-muted)' }}><Image className="w-6 h-6" style={{ color: 'var(--brand)' }} /></div>}
-            </div>
-            <div className="p-2">
-              <div className="flex items-center gap-1 flex-wrap mb-0.5">
-                {c.post_type && <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
-                {c.scheduled_date && <span className="text-[10px] font-bold" style={{ color: 'var(--brand)' }}>{fmtDate(c.scheduled_date, 'd MMM', dateLocale)}</span>}
-              </div>
-              <p className="text-[11px] truncate" style={{ color: 'var(--ink)' }}>{c.title}</p>
-            </div>
-          </button>
-        ))}
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      {sorted.map(c => <GalleryTile key={c.id} c={c} tr={tr} dateLocale={dateLocale} />)}
+    </div>
+  );
+}
+
+function GalleryTile({ c, tr, dateLocale }) {
+  const caption = c.reel_description || c.description || '';
+  const [copied, setCopied] = useState(false);
+  const copyCaption = async (e) => {
+    e.stopPropagation();
+    try { await navigator.clipboard.writeText(caption); } catch { return; }
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="group relative rounded-xl overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+      <div className="aspect-square bg-slate-100 overflow-hidden">
+        {c.cover_image_url
+          ? <img src={c.cover_image_url} alt={c.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+          : <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--brand-muted)' }}><Image className="w-6 h-6" style={{ color: 'var(--brand)' }} /></div>}
       </div>
-      {active && <ContentDetailModal c={active} tr={tr} dateLocale={dateLocale} onClose={() => setActive(null)} />}
-    </>
+
+      {/* Hover overlay — downloads + copy caption */}
+      <div className="absolute inset-0 flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.25) 55%, rgba(0,0,0,0) 100%)' }}>
+        <p className="text-white text-sm font-bold leading-tight">{c.title}</p>
+        <p className="text-white/80 text-[11px] mb-2">{c.scheduled_date ? fmtDate(c.scheduled_date, 'd MMM', dateLocale) : ''}{c.suggested_time ? ` · ${c.suggested_time}` : ''}{c.platform ? ` · ${c.platform}` : ''}</p>
+        <GalleryActions c={c} tr={tr} caption={caption} copied={copied} onCopy={copyCaption} />
+      </div>
+
+      {/* Static label (visible when not hovering) */}
+      <div className="p-2 group-hover:opacity-0 transition-opacity">
+        <div className="flex items-center gap-1 flex-wrap mb-0.5">
+          {c.post_type && <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
+          {c.scheduled_date && <span className="text-[10px] font-bold" style={{ color: 'var(--brand)' }}>{fmtDate(c.scheduled_date, 'd MMM', dateLocale)}</span>}
+        </div>
+        <p className="text-[11px] truncate" style={{ color: 'var(--ink)' }}>{c.title}</p>
+      </div>
+    </div>
+  );
+}
+
+function GalleryActions({ c, tr, caption, copied, onCopy }) {
+  const [zipping, setZipping] = useState(false);
+  const files = contentFiles(c);
+  const cover = files.find(isCover);
+  const main = files.filter(f => !isCover(f));
+  const wBtn = "flex items-center justify-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg w-full";
+  const white = { background: '#fff', color: '#111', cursor: 'pointer', border: 'none', textDecoration: 'none' };
+  const glass = { background: 'rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.3)', textDecoration: 'none', backdropFilter: 'blur(4px)' };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {caption && (
+        <button onClick={onCopy} className={wBtn} style={copied ? { ...white, background: '#22c55e', color: '#fff' } : white}>
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? (tr.copied + ' ✓') : tr.copyCaption}
+        </button>
+      )}
+      {c.post_type === 'Carousel' ? (
+        <button className={wBtn} style={glass} disabled={zipping}
+          onClick={async (e) => { e.stopPropagation(); setZipping(true); await downloadZip(main.length ? main : files, (c.title || 'carousel').replace(/[^a-z0-9]/gi, '_')); setZipping(false); }}>
+          {zipping ? <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', border: '2px solid #fff', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} /> : <Download className="w-3.5 h-3.5" />}
+          {tr.download} .zip
+        </button>
+      ) : (
+        main.map((f, i) => (
+          <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" download className={wBtn} style={glass} onClick={e => e.stopPropagation()}>
+            <Download className="w-3.5 h-3.5" />{f.label}
+          </a>
+        ))
+      )}
+      {cover && <a href={cover.url} target="_blank" rel="noopener noreferrer" download className={wBtn} style={glass} onClick={e => e.stopPropagation()}><Download className="w-3.5 h-3.5" />Cover</a>}
+    </div>
   );
 }
 
@@ -1101,31 +1153,6 @@ function ContentPlanView({ content, tr, dateLocale }) {
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-// Detail modal (used by gallery)
-function ContentDetailModal({ c, tr, dateLocale, onClose }) {
-  const caption = c.reel_description || c.description || '';
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl overflow-hidden max-h-[90vh] overflow-y-auto" style={{ background: 'var(--card)' }} onClick={e => e.stopPropagation()}>
-        {c.cover_image_url && <img src={c.cover_image_url} alt={c.title} className="w-full aspect-video object-cover" />}
-        <div className="p-4 space-y-3">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {c.post_type && <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
-            {c.platform && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{c.platform}</span>}
-            {c.scheduled_date && <span className="text-sm font-bold" style={{ color: 'var(--brand)' }}>{fmtDate(c.scheduled_date, 'd MMM yyyy', dateLocale)}{c.suggested_time ? ` · ${c.suggested_time}` : ''}</span>}
-          </div>
-          <p className="font-bold" style={{ color: 'var(--ink)' }}>{c.title}</p>
-          {caption && <p className="text-xs" style={{ color: 'var(--subtle)', whiteSpace: 'pre-wrap' }}>{caption}</p>}
-          <div className="flex gap-2 flex-wrap">
-            {caption && <CopyButton value={caption} label={tr.copyCaption} />}
-          </div>
-          <DownloadChips c={c} tr={tr} />
-        </div>
-      </div>
     </div>
   );
 }
