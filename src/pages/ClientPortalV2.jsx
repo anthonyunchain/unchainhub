@@ -765,6 +765,7 @@ export default function ClientPortalV2() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
   const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -842,11 +843,15 @@ export default function ClientPortalV2() {
     </div>
   );
 
+  const MOBILE_TABS = TABS.slice(0, 4); // home, calendar, shootings, content
+  const MORE_TABS   = TABS.slice(4);    // documents, tutorials, admin
+  const moreActive  = MORE_TABS.some(t => t.key === activeTab);
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1 }}>
       {/* Topbar */}
-      <div style={{ paddingTop: 'max(20px, env(safe-area-inset-top))', paddingBottom: 16, paddingLeft: 20, paddingRight: 20 }}>
-        <div className="flex items-center justify-between gap-4">
+      <div style={{ paddingTop: 'max(20px, env(safe-area-inset-top))', paddingBottom: 16 }}>
+        <div className="mx-auto flex items-center justify-between gap-4 px-5" style={{ maxWidth: 1400 }}>
           <div className="flex items-center gap-2.5 shrink-0">
             <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>U</span>
@@ -877,7 +882,7 @@ export default function ClientPortalV2() {
 
       {/* Page header (non-home) */}
       {activeTab !== 'home' && (
-        <div style={{ padding: '0 20px 12px' }}>
+        <div className="mx-auto px-5" style={{ maxWidth: 1400, paddingBottom: 12 }}>
           {(() => { const t = TABS.find(x => x.key === activeTab); if (!t) return null; const Icon = t.icon; return (
             <div className="flex items-center gap-2">
               <Icon size={18} style={{ color: 'var(--brand)' }} />
@@ -888,7 +893,7 @@ export default function ClientPortalV2() {
       )}
 
       {/* Content */}
-      <div style={{ padding: '0 20px', paddingBottom: 120 }}>
+      <div className="mx-auto px-5" style={{ maxWidth: 1400, paddingBottom: 120 }}>
         {activeTab === 'home'      && <HomeTab client={client} content={content} shootings={shootings} pushSubscribed={pushSubscribed} onTogglePush={handleTogglePush} onTabChange={setActiveTab} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'calendar'  && <CalendarTab content={content} calendarPdfs={client.editorial_calendar_pdfs || []} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'shootings' && <ShootingsTab shootings={shootings} tr={tr} dateLocale={dateLocale} />}
@@ -898,14 +903,37 @@ export default function ClientPortalV2() {
         {activeTab === 'admin'     && <AdminTab client={client} contracts={contracts} credentials={credentials} tr={tr} dateLocale={dateLocale} />}
       </div>
 
+      {/* Mobile — More drawer */}
+      {moreOpen && (
+        <>
+          <div className="md:hidden fixed inset-0" style={{ zIndex: 48 }} onClick={() => setMoreOpen(false)} />
+          <div className="md:hidden fixed bottom-16 left-0 right-0 mx-3 rounded-2xl overflow-hidden"
+            style={{ zIndex: 49, background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: '0 -4px 24px rgba(0,0,0,0.12)', paddingBottom: 4 }}>
+            {MORE_TABS.map(t => {
+              const Icon = t.icon;
+              const active = activeTab === t.key;
+              return (
+                <button key={t.key}
+                  onClick={() => { setActiveTab(t.key); setMoreOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3"
+                  style={{ background: active ? 'var(--brand-muted)' : 'none', border: 'none', cursor: 'pointer', color: active ? 'var(--brand)' : 'var(--ink)', textAlign: 'left' }}>
+                  <Icon size={18} />
+                  <span style={{ fontSize: 14, fontWeight: active ? 700 : 500 }}>{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       {/* Mobile bottom nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0" style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'var(--card)', borderTop: '1px solid var(--divider)', zIndex: 50 }}>
         <div className="flex">
-          {TABS.slice(0, 5).map(t => {
+          {MOBILE_TABS.map(t => {
             const Icon = t.icon;
             const active = activeTab === t.key;
             return (
-              <button key={t.key} onClick={() => setActiveTab(t.key)}
+              <button key={t.key} onClick={() => { setActiveTab(t.key); setMoreOpen(false); }}
                 className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: active ? 'var(--brand)' : 'var(--muted)' }}>
                 <Icon size={20} />
@@ -913,6 +941,13 @@ export default function ClientPortalV2() {
               </button>
             );
           })}
+          {/* More button */}
+          <button onClick={() => setMoreOpen(o => !o)}
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: moreActive || moreOpen ? 'var(--brand)' : 'var(--muted)' }}>
+            <Settings size={20} />
+            <span style={{ fontSize: 9, fontWeight: moreActive || moreOpen ? 700 : 500 }}>More</span>
+          </button>
         </div>
       </div>
     </div>
