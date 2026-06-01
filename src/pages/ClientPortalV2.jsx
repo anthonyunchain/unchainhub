@@ -149,115 +149,126 @@ function CopyButton({ value, label }) {
 // ── Home (Bento) ──────────────────────────────────────────────────────────────
 function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, onTogglePush, onTabChange, tr, dateLocale }) {
   const today = format(new Date(), 'yyyy-MM-dd');
-  const todayPosts = content.filter(c => c.scheduled_date?.startsWith(today));
   const thisMonth = format(new Date(), 'yyyy-MM');
   const monthPosts = content.filter(c => c.scheduled_date?.startsWith(thisMonth));
   const nextShooting = shootings.filter(s => s.date >= today)[0];
   const calPdfs = client.editorial_calendar_pdfs || [];
 
+  // Mini calendar — current month, read-only dots
+  const monthStart = startOfMonth(new Date());
+  const monthEnd   = endOfMonth(new Date());
+  const days       = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const startPad   = getDay(monthStart) === 0 ? 6 : getDay(monthStart) - 1;
+  const calDays    = [...Array(startPad).fill(null), ...days];
+  const contentByDay = {};
+  content.forEach(c => {
+    if (!c.scheduled_date) return;
+    const k = c.scheduled_date.split('T')[0];
+    if (!contentByDay[k]) contentByDay[k] = [];
+    contentByDay[k].push(c);
+  });
+
   return (
-    <div className="space-y-3">
-      {/* Greeting */}
-      <div className="rounded-2xl p-5" style={{ background: 'var(--brand)', color: '#fff' }}>
-        <p style={{ fontSize: 20, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: 4 }}>
-          {tr.hello}, {client.company_name} 👋
-        </p>
-        <p style={{ fontSize: 13, opacity: 0.85 }}>{tr.welcome}</p>
+    <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'auto' }}>
+
+      {/* Content Bank — large card */}
+      <div className="rounded-2xl p-5 cursor-pointer flex flex-col justify-between"
+        style={{ gridColumn: 'span 2', background: 'var(--brand)', color: '#fff', boxShadow: 'var(--card-shadow)', minHeight: 140 }}
+        onClick={() => onTabChange('content')}>
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Image size={16} style={{ opacity: 0.8 }} />
+            <span className="text-xs font-mono uppercase tracking-wider" style={{ opacity: 0.75 }}>Content Bank</span>
+          </div>
+          <p style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.1 }}>
+            {content.length} <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.8 }}>items</span>
+          </p>
+        </div>
+        <div className="flex gap-1.5 flex-wrap mt-3">
+          {['Reel','Story','Carousel','Post'].map(t => {
+            const n = content.filter(c => c.post_type === t).length;
+            if (!n) return null;
+            return <span key={t} className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>{n} {t}</span>;
+          })}
+        </div>
       </div>
 
-      {/* Bento grid */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Posts this month */}
+      <div className="rounded-2xl p-4 cursor-pointer flex flex-col justify-between"
+        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 140 }}
+        onClick={() => onTabChange('calendar')}>
+        <p className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{tr.postsThisMonth}</p>
+        <p style={{ fontSize: 40, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--ink)', lineHeight: 1 }}>{monthPosts.length}</p>
+        <div className="flex gap-1 flex-wrap">
+          {['Reel','Story','Carousel','Post'].map(t => {
+            const n = monthPosts.filter(c => c.post_type === t).length;
+            if (!n) return null;
+            return <span key={t} className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${TYPE_COLOR[t]}`}>{n} {t}</span>;
+          })}
+        </div>
+      </div>
 
-        {/* Today's posts — full width if any */}
-        {todayPosts.length > 0 ? (
-          <div className="col-span-2 sm:col-span-4 rounded-2xl p-4 cursor-pointer"
-            style={{ background: 'var(--card)', border: '2px solid var(--brand)', boxShadow: 'var(--card-shadow)' }}
-            onClick={() => onTabChange('content')}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--brand)' }}>{tr.postToday}</span>
-              <span className="text-2xl font-bold" style={{ color: 'var(--brand)' }}>{todayPosts.length}</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {todayPosts.map(c => (
-                <span key={c.id} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>
-                  {c.title || c.post_type} · {c.platform}
-                </span>
-              ))}
-            </div>
+      {/* Next shooting */}
+      <div className="rounded-2xl p-4 cursor-pointer flex flex-col justify-between"
+        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 140 }}
+        onClick={() => onTabChange('shootings')}>
+        <p className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{tr.nextShooting}</p>
+        {nextShooting ? (
+          <div>
+            <p className="text-sm font-bold truncate mt-1" style={{ color: 'var(--ink)' }}>{nextShooting.title}</p>
+            <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--brand)' }}>{fmtDate(nextShooting.date, 'd MMM', dateLocale)}{nextShooting.time ? ` · ${nextShooting.time}` : ''}</p>
+            {nextShooting.location && <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'var(--muted)' }}><MapPin className="w-3 h-3" />{nextShooting.location}</p>}
           </div>
         ) : (
-          <div className="col-span-2 rounded-2xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-            <p className="text-xs font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>{tr.postToday}</p>
-            <p className="text-3xl font-bold" style={{ color: 'var(--ink)' }}>0</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Nothing today</p>
-          </div>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>{tr.noNextShooting}</p>
         )}
+        <Camera size={18} style={{ color: 'var(--brand)', marginTop: 8, opacity: 0.5 }} />
+      </div>
 
-        {/* Posts this month */}
-        <div className="rounded-2xl p-4 cursor-pointer" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}
-          onClick={() => onTabChange('calendar')}>
-          <p className="text-xs font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>{tr.postsThisMonth}</p>
-          <p className="text-3xl font-bold" style={{ color: 'var(--ink)' }}>{monthPosts.length}</p>
-          <div className="flex gap-1 mt-2 flex-wrap">
-            {['Reel','Story','Carousel','Post'].map(t => {
-              const n = monthPosts.filter(c => c.post_type === t).length;
-              if (!n) return null;
-              return <span key={t} className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${TYPE_COLOR[t]}`}>{n} {t}</span>;
-            })}
-          </div>
+      {/* Mini calendar preview */}
+      <div className="rounded-2xl p-4 cursor-pointer overflow-hidden"
+        style={{ gridColumn: 'span 3', background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}
+        onClick={() => onTabChange('calendar')}>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{fmtDate(new Date(), 'MMMM yyyy', dateLocale)}</p>
+          <Calendar size={14} style={{ color: 'var(--muted)' }} />
         </div>
-
-        {/* Next shooting */}
-        <div className="rounded-2xl p-4 cursor-pointer" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}
-          onClick={() => onTabChange('shootings')}>
-          <p className="text-xs font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>{tr.nextShooting}</p>
-          {nextShooting ? (
-            <>
-              <p className="text-sm font-bold truncate" style={{ color: 'var(--ink)' }}>{nextShooting.title}</p>
-              <p className="text-xs mt-1" style={{ color: 'var(--brand)' }}>{fmtDate(nextShooting.date, 'd MMM', dateLocale)}{nextShooting.time ? ` · ${nextShooting.time}` : ''}</p>
-              {nextShooting.location && <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'var(--muted)' }}><MapPin className="w-3 h-3" />{nextShooting.location}</p>}
-            </>
-          ) : (
-            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{tr.noNextShooting}</p>
-          )}
-        </div>
-
-        {/* Calendar PDFs */}
-        {calPdfs.length > 0 && (
-          <div className="col-span-2 rounded-2xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-            <p className="text-xs font-mono uppercase tracking-wider mb-2" style={{ color: 'var(--muted)' }}>{tr.calendarPdf}</p>
-            <div className="flex flex-wrap gap-2">
-              {calPdfs.slice(0, 3).map((p, i) => {
-                const url = typeof p === 'string' ? p : p.url;
-                const label = typeof p === 'object' && p.month ? fmtDate(p.month + '-01', 'MMM yyyy', dateLocale) : `PDF ${i + 1}`;
-                return (
-                  <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold"
-                    style={{ background: 'var(--brand-muted)', color: 'var(--brand)', textDecoration: 'none', border: '1px solid var(--brand)' }}>
-                    <Download className="w-3.5 h-3.5" />{label}
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Push notifications toggle */}
-        <div className="col-span-2 sm:col-span-4 rounded-2xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{tr.notifTitle}</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{tr.notifDesc}</p>
-            </div>
-            <button onClick={onTogglePush}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0"
-              style={{ background: pushSubscribed ? 'var(--brand)' : 'var(--bg)', color: pushSubscribed ? '#fff' : 'var(--ink)', border: '1px solid var(--divider)', cursor: 'pointer' }}>
-              {pushSubscribed ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
-              {pushSubscribed ? tr.notifOn : tr.notifOff}
-            </button>
-          </div>
+        <div className="grid grid-cols-7 gap-0.5">
+          {['M','T','W','T','F','S','S'].map((d, i) => (
+            <div key={i} className="text-center text-[9px] font-mono pb-1" style={{ color: 'var(--muted)' }}>{d}</div>
+          ))}
+          {calDays.map((day, i) => {
+            if (!day) return <div key={`p-${i}`} />;
+            const k = format(day, 'yyyy-MM-dd');
+            const has = (contentByDay[k] || []).length > 0;
+            const isToday = isSameDay(day, new Date());
+            return (
+              <div key={k} className="flex items-center justify-center" style={{ height: 22 }}>
+                <div className="flex items-center justify-center rounded-full text-[9px] font-semibold"
+                  style={{ width: 20, height: 20, background: isToday ? 'var(--brand)' : has ? 'var(--brand-muted)' : 'transparent', color: isToday ? '#fff' : has ? 'var(--brand)' : 'var(--subtle)', fontWeight: has || isToday ? 700 : 400 }}>
+                  {format(day, 'd')}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
+
+      {/* Push notification — compact */}
+      <div className="rounded-2xl p-3 flex flex-col justify-between"
+        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
+        <div>
+          <p className="text-xs font-semibold" style={{ color: 'var(--ink)' }}>{tr.notifTitle}</p>
+          <p className="text-[10px] mt-0.5 leading-tight" style={{ color: 'var(--muted)' }}>{tr.notifDesc}</p>
+        </div>
+        <button onClick={onTogglePush}
+          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold"
+          style={{ background: pushSubscribed ? 'var(--brand)' : 'var(--bg)', color: pushSubscribed ? '#fff' : 'var(--ink)', border: '1px solid var(--divider)', cursor: 'pointer' }}>
+          {pushSubscribed ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
+          {pushSubscribed ? tr.notifOn : tr.notifOff}
+        </button>
+      </div>
+
     </div>
   );
 }
