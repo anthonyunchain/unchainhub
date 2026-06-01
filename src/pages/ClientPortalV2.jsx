@@ -449,7 +449,7 @@ function HomeTab({ client = {}, content = [], shootings = [], onTabChange, tr, d
   const greeting = getGreeting(lang, displayName);
 
   return (
-    <div className="space-y-3" style={{ paddingTop: 40, maxWidth: 1000, margin: '0 auto' }}>
+    <div className="space-y-3" style={{ paddingTop: 40 }}>
 
       {/* Greeting — bold welcome */}
       <h1 style={{ fontSize: 30, fontWeight: 800, color: 'var(--ink)', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em', lineHeight: 1.15, padding: '4px 0 8px' }}>
