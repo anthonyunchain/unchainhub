@@ -585,7 +585,7 @@ function ContentBankTab({ content = [], tr, dateLocale }) {
         <select value={filter} onChange={e => setFilter(e.target.value)}
           className="text-sm px-3 py-2 rounded-xl border" style={{ borderColor: 'var(--divider)', background: 'var(--card)', color: 'var(--ink)' }}>
           <option value="all">{tr.all}</option>
-          {['Reel','Story','Carousel','Post'].map(t => <option key={t} value={t}>{t}</option>)}
+          {['Reel','Story','Carousel'].map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </div>
 
@@ -621,7 +621,7 @@ function ContentCard({ c, tr, dateLocale }) {
           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
             {c.post_type && <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
             {c.platform && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{c.platform}</span>}
-            {c.scheduled_date && <span className="text-[10px]" style={{ color: 'var(--muted)' }}>{fmtDate(c.scheduled_date, 'd MMM yyyy', dateLocale)}</span>}
+            {c.scheduled_date && <span className="text-[10px]" style={{ color: 'var(--muted)' }}>{fmtDate(c.scheduled_date, 'd MMM yyyy', dateLocale)}{c.suggested_time ? ` · ${c.suggested_time}` : ''}</span>}
           </div>
         </div>
         {caption && (

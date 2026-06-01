@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     const [contentRes, shootingsRes, contractsRes, docsRes, tutorialsRes, credRes, invoicesRes] = await Promise.all([
       supabaseAdmin
         .from('editorial_content')
-        .select('id, title, description, post_type, platform, scheduled_date, status, client_name, content_type, drive_url, cover_image_url, reel_description')
+        .select('id, title, description, post_type, platform, scheduled_date, suggested_time, status, client_name, drive_url, cover_image_url, reel_description')
         .eq('client_name', companyName)
         .not('status', 'eq', 'cancelled')
         .order('scheduled_date', { ascending: true })
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
         .order('created_at', { ascending: false }),
       supabaseAdmin
         .from('tutorials')
-        .select('id, title, description, video_url, youtube_url, category, thumbnail_url, position, sort_order')
+        .select('id, title, description, youtube_url, category, position, client_ids')
         .order('position', { ascending: true }),
       supabaseAdmin.rpc('get_client_credentials', { p_client_id: client.id }),
       supabaseAdmin
@@ -83,7 +83,10 @@ Deno.serve(async (req) => {
       shootings: shootingsRes.data || [],
       contracts: contractsRes.data || [],
       documents,
-      tutorials: tutorialsRes.data || [],
+      // Tutorials scoped to this client (or global when client_ids empty/null)
+      tutorials: (tutorialsRes.data || []).filter((t: any) =>
+        !t.client_ids || t.client_ids.length === 0 || t.client_ids.includes(client.id)
+      ),
       credentials: credRes.data || [],
       invoices: invoicesRes.data || [],
     }, { headers: corsHeaders(req) });
