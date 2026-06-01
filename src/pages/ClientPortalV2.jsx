@@ -41,7 +41,7 @@ const TR = {
     openLogin: "Login",
     past: "Past", upcoming: "Upcoming",
     all: "All", total: "total",
-    mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri",
+    mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun",
   },
   fi: {
     home: "Koti", calendar: "Kalenteri", shootings: "Kuvaukset",
@@ -69,7 +69,7 @@ const TR = {
     openLogin: "Kirjaudu",
     past: "Menneet", upcoming: "Tulevat",
     all: "Kaikki", total: "yhteensä",
-    mon: "Ma", tue: "Ti", wed: "Ke", thu: "To", fri: "Pe",
+    mon: "Ma", tue: "Ti", wed: "Ke", thu: "To", fri: "Pe", sat: "La", sun: "Su",
   },
 };
 
@@ -364,6 +364,7 @@ function CalendarTab({ content = [], calendarPdfs = [], tr, dateLocale }) {
   });
   const monthContent = content.filter(c => c.scheduled_date?.startsWith(format(currentDate, 'yyyy-MM')));
   const WEEKDAYS = [tr.mon, tr.tue, tr.wed, tr.thu, tr.fri];
+  const WEEKDAYS7 = [tr.mon, tr.tue, tr.wed, tr.thu, tr.fri, tr.sat || 'Sat', tr.sun || 'Sun'];
 
   return (
     <div className="space-y-4">
@@ -433,18 +434,34 @@ function CalendarTab({ content = [], calendarPdfs = [], tr, dateLocale }) {
             })}
           </div>
         </div>
-        <div className="sm:hidden divide-y" style={{ borderColor: 'var(--divider)' }}>
-          {monthContent.length === 0
-            ? <p className="text-center text-sm py-8" style={{ color: 'var(--muted)' }}>{tr.noContent}</p>
-            : monthContent.map(c => (
-              <div key={c.id} className="flex items-center gap-3 p-3">
-                <span className={`text-[10px] font-semibold px-2 py-1 rounded-full shrink-0 ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold truncate">{c.title}</p>
-                  <p className="text-[10px]" style={{ color: 'var(--muted)' }}>{fmtDate(c.scheduled_date, 'd MMM', dateLocale)} · {c.platform}</p>
-                </div>
-              </div>
-            ))}
+        {/* Mobile — 7-col week, ~3 days visible, swipe horizontally */}
+        <div className="sm:hidden overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div style={{ minWidth: 'calc(7 / 3 * 100%)' }}>
+            <div className="grid grid-cols-7" style={{ borderBottom: '1px solid var(--divider)' }}>
+              {WEEKDAYS7.map((d, i) => <div key={i} className="text-center text-[10px] font-mono py-2 uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{d}</div>)}
+            </div>
+            <div className="grid grid-cols-7">
+              {calDays7.map((day, i) => {
+                if (!day) return <div key={`pad-${i}`} style={{ borderBottom: '1px solid var(--divider)', borderRight: '1px solid var(--divider)', background: dark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)', minHeight: 110, padding: 4 }} />;
+                const key = format(day, 'yyyy-MM-dd');
+                const items = contentByDay[key] || [];
+                const isToday = isSameDay(day, new Date());
+                return (
+                  <div key={key} style={{ borderBottom: '1px solid var(--divider)', borderRight: '1px solid var(--divider)', background: isToday ? (dark ? 'rgba(77,142,255,0.08)' : 'rgba(42,105,255,0.04)') : 'transparent', minHeight: 110, padding: '6px' }}>
+                    <span className={`text-[11px] font-semibold inline-flex items-center justify-center w-5 h-5 rounded-full mb-1 ${isToday ? 'bg-[#2A69FF] text-white' : ''}`} style={!isToday ? { color: 'var(--muted)' } : {}}>
+                      {format(day, 'd')}
+                    </span>
+                    <div className="space-y-0.5">
+                      {items.slice(0, 4).map(c => (
+                        <div key={c.id} className={`text-[9px] font-semibold px-1.5 py-0.5 rounded truncate ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.title || c.post_type}</div>
+                      ))}
+                      {items.length > 4 && <div className="text-[9px] px-1" style={{ color: 'var(--muted)' }}>+{items.length - 4}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>
