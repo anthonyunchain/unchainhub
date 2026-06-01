@@ -1262,7 +1262,7 @@ export default function ClientDetail() {
 
       {/* ── Edit Dialog ── */}
       <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setConfirmDelete(false); }}>
-        <DialogContent className="max-w-5xl">
+        <DialogContent className="w-[70vw] max-w-[70vw] sm:max-w-[70vw]">
           <DialogHeader><DialogTitle>Edit client</DialogTitle></DialogHeader>
           {editData && (
             <div className="mt-2">

@@ -438,7 +438,7 @@ export default function Clients() {
       </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setConfirmDelete(false); }}>
-        <DialogContent className="max-w-5xl">
+        <DialogContent className="w-[70vw] max-w-[70vw] sm:max-w-[70vw]">
           <DialogHeader><DialogTitle>{editData?.id ? "Edit client" : "New client"}</DialogTitle></DialogHeader>
           {editData && (
             <div className="mt-2">
