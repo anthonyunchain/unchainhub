@@ -444,10 +444,10 @@ function HomeTab({ client = {}, content = [], shootings = [], onTabChange, tr, d
   return (
     <div className="space-y-3" style={{ paddingTop: 40, maxWidth: 1000, margin: '0 auto' }}>
 
-      {/* Greeting — small, subtle */}
-      <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', fontFamily: "'Plus Jakarta Sans', sans-serif", padding: '4px 0' }}>
+      {/* Greeting — bold welcome */}
+      <h1 style={{ fontSize: 30, fontWeight: 800, color: 'var(--ink)', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em', lineHeight: 1.15, padding: '4px 0 8px' }}>
         {greeting}
-      </p>
+      </h1>
 
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
 
