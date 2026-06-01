@@ -501,6 +501,10 @@ export default function Clients() {
                       <SelectContent>
                         <SelectItem value="en">English</SelectItem>
                         <SelectItem value="fi">Finnish</SelectItem>
+                        <SelectItem value="fr">Français</SelectItem>
+                        <SelectItem value="de">Deutsch</SelectItem>
+                        <SelectItem value="sv">Svenska</SelectItem>
+                        <SelectItem value="no">Norsk</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

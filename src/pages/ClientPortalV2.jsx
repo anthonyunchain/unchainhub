@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { base44, supabase } from "@/api/base44Client";
 import { useTheme } from "@/lib/useTheme";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay, parseISO } from "date-fns";
-import { enUS, fi as fiFns } from "date-fns/locale";
+import { enUS, fi as fiFns, fr as frFns, de as deFns, sv as svFns, nb as nbFns } from "date-fns/locale";
 import {
   LayoutDashboard, Calendar, Camera, Image, FileText,
   GraduationCap, Settings, ChevronLeft, ChevronRight,
@@ -74,6 +74,126 @@ const TR = {
     past: "Menneet", upcoming: "Tulevat",
     all: "Kaikki", total: "yhteensä",
     mon: "Ma", tue: "Ti", wed: "Ke", thu: "To", fri: "Pe", sat: "La", sun: "Su",
+  },
+  fr: {
+    home: "Accueil", calendar: "Calendrier", shootings: "Shootings",
+    content: "Contenus", documents: "Documents", tutorials: "Tutoriels", admin: "Admin",
+    photos: "Photos", noPhotos: "Pas encore de photos — elles apparaîtront ici après vos shootings.",
+    shootLocation: "Lieu", shootCrew: "Équipe", shootContent: "Contenus à shooter", shootTime: "Heure", shootDate: "Date",
+    hello: "Bonjour", welcome: "Bienvenue dans votre espace client Unchain Studio.",
+    todayPost: (n) => `Vous avez ${n} contenu${n > 1 ? 's' : ''} à publier aujourd'hui`,
+    upcomingShootings: "Prochains shootings", noShootings: "Aucun shooting prévu",
+    notifTitle: "Rappels de publication", notifDesc: "Recevez une alerte quotidienne pour le contenu du jour.",
+    portalNotifTitle: "Notifications du portail", portalNotifDesc: "Soyez notifié des nouveaux contenus, shootings et réponses.",
+    notifOn: "Activé", notifOff: "Activer",
+    notifBlocked: "Bloqué", notifBlockedHelp: "Les notifications sont bloquées. Activez-les dans les réglages du navigateur (icône cadenas dans la barre d'adresse → Notifications → Autoriser), puis rechargez la page.",
+    postToday: "À publier aujourd'hui", postsThisMonth: "Publications ce mois-ci",
+    nextShooting: "Prochain shooting", noNextShooting: "Aucun shooting à venir",
+    calendarPdf: "Calendrier PDF", schedulePdf: "Planning de production",
+    copyCaption: "Copier la légende", download: "Télécharger",
+    noContent: "Aucun contenu", noDocuments: "Aucun document partagé",
+    noTutorials: "Aucun tutoriel", noContracts: "Aucun contrat",
+    searchTutorials: "Rechercher un tutoriel…", searchCredentials: "Rechercher…",
+    contracts: "Contrats", invoices: "Factures", noInvoices: "Aucune facture", credentials: "Accès & mots de passe",
+    profileSettings: "Profil & Réglages", contactName: "Nom du contact",
+    contactEmail: "Email", contactPhone: "Téléphone", language: "Langue",
+    saveProfile: "Enregistrer", saved: "Enregistré ✓", profileSaved: "Profil enregistré",
+    showMore: "Voir plus", showLess: "Voir moins",
+    copied: "Copié", copyLogin: "Copier", copyPwd: "Copier",
+    openLogin: "Se connecter",
+    past: "Passés", upcoming: "À venir",
+    all: "Tous", total: "total",
+    mon: "Lun", tue: "Mar", wed: "Mer", thu: "Jeu", fri: "Ven", sat: "Sam", sun: "Dim",
+  },
+  de: {
+    home: "Start", calendar: "Kalender", shootings: "Shootings",
+    content: "Inhalte", documents: "Dokumente", tutorials: "Tutorials", admin: "Admin",
+    photos: "Fotos", noPhotos: "Noch keine Fotos — sie erscheinen hier nach euren Shootings.",
+    shootLocation: "Ort", shootCrew: "Team", shootContent: "Zu drehende Inhalte", shootTime: "Uhrzeit", shootDate: "Datum",
+    hello: "Hallo", welcome: "Willkommen in deinem Unchain Studio Kundenbereich.",
+    todayPost: (n) => `Du hast heute ${n} Beitrag${n > 1 ? 'e' : ''} zu veröffentlichen`,
+    upcomingShootings: "Kommende Shootings", noShootings: "Keine Shootings geplant",
+    notifTitle: "Post-Erinnerungen", notifDesc: "Erhalte eine tägliche Erinnerung für heute geplante Inhalte.",
+    portalNotifTitle: "Portal-Benachrichtigungen", portalNotifDesc: "Werde über neue Inhalte, Shootings und Antworten informiert.",
+    notifOn: "Aktiviert", notifOff: "Aktivieren",
+    notifBlocked: "Blockiert", notifBlockedHelp: "Benachrichtigungen sind blockiert. Aktiviere sie in den Browser-Einstellungen (Schloss-Symbol in der Adressleiste → Benachrichtigungen → Zulassen) und lade die Seite neu.",
+    postToday: "Heute posten", postsThisMonth: "Beiträge diesen Monat",
+    nextShooting: "Nächstes Shooting", noNextShooting: "Kein anstehendes Shooting",
+    calendarPdf: "Kalender PDF", schedulePdf: "Produktionsplan",
+    copyCaption: "Caption kopieren", download: "Herunterladen",
+    noContent: "Keine Inhalte", noDocuments: "Noch keine Dokumente geteilt",
+    noTutorials: "Noch keine Tutorials", noContracts: "Keine Verträge",
+    searchTutorials: "Tutorials suchen…", searchCredentials: "Suchen…",
+    contracts: "Verträge", invoices: "Rechnungen", noInvoices: "Keine Rechnungen", credentials: "Zugänge & Passwörter",
+    profileSettings: "Profil & Einstellungen", contactName: "Kontaktname",
+    contactEmail: "E-Mail", contactPhone: "Telefon", language: "Sprache",
+    saveProfile: "Speichern", saved: "Gespeichert ✓", profileSaved: "Profil gespeichert",
+    showMore: "Mehr anzeigen", showLess: "Weniger anzeigen",
+    copied: "Kopiert", copyLogin: "Kopieren", copyPwd: "Kopieren",
+    openLogin: "Anmelden",
+    past: "Vergangen", upcoming: "Kommend",
+    all: "Alle", total: "gesamt",
+    mon: "Mo", tue: "Di", wed: "Mi", thu: "Do", fri: "Fr", sat: "Sa", sun: "So",
+  },
+  sv: {
+    home: "Hem", calendar: "Kalender", shootings: "Shootings",
+    content: "Innehåll", documents: "Dokument", tutorials: "Guider", admin: "Admin",
+    photos: "Foton", noPhotos: "Inga foton ännu — de visas här efter dina shootings.",
+    shootLocation: "Plats", shootCrew: "Team", shootContent: "Innehåll att spela in", shootTime: "Tid", shootDate: "Datum",
+    hello: "Hej", welcome: "Välkommen till ditt Unchain Studio-kundutrymme.",
+    todayPost: (n) => `Du har ${n} inlägg att publicera idag`,
+    upcomingShootings: "Kommande shootings", noShootings: "Inga shootings planerade",
+    notifTitle: "Publiceringspåminnelser", notifDesc: "Få en daglig påminnelse för innehåll som ska publiceras idag.",
+    portalNotifTitle: "Portalnotiser", portalNotifDesc: "Få notiser om nytt innehåll, shootings och svar.",
+    notifOn: "Aktiverad", notifOff: "Aktivera",
+    notifBlocked: "Blockerad", notifBlockedHelp: "Notiser är blockerade. Aktivera dem i webbläsarinställningarna (låsikonen i adressfältet → Notiser → Tillåt) och ladda om sidan.",
+    postToday: "Publicera idag", postsThisMonth: "Inlägg denna månad",
+    nextShooting: "Nästa shooting", noNextShooting: "Ingen kommande shooting",
+    calendarPdf: "Kalender PDF", schedulePdf: "Produktionsschema",
+    copyCaption: "Kopiera bildtext", download: "Ladda ner",
+    noContent: "Inget innehåll", noDocuments: "Inga dokument delade ännu",
+    noTutorials: "Inga guider ännu", noContracts: "Inga avtal",
+    searchTutorials: "Sök guider…", searchCredentials: "Sök…",
+    contracts: "Avtal", invoices: "Fakturor", noInvoices: "Inga fakturor", credentials: "Åtkomst & lösenord",
+    profileSettings: "Profil & Inställningar", contactName: "Kontaktnamn",
+    contactEmail: "E-post", contactPhone: "Telefon", language: "Språk",
+    saveProfile: "Spara", saved: "Sparat ✓", profileSaved: "Profil sparad",
+    showMore: "Visa mer", showLess: "Visa mindre",
+    copied: "Kopierat", copyLogin: "Kopiera", copyPwd: "Kopiera",
+    openLogin: "Logga in",
+    past: "Tidigare", upcoming: "Kommande",
+    all: "Alla", total: "totalt",
+    mon: "Mån", tue: "Tis", wed: "Ons", thu: "Tor", fri: "Fre", sat: "Lör", sun: "Sön",
+  },
+  no: {
+    home: "Hjem", calendar: "Kalender", shootings: "Shootings",
+    content: "Innhold", documents: "Dokumenter", tutorials: "Veiledninger", admin: "Admin",
+    photos: "Bilder", noPhotos: "Ingen bilder ennå — de vises her etter dine shootings.",
+    shootLocation: "Sted", shootCrew: "Team", shootContent: "Innhold som skal spilles inn", shootTime: "Tid", shootDate: "Dato",
+    hello: "Hei", welcome: "Velkommen til ditt Unchain Studio-kundeområde.",
+    todayPost: (n) => `Du har ${n} innlegg å publisere i dag`,
+    upcomingShootings: "Kommende shootings", noShootings: "Ingen shootings planlagt",
+    notifTitle: "Publiseringspåminnelser", notifDesc: "Få en daglig påminnelse for innhold som skal publiseres i dag.",
+    portalNotifTitle: "Portalvarsler", portalNotifDesc: "Få varsler om nytt innhold, shootings og svar.",
+    notifOn: "Aktivert", notifOff: "Aktiver",
+    notifBlocked: "Blokkert", notifBlockedHelp: "Varsler er blokkert. Aktiver dem i nettleserinnstillingene (låsikonet i adressefeltet → Varsler → Tillat) og last siden på nytt.",
+    postToday: "Publiser i dag", postsThisMonth: "Innlegg denne måneden",
+    nextShooting: "Neste shooting", noNextShooting: "Ingen kommende shooting",
+    calendarPdf: "Kalender PDF", schedulePdf: "Produksjonsplan",
+    copyCaption: "Kopier bildetekst", download: "Last ned",
+    noContent: "Ingen innhold", noDocuments: "Ingen dokumenter delt ennå",
+    noTutorials: "Ingen veiledninger ennå", noContracts: "Ingen kontrakter",
+    searchTutorials: "Søk veiledninger…", searchCredentials: "Søk…",
+    contracts: "Kontrakter", invoices: "Fakturaer", noInvoices: "Ingen fakturaer", credentials: "Tilganger & passord",
+    profileSettings: "Profil & Innstillinger", contactName: "Kontaktnavn",
+    contactEmail: "E-post", contactPhone: "Telefon", language: "Språk",
+    saveProfile: "Lagre", saved: "Lagret ✓", profileSaved: "Profil lagret",
+    showMore: "Vis mer", showLess: "Vis mindre",
+    copied: "Kopiert", copyLogin: "Kopier", copyPwd: "Kopier",
+    openLogin: "Logg inn",
+    past: "Tidligere", upcoming: "Kommende",
+    all: "Alle", total: "totalt",
+    mon: "Man", tue: "Tir", wed: "Ons", thu: "Tor", fri: "Fre", sat: "Lør", sun: "Søn",
   },
 };
 
@@ -879,7 +999,7 @@ const REQUEST_TYPES = [
 ];
 
 function ContactRequestForm({ token, tr }) {
-  const lang = tr === TR.fi ? 'fi' : 'en';
+  const lang = Object.keys(TR).find(k => TR[k] === tr) || 'en';
   const [type, setType]               = useState('meeting');
   const [subject, setSubject]         = useState('');
   const [message, setMessage]         = useState('');
@@ -1105,6 +1225,10 @@ function AdminTab({ client = {}, contracts = [], invoices = [], credentials = []
               >
                 <option value="en">English</option>
                 <option value="fi">Suomi</option>
+                <option value="fr">Français</option>
+                <option value="de">Deutsch</option>
+                <option value="sv">Svenska</option>
+                <option value="no">Norsk</option>
               </select>
             </div>
           </div>
@@ -1333,7 +1457,8 @@ export default function ClientPortalV2() {
 
   const lang = data?.client?.default_language || 'en';
   const tr = TR[lang] || TR.en;
-  const dateLocale = lang === 'fi' ? fiFns : enUS;
+  const DATE_LOCALES = { en: enUS, fi: fiFns, fr: frFns, de: deFns, sv: svFns, no: nbFns };
+  const dateLocale = DATE_LOCALES[lang] || enUS;
 
   const {
     client = {},
