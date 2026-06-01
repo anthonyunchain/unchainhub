@@ -980,7 +980,6 @@ function ContentBankTab({ content = [], tr, dateLocale }) {
 
   const VIEWS = [
     { key: 'list',    label: tr.viewList,    icon: FileText },
-    { key: 'gallery', label: tr.viewGallery, icon: ImageIcon },
     { key: 'plan',    label: tr.viewPlan,    icon: Calendar },
   ];
 
@@ -1017,7 +1016,6 @@ function ContentBankTab({ content = [], tr, dateLocale }) {
       {filtered.length === 0 && <p className="text-center text-sm py-8" style={{ color: 'var(--muted)' }}>{tr.noContent}</p>}
 
       {view === 'list'    && <ContentListView    content={filtered} tr={tr} dateLocale={dateLocale} />}
-      {view === 'gallery' && <ContentGalleryView content={filtered} tr={tr} dateLocale={dateLocale} />}
       {view === 'plan'    && <ContentPlanView    content={filtered} tr={tr} dateLocale={dateLocale} />}
     </div>
   );
