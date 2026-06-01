@@ -200,12 +200,12 @@ function getGreeting(lang, name) {
 }
 
 // ── Home (Bento) ──────────────────────────────────────────────────────────────
-function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pushLoading, onTogglePush, onTabChange, tr, dateLocale, lang }) {
+function HomeTab({ client = {}, content = [], shootings = [], onTabChange, tr, dateLocale, lang }) {
   const today = format(new Date(), 'yyyy-MM-dd');
   const thisMonth = format(new Date(), 'yyyy-MM');
   const monthPosts = content.filter(c => c.scheduled_date?.startsWith(thisMonth));
   const nextShooting = shootings.filter(s => s.date >= today)[0];
-  const calPdfs = client.editorial_calendar_pdfs || [];
+  const nextContent = content.filter(c => c.scheduled_date >= today).sort((a,b) => a.scheduled_date.localeCompare(b.scheduled_date))[0];
 
   // Mini calendar — current month, read-only dots
   const monthStart = startOfMonth(new Date());
@@ -234,26 +234,36 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pu
 
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
 
-      {/* Content Bank — large card, always span 2 */}
+      {/* Next content — large card span 2 */}
       <div className="col-span-2 rounded-2xl p-5 cursor-pointer flex flex-col justify-between"
-        style={{ background: 'var(--brand)', color: '#fff', boxShadow: 'var(--card-shadow)', minHeight: 130 }}
+        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 130 }}
         onClick={() => onTabChange('content')}>
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Image size={16} style={{ opacity: 0.8 }} />
-            <span className="text-xs font-mono uppercase tracking-wider" style={{ opacity: 0.75 }}>Content Bank</span>
+        <p className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
+          {lang === 'fi' ? 'Seuraava sisältö' : 'Next content'}
+        </p>
+        {nextContent ? (
+          <div className="mt-2">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              {nextContent.post_type && <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${TYPE_COLOR[nextContent.post_type] || 'bg-slate-100 text-slate-500'}`}>{nextContent.post_type}</span>}
+              {nextContent.platform && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{nextContent.platform}</span>}
+            </div>
+            <p className="font-bold text-base leading-tight" style={{ color: 'var(--ink)' }}>{nextContent.title || '—'}</p>
+            <p className="text-xs mt-1.5 font-semibold" style={{ color: 'var(--brand)' }}>
+              {fmtDate(nextContent.scheduled_date, 'd MMM yyyy', dateLocale)}
+            </p>
+            {(nextContent.reel_description || nextContent.description) && (
+              <p className="text-xs mt-1 line-clamp-2" style={{ color: 'var(--muted)' }}>
+                {(nextContent.reel_description || nextContent.description).slice(0, 90)}…
+              </p>
+            )}
           </div>
-          <p style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.1 }}>
-            {content.length} <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.8 }}>items</span>
-          </p>
-        </div>
-        <div className="flex gap-1.5 flex-wrap mt-3">
-          {['Reel','Story','Carousel','Post'].map(t => {
-            const n = content.filter(c => c.post_type === t).length;
-            if (!n) return null;
-            return <span key={t} className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>{n} {t}</span>;
-          })}
-        </div>
+        ) : (
+          <div className="mt-2">
+            <p className="text-2xl font-bold" style={{ color: 'var(--ink)' }}>—</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{lang === 'fi' ? 'Ei tulevia sisältöjä' : 'No upcoming content'}</p>
+          </div>
+        )}
+        <Image size={16} style={{ color: 'var(--brand)', marginTop: 8, opacity: 0.4 }} />
       </div>
 
       {/* Posts this month */}
@@ -271,26 +281,13 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pu
         </div>
       </div>
 
-      {/* Push notification */}
-      <div className="rounded-2xl p-4 flex flex-col justify-between"
-        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 120 }}>
-        <div>
-          <p className="text-xs font-semibold" style={{ color: 'var(--ink)' }}>{tr.notifTitle}</p>
-          <p className="text-[10px] mt-1 leading-tight" style={{ color: 'var(--muted)' }}>{tr.notifDesc}</p>
-        </div>
-        <button onClick={onTogglePush} disabled={pushLoading}
-          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold"
-          style={{ background: pushSubscribed ? 'var(--brand)' : 'var(--bg)', color: pushSubscribed ? '#fff' : 'var(--ink)', border: '1px solid var(--divider)', cursor: pushLoading ? 'wait' : 'pointer', opacity: pushLoading ? 0.6 : 1 }}>
-          {pushLoading ? <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} /> : pushSubscribed ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
-          {pushLoading ? '…' : pushSubscribed ? tr.notifOn : tr.notifOff}
-        </button>
-      </div>
-
-      {/* Next shooting */}
+      {/* Next meeting (next shooting) */}
       <div className="rounded-2xl p-4 cursor-pointer flex flex-col justify-between"
         style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 120 }}
         onClick={() => onTabChange('shootings')}>
-        <p className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{tr.nextShooting}</p>
+        <p className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
+          {lang === 'fi' ? 'Seuraava tapaaminen' : 'Next meeting'}
+        </p>
         {nextShooting ? (
           <div>
             <p className="text-sm font-bold truncate mt-1" style={{ color: 'var(--ink)' }}>{nextShooting.title}</p>
@@ -298,13 +295,13 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pu
             {nextShooting.location && <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'var(--muted)' }}><MapPin className="w-3 h-3" />{nextShooting.location}</p>}
           </div>
         ) : (
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>{tr.noNextShooting}</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>{lang === 'fi' ? 'Ei tulevia tapaamisia' : 'No upcoming meeting'}</p>
         )}
         <Camera size={18} style={{ color: 'var(--brand)', marginTop: 8, opacity: 0.5 }} />
       </div>
 
-      {/* Mini calendar preview — span 2 mobile / span 3 desktop */}
-      <div className="col-span-2 sm:col-span-3 rounded-2xl p-4 sm:p-5 cursor-pointer overflow-hidden"
+      {/* Mini calendar preview — full width row 2 */}
+      <div className="col-span-2 sm:col-span-4 rounded-2xl p-4 sm:p-5 cursor-pointer overflow-hidden"
         style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}
         onClick={() => onTabChange('calendar')}>
         <div className="flex items-center justify-between mb-3">
@@ -918,7 +915,7 @@ function ContactRequestForm({ token, tr }) {
   );
 }
 
-function AdminTab({ client = {}, contracts = [], credentials = [], tr, dateLocale, token, onClientUpdate }) {
+function AdminTab({ client = {}, contracts = [], credentials = [], tr, dateLocale, token, lang, pushSubscribed, pushLoading, onTogglePush, onClientUpdate }) {
   const [showPwd, setShowPwd] = useState({});
   const [search, setSearch] = useState('');
 
@@ -1108,6 +1105,37 @@ function AdminTab({ client = {}, contracts = [], credentials = [], tr, dateLocal
           </ul>
         </div>
       )}
+
+      {/* Posting reminders */}
+      <div className="rounded-2xl p-4 flex items-center justify-between gap-3" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+        <div>
+          <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{tr.notifTitle}</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{tr.notifDesc}</p>
+        </div>
+        <button onClick={onTogglePush} disabled={pushLoading}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0"
+          style={{ background: pushSubscribed ? 'var(--brand)' : 'var(--bg)', color: pushSubscribed ? '#fff' : 'var(--ink)', border: '1px solid var(--divider)', cursor: pushLoading ? 'wait' : 'pointer', opacity: pushLoading ? 0.6 : 1 }}>
+          {pushLoading
+            ? <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} />
+            : pushSubscribed ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
+          {pushLoading ? '…' : pushSubscribed ? tr.notifOn : tr.notifOff}
+        </button>
+      </div>
+
+      {/* Logout */}
+      <div className="pt-2">
+        <button
+          onClick={() => {
+            if (window.confirm(lang === 'fi' ? 'Haluatko poistua portaalista?' : 'Leave the portal?')) {
+              window.location.href = '/';
+            }
+          }}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold"
+          style={{ background: 'var(--card)', border: '1px solid var(--divider)', color: 'var(--muted)', cursor: 'pointer' }}>
+          <ExternalLink size={14} />
+          {lang === 'fi' ? 'Poistu portaalista' : 'Leave portal'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -1269,13 +1297,13 @@ export default function ClientPortalV2() {
 
       {/* Content */}
       <div className="mx-auto px-5" style={{ maxWidth: 1400, paddingBottom: 120 }}>
-        {activeTab === 'home'      && <HomeTab client={client} content={content} shootings={shootings} pushSubscribed={pushSubscribed} pushLoading={pushLoading} onTogglePush={handleTogglePush} onTabChange={setActiveTab} tr={tr} dateLocale={dateLocale} lang={lang} />}
+        {activeTab === 'home'      && <HomeTab client={client} content={content} shootings={shootings} onTabChange={setActiveTab} tr={tr} dateLocale={dateLocale} lang={lang} />}
         {activeTab === 'calendar'  && <CalendarTab content={content} calendarPdfs={client.editorial_calendar_pdfs || []} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'shootings' && <ShootingsTab shootings={shootings} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'content'   && <ContentBankTab content={content} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'documents' && <DocumentsTab client={client} documents={documents} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'tutorials' && <TutorialsTab tutorials={tutorials} trainingPdfUrl={client.training_pdf_url} tr={tr} />}
-        {activeTab === 'admin'     && <AdminTab client={client} contracts={contracts} credentials={credentials} tr={tr} dateLocale={dateLocale} token={token} onClientUpdate={updates => setData(d => ({ ...d, client: { ...d.client, ...updates } }))} />}
+        {activeTab === 'admin'     && <AdminTab client={client} contracts={contracts} credentials={credentials} tr={tr} dateLocale={dateLocale} token={token} lang={lang} pushSubscribed={pushSubscribed} pushLoading={pushLoading} onTogglePush={handleTogglePush} onClientUpdate={updates => setData(d => ({ ...d, client: { ...d.client, ...updates } }))} />}
       </div>
 
       {/* Mobile — More drawer */}
