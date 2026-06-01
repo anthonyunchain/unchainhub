@@ -53,7 +53,8 @@ Deno.serve(async (req) => {
       const { data: subs } = await supabaseAdmin
         .from('client_push_subscriptions')
         .select('*')
-        .eq('client_id', client.id);
+        .eq('client_id', client.id)
+        .neq('posting_reminders', false);
 
       if (!subs?.length) continue;
 

@@ -19,6 +19,7 @@ const TR = {
     home: "Home", calendar: "Calendar", shootings: "Shootings",
     content: "Content", documents: "Documents", tutorials: "Tutorials", admin: "Admin",
     photos: "Photos", noPhotos: "No photos yet — they'll appear here after your shootings.",
+    shootLocation: "Location", shootCrew: "Crew", shootContent: "Content to shoot", shootTime: "Time", shootDate: "Date",
     hello: "Hello", welcome: "Welcome to your Unchain Studio client space.",
     todayPost: (n) => `You have ${n} post${n > 1 ? 's' : ''} to publish today`,
     upcomingShootings: "Upcoming shootings", noShootings: "No shootings scheduled",
@@ -48,6 +49,7 @@ const TR = {
     home: "Koti", calendar: "Kalenteri", shootings: "Kuvaukset",
     content: "Sisältö", documents: "Dokumentit", tutorials: "Oppaat", admin: "Hallinta",
     photos: "Kuvat", noPhotos: "Ei vielä kuvia — ne näkyvät täällä kuvausten jälkeen.",
+    shootLocation: "Sijainti", shootCrew: "Tiimi", shootContent: "Kuvattava sisältö", shootTime: "Aika", shootDate: "Päivä",
     hello: "Hei", welcome: "Tervetuloa Unchain Studio -asiakastilaasi.",
     todayPost: (n) => `Sinulla on ${n} julkaistava${n > 1 ? '' : ''} sisältö tänään`,
     upcomingShootings: "Tulevat kuvaukset", noShootings: "Ei tulevia kuvauksia",
@@ -101,9 +103,9 @@ async function getReadySW() {
   ]);
 }
 
-async function subscribePush(clientId, portalUrl) {
+// Ensure a browser push subscription exists, returns its JSON (endpoint+keys)
+async function ensureBrowserSub() {
   if (!('Notification' in window) || !('PushManager' in window)) throw new Error('push_unsupported');
-
   const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   if (isIos && !isStandalone) throw new Error('ios_install');
@@ -114,42 +116,53 @@ async function subscribePush(clientId, portalUrl) {
 
   const reg = await getReadySW();
   if (!reg) throw new Error('sw_unavailable');
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+  }
+  return sub.toJSON();
+}
 
-  const sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-  });
-  const j = sub.toJSON();
+// Write the two category prefs. If both off → unsubscribe entirely.
+async function setPushPrefs(clientId, posting, portal) {
+  if (!posting && !portal) {
+    // remove subscription
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await base44.functions.invoke('registerClientPush', { client_id: clientId, endpoint: sub.endpoint, unsubscribe: true }).catch(() => {});
+        await sub.unsubscribe();
+      }
+    } catch {}
+    return;
+  }
+  const j = await ensureBrowserSub();
+  if (!j) return;
   await base44.functions.invoke('registerClientPush', {
     client_id: clientId,
     endpoint: j.endpoint,
     p256dh: j.keys.p256dh,
     auth: j.keys.auth,
-    portal_url: portalUrl,
-  }).catch(() => {});
-  return sub;
+    posting_reminders: posting,
+    portal_notifications: portal,
+  });
 }
 
-async function unsubscribePush(clientId) {
-  if (!('serviceWorker' in navigator)) return;
-  const regs = await navigator.serviceWorker.getRegistrations();
-  for (const reg of regs) {
-    const sub = await reg.pushManager.getSubscription().catch(() => null);
-    if (sub) {
-      await base44.functions.invoke('registerClientPush', {
-        client_id: clientId, endpoint: sub.endpoint, unsubscribe: true,
-      }).catch(() => {});
-      await sub.unsubscribe();
-    }
-  }
-}
-
-async function getPushSubscribed() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+// Read the current prefs for this device
+async function getPushPrefs() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return { posting: false, portal: false };
   try {
     const reg = await navigator.serviceWorker.ready;
-    return !!(await reg.pushManager.getSubscription());
-  } catch { return false; }
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return { posting: false, portal: false };
+    const res = await base44.functions.invoke('registerClientPush', { endpoint: sub.endpoint, get: true });
+    const d = res?.data ?? res;
+    return { posting: !!d?.posting_reminders, portal: !!d?.portal_notifications };
+  } catch { return { posting: false, portal: false }; }
 }
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -476,21 +489,72 @@ function ShootingsTab({ shootings = [], tr, dateLocale }) {
   const upcoming = shootings.filter(s => s.date >= today);
   const past     = shootings.filter(s => s.date < today);
 
+  const Row = ({ icon: Icon, label, children }) => (
+    <div className="flex items-start gap-2.5 py-2" style={{ borderTop: '1px solid var(--divider)' }}>
+      <Icon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--brand)' }} />
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-mono uppercase tracking-wider mb-0.5" style={{ color: 'var(--muted)' }}>{label}</p>
+        <div className="text-sm" style={{ color: 'var(--ink)' }}>{children}</div>
+      </div>
+    </div>
+  );
+
   const ShootingCard = ({ s }) => (
-    <div className="rounded-2xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
-          <Camera className="w-4 h-4" style={{ color: 'var(--brand)' }} />
+    <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
+      {/* Header */}
+      <div className="flex items-start gap-3 pb-3">
+        <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
+          <Camera className="w-5 h-5" style={{ color: 'var(--brand)' }} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-bold text-sm truncate" style={{ color: 'var(--ink)' }}>{s.title}</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-            {fmtDate(s.date, 'd MMMM yyyy', dateLocale)}{s.time ? ` · ${s.time}` : ''}{s.location ? ` · ${s.location}` : ''}
-          </p>
-          {s.description && <p className="text-xs mt-1.5" style={{ color: 'var(--subtle)' }}>{s.description}</p>}
+          <p className="font-bold text-lg leading-tight" style={{ color: 'var(--ink)' }}>{s.title}</p>
+          {s.description && <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>{s.description}</p>}
         </div>
-        <span className="text-[10px] font-semibold px-2 py-1 rounded-full shrink-0" style={{ background: 'var(--bg)', border: '1px solid var(--divider)', color: 'var(--muted)' }}>{s.status}</span>
+        <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0" style={{ background: 'var(--bg)', border: '1px solid var(--divider)', color: 'var(--muted)' }}>{s.status}</span>
       </div>
+
+      {/* Date + time big */}
+      <div className="flex gap-2 pb-1">
+        <div className="flex-1 rounded-xl p-3" style={{ background: 'var(--bg)' }}>
+          <p className="text-[10px] font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>{tr.shootDate}</p>
+          <p className="text-base font-bold" style={{ color: 'var(--ink)' }}>{fmtDate(s.date, 'd MMM yyyy', dateLocale)}</p>
+        </div>
+        {s.time && (
+          <div className="flex-1 rounded-xl p-3" style={{ background: 'var(--bg)' }}>
+            <p className="text-[10px] font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>{tr.shootTime}</p>
+            <p className="text-base font-bold" style={{ color: 'var(--ink)' }}>{s.time}</p>
+          </div>
+        )}
+      </div>
+
+      {s.location && (
+        <Row icon={MapPin} label={tr.shootLocation}>{s.location}</Row>
+      )}
+
+      {s.crew?.length > 0 && (
+        <Row icon={Camera} label={tr.shootCrew}>
+          <div className="flex flex-wrap gap-1.5">
+            {s.crew.map((m, i) => (
+              <span key={i} className="text-xs px-2 py-1 rounded-lg" style={{ background: 'var(--brand-muted)', color: 'var(--brand)', fontWeight: 600 }}>
+                {m.name}{m.role ? ` · ${m.role}` : ''}
+              </span>
+            ))}
+          </div>
+        </Row>
+      )}
+
+      {s.shotContent?.length > 0 && (
+        <Row icon={Image} label={tr.shootContent}>
+          <ul className="space-y-1 mt-0.5">
+            {s.shotContent.map(c => (
+              <li key={c.id} className="flex items-center gap-2">
+                {c.post_type && <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
+                <span className="text-sm" style={{ color: 'var(--ink)' }}>{c.title}</span>
+              </li>
+            ))}
+          </ul>
+        </Row>
+      )}
     </div>
   );
 
@@ -596,7 +660,9 @@ function ContentBankTab({ content = [], tr, dateLocale }) {
           <p className="text-label-mono" style={{ textTransform: 'capitalize' }}>
             {key === 'undated' ? '—' : fmtDate(key + '-01', 'MMMM yyyy', dateLocale)}
           </p>
-          {groups[key].map(c => <ContentCard key={c.id} c={c} tr={tr} dateLocale={dateLocale} />)}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {groups[key].map(c => <ContentCard key={c.id} c={c} tr={tr} dateLocale={dateLocale} />)}
+          </div>
         </div>
       ))}
     </div>
@@ -604,49 +670,48 @@ function ContentBankTab({ content = [], tr, dateLocale }) {
 }
 
 function ContentCard({ c, tr, dateLocale }) {
-  const [captionExpanded, setCaptionExpanded] = useState(false);
+  const [open, setOpen] = useState(false);
   const caption = c.reel_description || c.description || '';
-  const LIMIT = 120;
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-      {c.cover_image_url && (
-        <div className="w-full aspect-video bg-slate-100 overflow-hidden">
-          <img src={c.cover_image_url} alt={c.title} className="w-full h-full object-cover" />
-        </div>
-      )}
-      <div className="p-3 space-y-2.5">
-        <div className="min-w-0">
-          <p className="font-bold text-sm truncate" style={{ color: 'var(--ink)' }}>{c.title || '—'}</p>
-          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-            {c.post_type && <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
-            {c.platform && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{c.platform}</span>}
-            {c.scheduled_date && <span className="text-[10px]" style={{ color: 'var(--muted)' }}>{fmtDate(c.scheduled_date, 'd MMM yyyy', dateLocale)}{c.suggested_time ? ` · ${c.suggested_time}` : ''}</span>}
+    <div className="rounded-xl overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+      {/* Compact header row */}
+      <div className="flex items-center gap-3 p-2.5 cursor-pointer" onClick={() => setOpen(o => !o)}>
+        {c.cover_image_url
+          ? <img src={c.cover_image_url} alt={c.title} className="w-14 h-14 rounded-lg object-cover shrink-0" />
+          : <div className="w-14 h-14 rounded-lg shrink-0 flex items-center justify-center" style={{ background: 'var(--brand-muted)' }}><Image className="w-5 h-5" style={{ color: 'var(--brand)' }} /></div>}
+        <div className="min-w-0 flex-1">
+          {/* Big date + time */}
+          {c.scheduled_date && (
+            <p className="font-bold text-base leading-none" style={{ color: 'var(--ink)' }}>
+              {fmtDate(c.scheduled_date, 'd MMM', dateLocale)}{c.suggested_time ? ` · ${c.suggested_time}` : ''}
+            </p>
+          )}
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+            {c.post_type && <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
+            {c.platform && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">{c.platform}</span>}
+            <span className="text-[11px] truncate" style={{ color: 'var(--muted)' }}>{c.title}</span>
           </div>
         </div>
-        {caption && (
-          <div>
-            <p className="text-xs" style={{ color: 'var(--subtle)', whiteSpace: 'pre-wrap' }}>
-              {captionExpanded || caption.length <= LIMIT ? caption : caption.slice(0, LIMIT) + '…'}
-            </p>
-            {caption.length > LIMIT && (
-              <button onClick={() => setCaptionExpanded(e => !e)} className="text-xs mt-0.5" style={{ color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                {captionExpanded ? tr.showLess : tr.showMore}
-              </button>
+        <ChevronRight className="w-4 h-4 shrink-0 transition-transform" style={{ color: 'var(--muted)', transform: open ? 'rotate(90deg)' : 'none' }} />
+      </div>
+
+      {/* Expanded: caption + actions */}
+      {open && (
+        <div className="px-2.5 pb-2.5 space-y-2" style={{ borderTop: '1px solid var(--divider)', paddingTop: 10 }}>
+          {caption && <p className="text-xs" style={{ color: 'var(--subtle)', whiteSpace: 'pre-wrap' }}>{caption}</p>}
+          <div className="flex gap-2 flex-wrap">
+            {caption && <CopyButton value={caption} label={tr.copyCaption} />}
+            {c.drive_url && (
+              <a href={c.drive_url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border font-semibold"
+                style={{ borderColor: 'var(--brand)', background: 'var(--brand-muted)', color: 'var(--brand)', textDecoration: 'none' }}>
+                <Download className="w-3.5 h-3.5" />{tr.download}
+              </a>
             )}
           </div>
-        )}
-        <div className="flex gap-2 flex-wrap">
-          {caption && <CopyButton value={caption} label={tr.copyCaption} />}
-          {c.drive_url && (
-            <a href={c.drive_url} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border font-semibold"
-              style={{ borderColor: 'var(--brand)', background: 'var(--brand-muted)', color: 'var(--brand)', textDecoration: 'none' }}>
-              <Download className="w-3.5 h-3.5" />{tr.download}
-            </a>
-          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -688,32 +753,28 @@ function DocumentsTab({ client = {}, documents = [], tr, dateLocale }) {
               const files = Array.isArray(d.files) ? d.files : [];
               return (
                 <li key={d.id} className="rounded-2xl p-3" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
-                      <FileText className="w-4 h-4" style={{ color: 'var(--brand)' }} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{d.title}</p>
-                      <p className="text-xs" style={{ color: 'var(--muted)' }}>{fmtDate(d.created_at, 'd MMM yyyy', dateLocale)} · {files.length} file{files.length > 1 ? 's' : ''}</p>
-                    </div>
-                  </div>
+                  <p className="text-sm font-semibold mb-2" style={{ color: 'var(--ink)' }}>{d.title}</p>
                   {files.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {files.map(f => (
-                        f.url
-                          ? <a key={f.path} href={f.url} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border"
-                              style={{ borderColor: 'var(--divider)', background: 'var(--bg)', color: 'var(--ink)', textDecoration: 'none' }}>
-                              <Download className="w-3.5 h-3.5" />
-                              <span className="truncate max-w-[200px]">{f.name}</span>
-                            </a>
-                          : <button key={f.path} onClick={() => openDoc(f.path)}
-                              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border"
-                              style={{ borderColor: 'var(--divider)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--ink)' }}>
-                              <Download className="w-3.5 h-3.5" />
-                              <span className="truncate max-w-[200px]">{f.name}</span>
-                            </button>
-                      ))}
+                    <div className="space-y-2">
+                      {files.map(f => {
+                        const Wrapper = f.url ? 'a' : 'button';
+                        const wrapProps = f.url
+                          ? { href: f.url, target: '_blank', rel: 'noopener noreferrer' }
+                          : { onClick: () => openDoc(f.path) };
+                        return (
+                          <Wrapper key={f.path} {...wrapProps}
+                            className="flex items-center gap-3 p-2.5 rounded-xl border w-full"
+                            style={{ borderColor: 'var(--divider)', background: 'var(--bg)', color: 'var(--ink)', textDecoration: 'none', cursor: 'pointer' }}>
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
+                              <FileText className="w-4 h-4" style={{ color: 'var(--brand)' }} />
+                            </div>
+                            <span className="text-sm font-medium truncate flex-1 text-left" style={{ color: 'var(--ink)' }}>{f.name}</span>
+                            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand)' }}>
+                              <Download className="w-5 h-5" style={{ color: '#fff' }} />
+                            </div>
+                          </Wrapper>
+                        );
+                      })}
                     </div>
                   )}
                 </li>
@@ -947,7 +1008,7 @@ function ContactRequestForm({ token, tr }) {
   );
 }
 
-function AdminTab({ client = {}, contracts = [], invoices = [], credentials = [], tr, dateLocale, token, lang, pushSubscribed, pushLoading, onTogglePush, onClientUpdate }) {
+function AdminTab({ client = {}, contracts = [], invoices = [], credentials = [], tr, dateLocale, token, lang, postingOn, portalOn, pushLoading, onToggleCategory, onClientUpdate }) {
   const [showPwd, setShowPwd] = useState({});
   const [search, setSearch] = useState('');
   const denied = typeof Notification !== 'undefined' && Notification.permission === 'denied';
@@ -1192,28 +1253,31 @@ function AdminTab({ client = {}, contracts = [], invoices = [], credentials = []
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {[
-            { title: tr.notifTitle,       desc: tr.notifDesc },
-            { title: tr.portalNotifTitle, desc: tr.portalNotifDesc },
-          ].map((n, i) => (
-            <div key={i} className="rounded-2xl p-4 flex flex-col justify-between gap-3" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
-              <div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{n.title}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{n.desc}</p>
+            { key: 'posting', title: tr.notifTitle,       desc: tr.notifDesc,       on: postingOn },
+            { key: 'portal',  title: tr.portalNotifTitle, desc: tr.portalNotifDesc, on: portalOn },
+          ].map((n) => {
+            const busy = pushLoading === n.key;
+            return (
+              <div key={n.key} className="rounded-2xl p-4 flex flex-col justify-between gap-3" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{n.title}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{n.desc}</p>
+                </div>
+                <button onClick={() => onToggleCategory(n.key)} disabled={!!pushLoading}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+                  style={{
+                    background: denied ? 'var(--urgent-bg, #fef2f2)' : n.on ? 'var(--brand)' : 'var(--bg)',
+                    color: denied ? 'var(--urgent-text, #b91c1c)' : n.on ? '#fff' : 'var(--ink)',
+                    border: '1px solid var(--divider)', cursor: pushLoading ? 'wait' : 'pointer', opacity: pushLoading && !busy ? 0.5 : 1,
+                  }}>
+                  {busy
+                    ? <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} />
+                    : (denied || !n.on) ? <BellOff className="w-3.5 h-3.5" /> : <Bell className="w-3.5 h-3.5" />}
+                  {busy ? '…' : denied ? tr.notifBlocked : n.on ? tr.notifOn : tr.notifOff}
+                </button>
               </div>
-              <button onClick={onTogglePush} disabled={pushLoading}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
-                style={{
-                  background: denied ? 'var(--urgent-bg, #fef2f2)' : pushSubscribed ? 'var(--brand)' : 'var(--bg)',
-                  color: denied ? 'var(--urgent-text, #b91c1c)' : pushSubscribed ? '#fff' : 'var(--ink)',
-                  border: '1px solid var(--divider)', cursor: pushLoading ? 'wait' : 'pointer', opacity: pushLoading ? 0.6 : 1,
-                }}>
-                {pushLoading
-                  ? <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} />
-                  : (denied || !pushSubscribed) ? <BellOff className="w-3.5 h-3.5" /> : <Bell className="w-3.5 h-3.5" />}
-                {pushLoading ? '…' : denied ? tr.notifBlocked : pushSubscribed ? tr.notifOn : tr.notifOff}
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -1243,8 +1307,9 @@ export default function ClientPortalV2() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
-  const [pushSubscribed, setPushSubscribed] = useState(false);
-  const [pushLoading, setPushLoading] = useState(false);
+  const [postingOn, setPostingOn] = useState(false);
+  const [portalOn, setPortalOn] = useState(false);
+  const [pushLoading, setPushLoading] = useState(null); // 'posting' | 'portal' | null
   const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
@@ -1263,7 +1328,7 @@ export default function ClientPortalV2() {
   }, [token]);
 
   useEffect(() => {
-    getPushSubscribed().then(setPushSubscribed);
+    getPushPrefs().then(({ posting, portal }) => { setPostingOn(posting); setPortalOn(portal); });
   }, []);
 
   const lang = data?.client?.default_language || 'en';
@@ -1283,21 +1348,19 @@ export default function ClientPortalV2() {
 
   const portalUrl = `${window.location.origin}/portal/${token}`;
 
-  const handleTogglePush = async () => {
+  const handleToggleCategory = async (category) => {
     if (!client?.id || pushLoading) return;
-    setPushLoading(true);
+    setPushLoading(category);
+    const nextPosting = category === 'posting' ? !postingOn : postingOn;
+    const nextPortal  = category === 'portal'  ? !portalOn  : portalOn;
     try {
-      if (pushSubscribed) {
-        await unsubscribePush(client.id);
-        setPushSubscribed(false);
-        toast.success(lang === 'fi' ? 'Ilmoitukset poistettu käytöstä' : 'Notifications disabled');
-      } else {
-        const sub = await subscribePush(client.id, portalUrl);
-        if (sub) {
-          setPushSubscribed(true);
-          toast.success(lang === 'fi' ? 'Ilmoitukset käytössä! 🔔' : 'Notifications enabled! 🔔');
-        }
-      }
+      await setPushPrefs(client.id, nextPosting, nextPortal);
+      setPostingOn(nextPosting);
+      setPortalOn(nextPortal);
+      const turnedOn = category === 'posting' ? nextPosting : nextPortal;
+      toast.success(turnedOn
+        ? (lang === 'fi' ? 'Ilmoitukset käytössä! 🔔' : 'Enabled! 🔔')
+        : (lang === 'fi' ? 'Ilmoitukset pois käytöstä' : 'Disabled'));
     } catch (e) {
       if (e.message === 'ios_install') {
         toast(lang === 'fi'
@@ -1315,7 +1378,7 @@ export default function ClientPortalV2() {
         toast.error(e.message || 'Something went wrong');
       }
     } finally {
-      setPushLoading(false);
+      setPushLoading(null);
     }
   };
 
@@ -1402,7 +1465,7 @@ export default function ClientPortalV2() {
         {activeTab === 'photos'    && <PhotoBankTab shootings={shootings} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'documents' && <DocumentsTab client={client} documents={documents} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'tutorials' && <TutorialsTab tutorials={tutorials} trainingPdfUrl={client.training_pdf_url} tr={tr} />}
-        {activeTab === 'admin'     && <AdminTab client={client} contracts={contracts} invoices={invoices} credentials={credentials} tr={tr} dateLocale={dateLocale} token={token} lang={lang} pushSubscribed={pushSubscribed} pushLoading={pushLoading} onTogglePush={handleTogglePush} onClientUpdate={updates => setData(d => ({ ...d, client: { ...d.client, ...updates } }))} />}
+        {activeTab === 'admin'     && <AdminTab client={client} contracts={contracts} invoices={invoices} credentials={credentials} tr={tr} dateLocale={dateLocale} token={token} lang={lang} postingOn={postingOn} portalOn={portalOn} pushLoading={pushLoading} onToggleCategory={handleToggleCategory} onClientUpdate={updates => setData(d => ({ ...d, client: { ...d.client, ...updates } }))} />}
       </div>
 
       {/* Mobile — More drawer */}

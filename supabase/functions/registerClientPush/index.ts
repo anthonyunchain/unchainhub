@@ -10,9 +10,26 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const { client_id, endpoint, p256dh, auth, unsubscribe } = await req.json();
-    if (!client_id || !endpoint) {
-      return Response.json({ error: 'Missing client_id or endpoint' }, { status: 400, headers: corsHeaders(req) });
+    const body = await req.json();
+    const { client_id, endpoint, p256dh, auth, unsubscribe, get,
+            posting_reminders, portal_notifications } = body;
+
+    if (!endpoint) {
+      return Response.json({ error: 'Missing endpoint' }, { status: 400, headers: corsHeaders(req) });
+    }
+
+    // Read current prefs for this device
+    if (get) {
+      const { data } = await supabaseAdmin
+        .from('client_push_subscriptions')
+        .select('posting_reminders, portal_notifications')
+        .eq('endpoint', endpoint)
+        .maybeSingle();
+      return Response.json({
+        subscribed: !!data,
+        posting_reminders: data?.posting_reminders ?? false,
+        portal_notifications: data?.portal_notifications ?? false,
+      }, { headers: corsHeaders(req) });
     }
 
     if (unsubscribe) {
@@ -20,13 +37,17 @@ Deno.serve(async (req) => {
       return Response.json({ success: true }, { headers: corsHeaders(req) });
     }
 
-    if (!p256dh || !auth) {
-      return Response.json({ error: 'Missing p256dh or auth' }, { status: 400, headers: corsHeaders(req) });
+    if (!client_id || !p256dh || !auth) {
+      return Response.json({ error: 'Missing client_id, p256dh or auth' }, { status: 400, headers: corsHeaders(req) });
     }
 
     const { error } = await supabaseAdmin
       .from('client_push_subscriptions')
-      .upsert({ client_id, endpoint, p256dh, auth }, { onConflict: 'endpoint' });
+      .upsert({
+        client_id, endpoint, p256dh, auth,
+        posting_reminders: posting_reminders ?? true,
+        portal_notifications: portal_notifications ?? true,
+      }, { onConflict: 'endpoint' });
 
     if (error) throw error;
 

@@ -77,10 +77,39 @@ Deno.serve(async (req) => {
       return { ...doc, files };
     }));
 
+    // Enrich shootings with crew (assignments) + content to shoot
+    const baseShootings = shootingsRes.data || [];
+    const shootingIds = baseShootings.map((s: any) => s.id);
+    let assignments: any[] = [], shotLinks: any[] = [];
+    if (shootingIds.length) {
+      const [aRes, cRes] = await Promise.all([
+        supabaseAdmin.from('shooting_assignments').select('shooting_id, freelancer_name, role, status').in('shooting_id', shootingIds),
+        supabaseAdmin.from('shooting_content').select('shooting_id, content_id').in('shooting_id', shootingIds),
+      ]);
+      assignments = aRes.data || [];
+      shotLinks = cRes.data || [];
+    }
+    // Map content_id -> title from already-fetched content (+ fallback fetch)
+    const contentTitleById: Record<string, any> = {};
+    (contentRes.data || []).forEach((c: any) => { contentTitleById[c.id] = c; });
+    const missingIds = shotLinks.map(l => l.content_id).filter(id => !contentTitleById[id]);
+    if (missingIds.length) {
+      const { data: extra } = await supabaseAdmin.from('editorial_content').select('id, title, post_type, platform').in('id', missingIds);
+      (extra || []).forEach((c: any) => { contentTitleById[c.id] = c; });
+    }
+    const shootings = baseShootings.map((s: any) => ({
+      ...s,
+      crew: assignments.filter(a => a.shooting_id === s.id).map(a => ({ name: a.freelancer_name, role: a.role })),
+      shotContent: shotLinks.filter(l => l.shooting_id === s.id).map(l => {
+        const c = contentTitleById[l.content_id];
+        return c ? { id: c.id, title: c.title, post_type: c.post_type, platform: c.platform } : null;
+      }).filter(Boolean),
+    }));
+
     return Response.json({
       client,
       content: contentRes.data || [],
-      shootings: shootingsRes.data || [],
+      shootings,
       contracts: contractsRes.data || [],
       documents,
       // Tutorials scoped to this client (or global when client_ids empty/null)
