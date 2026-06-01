@@ -22,7 +22,9 @@ const TR = {
     todayPost: (n) => `You have ${n} post${n > 1 ? 's' : ''} to publish today`,
     upcomingShootings: "Upcoming shootings", noShootings: "No shootings scheduled",
     notifTitle: "Posting reminders", notifDesc: "Get a daily alert for content scheduled today.",
+    portalNotifTitle: "Portal notifications", portalNotifDesc: "Get notified about new content, shootings and replies.",
     notifOn: "Enabled", notifOff: "Enable",
+    notifBlocked: "Blocked", notifBlockedHelp: "Notifications are blocked. Enable them in your browser settings (tap the lock icon in the address bar → Notifications → Allow), then reload this page.",
     postToday: "Post today", postsThisMonth: "Posts this month",
     nextShooting: "Next shooting", noNextShooting: "No upcoming shooting",
     calendarPdf: "Calendar PDF", schedulePdf: "Production Schedule",
@@ -48,7 +50,9 @@ const TR = {
     todayPost: (n) => `Sinulla on ${n} julkaistava${n > 1 ? '' : ''} sisältö tänään`,
     upcomingShootings: "Tulevat kuvaukset", noShootings: "Ei tulevia kuvauksia",
     notifTitle: "Julkaisumuistutukset", notifDesc: "Saat päivittäisen ilmoituksen tänään aikataulutetuista sisällöistä.",
+    portalNotifTitle: "Portaali-ilmoitukset", portalNotifDesc: "Saat ilmoituksia uudesta sisällöstä, kuvauksista ja vastauksista.",
     notifOn: "Käytössä", notifOff: "Ota käyttöön",
+    notifBlocked: "Estetty", notifBlockedHelp: "Ilmoitukset on estetty. Salli ne selaimen asetuksissa (napauta lukkokuvaketta osoiterivillä → Ilmoitukset → Salli) ja lataa sivu uudelleen.",
     postToday: "Julkaise tänään", postsThisMonth: "Julkaisut tässä kuussa",
     nextShooting: "Seuraava kuvaus", noNextShooting: "Ei tulevia kuvauksia",
     calendarPdf: "Kalenteri PDF", schedulePdf: "Tuotantoaikataulu",
@@ -877,6 +881,7 @@ function ContactRequestForm({ token, tr }) {
 function AdminTab({ client = {}, contracts = [], credentials = [], tr, dateLocale, token, lang, pushSubscribed, pushLoading, onTogglePush, onClientUpdate }) {
   const [showPwd, setShowPwd] = useState({});
   const [search, setSearch] = useState('');
+  const denied = typeof Notification !== 'undefined' && Notification.permission === 'denied';
 
   // Profile form
   const [profile, setProfile] = useState({
@@ -1065,20 +1070,39 @@ function AdminTab({ client = {}, contracts = [], credentials = [], tr, dateLocal
         </div>
       )}
 
-      {/* Posting reminders */}
-      <div className="rounded-2xl p-4 flex items-center justify-between gap-3" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
-        <div>
-          <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{tr.notifTitle}</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{tr.notifDesc}</p>
+      {/* Notifications — posting reminders + portal notifications */}
+      <div className="space-y-2">
+        <p className="text-label-mono">{lang === 'fi' ? 'Ilmoitukset' : 'Notifications'}</p>
+        {denied && (
+          <div className="rounded-xl p-3 text-xs" style={{ background: 'var(--urgent-bg, #fef2f2)', color: 'var(--urgent-text, #b91c1c)', border: '1px solid var(--divider)' }}>
+            {tr.notifBlockedHelp}
+          </div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {[
+            { title: tr.notifTitle,       desc: tr.notifDesc },
+            { title: tr.portalNotifTitle, desc: tr.portalNotifDesc },
+          ].map((n, i) => (
+            <div key={i} className="rounded-2xl p-4 flex flex-col justify-between gap-3" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{n.title}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{n.desc}</p>
+              </div>
+              <button onClick={onTogglePush} disabled={pushLoading}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+                style={{
+                  background: denied ? 'var(--urgent-bg, #fef2f2)' : pushSubscribed ? 'var(--brand)' : 'var(--bg)',
+                  color: denied ? 'var(--urgent-text, #b91c1c)' : pushSubscribed ? '#fff' : 'var(--ink)',
+                  border: '1px solid var(--divider)', cursor: pushLoading ? 'wait' : 'pointer', opacity: pushLoading ? 0.6 : 1,
+                }}>
+                {pushLoading
+                  ? <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} />
+                  : (denied || !pushSubscribed) ? <BellOff className="w-3.5 h-3.5" /> : <Bell className="w-3.5 h-3.5" />}
+                {pushLoading ? '…' : denied ? tr.notifBlocked : pushSubscribed ? tr.notifOn : tr.notifOff}
+              </button>
+            </div>
+          ))}
         </div>
-        <button onClick={onTogglePush} disabled={pushLoading}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0"
-          style={{ background: pushSubscribed ? 'var(--brand)' : 'var(--bg)', color: pushSubscribed ? '#fff' : 'var(--ink)', border: '1px solid var(--divider)', cursor: pushLoading ? 'wait' : 'pointer', opacity: pushLoading ? 0.6 : 1 }}>
-          {pushLoading
-            ? <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} />
-            : pushSubscribed ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
-          {pushLoading ? '…' : pushSubscribed ? tr.notifOn : tr.notifOff}
-        </button>
       </div>
 
       {/* Logout */}
@@ -1166,9 +1190,9 @@ export default function ClientPortalV2() {
           ? 'Lisää sivu kotinäyttöön Safarissa ottaaksesi ilmoitukset käyttöön.'
           : '📱 Add this page to your Home Screen in Safari to enable notifications.', { duration: 7000 });
       } else if (e.message === 'push_denied') {
-        toast.error(lang === 'fi'
-          ? 'Ilmoitukset estetty — salli ne selaimen asetuksissa.'
-          : 'Notifications blocked — allow them in your browser settings.');
+        toast(lang === 'fi'
+          ? 'Ilmoitukset on estetty. Napauta lukkokuvaketta osoiterivillä → Ilmoitukset → Salli, ja lataa sivu uudelleen.'
+          : '🔒 Notifications are blocked. Tap the lock icon in the address bar → Notifications → Allow, then reload the page.', { duration: 9000 });
       } else if (e.message === 'push_unsupported') {
         toast.error(lang === 'fi' ? 'Selain ei tue push-ilmoituksia.' : 'Push notifications not supported on this browser.');
       } else if (e.message === 'sw_unavailable') {
