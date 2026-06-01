@@ -55,6 +55,7 @@ const TYPE_COLORS = {
 
 const TABS = [
   { id: "dashboard",   label: "Dashboard"  },
+  { id: "hub",         label: "Portal Hub" },
   { id: "reports",     label: "Reports"    },
   { id: "socials",     label: "Socials"    },
   { id: "contract",    label: "Billing"    },
@@ -68,7 +69,7 @@ const TABS = [
 
 // For Portal V2 clients, hide tabs unrelated to the portal (staff/restaurant stuff).
 // Only keep what feeds or manages the V2 portal.
-const PORTAL_V2_TABS = ["dashboard", "contract", "calendars", "documents", "credentials", "requests"];
+const PORTAL_V2_TABS = ["dashboard", "hub", "contract", "calendars", "documents", "credentials", "requests"];
 function visibleTabs(client) {
   if (client?.portal_v2_enabled) {
     return TABS.filter(t => PORTAL_V2_TABS.includes(t.id));
@@ -116,6 +117,106 @@ function ServicesEditor({ value = [], onChange }) {
           onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addCustom())}
         />
         <Button type="button" variant="outline" size="sm" onClick={addCustom} className="h-8 text-xs">Add</Button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Portal Hub — single place to upload everything for the client ─────────── */
+function HubFileList({ label, hint, accept = ".pdf", urls = [], onUpload, onRemove, single = false }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+      <p className="text-sm font-semibold text-slate-800">{label}</p>
+      {hint && <p className="text-xs text-slate-400 mt-0.5 mb-3">{hint}</p>}
+      <div className="space-y-1.5 mb-3">
+        {urls.map((u, i) => {
+          const url = typeof u === "string" ? u : u.url;
+          const name = typeof u === "object" && u.month
+            ? format(new Date(u.month + "-01"), "MMM yyyy", { locale: enUS })
+            : decodeURIComponent((url || "").split("/").pop().split("?")[0]);
+          return (
+            <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
+              <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-[#2A69FF] hover:underline truncate">
+                <ExternalLink className="w-3.5 h-3.5 shrink-0" />{name}
+              </a>
+              <button onClick={() => onRemove(i)} className="text-slate-300 hover:text-red-400 shrink-0"><X className="w-4 h-4" /></button>
+            </div>
+          );
+        })}
+        {urls.length === 0 && <p className="text-xs text-slate-400">No file yet.</p>}
+      </div>
+      {(!single || urls.length === 0) && (
+        <label className={`cursor-pointer inline-flex items-center gap-1.5 text-xs text-white bg-[#2A69FF] hover:opacity-90 px-3 py-1.5 rounded-lg ${busy ? "opacity-50 pointer-events-none" : ""}`}>
+          <Upload className="w-3 h-3" />{busy ? "Uploading…" : "Upload"}
+          <input type="file" className="hidden" accept={accept} onChange={async (e) => {
+            const file = e.target.files?.[0]; if (!file) return;
+            setBusy(true);
+            try { const { file_url } = await base44.integrations.Core.UploadFile({ file }); await onUpload(file_url); }
+            finally { setBusy(false); e.target.value = ""; }
+          }} />
+        </label>
+      )}
+    </div>
+  );
+}
+
+function PortalHubTab({ client, updateMut, navigate }) {
+  const save = (patch) => updateMut.mutateAsync({ id: client.id, d: { ...client, ...patch } });
+  const calPdfs = Array.isArray(client.editorial_calendar_pdfs) ? client.editorial_calendar_pdfs : [];
+  const schedule = client.production_schedule_pdfs || [];
+  const contracts = client.contract_documents || [];
+
+  return (
+    <div className="space-y-4">
+      {/* Quick links to full pages */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button onClick={() => navigate("/Editorial")} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-left hover:border-[#2A69FF] transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Content & captions</p>
+              <p className="text-xs text-slate-400 mt-0.5">Create posts, dates, platform, captions, cover & files</p>
+            </div>
+            <ExternalLink className="w-4 h-4 text-[#2A69FF]" />
+          </div>
+        </button>
+        <button onClick={() => navigate("/Shootings")} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-left hover:border-[#2A69FF] transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Photo bank (shoots)</p>
+              <p className="text-xs text-slate-400 mt-0.5">Upload shooting photos shown in the client portal</p>
+            </div>
+            <ExternalLink className="w-4 h-4 text-[#2A69FF]" />
+          </div>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <HubFileList label="Editorial calendar PDFs" hint="One per month — shown in the portal Calendar tab."
+          urls={calPdfs}
+          onUpload={(url) => save({ editorial_calendar_pdfs: [{ month: format(new Date(), "yyyy-MM"), url }, ...calPdfs] })}
+          onRemove={(i) => save({ editorial_calendar_pdfs: calPdfs.filter((_, idx) => idx !== i) })} />
+
+        <HubFileList label="Production schedule" hint="Downloadable from the portal Shootings & Documents tabs."
+          urls={schedule}
+          onUpload={(url) => save({ production_schedule_pdfs: [...schedule, url] })}
+          onRemove={(i) => save({ production_schedule_pdfs: schedule.filter((_, idx) => idx !== i) })} />
+
+        <HubFileList label="Training PDF" hint="Shown in the portal Tutorials tab." single
+          urls={client.training_pdf_url ? [client.training_pdf_url] : []}
+          onUpload={(url) => save({ training_pdf_url: url })}
+          onRemove={() => save({ training_pdf_url: null })} />
+
+        <HubFileList label="Contract documents" hint="Shown in the portal Admin tab." accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+          urls={contracts}
+          onUpload={(url) => save({ contract_documents: [...contracts, url] })}
+          onRemove={(i) => save({ contract_documents: contracts.filter((_, idx) => idx !== i) })} />
+      </div>
+
+      {/* General documents (own table) */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <p className="text-sm font-semibold text-slate-800 mb-3">Documents</p>
+        <ClientDocumentsTab clientId={client.id} />
       </div>
     </div>
   );
@@ -1212,6 +1313,10 @@ export default function ClientDetail() {
       {/* REQUESTS — Portal V2 client requests (meetings / questions) */}
       {activeTab === "requests" && (
         <ClientRequestsTab clientId={client.id} />
+      )}
+
+      {activeTab === "hub" && (
+        <PortalHubTab client={client} updateMut={updateMut} navigate={navigate} />
       )}
 
       {/* ── Invite Dialog ── */}
