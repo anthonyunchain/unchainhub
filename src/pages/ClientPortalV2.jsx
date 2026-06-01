@@ -592,12 +592,14 @@ function CalendarTab({ content = [], calendarPdfs = [], tr, dateLocale }) {
         <div className="flex gap-2 flex-wrap">
           {calendarPdfs.map((p, i) => {
             const url = typeof p === 'string' ? p : p.url;
-            const label = typeof p === 'object' && p.month ? fmtDate(p.month + '-01', 'MMM yyyy', dateLocale) : `${tr.calendarPdf} ${calendarPdfs.length > 1 ? i + 1 : ''}`;
+            const label = (typeof p === 'object' && p.title) ? p.title
+              : (typeof p === 'object' && p.month) ? `${tr.calendarPdf} · ${fmtDate(p.month + '-01', 'MMMM yyyy', dateLocale)}`
+              : `${tr.calendarPdf}${calendarPdfs.length > 1 ? ` ${i + 1}` : ''}`;
             return (
               <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-semibold"
-                style={{ background: 'var(--brand)', color: '#fff', textDecoration: 'none' }}>
-                <Download className="w-3.5 h-3.5" />{label}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
+                style={{ background: 'var(--brand)', color: '#fff', textDecoration: 'none', boxShadow: 'var(--card-shadow)' }}>
+                <Download className="w-4 h-4" />{label}
               </a>
             );
           })}

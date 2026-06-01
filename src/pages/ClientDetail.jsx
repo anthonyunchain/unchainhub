@@ -212,6 +212,38 @@ function PhotoBankUploader({ client, save }) {
   );
 }
 
+function CalendarPdfList({ calPdfs, save }) {
+  const [busy, setBusy] = useState(false);
+  const items = calPdfs.map(p => (typeof p === "string" ? { url: p } : p));
+  const update = (i, patch) => save({ editorial_calendar_pdfs: items.map((it, idx) => idx === i ? { ...it, ...patch } : it) });
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+      <p className="text-sm font-semibold text-slate-800">Editorial calendar PDFs</p>
+      <p className="text-xs text-slate-400 mt-0.5 mb-3">Give each a title (e.g. “Content calendar — Summer 2026”). Shown in the portal Calendar tab.</p>
+      <div className="space-y-2 mb-3">
+        {items.map((it, i) => (
+          <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
+            <Input value={it.title || ""} placeholder="Title (e.g. Content calendar — Summer 2026)"
+              onChange={(e) => update(i, { title: e.target.value })} className="h-8 text-sm flex-1" />
+            <a href={it.url} target="_blank" rel="noopener noreferrer" className="text-[#2A69FF] shrink-0"><ExternalLink className="w-4 h-4" /></a>
+            <button onClick={() => save({ editorial_calendar_pdfs: items.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 shrink-0"><X className="w-4 h-4" /></button>
+          </div>
+        ))}
+        {items.length === 0 && <p className="text-xs text-slate-400">No calendar PDF yet.</p>}
+      </div>
+      <label className={`cursor-pointer inline-flex items-center gap-1.5 text-xs text-white bg-[#2A69FF] hover:opacity-90 px-3 py-1.5 rounded-lg ${busy ? "opacity-50 pointer-events-none" : ""}`}>
+        <Upload className="w-3 h-3" />{busy ? "Uploading…" : "Upload PDF"}
+        <input type="file" className="hidden" accept=".pdf" onChange={async (e) => {
+          const file = e.target.files?.[0]; if (!file) return;
+          setBusy(true);
+          try { const { file_url } = await base44.integrations.Core.UploadFile({ file }); await save({ editorial_calendar_pdfs: [{ url: file_url, title: "", month: format(new Date(), "yyyy-MM") }, ...items] }); }
+          finally { setBusy(false); e.target.value = ""; }
+        }} />
+      </label>
+    </div>
+  );
+}
+
 function PortalHubTab({ client, updateMut, navigate }) {
   const save = (patch) => updateMut.mutateAsync({ id: client.id, d: { ...client, ...patch } });
   const calPdfs = Array.isArray(client.editorial_calendar_pdfs) ? client.editorial_calendar_pdfs : [];
@@ -234,11 +266,9 @@ function PortalHubTab({ client, updateMut, navigate }) {
       {/* Photo bank — permanent collection of pictures */}
       <PhotoBankUploader client={client} save={save} />
 
+      <CalendarPdfList calPdfs={calPdfs} save={save} />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <HubFileList label="Editorial calendar PDFs" hint="One per month — shown in the portal Calendar tab."
-          urls={calPdfs}
-          onUpload={(url) => save({ editorial_calendar_pdfs: [{ month: format(new Date(), "yyyy-MM"), url }, ...calPdfs] })}
-          onRemove={(i) => save({ editorial_calendar_pdfs: calPdfs.filter((_, idx) => idx !== i) })} />
 
         <HubFileList label="Production schedule" hint="Downloadable from the portal Shootings & Documents tabs."
           urls={schedule}
