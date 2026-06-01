@@ -1953,8 +1953,8 @@ export default function ClientPortalV2() {
       {moreOpen && (
         <>
           <div className="md:hidden fixed inset-0" style={{ zIndex: 48 }} onClick={() => setMoreOpen(false)} />
-          <div className="md:hidden fixed bottom-16 left-0 right-0 mx-3 rounded-2xl overflow-hidden"
-            style={{ zIndex: 49, background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: '0 -4px 24px rgba(0,0,0,0.12)', paddingBottom: 4 }}>
+          <div className="md:hidden fixed left-0 right-0 mx-3 rounded-2xl overflow-y-auto"
+            style={{ zIndex: 49, bottom: 'calc(68px + env(safe-area-inset-bottom))', maxHeight: '60vh', background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: '0 -4px 24px rgba(0,0,0,0.12)', paddingBottom: 4 }}>
             {MORE_TABS.map(t => {
               const Icon = t.icon;
               const active = activeTab === t.key;
