@@ -18,7 +18,7 @@ const TR = {
   en: {
     home: "Home", calendar: "Calendar", shootings: "Shootings",
     content: "Content", documents: "Documents", tutorials: "Tutorials", admin: "Admin",
-    photos: "Photos", noPhotos: "No photos yet — they'll appear here after your shootings.",
+    photos: "Photos", photoBankLabel: "Photo Bank", noPhotos: "No photos yet — they'll appear here after your shootings.",
     shootLocation: "Location", shootCrew: "Crew", shootContent: "Content to shoot", shootTime: "Time", shootDate: "Date",
     hello: "Hello", welcome: "Welcome to your Unchain Studio client space.",
     todayPost: (n) => `You have ${n} post${n > 1 ? 's' : ''} to publish today`,
@@ -56,7 +56,7 @@ const TR = {
   fi: {
     home: "Koti", calendar: "Kalenteri", shootings: "Kuvaukset",
     content: "Sisältö", documents: "Dokumentit", tutorials: "Oppaat", admin: "Hallinta",
-    photos: "Kuvat", noPhotos: "Ei vielä kuvia — ne näkyvät täällä kuvausten jälkeen.",
+    photos: "Kuvat", photoBankLabel: "Kuvapankki", noPhotos: "Ei vielä kuvia — ne näkyvät täällä kuvausten jälkeen.",
     shootLocation: "Sijainti", shootCrew: "Tiimi", shootContent: "Kuvattava sisältö", shootTime: "Aika", shootDate: "Päivä",
     hello: "Hei", welcome: "Tervetuloa Unchain Studio -asiakastilaasi.",
     todayPost: (n) => `Sinulla on ${n} julkaistava${n > 1 ? '' : ''} sisältö tänään`,
@@ -94,7 +94,7 @@ const TR = {
   fr: {
     home: "Accueil", calendar: "Calendrier", shootings: "Shootings",
     content: "Contenus", documents: "Documents", tutorials: "Tutoriels", admin: "Admin",
-    photos: "Photos", noPhotos: "Pas encore de photos — elles apparaîtront ici après vos shootings.",
+    photos: "Photos", photoBankLabel: "Photothèque", noPhotos: "Pas encore de photos — elles apparaîtront ici après vos shootings.",
     shootLocation: "Lieu", shootCrew: "Équipe", shootContent: "Contenus à shooter", shootTime: "Heure", shootDate: "Date",
     hello: "Bonjour", welcome: "Bienvenue dans votre espace client Unchain Studio.",
     todayPost: (n) => `Vous avez ${n} contenu${n > 1 ? 's' : ''} à publier aujourd'hui`,
@@ -132,7 +132,7 @@ const TR = {
   de: {
     home: "Start", calendar: "Kalender", shootings: "Shootings",
     content: "Inhalte", documents: "Dokumente", tutorials: "Tutorials", admin: "Admin",
-    photos: "Fotos", noPhotos: "Noch keine Fotos — sie erscheinen hier nach euren Shootings.",
+    photos: "Fotos", photoBankLabel: "Fotobank", noPhotos: "Noch keine Fotos — sie erscheinen hier nach euren Shootings.",
     shootLocation: "Ort", shootCrew: "Team", shootContent: "Zu drehende Inhalte", shootTime: "Uhrzeit", shootDate: "Datum",
     hello: "Hallo", welcome: "Willkommen in deinem Unchain Studio Kundenbereich.",
     todayPost: (n) => `Du hast heute ${n} Beitrag${n > 1 ? 'e' : ''} zu veröffentlichen`,
@@ -170,7 +170,7 @@ const TR = {
   sv: {
     home: "Hem", calendar: "Kalender", shootings: "Shootings",
     content: "Innehåll", documents: "Dokument", tutorials: "Guider", admin: "Admin",
-    photos: "Foton", noPhotos: "Inga foton ännu — de visas här efter dina shootings.",
+    photos: "Foton", photoBankLabel: "Fotobank", noPhotos: "Inga foton ännu — de visas här efter dina shootings.",
     shootLocation: "Plats", shootCrew: "Team", shootContent: "Innehåll att spela in", shootTime: "Tid", shootDate: "Datum",
     hello: "Hej", welcome: "Välkommen till ditt Unchain Studio-kundutrymme.",
     todayPost: (n) => `Du har ${n} inlägg att publicera idag`,
@@ -208,7 +208,7 @@ const TR = {
   no: {
     home: "Hjem", calendar: "Kalender", shootings: "Shootings",
     content: "Innhold", documents: "Dokumenter", tutorials: "Veiledninger", admin: "Admin",
-    photos: "Bilder", noPhotos: "Ingen bilder ennå — de vises her etter dine shootings.",
+    photos: "Bilder", photoBankLabel: "Fotobank", noPhotos: "Ingen bilder ennå — de vises her etter dine shootings.",
     shootLocation: "Sted", shootCrew: "Team", shootContent: "Innhold som skal spilles inn", shootTime: "Tid", shootDate: "Dato",
     hello: "Hei", welcome: "Velkommen til ditt Unchain Studio-kundeområde.",
     todayPost: (n) => `Du har ${n} innlegg å publisere i dag`,
@@ -1861,7 +1861,7 @@ export default function ClientPortalV2() {
     { key: 'calendar',  label: tr.calendar,  icon: Calendar },
     { key: 'shootings', label: tr.shootings, icon: Camera },
     { key: 'content',   label: tr.content,   icon: Image },
-    { key: 'photos',    label: tr.photos,    icon: ImageIcon },
+    { key: 'photos',    label: tr.photoBankLabel, icon: ImageIcon },
     { key: 'documents', label: tr.documents, icon: FileText },
     { key: 'tutorials', label: tr.tutorials, icon: GraduationCap },
     { key: 'admin',     label: tr.admin,     icon: Settings },
