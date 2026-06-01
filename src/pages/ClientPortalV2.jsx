@@ -682,10 +682,11 @@ function CalendarTab({ content = [], calendarPdfs = [], tr, dateLocale }) {
 }
 
 // ── Shootings tab ─────────────────────────────────────────────────────────────
-function ShootingsTab({ shootings = [], tr, dateLocale }) {
+function ShootingsTab({ shootings = [], client = {}, tr, dateLocale }) {
   const today = format(new Date(), 'yyyy-MM-dd');
   const upcoming = shootings.filter(s => s.date >= today);
   const past     = shootings.filter(s => s.date < today);
+  const schedulePdfs = client.production_schedule_pdfs || [];
 
   const initials = (name = '') => name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
   const daysUntil = (d) => Math.round((new Date(d + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
@@ -780,6 +781,20 @@ function ShootingsTab({ shootings = [], tr, dateLocale }) {
 
   return (
     <div className="space-y-4">
+      {/* Download full production schedule */}
+      {schedulePdfs.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {schedulePdfs.map((url, i) => (
+            <a key={i} href={url} target="_blank" rel="noopener noreferrer" download
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold"
+              style={{ background: 'var(--brand)', color: '#fff', textDecoration: 'none', boxShadow: 'var(--card-shadow)' }}>
+              <Download className="w-4 h-4" />
+              {tr.schedulePdf}{schedulePdfs.length > 1 ? ` ${i + 1}` : ''}
+            </a>
+          ))}
+        </div>
+      )}
+
       {upcoming.length === 0 && past.length === 0 && (
         <p className="text-center text-sm py-8" style={{ color: 'var(--muted)' }}>{tr.noShootings}</p>
       )}
@@ -1801,7 +1816,7 @@ export default function ClientPortalV2() {
       <div className="mx-auto px-5" style={{ maxWidth: 1400, paddingBottom: 120 }}>
         {activeTab === 'home'      && <HomeTab client={client} content={content} shootings={shootings} onTabChange={setActiveTab} tr={tr} dateLocale={dateLocale} lang={lang} />}
         {activeTab === 'calendar'  && <CalendarTab content={content} calendarPdfs={client.editorial_calendar_pdfs || []} tr={tr} dateLocale={dateLocale} />}
-        {activeTab === 'shootings' && <ShootingsTab shootings={shootings} tr={tr} dateLocale={dateLocale} />}
+        {activeTab === 'shootings' && <ShootingsTab shootings={shootings} client={client} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'content'   && <ContentBankTab content={content} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'photos'    && <PhotoBankTab shootings={shootings} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'documents' && <DocumentsTab client={client} documents={documents} tr={tr} dateLocale={dateLocale} />}
