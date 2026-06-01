@@ -9,7 +9,7 @@ import {
   GraduationCap, Settings, ChevronLeft, ChevronRight,
   Download, ExternalLink, Copy, Check, Bell, BellOff,
   Play, Search, Moon, Sun, Eye, EyeOff, KeyRound,
-  TrendingUp, Clock, MapPin, Instagram, Youtube,
+  TrendingUp, Clock, MapPin, Instagram, Youtube, Images as ImageIcon,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 
@@ -18,6 +18,7 @@ const TR = {
   en: {
     home: "Home", calendar: "Calendar", shootings: "Shootings",
     content: "Content", documents: "Documents", tutorials: "Tutorials", admin: "Admin",
+    photos: "Photos", noPhotos: "No photos yet — they'll appear here after your shootings.",
     hello: "Hello", welcome: "Welcome to your Unchain Studio client space.",
     todayPost: (n) => `You have ${n} post${n > 1 ? 's' : ''} to publish today`,
     upcomingShootings: "Upcoming shootings", noShootings: "No shootings scheduled",
@@ -46,6 +47,7 @@ const TR = {
   fi: {
     home: "Koti", calendar: "Kalenteri", shootings: "Kuvaukset",
     content: "Sisältö", documents: "Dokumentit", tutorials: "Oppaat", admin: "Hallinta",
+    photos: "Kuvat", noPhotos: "Ei vielä kuvia — ne näkyvät täällä kuvausten jälkeen.",
     hello: "Hei", welcome: "Tervetuloa Unchain Studio -asiakastilaasi.",
     todayPost: (n) => `Sinulla on ${n} julkaistava${n > 1 ? '' : ''} sisältö tänään`,
     upcomingShootings: "Tulevat kuvaukset", noShootings: "Ei tulevia kuvauksia",
@@ -505,6 +507,49 @@ function ShootingsTab({ shootings = [], tr, dateLocale }) {
         <><p className="text-label-mono mt-4">{tr.past}</p>
         <div className="space-y-3">{past.map(s => <ShootingCard key={s.id} s={s} />)}</div></>
       )}
+    </div>
+  );
+}
+
+// ── Photo Bank tab ────────────────────────────────────────────────────────────
+function PhotoBankTab({ shootings = [], tr, dateLocale }) {
+  // Each shooting has an images array of public URLs. Show grouped by shooting.
+  const withPhotos = shootings
+    .filter(s => Array.isArray(s.images) && s.images.length > 0)
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  const allPhotos = withPhotos.flatMap(s => s.images);
+
+  if (allPhotos.length === 0) {
+    return <p className="text-center text-sm py-10" style={{ color: 'var(--muted)' }}>{tr.noPhotos}</p>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {withPhotos.map(s => (
+        <div key={s.id} className="space-y-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-label-mono">
+              {s.title}{s.date ? ` · ${fmtDate(s.date, 'd MMM yyyy', dateLocale)}` : ''}
+            </p>
+            <span className="text-[10px]" style={{ color: 'var(--muted)' }}>{s.images.length} {tr.photos.toLowerCase()}</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {s.images.map((url, i) => (
+              <div key={i} className="relative group rounded-xl overflow-hidden" style={{ aspectRatio: '1', background: 'var(--card)', border: '1px solid var(--divider)' }}>
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                  <img src={url} alt={`${s.title} ${i + 1}`} loading="lazy" className="w-full h-full object-cover" />
+                </a>
+                <a href={url} download target="_blank" rel="noopener noreferrer"
+                  className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-lg"
+                  style={{ width: 30, height: 30, background: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}>
+                  <Download className="w-4 h-4" />
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1234,6 +1279,7 @@ export default function ClientPortalV2() {
     { key: 'calendar',  label: tr.calendar,  icon: Calendar },
     { key: 'shootings', label: tr.shootings, icon: Camera },
     { key: 'content',   label: tr.content,   icon: Image },
+    { key: 'photos',    label: tr.photos,    icon: ImageIcon },
     { key: 'documents', label: tr.documents, icon: FileText },
     { key: 'tutorials', label: tr.tutorials, icon: GraduationCap },
     { key: 'admin',     label: tr.admin,     icon: Settings },
@@ -1308,6 +1354,7 @@ export default function ClientPortalV2() {
         {activeTab === 'calendar'  && <CalendarTab content={content} calendarPdfs={client.editorial_calendar_pdfs || []} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'shootings' && <ShootingsTab shootings={shootings} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'content'   && <ContentBankTab content={content} tr={tr} dateLocale={dateLocale} />}
+        {activeTab === 'photos'    && <PhotoBankTab shootings={shootings} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'documents' && <DocumentsTab client={client} documents={documents} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'tutorials' && <TutorialsTab tutorials={tutorials} trainingPdfUrl={client.training_pdf_url} tr={tr} />}
         {activeTab === 'admin'     && <AdminTab client={client} contracts={contracts} credentials={credentials} tr={tr} dateLocale={dateLocale} token={token} lang={lang} pushSubscribed={pushSubscribed} pushLoading={pushLoading} onTogglePush={handleTogglePush} onClientUpdate={updates => setData(d => ({ ...d, client: { ...d.client, ...updates } }))} />}

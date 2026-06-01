@@ -64,6 +64,7 @@ const TABS = [
   { id: "music",       label: "Music"      },
   { id: "documents",   label: "Documents"  },
   { id: "credentials", label: "Passwords"  },
+  { id: "requests",    label: "Requests"   },
 ];
 
 // Show "Staff" tab only if client has at least one staff role configured
@@ -113,6 +114,71 @@ function ServicesEditor({ value = [], onChange }) {
         />
         <Button type="button" variant="outline" size="sm" onClick={addCustom} className="h-8 text-xs">Add</Button>
       </div>
+    </div>
+  );
+}
+
+/* ─── Portal V2 client requests ────────────────────────────────────────────── */
+function ClientRequestsTab({ clientId }) {
+  const qc = useQueryClient();
+  const { data: requests = [], isLoading } = useQuery({
+    queryKey: ["portal-requests", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_portal_requests")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!clientId,
+  });
+
+  const setStatus = async (id, status) => {
+    const { error } = await supabase.from("client_portal_requests").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["portal-requests", clientId] });
+  };
+
+  const TYPE_LABEL = { meeting: "📅 Meeting", question: "💬 Question", other: "📝 Other" };
+  const STATUS_COLOR = {
+    new: "bg-blue-100 text-blue-700", read: "bg-slate-100 text-slate-600",
+    in_progress: "bg-amber-100 text-amber-700", done: "bg-green-100 text-green-700",
+  };
+
+  if (isLoading) return <div className="text-sm text-slate-400 py-8 text-center">Loading…</div>;
+  if (requests.length === 0) return <div className="text-sm text-slate-400 py-8 text-center">No requests from this client yet.</div>;
+
+  return (
+    <div className="space-y-3">
+      {requests.map(r => (
+        <div key={r.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="text-xs font-semibold">{TYPE_LABEL[r.type] || r.type}</span>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLOR[r.status] || "bg-slate-100 text-slate-600"}`}>{r.status}</span>
+                <span className="text-xs text-slate-400">{format(new Date(r.created_at), "d MMM yyyy HH:mm", { locale: enUS })}</span>
+              </div>
+              {r.subject && <p className="text-sm font-semibold text-slate-700">{r.subject}</p>}
+              {(r.preferred_date || r.preferred_time) && (
+                <p className="text-xs text-[#2A69FF] mt-0.5">Preferred: {r.preferred_date || ""} {r.preferred_time || ""}</p>
+              )}
+              <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{r.message}</p>
+            </div>
+            <Select value={r.status} onValueChange={(v) => setStatus(r.id, v)}>
+              <SelectTrigger className="h-8 w-36 text-xs shrink-0"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">New</SelectItem>
+                <SelectItem value="read">Read</SelectItem>
+                <SelectItem value="in_progress">In progress</SelectItem>
+                <SelectItem value="done">Done</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1048,6 +1114,32 @@ export default function ClientDetail() {
               <p className="text-sm text-slate-400">No production schedule PDFs yet.</p>
             )}
           </div>
+
+          {/* Training PDF (Portal V2 tutorials) */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <p className="text-sm font-semibold text-slate-700 mb-1">Training PDF (Portal V2)</p>
+            <p className="text-xs text-slate-400 mb-3">Shown in the client portal Tutorials tab as a downloadable guide.</p>
+            <div className="flex gap-2 items-center">
+              <label className={`cursor-pointer text-xs text-white bg-[#2A69FF] hover:opacity-90 px-3 py-1.5 rounded-lg flex items-center gap-1 ${uploadingCalPdf ? "opacity-50 pointer-events-none" : ""}`}>
+                <Upload className="w-3 h-3" /> Upload PDF
+                <input type="file" className="hidden" accept=".pdf" onChange={async (e) => {
+                  const file = e.target.files?.[0]; if (!file) return;
+                  setUploadingCalPdf(true);
+                  const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                  await updateMut.mutateAsync({ id: client.id, d: { ...client, training_pdf_url: file_url } });
+                  setUploadingCalPdf(false); e.target.value = "";
+                }} />
+              </label>
+              {client.training_pdf_url && (
+                <>
+                  <a href={client.training_pdf_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-[#2A69FF] hover:underline">
+                    <ExternalLink className="w-3 h-3" /> View
+                  </a>
+                  <button onClick={async () => { await updateMut.mutateAsync({ id: client.id, d: { ...client, training_pdf_url: null } }); }} className="text-slate-300 hover:text-red-400"><X className="w-4 h-4" /></button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -1108,6 +1200,11 @@ export default function ClientDetail() {
       {/* CREDENTIALS — per-client third-party login vault */}
       {activeTab === "credentials" && (
         <ClientCredentialsTab clientId={client.id} clientName={client.company_name} canEdit />
+      )}
+
+      {/* REQUESTS — Portal V2 client requests (meetings / questions) */}
+      {activeTab === "requests" && (
+        <ClientRequestsTab clientId={client.id} />
       )}
 
       {/* ── Invite Dialog ── */}
