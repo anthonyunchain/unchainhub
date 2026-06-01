@@ -655,12 +655,19 @@ function DocumentsTab({ client = {}, documents = [], tr, dateLocale }) {
                   {files.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {files.map(f => (
-                        <button key={f.path} onClick={() => openDoc(f.path)}
-                          className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border"
-                          style={{ borderColor: 'var(--divider)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--ink)' }}>
-                          <Download className="w-3.5 h-3.5" />
-                          <span className="truncate max-w-[200px]">{f.name}</span>
-                        </button>
+                        f.url
+                          ? <a key={f.path} href={f.url} target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border"
+                              style={{ borderColor: 'var(--divider)', background: 'var(--bg)', color: 'var(--ink)', textDecoration: 'none' }}>
+                              <Download className="w-3.5 h-3.5" />
+                              <span className="truncate max-w-[200px]">{f.name}</span>
+                            </a>
+                          : <button key={f.path} onClick={() => openDoc(f.path)}
+                              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border"
+                              style={{ borderColor: 'var(--divider)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--ink)' }}>
+                              <Download className="w-3.5 h-3.5" />
+                              <span className="truncate max-w-[200px]">{f.name}</span>
+                            </button>
                       ))}
                     </div>
                   )}
@@ -1269,7 +1276,7 @@ export default function ClientPortalV2() {
               const active = activeTab === t.key;
               return (
                 <button key={t.key} onClick={() => setActiveTab(t.key)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600, transition: 'all 150ms', background: active ? 'var(--brand)' : 'transparent', color: active ? '#fff' : 'var(--muted)' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600, transition: 'all 150ms', background: active ? 'var(--brand)' : 'transparent', color: active ? '#fff' : 'var(--muted)' }}>
                   <Icon size={14} />{t.label}
                 </button>
               );

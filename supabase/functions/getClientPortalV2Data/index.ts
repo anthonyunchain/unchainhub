@@ -57,12 +57,27 @@ Deno.serve(async (req) => {
       supabaseAdmin.rpc('get_client_credentials', { p_client_id: client.id }),
     ]);
 
+    // Sign document file paths server-side (portal has no auth session)
+    const documents = await Promise.all((docsRes.data || []).map(async (doc: any) => {
+      const files = await Promise.all((Array.isArray(doc.files) ? doc.files : []).map(async (f: any) => {
+        let url = null;
+        try {
+          const { data: signed } = await supabaseAdmin.storage
+            .from('client-documents')
+            .createSignedUrl(f.path, 3600);
+          url = signed?.signedUrl || null;
+        } catch (_) { /* ignore */ }
+        return { ...f, url };
+      }));
+      return { ...doc, files };
+    }));
+
     return Response.json({
       client,
       content: contentRes.data || [],
       shootings: shootingsRes.data || [],
       contracts: contractsRes.data || [],
-      documents: docsRes.data || [],
+      documents,
       tutorials: tutorialsRes.data || [],
       credentials: credRes.data || [],
     }, { headers: corsHeaders(req) });
