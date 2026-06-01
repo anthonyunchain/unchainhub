@@ -50,6 +50,7 @@ const TR = {
     openLogin: "Login",
     past: "Past", upcoming: "Upcoming",
     all: "All", total: "total",
+    viewList: "List", viewGallery: "Gallery", viewPlan: "Posting plan", downloadAll: "Download all", postNum: "Post",
     mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun",
   },
   fi: {
@@ -87,6 +88,7 @@ const TR = {
     openLogin: "Kirjaudu",
     past: "Menneet", upcoming: "Tulevat",
     all: "Kaikki", total: "yhteensä",
+    viewList: "Lista", viewGallery: "Galleria", viewPlan: "Julkaisusuunnitelma", downloadAll: "Lataa kaikki", postNum: "Julkaisu",
     mon: "Ma", tue: "Ti", wed: "Ke", thu: "To", fri: "Pe", sat: "La", sun: "Su",
   },
   fr: {
@@ -124,6 +126,7 @@ const TR = {
     openLogin: "Se connecter",
     past: "Passés", upcoming: "À venir",
     all: "Tous", total: "total",
+    viewList: "Liste", viewGallery: "Galerie", viewPlan: "Plan de publication", downloadAll: "Tout télécharger", postNum: "Post",
     mon: "Lun", tue: "Mar", wed: "Mer", thu: "Jeu", fri: "Ven", sat: "Sam", sun: "Dim",
   },
   de: {
@@ -161,6 +164,7 @@ const TR = {
     openLogin: "Anmelden",
     past: "Vergangen", upcoming: "Kommend",
     all: "Alle", total: "gesamt",
+    viewList: "Liste", viewGallery: "Galerie", viewPlan: "Posting-Plan", downloadAll: "Alle herunterladen", postNum: "Post",
     mon: "Mo", tue: "Di", wed: "Mi", thu: "Do", fri: "Fr", sat: "Sa", sun: "So",
   },
   sv: {
@@ -198,6 +202,7 @@ const TR = {
     openLogin: "Logga in",
     past: "Tidigare", upcoming: "Kommande",
     all: "Alla", total: "totalt",
+    viewList: "Lista", viewGallery: "Galleri", viewPlan: "Publiceringsplan", downloadAll: "Ladda ner alla", postNum: "Inlägg",
     mon: "Mån", tue: "Tis", wed: "Ons", thu: "Tor", fri: "Fre", sat: "Lör", sun: "Sön",
   },
   no: {
@@ -235,6 +240,7 @@ const TR = {
     openLogin: "Logg inn",
     past: "Tidligere", upcoming: "Kommende",
     all: "Alle", total: "totalt",
+    viewList: "Liste", viewGallery: "Galleri", viewPlan: "Publiseringsplan", downloadAll: "Last ned alle", postNum: "Innlegg",
     mon: "Man", tue: "Tir", wed: "Ons", thu: "Tor", fri: "Fre", sat: "Lør", sun: "Søn",
   },
 };
@@ -810,10 +816,38 @@ function PhotoBankTab({ shootings = [], tr, dateLocale }) {
   );
 }
 
+// Build the list of downloadable files for a content item
+function contentFiles(c) {
+  if (Array.isArray(c.media_files) && c.media_files.length) {
+    return c.media_files.filter(f => f && f.url);
+  }
+  const fallback = [];
+  if (c.cover_image_url) fallback.push({ label: 'Cover', url: c.cover_image_url });
+  if (c.drive_url) fallback.push({ label: c.post_type === 'Carousel' ? 'Slides' : 'File', url: c.drive_url });
+  return fallback;
+}
+
+function DownloadChips({ c }) {
+  const files = contentFiles(c);
+  if (!files.length) return null;
+  return (
+    <div className="flex gap-1.5 flex-wrap">
+      {files.map((f, i) => (
+        <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" download
+          className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border font-semibold"
+          style={{ borderColor: 'var(--brand)', background: 'var(--brand-muted)', color: 'var(--brand)', textDecoration: 'none' }}>
+          <Download className="w-3.5 h-3.5" />{f.label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 // ── Content Bank tab ──────────────────────────────────────────────────────────
 function ContentBankTab({ content = [], tr, dateLocale }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
+  const [view, setView] = useState('list'); // list | gallery | plan
 
   const filtered = content.filter(c => {
     const q = search.toLowerCase();
@@ -822,18 +856,17 @@ function ContentBankTab({ content = [], tr, dateLocale }) {
     return matchSearch && matchFilter;
   });
 
-  const groups = {};
-  filtered.forEach(c => {
-    const key = c.scheduled_date ? c.scheduled_date.substring(0, 7) : 'undated';
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(c);
-  });
-  const sortedKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+  const VIEWS = [
+    { key: 'list',    label: tr.viewList,    icon: FileText },
+    { key: 'gallery', label: tr.viewGallery, icon: ImageIcon },
+    { key: 'plan',    label: tr.viewPlan,    icon: Calendar },
+  ];
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[180px]">
+      {/* Controls */}
+      <div className="flex gap-2 flex-wrap items-center">
+        <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--muted)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
             className="w-full pl-8 pr-3 py-2 text-sm rounded-xl border" style={{ borderColor: 'var(--divider)', background: 'var(--card)', color: 'var(--ink)', outline: 'none' }} />
@@ -845,8 +878,39 @@ function ContentBankTab({ content = [], tr, dateLocale }) {
         </select>
       </div>
 
-      {sortedKeys.length === 0 && <p className="text-center text-sm py-8" style={{ color: 'var(--muted)' }}>{tr.noContent}</p>}
+      {/* View switcher */}
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+        {VIEWS.map(v => {
+          const Icon = v.icon; const active = view === v.key;
+          return (
+            <button key={v.key} onClick={() => setView(v.key)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: active ? 'var(--brand)' : 'transparent', color: active ? '#fff' : 'var(--muted)', border: 'none', cursor: 'pointer' }}>
+              <Icon className="w-3.5 h-3.5" />{v.label}
+            </button>
+          );
+        })}
+      </div>
 
+      {filtered.length === 0 && <p className="text-center text-sm py-8" style={{ color: 'var(--muted)' }}>{tr.noContent}</p>}
+
+      {view === 'list'    && <ContentListView    content={filtered} tr={tr} dateLocale={dateLocale} />}
+      {view === 'gallery' && <ContentGalleryView content={filtered} tr={tr} dateLocale={dateLocale} />}
+      {view === 'plan'    && <ContentPlanView    content={filtered} tr={tr} dateLocale={dateLocale} />}
+    </div>
+  );
+}
+
+// List view — grouped by month, compact collapsible rows
+function ContentListView({ content, tr, dateLocale }) {
+  const groups = {};
+  content.forEach(c => {
+    const key = c.scheduled_date ? c.scheduled_date.substring(0, 7) : 'undated';
+    (groups[key] ||= []).push(c);
+  });
+  const sortedKeys = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+  return (
+    <>
       {sortedKeys.map(key => (
         <div key={key} className="space-y-2">
           <p className="text-label-mono" style={{ textTransform: 'capitalize' }}>
@@ -857,6 +921,87 @@ function ContentBankTab({ content = [], tr, dateLocale }) {
           </div>
         </div>
       ))}
+    </>
+  );
+}
+
+// Gallery view — visual grid of covers
+function ContentGalleryView({ content, tr, dateLocale }) {
+  const [active, setActive] = useState(null);
+  const sorted = [...content].sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || ''));
+  return (
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {sorted.map(c => (
+          <button key={c.id} onClick={() => setActive(c)} className="text-left rounded-xl overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--divider)', cursor: 'pointer', padding: 0 }}>
+            <div className="aspect-square bg-slate-100 overflow-hidden">
+              {c.cover_image_url
+                ? <img src={c.cover_image_url} alt={c.title} loading="lazy" className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--brand-muted)' }}><Image className="w-6 h-6" style={{ color: 'var(--brand)' }} /></div>}
+            </div>
+            <div className="p-2">
+              <div className="flex items-center gap-1 flex-wrap mb-0.5">
+                {c.post_type && <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
+                {c.scheduled_date && <span className="text-[10px] font-bold" style={{ color: 'var(--brand)' }}>{fmtDate(c.scheduled_date, 'd MMM', dateLocale)}</span>}
+              </div>
+              <p className="text-[11px] truncate" style={{ color: 'var(--ink)' }}>{c.title}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+      {active && <ContentDetailModal c={active} tr={tr} dateLocale={dateLocale} onClose={() => setActive(null)} />}
+    </>
+  );
+}
+
+// Plan view — numbered suggested posting order
+function ContentPlanView({ content, tr, dateLocale }) {
+  const sorted = [...content].sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || ''));
+  return (
+    <div className="space-y-2">
+      {sorted.map((c, i) => (
+        <div key={c.id} className="flex items-center gap-3 rounded-xl p-2.5" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-sm" style={{ background: 'var(--brand)', color: '#fff' }}>{i + 1}</div>
+          {c.cover_image_url
+            ? <img src={c.cover_image_url} alt={c.title} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+            : <div className="w-12 h-12 rounded-lg shrink-0 flex items-center justify-center" style={{ background: 'var(--brand-muted)' }}><Image className="w-4 h-4" style={{ color: 'var(--brand)' }} /></div>}
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-sm leading-tight" style={{ color: 'var(--ink)' }}>
+              {c.scheduled_date ? fmtDate(c.scheduled_date, 'd MMM', dateLocale) : '—'}{c.suggested_time ? ` · ${c.suggested_time}` : ''}
+            </p>
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              {c.post_type && <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
+              {c.platform && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">{c.platform}</span>}
+              <span className="text-[11px] truncate" style={{ color: 'var(--muted)' }}>{c.title}</span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Detail modal (used by gallery)
+function ContentDetailModal({ c, tr, dateLocale, onClose }) {
+  const caption = c.reel_description || c.description || '';
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
+      <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl overflow-hidden max-h-[90vh] overflow-y-auto" style={{ background: 'var(--card)' }} onClick={e => e.stopPropagation()}>
+        {c.cover_image_url && <img src={c.cover_image_url} alt={c.title} className="w-full aspect-video object-cover" />}
+        <div className="p-4 space-y-3">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {c.post_type && <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
+            {c.platform && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{c.platform}</span>}
+            {c.scheduled_date && <span className="text-sm font-bold" style={{ color: 'var(--brand)' }}>{fmtDate(c.scheduled_date, 'd MMM yyyy', dateLocale)}{c.suggested_time ? ` · ${c.suggested_time}` : ''}</span>}
+          </div>
+          <p className="font-bold" style={{ color: 'var(--ink)' }}>{c.title}</p>
+          {caption && <p className="text-xs" style={{ color: 'var(--subtle)', whiteSpace: 'pre-wrap' }}>{caption}</p>}
+          <div className="flex gap-2 flex-wrap">
+            {caption && <CopyButton value={caption} label={tr.copyCaption} />}
+          </div>
+          <DownloadChips c={c} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -873,7 +1018,6 @@ function ContentCard({ c, tr, dateLocale }) {
           ? <img src={c.cover_image_url} alt={c.title} className="w-14 h-14 rounded-lg object-cover shrink-0" />
           : <div className="w-14 h-14 rounded-lg shrink-0 flex items-center justify-center" style={{ background: 'var(--brand-muted)' }}><Image className="w-5 h-5" style={{ color: 'var(--brand)' }} /></div>}
         <div className="min-w-0 flex-1">
-          {/* Big date + time */}
           {c.scheduled_date && (
             <p className="font-bold text-base leading-none" style={{ color: 'var(--ink)' }}>
               {fmtDate(c.scheduled_date, 'd MMM', dateLocale)}{c.suggested_time ? ` · ${c.suggested_time}` : ''}
@@ -888,20 +1032,12 @@ function ContentCard({ c, tr, dateLocale }) {
         <ChevronRight className="w-4 h-4 shrink-0 transition-transform" style={{ color: 'var(--muted)', transform: open ? 'rotate(90deg)' : 'none' }} />
       </div>
 
-      {/* Expanded: caption + actions */}
+      {/* Expanded: caption + downloads */}
       {open && (
         <div className="px-2.5 pb-2.5 space-y-2" style={{ borderTop: '1px solid var(--divider)', paddingTop: 10 }}>
           {caption && <p className="text-xs" style={{ color: 'var(--subtle)', whiteSpace: 'pre-wrap' }}>{caption}</p>}
-          <div className="flex gap-2 flex-wrap">
-            {caption && <CopyButton value={caption} label={tr.copyCaption} />}
-            {c.drive_url && (
-              <a href={c.drive_url} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border font-semibold"
-                style={{ borderColor: 'var(--brand)', background: 'var(--brand-muted)', color: 'var(--brand)', textDecoration: 'none' }}>
-                <Download className="w-3.5 h-3.5" />{tr.download}
-              </a>
-            )}
-          </div>
+          {caption && <CopyButton value={caption} label={tr.copyCaption} />}
+          <DownloadChips c={c} />
         </div>
       )}
     </div>

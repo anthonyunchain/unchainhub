@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     const [contentRes, shootingsRes, contractsRes, docsRes, tutorialsRes, credRes, invoicesRes] = await Promise.all([
       supabaseAdmin
         .from('editorial_content')
-        .select('id, title, description, post_type, platform, scheduled_date, suggested_time, status, client_name, drive_url, cover_image_url, reel_description')
+        .select('id, title, description, post_type, platform, scheduled_date, suggested_time, status, client_name, drive_url, cover_image_url, reel_description, media_files')
         .eq('client_name', companyName)
         .not('status', 'eq', 'cancelled')
         .order('scheduled_date', { ascending: true })
