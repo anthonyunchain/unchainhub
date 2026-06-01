@@ -431,7 +431,7 @@ export default function ClientDetail() {
                 </Button>
               </>
             )}
-            {client.portal_token && (
+            {client.portal_v2_enabled && client.portal_token && (
               <Button variant="outline" size="sm" className="h-8 gap-1"
                 onClick={() => {
                   const url = `${window.location.origin}/portal/${client.portal_token}`;
@@ -1281,6 +1281,19 @@ export default function ClientDetail() {
                 <div>
                   <label htmlFor="editorial_visible_detail" className="text-sm font-medium text-slate-700 cursor-pointer">Editorial calendar visible to freelancers</label>
                   <p className="text-xs text-slate-400 mt-0.5">Freelancers will see this client's calendar (read-only) and can write descriptions.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-violet-50 border border-violet-200">
+                <input
+                  type="checkbox"
+                  id="portal_v2_enabled_detail"
+                  checked={editData.portal_v2_enabled || false}
+                  onChange={e => setEditData({ ...editData, portal_v2_enabled: e.target.checked })}
+                  className="w-4 h-4 accent-violet-600 cursor-pointer"
+                />
+                <div>
+                  <label htmlFor="portal_v2_enabled_detail" className="text-sm font-medium text-slate-700 cursor-pointer">Activer Portal V2</label>
+                  <p className="text-xs text-slate-400 mt-0.5">Donne accès au nouveau portail client via un lien secret (sans connexion requise).</p>
                 </div>
               </div>
               <div className="flex justify-between items-center pt-2">
