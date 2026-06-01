@@ -105,7 +105,7 @@ function CopyButton({ value, label = "Copier" }) {
 }
 
 // ── Home tab ──────────────────────────────────────────────────────────────────
-function HomeTab({ client, content, shootings, pushSubscribed, onTogglePush }) {
+function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, onTogglePush }) {
   const today = format(new Date(), 'yyyy-MM-dd');
   const todayPosts = content.filter(c => c.scheduled_date?.startsWith(today));
   const nextShootings = shootings
@@ -170,7 +170,7 @@ function HomeTab({ client, content, shootings, pushSubscribed, onTogglePush }) {
 }
 
 // ── Calendar tab ──────────────────────────────────────────────────────────────
-function CalendarTab({ content, calendarPdfs = [] }) {
+function CalendarTab({ content = [], calendarPdfs = [] }) {
   const { dark } = useTheme();
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -283,7 +283,7 @@ function CalendarTab({ content, calendarPdfs = [] }) {
 }
 
 // ── Shootings tab ─────────────────────────────────────────────────────────────
-function ShootingsTab({ shootings }) {
+function ShootingsTab({ shootings = [] }) {
   const today = format(new Date(), 'yyyy-MM-dd');
   const upcoming = shootings.filter(s => s.date >= today);
   const past     = shootings.filter(s => s.date < today);
@@ -331,7 +331,7 @@ function ShootingsTab({ shootings }) {
 }
 
 // ── Content Bank tab ──────────────────────────────────────────────────────────
-function ContentBankTab({ content }) {
+function ContentBankTab({ content = [] }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
 
@@ -436,7 +436,7 @@ function ContentCard({ c }) {
 }
 
 // ── Documents tab ─────────────────────────────────────────────────────────────
-function DocumentsTab({ client, documents }) {
+function DocumentsTab({ client = {}, documents = [] }) {
   const schedulePdfs = client.production_schedule_pdfs || [];
 
   const openDoc = async (path) => {
@@ -511,7 +511,7 @@ function DocumentsTab({ client, documents }) {
 }
 
 // ── Tutorials tab ─────────────────────────────────────────────────────────────
-function TutorialsTab({ tutorials, trainingPdfUrl }) {
+function TutorialsTab({ tutorials = [], trainingPdfUrl }) {
   const [search, setSearch] = useState('');
   const [playing, setPlaying] = useState(null);
 
@@ -593,7 +593,7 @@ function TutorialsTab({ tutorials, trainingPdfUrl }) {
 }
 
 // ── Admin tab ─────────────────────────────────────────────────────────────────
-function AdminTab({ client, contracts, credentials }) {
+function AdminTab({ client = {}, contracts = [], credentials = [] }) {
   const [showPwd, setShowPwd] = useState({});
   const [search, setSearch] = useState('');
 
@@ -752,7 +752,15 @@ export default function ClientPortalV2() {
     </div>
   );
 
-  const { client, content, shootings, contracts, documents, tutorials, credentials } = data;
+  const {
+    client = {},
+    content = [],
+    shootings = [],
+    contracts = [],
+    documents = [],
+    tutorials = [],
+    credentials = [],
+  } = data || {};
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1 }}>
