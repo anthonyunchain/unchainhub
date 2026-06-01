@@ -1563,22 +1563,30 @@ function AdminTab({ client = {}, contracts = [], invoices = [], credentials = []
               />
             </div>
             <div>
-              <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>
+              <label className="text-xs font-semibold block mb-1.5" style={{ color: 'var(--muted)' }}>
                 {tr.language || 'Language'}
               </label>
-              <select
-                value={profile.default_language}
-                onChange={e => setProfile(p => ({ ...p, default_language: e.target.value }))}
-                className="w-full px-3 py-2 text-sm rounded-xl border"
-                style={inputStyle}
-              >
-                <option value="en">English</option>
-                <option value="fi">Suomi</option>
-                <option value="fr">Français</option>
-                <option value="de">Deutsch</option>
-                <option value="sv">Svenska</option>
-                <option value="no">Norsk</option>
-              </select>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { v: 'en', l: 'English' }, { v: 'fi', l: 'Suomi' }, { v: 'fr', l: 'Français' },
+                  { v: 'de', l: 'Deutsch' }, { v: 'sv', l: 'Svenska' }, { v: 'no', l: 'Norsk' },
+                ].map(o => {
+                  const active = profile.default_language === o.v;
+                  return (
+                    <button key={o.v} type="button"
+                      onClick={() => setProfile(p => ({ ...p, default_language: o.v }))}
+                      className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
+                      style={{
+                        background: active ? 'var(--brand)' : 'var(--bg)',
+                        color: active ? '#fff' : 'var(--ink)',
+                        border: `1px solid ${active ? 'var(--brand)' : 'var(--divider)'}`,
+                        cursor: 'pointer',
+                      }}>
+                      {o.l}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
           <div className="flex justify-end pt-1">
