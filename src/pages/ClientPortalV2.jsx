@@ -660,7 +660,7 @@ function ContentBankTab({ content = [], tr, dateLocale }) {
           <p className="text-label-mono" style={{ textTransform: 'capitalize' }}>
             {key === 'undated' ? '—' : fmtDate(key + '-01', 'MMMM yyyy', dateLocale)}
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="space-y-2">
             {groups[key].map(c => <ContentCard key={c.id} c={c} tr={tr} dateLocale={dateLocale} />)}
           </div>
         </div>
