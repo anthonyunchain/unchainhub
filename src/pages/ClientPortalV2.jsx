@@ -264,6 +264,21 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pu
         </div>
       </div>
 
+      {/* Push notification */}
+      <div className="rounded-2xl p-4 flex flex-col justify-between"
+        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 120 }}>
+        <div>
+          <p className="text-xs font-semibold" style={{ color: 'var(--ink)' }}>{tr.notifTitle}</p>
+          <p className="text-[10px] mt-1 leading-tight" style={{ color: 'var(--muted)' }}>{tr.notifDesc}</p>
+        </div>
+        <button onClick={onTogglePush} disabled={pushLoading}
+          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold"
+          style={{ background: pushSubscribed ? 'var(--brand)' : 'var(--bg)', color: pushSubscribed ? '#fff' : 'var(--ink)', border: '1px solid var(--divider)', cursor: pushLoading ? 'wait' : 'pointer', opacity: pushLoading ? 0.6 : 1 }}>
+          {pushLoading ? <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} /> : pushSubscribed ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
+          {pushLoading ? '…' : pushSubscribed ? tr.notifOn : tr.notifOff}
+        </button>
+      </div>
+
       {/* Next shooting */}
       <div className="rounded-2xl p-4 cursor-pointer flex flex-col justify-between"
         style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 120 }}
@@ -279,21 +294,6 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pu
           <p className="text-sm" style={{ color: 'var(--muted)' }}>{tr.noNextShooting}</p>
         )}
         <Camera size={18} style={{ color: 'var(--brand)', marginTop: 8, opacity: 0.5 }} />
-      </div>
-
-      {/* Push notification — compact, 1 col mobile / 1 col desktop */}
-      <div className="rounded-2xl p-4 flex flex-col justify-between"
-        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 120 }}>
-        <div>
-          <p className="text-xs font-semibold" style={{ color: 'var(--ink)' }}>{tr.notifTitle}</p>
-          <p className="text-[10px] mt-1 leading-tight" style={{ color: 'var(--muted)' }}>{tr.notifDesc}</p>
-        </div>
-        <button onClick={onTogglePush} disabled={pushLoading}
-          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold"
-          style={{ background: pushSubscribed ? 'var(--brand)' : 'var(--bg)', color: pushSubscribed ? '#fff' : 'var(--ink)', border: '1px solid var(--divider)', cursor: pushLoading ? 'wait' : 'pointer', opacity: pushLoading ? 0.6 : 1 }}>
-          {pushLoading ? <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} /> : pushSubscribed ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
-          {pushLoading ? '…' : pushSubscribed ? tr.notifOn : tr.notifOff}
-        </button>
       </div>
 
       {/* Mini calendar preview — span 2 mobile / span 3 desktop */}
