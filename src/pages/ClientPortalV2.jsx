@@ -31,6 +31,9 @@ const TR = {
     noTutorials: "No tutorials yet", noContracts: "No contracts",
     searchTutorials: "Search tutorials…", searchCredentials: "Search…",
     contracts: "Contracts", credentials: "Access & passwords",
+    profileSettings: "Profile & Settings", contactName: "Contact name",
+    contactEmail: "Email", contactPhone: "Phone", language: "Language",
+    saveProfile: "Save", saved: "Saved ✓", profileSaved: "Profile saved",
     showMore: "Show more", showLess: "Show less",
     copied: "Copied", copyLogin: "Copy", copyPwd: "Copy",
     openLogin: "Login",
@@ -54,6 +57,9 @@ const TR = {
     noTutorials: "Ei oppaita vielä", noContracts: "Ei sopimuksia",
     searchTutorials: "Hae oppaita…", searchCredentials: "Hae…",
     contracts: "Sopimukset", credentials: "Käyttöoikeudet & salasanat",
+    profileSettings: "Profiili & Asetukset", contactName: "Yhteyshenkilö",
+    contactEmail: "Sähköposti", contactPhone: "Puhelin", language: "Kieli",
+    saveProfile: "Tallenna", saved: "Tallennettu ✓", profileSaved: "Profiili tallennettu",
     showMore: "Näytä enemmän", showLess: "Näytä vähemmän",
     copied: "Kopioitu", copyLogin: "Kopioi", copyPwd: "Kopioi",
     openLogin: "Kirjaudu",
@@ -734,17 +740,116 @@ function TutorialsTab({ tutorials = [], trainingPdfUrl, tr }) {
 }
 
 // ── Admin tab ─────────────────────────────────────────────────────────────────
-function AdminTab({ client = {}, contracts = [], credentials = [], tr, dateLocale }) {
+function AdminTab({ client = {}, contracts = [], credentials = [], tr, dateLocale, token, onClientUpdate }) {
   const [showPwd, setShowPwd] = useState({});
   const [search, setSearch] = useState('');
+
+  // Profile form
+  const [profile, setProfile] = useState({
+    contact_name:     client.contact_name     || '',
+    contact_email:    client.contact_email    || '',
+    contact_phone:    client.contact_phone    || '',
+    default_language: client.default_language || 'en',
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    try {
+      const res = await base44.functions.invoke('updateClientPortalProfile', { token, ...profile });
+      if (res?.error) throw new Error(res.error);
+      setSaved(true);
+      onClientUpdate?.(profile);
+      setTimeout(() => setSaved(false), 3000);
+      toast.success(tr.profileSaved || 'Profile saved');
+    } catch (e) {
+      toast.error(e.message || 'Error saving profile');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const filteredCreds = credentials.filter(c => {
     const q = search.toLowerCase();
     return !q || c.label?.toLowerCase().includes(q) || c.category?.toLowerCase().includes(q) || c.username?.toLowerCase().includes(q);
   });
 
+  const inputStyle = { borderColor: 'var(--divider)', background: 'var(--bg)', color: 'var(--ink)', outline: 'none' };
+
   return (
     <div className="space-y-6">
+
+      {/* Profile / Settings */}
+      <div className="space-y-3">
+        <p className="text-label-mono">{tr.profileSettings || 'Profile & Settings'}</p>
+        <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>
+                {tr.contactName || 'Contact name'}
+              </label>
+              <input
+                type="text"
+                value={profile.contact_name}
+                onChange={e => setProfile(p => ({ ...p, contact_name: e.target.value }))}
+                className="w-full px-3 py-2 text-sm rounded-xl border"
+                style={inputStyle}
+                placeholder="John Smith"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>
+                {tr.contactPhone || 'Phone'}
+              </label>
+              <input
+                type="tel"
+                value={profile.contact_phone}
+                onChange={e => setProfile(p => ({ ...p, contact_phone: e.target.value }))}
+                className="w-full px-3 py-2 text-sm rounded-xl border"
+                style={inputStyle}
+                placeholder="+358 40 123 4567"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>
+                {tr.contactEmail || 'Email'}
+              </label>
+              <input
+                type="email"
+                value={profile.contact_email}
+                onChange={e => setProfile(p => ({ ...p, contact_email: e.target.value }))}
+                className="w-full px-3 py-2 text-sm rounded-xl border"
+                style={inputStyle}
+                placeholder="you@example.com"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>
+                {tr.language || 'Language'}
+              </label>
+              <select
+                value={profile.default_language}
+                onChange={e => setProfile(p => ({ ...p, default_language: e.target.value }))}
+                className="w-full px-3 py-2 text-sm rounded-xl border"
+                style={inputStyle}
+              >
+                <option value="en">English</option>
+                <option value="fi">Suomi</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end pt-1">
+            <button
+              onClick={handleSaveProfile}
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+              style={{ background: saved ? '#22c55e' : 'var(--brand)', color: '#fff', border: 'none', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+              {saving ? '…' : saved ? (tr.saved || 'Saved ✓') : (tr.saveProfile || 'Save')}
+            </button>
+          </div>
+        </div>
+      </div>
       <div className="space-y-2">
         <p className="text-label-mono">{tr.contracts}</p>
         {contracts.length === 0
@@ -989,7 +1094,7 @@ export default function ClientPortalV2() {
         {activeTab === 'content'   && <ContentBankTab content={content} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'documents' && <DocumentsTab client={client} documents={documents} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'tutorials' && <TutorialsTab tutorials={tutorials} trainingPdfUrl={client.training_pdf_url} tr={tr} />}
-        {activeTab === 'admin'     && <AdminTab client={client} contracts={contracts} credentials={credentials} tr={tr} dateLocale={dateLocale} />}
+        {activeTab === 'admin'     && <AdminTab client={client} contracts={contracts} credentials={credentials} tr={tr} dateLocale={dateLocale} token={token} onClientUpdate={updates => setData(d => ({ ...d, client: { ...d.client, ...updates } }))} />}
       </div>
 
       {/* Mobile — More drawer */}
