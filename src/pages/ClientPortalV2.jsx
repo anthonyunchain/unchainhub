@@ -11,7 +11,7 @@ import {
   Play, Search, Moon, Sun, Eye, EyeOff, KeyRound,
   TrendingUp, Clock, MapPin, Instagram, Youtube,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 
 // ── Translations ──────────────────────────────────────────────────────────────
 const TR = {
@@ -225,11 +225,11 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pu
         {greeting}
       </p>
 
-    <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'auto' }}>
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
 
-      {/* Content Bank — large card */}
-      <div className="rounded-2xl p-5 cursor-pointer flex flex-col justify-between"
-        style={{ gridColumn: 'span 2', background: 'var(--brand)', color: '#fff', boxShadow: 'var(--card-shadow)', minHeight: 140 }}
+      {/* Content Bank — large card, always span 2 */}
+      <div className="col-span-2 rounded-2xl p-5 cursor-pointer flex flex-col justify-between"
+        style={{ background: 'var(--brand)', color: '#fff', boxShadow: 'var(--card-shadow)', minHeight: 130 }}
         onClick={() => onTabChange('content')}>
         <div>
           <div className="flex items-center gap-2 mb-2">
@@ -251,7 +251,7 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pu
 
       {/* Posts this month */}
       <div className="rounded-2xl p-4 cursor-pointer flex flex-col justify-between"
-        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 140 }}
+        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 120 }}
         onClick={() => onTabChange('calendar')}>
         <p className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{tr.postsThisMonth}</p>
         <p style={{ fontSize: 40, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--ink)', lineHeight: 1 }}>{monthPosts.length}</p>
@@ -266,7 +266,7 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pu
 
       {/* Next shooting */}
       <div className="rounded-2xl p-4 cursor-pointer flex flex-col justify-between"
-        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 140 }}
+        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 120 }}
         onClick={() => onTabChange('shootings')}>
         <p className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{tr.nextShooting}</p>
         {nextShooting ? (
@@ -281,9 +281,9 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pu
         <Camera size={18} style={{ color: 'var(--brand)', marginTop: 8, opacity: 0.5 }} />
       </div>
 
-      {/* Push notification — compact */}
+      {/* Push notification — compact, 1 col mobile / 1 col desktop */}
       <div className="rounded-2xl p-4 flex flex-col justify-between"
-        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
+        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 120 }}>
         <div>
           <p className="text-xs font-semibold" style={{ color: 'var(--ink)' }}>{tr.notifTitle}</p>
           <p className="text-[10px] mt-1 leading-tight" style={{ color: 'var(--muted)' }}>{tr.notifDesc}</p>
@@ -296,9 +296,9 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pu
         </button>
       </div>
 
-      {/* Mini calendar preview — full width */}
-      <div className="rounded-2xl p-5 cursor-pointer overflow-hidden"
-        style={{ gridColumn: 'span 3', background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}
+      {/* Mini calendar preview — span 2 mobile / span 3 desktop */}
+      <div className="col-span-2 sm:col-span-3 rounded-2xl p-4 sm:p-5 cursor-pointer overflow-hidden"
+        style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}
         onClick={() => onTabChange('calendar')}>
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{fmtDate(new Date(), 'MMMM yyyy', dateLocale)}</p>
@@ -937,6 +937,7 @@ export default function ClientPortalV2() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1 }}>
+      <Toaster richColors position="top-center" />
       {/* Topbar */}
       <div style={{ paddingTop: 'max(20px, env(safe-area-inset-top))', paddingBottom: 16 }}>
         <div className="mx-auto flex items-center justify-between gap-4 px-5" style={{ maxWidth: 1400 }}>
