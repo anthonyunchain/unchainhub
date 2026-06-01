@@ -1251,8 +1251,9 @@ export default function ClientPortalV2() {
     (async () => {
       try {
         const res = await base44.functions.invoke('getClientPortalV2Data', { token });
-        if (res.error) throw new Error(res.error);
-        setData(res);
+        const payload = res?.data ?? res;
+        if (payload?.error) throw new Error(payload.error);
+        setData(payload);
       } catch (e) {
         setError(e.message || 'Invalid or expired link');
       } finally {
