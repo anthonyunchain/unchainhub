@@ -9,7 +9,7 @@ import {
   GraduationCap, Settings, ChevronLeft, ChevronRight,
   Download, ExternalLink, Copy, Check, Bell, BellOff,
   Play, Search, Moon, Sun, Eye, EyeOff, KeyRound,
-  TrendingUp, Clock, MapPin, Instagram, Youtube, Images as ImageIcon,
+  TrendingUp, Clock, MapPin, Instagram, Youtube, Images as ImageIcon, Receipt,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 
@@ -33,7 +33,7 @@ const TR = {
     noContent: "No content found", noDocuments: "No documents shared yet",
     noTutorials: "No tutorials yet", noContracts: "No contracts",
     searchTutorials: "Search tutorials…", searchCredentials: "Search…",
-    contracts: "Contracts", credentials: "Access & passwords",
+    contracts: "Contracts", invoices: "Invoices", noInvoices: "No invoices", credentials: "Access & passwords",
     profileSettings: "Profile & Settings", contactName: "Contact name",
     contactEmail: "Email", contactPhone: "Phone", language: "Language",
     saveProfile: "Save", saved: "Saved ✓", profileSaved: "Profile saved",
@@ -62,7 +62,7 @@ const TR = {
     noContent: "Sisältöä ei löydy", noDocuments: "Ei jaettuja dokumentteja",
     noTutorials: "Ei oppaita vielä", noContracts: "Ei sopimuksia",
     searchTutorials: "Hae oppaita…", searchCredentials: "Hae…",
-    contracts: "Sopimukset", credentials: "Käyttöoikeudet & salasanat",
+    contracts: "Sopimukset", invoices: "Laskut", noInvoices: "Ei laskuja", credentials: "Käyttöoikeudet & salasanat",
     profileSettings: "Profiili & Asetukset", contactName: "Yhteyshenkilö",
     contactEmail: "Sähköposti", contactPhone: "Puhelin", language: "Kieli",
     saveProfile: "Tallenna", saved: "Tallennettu ✓", profileSaved: "Profiili tallennettu",
@@ -947,7 +947,7 @@ function ContactRequestForm({ token, tr }) {
   );
 }
 
-function AdminTab({ client = {}, contracts = [], credentials = [], tr, dateLocale, token, lang, pushSubscribed, pushLoading, onTogglePush, onClientUpdate }) {
+function AdminTab({ client = {}, contracts = [], invoices = [], credentials = [], tr, dateLocale, token, lang, pushSubscribed, pushLoading, onTogglePush, onClientUpdate }) {
   const [showPwd, setShowPwd] = useState({});
   const [search, setSearch] = useState('');
   const denied = typeof Notification !== 'undefined' && Notification.permission === 'denied';
@@ -1061,29 +1061,72 @@ function AdminTab({ client = {}, contracts = [], credentials = [], tr, dateLocal
       {/* Contact / Meeting request form */}
       <ContactRequestForm token={token} tr={tr} />
 
-      <div className="space-y-2">
-        <p className="text-label-mono">{tr.contracts}</p>
-        {contracts.length === 0
-          ? <p className="text-sm py-4 text-center" style={{ color: 'var(--muted)' }}>{tr.noContracts}</p>
-          : contracts.map(c => (
-            <div key={c.id} className="rounded-2xl p-3 flex items-center gap-3" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
-                <FileText className="w-4 h-4" style={{ color: 'var(--brand)' }} />
+      {/* Contracts & Invoices side by side */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Contracts */}
+        <div className="space-y-2">
+          <p className="text-label-mono">{tr.contracts}</p>
+          {contracts.length === 0 && (client.contract_documents || []).length === 0
+            ? <p className="text-sm py-4 text-center" style={{ color: 'var(--muted)' }}>{tr.noContracts}</p>
+            : <div className="space-y-2">
+                {contracts.map(c => (
+                  <div key={c.id} className="rounded-2xl p-3 flex items-center gap-3" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
+                      <FileText className="w-4 h-4" style={{ color: 'var(--brand)' }} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--ink)' }}>{c.title || 'Contract'}</p>
+                      <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                        {c.status}{c.amount ? ` · ${c.amount} ${c.currency || ''}` : ''}{c.start_date ? ` · ${fmtDate(c.start_date, 'd MMM yyyy', dateLocale)}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {(client.contract_documents || []).map((url, i) => (
+                  <a key={`doc-${i}`} href={url} target="_blank" rel="noopener noreferrer"
+                    className="rounded-2xl p-3 flex items-center gap-3" style={{ background: 'var(--card)', border: '1px solid var(--divider)', textDecoration: 'none' }}>
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
+                      <FileText className="w-4 h-4" style={{ color: 'var(--brand)' }} />
+                    </div>
+                    <p className="text-sm font-semibold flex-1" style={{ color: 'var(--ink)' }}>{tr.contracts} {i + 1}</p>
+                    <Download className="w-4 h-4" style={{ color: 'var(--brand)' }} />
+                  </a>
+                ))}
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold truncate" style={{ color: 'var(--ink)' }}>{c.title || 'Contract'}</p>
-                <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                  {c.status}{c.amount ? ` · ${c.amount} ${c.currency || ''}` : ''}{c.start_date ? ` · ${fmtDate(c.start_date, 'd MMM yyyy', dateLocale)}` : ''}
-                </p>
+          }
+        </div>
+
+        {/* Invoices */}
+        <div className="space-y-2">
+          <p className="text-label-mono">{tr.invoices}</p>
+          {invoices.length === 0
+            ? <p className="text-sm py-4 text-center" style={{ color: 'var(--muted)' }}>{tr.noInvoices}</p>
+            : <div className="space-y-2">
+                {invoices.map(inv => {
+                  const files = (inv.file_urls && inv.file_urls.length ? inv.file_urls : (inv.file_url ? [inv.file_url] : []));
+                  const amount = inv.total_with_tax || inv.total_amount;
+                  return (
+                    <div key={inv.id} className="rounded-2xl p-3 flex items-center gap-3" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
+                        <Receipt className="w-4 h-4" style={{ color: 'var(--brand)' }} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--ink)' }}>{inv.invoice_number || inv.description || tr.invoices}</p>
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                          {inv.status}{amount ? ` · ${amount} €` : ''}{inv.due_date ? ` · ${fmtDate(inv.due_date, 'd MMM yyyy', dateLocale)}` : ''}
+                        </p>
+                      </div>
+                      {files.map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand)', display: 'flex', alignItems: 'center' }}>
+                          <Download className="w-4 h-4" />
+                        </a>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
-              {(client.contract_documents || []).map((url, i) => (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand)', display: 'flex', alignItems: 'center' }}>
-                  <Download className="w-4 h-4" />
-                </a>
-              ))}
-            </div>
-          ))
-        }
+          }
+        </div>
       </div>
 
       {credentials.length > 0 && (
@@ -1234,6 +1277,7 @@ export default function ClientPortalV2() {
     documents = [],
     tutorials = [],
     credentials = [],
+    invoices = [],
   } = data || {};
 
   const portalUrl = `${window.location.origin}/portal/${token}`;
@@ -1357,7 +1401,7 @@ export default function ClientPortalV2() {
         {activeTab === 'photos'    && <PhotoBankTab shootings={shootings} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'documents' && <DocumentsTab client={client} documents={documents} tr={tr} dateLocale={dateLocale} />}
         {activeTab === 'tutorials' && <TutorialsTab tutorials={tutorials} trainingPdfUrl={client.training_pdf_url} tr={tr} />}
-        {activeTab === 'admin'     && <AdminTab client={client} contracts={contracts} credentials={credentials} tr={tr} dateLocale={dateLocale} token={token} lang={lang} pushSubscribed={pushSubscribed} pushLoading={pushLoading} onTogglePush={handleTogglePush} onClientUpdate={updates => setData(d => ({ ...d, client: { ...d.client, ...updates } }))} />}
+        {activeTab === 'admin'     && <AdminTab client={client} contracts={contracts} invoices={invoices} credentials={credentials} tr={tr} dateLocale={dateLocale} token={token} lang={lang} pushSubscribed={pushSubscribed} pushLoading={pushLoading} onTogglePush={handleTogglePush} onClientUpdate={updates => setData(d => ({ ...d, client: { ...d.client, ...updates } }))} />}
       </div>
 
       {/* Mobile — More drawer */}

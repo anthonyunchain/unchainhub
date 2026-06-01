@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     const companyName = client.company_name;
 
-    const [contentRes, shootingsRes, contractsRes, docsRes, tutorialsRes, credRes] = await Promise.all([
+    const [contentRes, shootingsRes, contractsRes, docsRes, tutorialsRes, credRes, invoicesRes] = await Promise.all([
       supabaseAdmin
         .from('editorial_content')
         .select('id, title, description, post_type, platform, scheduled_date, status, client_name, content_type, drive_url, cover_image_url, reel_description')
@@ -55,6 +55,11 @@ Deno.serve(async (req) => {
         .select('id, title, description, video_url, youtube_url, category, thumbnail_url, position, sort_order')
         .order('position', { ascending: true }),
       supabaseAdmin.rpc('get_client_credentials', { p_client_id: client.id }),
+      supabaseAdmin
+        .from('invoices')
+        .select('id, invoice_number, description, total_amount, total_with_tax, status, issue_date, due_date, paid_date, file_url, file_urls, client_name')
+        .eq('client_name', companyName)
+        .order('issue_date', { ascending: false }),
     ]);
 
     // Sign document file paths server-side (portal has no auth session)
@@ -80,6 +85,7 @@ Deno.serve(async (req) => {
       documents,
       tutorials: tutorialsRes.data || [],
       credentials: credRes.data || [],
+      invoices: invoicesRes.data || [],
     }, { headers: corsHeaders(req) });
 
   } catch (err) {

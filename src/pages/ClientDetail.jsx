@@ -69,7 +69,7 @@ const TABS = [
 
 // For Portal V2 clients, hide tabs unrelated to the portal (staff/restaurant stuff).
 // Only keep what feeds or manages the V2 portal.
-const PORTAL_V2_TABS = ["dashboard", "reports", "socials", "invoices", "contract", "calendars", "documents", "credentials", "requests"];
+const PORTAL_V2_TABS = ["dashboard", "invoices", "contract", "calendars", "documents", "credentials", "requests"];
 function visibleTabs(client) {
   if (client?.portal_v2_enabled) {
     return TABS.filter(t => PORTAL_V2_TABS.includes(t.id));
@@ -608,7 +608,8 @@ export default function ClientDetail() {
             }
           </div>
 
-          {/* Monthly Brief */}
+          {/* Monthly Brief — hidden for Portal V2 clients */}
+          {!client.portal_v2_enabled && (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
             {/* Header — always visible, click to toggle */}
             <button
@@ -686,6 +687,7 @@ export default function ClientDetail() {
               </div>
             )}
           </div>
+          )}
 
         </div>
       )}
