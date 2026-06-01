@@ -41,7 +41,7 @@ const TR = {
     noContent: "No content found", noDocuments: "No documents shared yet",
     noTutorials: "No tutorials yet", noContracts: "No contracts",
     searchTutorials: "Search tutorials…", searchCredentials: "Search…",
-    contracts: "Contracts", invoices: "Invoices", noInvoices: "No invoices", credentials: "Access & passwords",
+    contracts: "Contracts", invoices: "Invoices", noInvoices: "No invoices", credentials: "Access & passwords", noCredentials: "No passwords shared yet.",
     profileSettings: "Profile & Settings", contactName: "Contact name",
     contactEmail: "Email", contactPhone: "Phone", language: "Language",
     saveProfile: "Save", saved: "Saved ✓", profileSaved: "Profile saved",
@@ -79,7 +79,7 @@ const TR = {
     noContent: "Sisältöä ei löydy", noDocuments: "Ei jaettuja dokumentteja",
     noTutorials: "Ei oppaita vielä", noContracts: "Ei sopimuksia",
     searchTutorials: "Hae oppaita…", searchCredentials: "Hae…",
-    contracts: "Sopimukset", invoices: "Laskut", noInvoices: "Ei laskuja", credentials: "Käyttöoikeudet & salasanat",
+    contracts: "Sopimukset", invoices: "Laskut", noInvoices: "Ei laskuja", credentials: "Käyttöoikeudet & salasanat", noCredentials: "Ei jaettuja salasanoja vielä.",
     profileSettings: "Profiili & Asetukset", contactName: "Yhteyshenkilö",
     contactEmail: "Sähköposti", contactPhone: "Puhelin", language: "Kieli",
     saveProfile: "Tallenna", saved: "Tallennettu ✓", profileSaved: "Profiili tallennettu",
@@ -117,7 +117,7 @@ const TR = {
     noContent: "Aucun contenu", noDocuments: "Aucun document partagé",
     noTutorials: "Aucun tutoriel", noContracts: "Aucun contrat",
     searchTutorials: "Rechercher un tutoriel…", searchCredentials: "Rechercher…",
-    contracts: "Contrats", invoices: "Factures", noInvoices: "Aucune facture", credentials: "Accès & mots de passe",
+    contracts: "Contrats", invoices: "Factures", noInvoices: "Aucune facture", credentials: "Accès & mots de passe", noCredentials: "Aucun mot de passe partagé.",
     profileSettings: "Profil & Réglages", contactName: "Nom du contact",
     contactEmail: "Email", contactPhone: "Téléphone", language: "Langue",
     saveProfile: "Enregistrer", saved: "Enregistré ✓", profileSaved: "Profil enregistré",
@@ -155,7 +155,7 @@ const TR = {
     noContent: "Keine Inhalte", noDocuments: "Noch keine Dokumente geteilt",
     noTutorials: "Noch keine Tutorials", noContracts: "Keine Verträge",
     searchTutorials: "Tutorials suchen…", searchCredentials: "Suchen…",
-    contracts: "Verträge", invoices: "Rechnungen", noInvoices: "Keine Rechnungen", credentials: "Zugänge & Passwörter",
+    contracts: "Verträge", invoices: "Rechnungen", noInvoices: "Keine Rechnungen", credentials: "Zugänge & Passwörter", noCredentials: "Noch keine Passwörter geteilt.",
     profileSettings: "Profil & Einstellungen", contactName: "Kontaktname",
     contactEmail: "E-Mail", contactPhone: "Telefon", language: "Sprache",
     saveProfile: "Speichern", saved: "Gespeichert ✓", profileSaved: "Profil gespeichert",
@@ -193,7 +193,7 @@ const TR = {
     noContent: "Inget innehåll", noDocuments: "Inga dokument delade ännu",
     noTutorials: "Inga guider ännu", noContracts: "Inga avtal",
     searchTutorials: "Sök guider…", searchCredentials: "Sök…",
-    contracts: "Avtal", invoices: "Fakturor", noInvoices: "Inga fakturor", credentials: "Åtkomst & lösenord",
+    contracts: "Avtal", invoices: "Fakturor", noInvoices: "Inga fakturor", credentials: "Åtkomst & lösenord", noCredentials: "Inga lösenord delade ännu.",
     profileSettings: "Profil & Inställningar", contactName: "Kontaktnamn",
     contactEmail: "E-post", contactPhone: "Telefon", language: "Språk",
     saveProfile: "Spara", saved: "Sparat ✓", profileSaved: "Profil sparad",
@@ -231,7 +231,7 @@ const TR = {
     noContent: "Ingen innhold", noDocuments: "Ingen dokumenter delt ennå",
     noTutorials: "Ingen veiledninger ennå", noContracts: "Ingen kontrakter",
     searchTutorials: "Søk veiledninger…", searchCredentials: "Søk…",
-    contracts: "Kontrakter", invoices: "Fakturaer", noInvoices: "Ingen fakturaer", credentials: "Tilganger & passord",
+    contracts: "Kontrakter", invoices: "Fakturaer", noInvoices: "Ingen fakturaer", credentials: "Tilganger & passord", noCredentials: "Ingen passord delt ennå.",
     profileSettings: "Profil & Innstillinger", contactName: "Kontaktnavn",
     contactEmail: "E-post", contactPhone: "Telefon", language: "Språk",
     saveProfile: "Lagre", saved: "Lagret ✓", profileSaved: "Profil lagret",
@@ -1665,9 +1665,14 @@ function AdminTab({ client = {}, contracts = [], invoices = [], credentials = []
         </div>
       </div>
 
-      {credentials.length > 0 && (
-        <div className="space-y-2">
+      <div className="space-y-2">
           <p className="text-label-mono">{tr.credentials}</p>
+          {credentials.length === 0 ? (
+            <div className="rounded-2xl p-6 text-center" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+              <KeyRound className="w-5 h-5 mx-auto mb-2" style={{ color: 'var(--muted)' }} />
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>{tr.noCredentials}</p>
+            </div>
+          ) : (<>
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--muted)' }} />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={tr.searchCredentials}
@@ -1715,8 +1720,8 @@ function AdminTab({ client = {}, contracts = [], invoices = [], credentials = []
               </li>
             ))}
           </ul>
+          </>)}
         </div>
-      )}
 
       {/* Notifications — posting reminders + portal notifications */}
       <div className="space-y-2">
