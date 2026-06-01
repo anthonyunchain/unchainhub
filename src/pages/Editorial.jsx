@@ -971,18 +971,42 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Scheduled date</Label>
+                      {isReadOnly ? (
+                        <div className="p-2 bg-slate-50 rounded border border-slate-200 text-sm text-slate-700">{editData.scheduled_date || "—"}</div>
+                      ) : (
+                        <Input type="date" value={editData.scheduled_date || ""} onChange={e => setEditData({ ...editData, scheduled_date: e.target.value })} />
+                      )}
+                    </div>
+                    <div>
+                      <Label>Suggested time (Portal V2)</Label>
+                      <Input type="time" value={editData.suggested_time || ""} onChange={e => setEditData({ ...editData, suggested_time: e.target.value })} disabled={isReadOnly} />
+                    </div>
+                  </div>
+
                   <div>
-                    <Label>Scheduled date</Label>
+                    <Label>Platform (Portal V2)</Label>
                     {isReadOnly ? (
-                      <div className="p-2 bg-slate-50 rounded border border-slate-200 text-sm text-slate-700">{editData.scheduled_date || "—"}</div>
+                      <div className="p-2 bg-slate-50 rounded border border-slate-200 text-sm text-slate-700">{editData.platform || "—"}</div>
                     ) : (
-                      <Input type="date" value={editData.scheduled_date || ""} onChange={e => setEditData({ ...editData, scheduled_date: e.target.value })} />
+                      <Select value={editData.platform || ""} onValueChange={v => setEditData({ ...editData, platform: v })}>
+                        <SelectTrigger><SelectValue placeholder="Choose platform…" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Instagram">Instagram</SelectItem>
+                          <SelectItem value="TikTok">TikTok</SelectItem>
+                          <SelectItem value="Facebook">Facebook</SelectItem>
+                          <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                          <SelectItem value="YouTube">YouTube</SelectItem>
+                        </SelectContent>
+                      </Select>
                     )}
                   </div>
 
                   <div>
-                    <Label>Description</Label>
-                    <Textarea value={editData.description || ""} onChange={e => setEditData({ ...editData, description: e.target.value })} rows={4} disabled={!canEditDescription} />
+                    <Label>Description / caption</Label>
+                    <Textarea value={editData.description || ""} onChange={e => setEditData({ ...editData, description: e.target.value })} rows={4} disabled={!canEditDescription} placeholder="The caption the client copy-pastes when posting…" />
                   </div>
 
                   <div>
