@@ -1190,6 +1190,57 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                     <Label>Reel caption / description (Portal V2)</Label>
                     <Textarea value={editData.reel_description || ""} onChange={e => setEditData({ ...editData, reel_description: e.target.value })} rows={3} placeholder="Caption to copy-paste for this reel…" />
                   </div>
+
+                  {/* Downloadable files (cover, reel video, carousel slides) */}
+                  <div>
+                    <Label>Downloadable files (Portal V2)</Label>
+                    <p className="text-xs text-slate-400 mt-0.5 mb-2">Cover, reel video, or carousel slides — the client downloads each one in the portal.</p>
+                    <div className="space-y-1.5">
+                      {(editData.media_files || []).map((f, i) => (
+                        <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                          <input
+                            value={f.label || ""}
+                            onChange={e => {
+                              const mf = [...(editData.media_files || [])];
+                              mf[i] = { ...mf[i], label: e.target.value };
+                              setEditData({ ...editData, media_files: mf });
+                            }}
+                            placeholder="Label (Cover, Reel, Slide 1…)"
+                            className="text-xs px-2 py-1 rounded border border-slate-200 w-32 shrink-0"
+                          />
+                          <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#2A69FF] hover:underline truncate flex-1">{decodeURIComponent((f.url || "").split("/").pop().split("?")[0]) || f.url}</a>
+                          <button onClick={() => setEditData({ ...editData, media_files: (editData.media_files || []).filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 shrink-0"><X className="w-3.5 h-3.5" /></button>
+                        </div>
+                      ))}
+                      <div className="flex items-center gap-3">
+                        <label className={`cursor-pointer inline-flex items-center gap-1.5 text-xs text-[#2A69FF] hover:underline ${uploadingFile ? "opacity-50 pointer-events-none" : ""}`}>
+                          <Upload className="w-3 h-3" />{uploadingFile ? "Uploading..." : "Upload a file"}
+                          <input type="file" className="hidden" onChange={async (e) => {
+                            const file = e.target.files?.[0]; if (!file) return;
+                            setUploadingFile(true);
+                            const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                            const guess = /\.(mp4|mov|webm)$/i.test(file.name) ? "Reel video" : ((editData.media_files || []).length === 0 ? "Cover" : `Slide ${editData.media_files.length}`);
+                            setEditData(d => ({ ...d, media_files: [...(d.media_files || []), { label: guess, url: file_url }] }));
+                            setUploadingFile(false); e.target.value = "";
+                          }} />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setEditData(d => ({ ...d, media_files: [...(d.media_files || []), { label: "", url: "" }] }))}
+                          className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700">
+                          <Plus className="w-3 h-3" /> Add a link
+                        </button>
+                      </div>
+                      {/* allow editing url for manually-added links */}
+                      {(editData.media_files || []).some(f => !f.url) && (
+                        <p className="text-[11px] text-slate-400">Tip: paste a URL below for manual links.</p>
+                      )}
+                      {(editData.media_files || []).map((f, i) => (!f.url ? (
+                        <input key={`u-${i}`} value={f.url || ""} onChange={e => { const mf=[...(editData.media_files||[])]; mf[i]={...mf[i], url:e.target.value}; setEditData({...editData, media_files: mf}); }}
+                          placeholder="https://… (paste link)" className="w-full text-xs px-2 py-1.5 rounded border border-slate-200" />
+                      ) : null))}
+                    </div>
+                  </div>
                 </div>
               )}
 
