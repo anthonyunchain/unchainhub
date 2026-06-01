@@ -1259,7 +1259,7 @@ export default function ClientDetail() {
 
       {/* ── Edit Dialog ── */}
       <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setConfirmDelete(false); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit client</DialogTitle></DialogHeader>
           {editData && (
             <div className="space-y-4 mt-2">
@@ -1317,7 +1317,7 @@ export default function ClientDetail() {
               {/* Social handles */}
               <div className="border-t border-slate-100 pt-4">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                  <Instagram className="w-3.5 h-3.5" /> Réseaux sociaux (Apify)
+                  <Instagram className="w-3.5 h-3.5" /> Réseaux sociaux
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -1332,30 +1332,6 @@ export default function ClientDetail() {
                 <div className="mt-3">
                   <Label className="text-xs">LinkedIn URL</Label>
                   <Input value={editData.linkedin_url || ""} onChange={e => setEditData({ ...editData, linkedin_url: e.target.value })} placeholder="https://linkedin.com/company/..." className="mt-1 text-sm" />
-                </div>
-                <div className="mt-3">
-                  <Label className="text-xs">Hashtags tendances (sans #, séparés par virgule)</Label>
-                  <Input
-                    value={(editData.trend_hashtags || []).join(", ")}
-                    onChange={e => setEditData({ ...editData, trend_hashtags: e.target.value.split(",").map(h => h.trim()).filter(Boolean) })}
-                    placeholder="reels, foodie, tampere"
-                    className="mt-1 text-sm"
-                  />
-                </div>
-                <div className="mt-3">
-                  <Label className="text-xs">Comptes concurrents (format: @handle:instagram ou @handle:tiktok, séparés par virgule)</Label>
-                  <Input
-                    value={(editData.competitor_handles || []).map(c => `${c.handle}:${c.platform?.toLowerCase()}`).join(", ")}
-                    onChange={e => {
-                      const parsed = e.target.value.split(",").map(s => {
-                        const [h, p] = s.trim().split(":");
-                        return h ? { handle: h.trim(), platform: p ? p.charAt(0).toUpperCase() + p.slice(1) : "Instagram" } : null;
-                      }).filter(Boolean);
-                      setEditData({ ...editData, competitor_handles: parsed });
-                    }}
-                    placeholder="@concurrenta:instagram, @concurrentb:tiktok"
-                    className="mt-1 text-sm"
-                  />
                 </div>
               </div>
 
