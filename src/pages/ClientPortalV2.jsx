@@ -218,7 +218,7 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pu
   const greeting = getGreeting(lang, client.company_name || '');
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto' }} className="space-y-3">
+    <div className="space-y-3" style={{ paddingTop: 12 }}>
 
       {/* Greeting — small, subtle */}
       <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', fontFamily: "'Plus Jakarta Sans', sans-serif", padding: '4px 0' }}>
