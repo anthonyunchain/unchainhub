@@ -1430,15 +1430,15 @@ function ContactRequestForm({ token, tr }) {
             {/* Meeting date/time */}
             {isMeeting && (
               <div className="grid grid-cols-2 gap-2">
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>{tr.reqPreferredDate}</label>
                   <input type="date" value={preferredDate} onChange={e => setPreferredDate(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-xl border" style={inputStyle} />
+                    className="w-full px-3 py-2 text-sm rounded-xl border" style={{ ...inputStyle, maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', WebkitAppearance: 'none', appearance: 'none' }} />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>{tr.reqPreferredTime}</label>
                   <input type="time" value={preferredTime} onChange={e => setPreferredTime(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-xl border" style={inputStyle} />
+                    className="w-full px-3 py-2 text-sm rounded-xl border" style={{ ...inputStyle, maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', WebkitAppearance: 'none', appearance: 'none' }} />
                 </div>
               </div>
             )}
