@@ -687,74 +687,96 @@ function ShootingsTab({ shootings = [], tr, dateLocale }) {
   const upcoming = shootings.filter(s => s.date >= today);
   const past     = shootings.filter(s => s.date < today);
 
-  const Row = ({ icon: Icon, label, children }) => (
-    <div className="flex items-start gap-2.5 py-2" style={{ borderTop: '1px solid var(--divider)' }}>
-      <Icon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--brand)' }} />
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-mono uppercase tracking-wider mb-0.5" style={{ color: 'var(--muted)' }}>{label}</p>
-        <div className="text-sm" style={{ color: 'var(--ink)' }}>{children}</div>
+  const initials = (name = '') => name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
+  const daysUntil = (d) => Math.round((new Date(d + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
+
+  const Section = ({ icon: Icon, label, children }) => (
+    <div className="pt-3.5 mt-3.5" style={{ borderTop: '1px solid var(--divider)' }}>
+      <div className="flex items-center gap-1.5 mb-2">
+        <Icon className="w-3.5 h-3.5" style={{ color: 'var(--muted)' }} />
+        <p className="text-[10px] font-mono uppercase tracking-[0.12em]" style={{ color: 'var(--muted)' }}>{label}</p>
       </div>
+      {children}
     </div>
   );
 
-  const ShootingCard = ({ s }) => (
-    <div className="rounded-2xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)' }}>
-      {/* Header */}
-      <div className="flex items-start gap-3 pb-3">
-        <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
-          <Camera className="w-5 h-5" style={{ color: 'var(--brand)' }} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="font-bold text-lg leading-tight" style={{ color: 'var(--ink)' }}>{s.title}</p>
-          {s.description && <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>{s.description}</p>}
-        </div>
-        <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0" style={{ background: 'var(--bg)', border: '1px solid var(--divider)', color: 'var(--muted)' }}>{s.status}</span>
-      </div>
-
-      {/* Date + time big */}
-      <div className="flex gap-2 pb-1">
-        <div className="flex-1 rounded-xl p-3" style={{ background: 'var(--bg)' }}>
-          <p className="text-[10px] font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>{tr.shootDate}</p>
-          <p className="text-base font-bold" style={{ color: 'var(--ink)' }}>{fmtDate(s.date, 'd MMM yyyy', dateLocale)}</p>
-        </div>
-        {s.time && (
-          <div className="flex-1 rounded-xl p-3" style={{ background: 'var(--bg)' }}>
-            <p className="text-[10px] font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>{tr.shootTime}</p>
-            <p className="text-base font-bold" style={{ color: 'var(--ink)' }}>{s.time}</p>
+  const ShootingCard = ({ s, isPast }) => {
+    const d = daysUntil(s.date);
+    const countdown = !isPast && d >= 0 ? (d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : `in ${d} days`) : null;
+    return (
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', opacity: isPast ? 0.85 : 1 }}>
+        {/* Accent bar */}
+        <div style={{ height: 3, background: isPast ? 'var(--divider)' : 'var(--brand)' }} />
+        <div className="p-5">
+          {/* Header */}
+          <div className="flex items-start gap-3">
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'var(--brand-muted)' }}>
+              <Camera className="w-5 h-5" style={{ color: 'var(--brand)' }} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-lg leading-tight" style={{ color: 'var(--ink)', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}>{s.title}</p>
+              {s.description && <p className="text-sm mt-1 leading-snug" style={{ color: 'var(--muted)' }}>{s.description}</p>}
+            </div>
+            {countdown && (
+              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0" style={{ background: 'var(--brand)', color: '#fff' }}>{countdown}</span>
+            )}
           </div>
-        )}
-      </div>
 
-      {s.location && (
-        <Row icon={MapPin} label={tr.shootLocation}>{s.location}</Row>
-      )}
-
-      {s.crew?.length > 0 && (
-        <Row icon={Camera} label={tr.shootCrew}>
-          <div className="flex flex-wrap gap-1.5">
-            {s.crew.map((m, i) => (
-              <span key={i} className="text-xs px-2 py-1 rounded-lg" style={{ background: 'var(--brand-muted)', color: 'var(--brand)', fontWeight: 600 }}>
-                {m.name}{m.role ? ` · ${m.role}` : ''}
-              </span>
-            ))}
+          {/* Date + time pills */}
+          <div className="flex flex-wrap gap-2 mt-4">
+            <div className="inline-flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: 'var(--bg)' }}>
+              <Calendar className="w-4 h-4" style={{ color: 'var(--brand)' }} />
+              <span className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{fmtDate(s.date, 'EEE d MMM yyyy', dateLocale)}</span>
+            </div>
+            {s.time && (
+              <div className="inline-flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: 'var(--bg)' }}>
+                <Clock className="w-4 h-4" style={{ color: 'var(--brand)' }} />
+                <span className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{s.time}</span>
+              </div>
+            )}
+            {s.location && (
+              <div className="inline-flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: 'var(--bg)' }}>
+                <MapPin className="w-4 h-4" style={{ color: 'var(--brand)' }} />
+                <span className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{s.location}</span>
+              </div>
+            )}
           </div>
-        </Row>
-      )}
 
-      {s.shotContent?.length > 0 && (
-        <Row icon={Image} label={tr.shootContent}>
-          <ul className="space-y-1 mt-0.5">
-            {s.shotContent.map(c => (
-              <li key={c.id} className="flex items-center gap-2">
-                {c.post_type && <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
-                <span className="text-sm" style={{ color: 'var(--ink)' }}>{c.title}</span>
-              </li>
-            ))}
-          </ul>
-        </Row>
-      )}
-    </div>
-  );
+          {/* Crew */}
+          {s.crew?.length > 0 && (
+            <Section icon={Camera} label={tr.shootCrew}>
+              <div className="flex flex-wrap gap-2">
+                {s.crew.map((m, i) => (
+                  <div key={i} className="inline-flex items-center gap-2 rounded-full pl-1 pr-3 py-1" style={{ background: 'var(--bg)', border: '1px solid var(--divider)' }}>
+                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0" style={{ background: 'var(--brand)', color: '#fff' }}>{initials(m.name)}</span>
+                    <span className="text-xs leading-tight">
+                      <span className="font-semibold" style={{ color: 'var(--ink)' }}>{m.name}</span>
+                      {m.role && <span style={{ color: 'var(--muted)' }}> · {m.role}</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* Content to shoot */}
+          {s.shotContent?.length > 0 && (
+            <Section icon={Image} label={`${tr.shootContent} (${s.shotContent.length})`}>
+              <div className="space-y-1">
+                {s.shotContent.map(c => (
+                  <div key={c.id} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2" style={{ background: 'var(--bg)' }}>
+                    {c.post_type && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
+                    <span className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>{c.title}</span>
+                    {c.platform && <span className="text-[10px] ml-auto shrink-0" style={{ color: 'var(--muted)' }}>{c.platform}</span>}
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -767,7 +789,7 @@ function ShootingsTab({ shootings = [], tr, dateLocale }) {
       )}
       {past.length > 0 && (
         <><p className="text-label-mono mt-4">{tr.past}</p>
-        <div className="space-y-3">{past.map(s => <ShootingCard key={s.id} s={s} />)}</div></>
+        <div className="space-y-3">{past.map(s => <ShootingCard key={s.id} s={s} isPast />)}</div></>
       )}
     </div>
   );
