@@ -872,21 +872,100 @@ function contentFiles(c) {
   return fallback;
 }
 
-function DownloadChips({ c }) {
+const isCover = (f) => /cover|couverture/i.test(f.label || '');
+
+// Download all files of a carousel as a single zip (fallback: open each)
+async function downloadZip(files, zipName) {
+  try {
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+    let added = 0;
+    await Promise.all(files.map(async (f, i) => {
+      try {
+        const res = await fetch(f.url);
+        if (!res.ok) throw new Error('fetch');
+        const blob = await res.blob();
+        const ext = (f.url.split('.').pop().split('?')[0] || 'jpg').slice(0, 4);
+        zip.file(`${String(i + 1).padStart(2, '0')}-${(f.label || 'file').replace(/[^a-z0-9]/gi, '_')}.${ext}`, blob);
+        added++;
+      } catch (_) { /* skip blocked file */ }
+    }));
+    if (!added) throw new Error('none');
+    const out = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(out);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${zipName}.zip`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch (_) {
+    // fallback: open each file in a new tab
+    files.forEach(f => window.open(f.url, '_blank', 'noopener,noreferrer'));
+  }
+}
+
+// Download buttons tailored per content type
+function DownloadActions({ c, tr }) {
+  const [zipping, setZipping] = useState(false);
   const files = contentFiles(c);
   if (!files.length) return null;
+  const cover = files.find(isCover);
+  const main = files.filter(f => !isCover(f));
+
+  const btn = "inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-semibold whitespace-nowrap";
+  const solid = { background: 'var(--brand)', color: '#fff', border: 'none', textDecoration: 'none', cursor: 'pointer' };
+  const ghost = { background: 'var(--brand-muted)', color: 'var(--brand)', border: '1px solid var(--brand)', textDecoration: 'none', cursor: 'pointer' };
+
+  if (c.post_type === 'Carousel') {
+    const slides = main.length ? main : files;
+    return (
+      <div className="flex gap-1.5 flex-wrap justify-end" onClick={e => e.stopPropagation()}>
+        <button className={btn} style={solid} disabled={zipping}
+          onClick={async () => { setZipping(true); await downloadZip(slides, (c.title || 'carousel').replace(/[^a-z0-9]/gi, '_')); setZipping(false); }}>
+          {zipping ? <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', border: '2px solid #fff', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} /> : <Download className="w-3.5 h-3.5" />}
+          {tr.download} .zip
+        </button>
+        {cover && <a className={btn} style={ghost} href={cover.url} target="_blank" rel="noopener noreferrer" download><Download className="w-3.5 h-3.5" />Cover</a>}
+      </div>
+    );
+  }
+  // Reel / Story / Post → main file + cover
   return (
-    <div className="flex gap-1.5 flex-wrap">
-      {files.map((f, i) => (
-        <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" download
-          className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border font-semibold"
-          style={{ borderColor: 'var(--brand)', background: 'var(--brand-muted)', color: 'var(--brand)', textDecoration: 'none' }}>
+    <div className="flex gap-1.5 flex-wrap justify-end" onClick={e => e.stopPropagation()}>
+      {main.map((f, i) => (
+        <a key={i} className={btn} style={solid} href={f.url} target="_blank" rel="noopener noreferrer" download>
           <Download className="w-3.5 h-3.5" />{f.label}
         </a>
       ))}
+      {cover && <a className={btn} style={ghost} href={cover.url} target="_blank" rel="noopener noreferrer" download><Download className="w-3.5 h-3.5" />Cover</a>}
     </div>
   );
 }
+
+// Description that copies on click with a flash animation
+function CopyableDescription({ text, tr }) {
+  const [copied, setCopied] = useState(false);
+  if (!text) return null;
+  const copy = async (e) => {
+    e.stopPropagation();
+    try { await navigator.clipboard.writeText(text); } catch { return; }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <button onClick={copy} title={tr.copyCaption}
+      className="text-left rounded-lg px-2.5 py-2 w-full transition-colors"
+      style={{ background: copied ? 'var(--brand-muted)' : 'transparent', border: '1px solid var(--divider)', cursor: 'pointer' }}>
+      <div className="flex items-start gap-1.5">
+        <span className="text-xs leading-snug line-clamp-3 flex-1" style={{ color: copied ? 'var(--brand)' : 'var(--subtle)', whiteSpace: 'pre-wrap' }}>{text}</span>
+        {copied
+          ? <Check className="w-3.5 h-3.5 shrink-0 mt-0.5 text-green-500" />
+          : <Copy className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--muted)' }} />}
+      </div>
+      {copied && <span className="text-[10px] font-semibold mt-1 inline-block" style={{ color: 'var(--brand)' }}>{tr.copied} ✓</span>}
+    </button>
+  );
+}
+
+function DownloadChips({ c, tr }) { return <DownloadActions c={c} tr={tr} />; }
 
 // ── Content Bank tab ──────────────────────────────────────────────────────────
 function ContentBankTab({ content = [], tr, dateLocale }) {
@@ -1044,7 +1123,7 @@ function ContentDetailModal({ c, tr, dateLocale, onClose }) {
           <div className="flex gap-2 flex-wrap">
             {caption && <CopyButton value={caption} label={tr.copyCaption} />}
           </div>
-          <DownloadChips c={c} />
+          <DownloadChips c={c} tr={tr} />
         </div>
       </div>
     </div>
@@ -1052,39 +1131,47 @@ function ContentDetailModal({ c, tr, dateLocale, onClose }) {
 }
 
 function ContentCard({ c, tr, dateLocale }) {
-  const [open, setOpen] = useState(false);
   const caption = c.reel_description || c.description || '';
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
-      {/* Compact header row */}
-      <div className="flex items-center gap-3 p-2.5 cursor-pointer" onClick={() => setOpen(o => !o)}>
+    <div className="rounded-xl p-3" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+      <div className="flex items-start gap-3">
+        {/* Thumbnail */}
         {c.cover_image_url
-          ? <img src={c.cover_image_url} alt={c.title} className="w-14 h-14 rounded-lg object-cover shrink-0" />
-          : <div className="w-14 h-14 rounded-lg shrink-0 flex items-center justify-center" style={{ background: 'var(--brand-muted)' }}><Image className="w-5 h-5" style={{ color: 'var(--brand)' }} /></div>}
+          ? <img src={c.cover_image_url} alt={c.title} className="w-16 h-16 rounded-lg object-cover shrink-0" />
+          : <div className="w-16 h-16 rounded-lg shrink-0 flex items-center justify-center" style={{ background: 'var(--brand-muted)' }}><Image className="w-5 h-5" style={{ color: 'var(--brand)' }} /></div>}
+
+        {/* Title + date/time + badges */}
         <div className="min-w-0 flex-1">
-          {c.scheduled_date && (
-            <p className="font-bold text-base leading-none" style={{ color: 'var(--ink)' }}>
-              {fmtDate(c.scheduled_date, 'd MMM', dateLocale)}{c.suggested_time ? ` · ${c.suggested_time}` : ''}
-            </p>
-          )}
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <p className="font-bold text-sm leading-tight" style={{ color: 'var(--ink)' }}>{c.title || '—'}</p>
+            {c.scheduled_date && (
+              <span className="text-xs font-semibold" style={{ color: 'var(--brand)' }}>
+                {fmtDate(c.scheduled_date, 'd MMM', dateLocale)}{c.suggested_time ? ` · ${c.suggested_time}` : ''}
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             {c.post_type && <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${TYPE_COLOR[c.post_type] || 'bg-slate-100 text-slate-500'}`}>{c.post_type}</span>}
             {c.platform && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">{c.platform}</span>}
-            <span className="text-[11px] truncate" style={{ color: 'var(--muted)' }}>{c.title}</span>
           </div>
         </div>
-        <ChevronRight className="w-4 h-4 shrink-0 transition-transform" style={{ color: 'var(--muted)', transform: open ? 'rotate(90deg)' : 'none' }} />
+
+        {/* Description (click to copy) */}
+        <div className="hidden md:block" style={{ width: 280 }}>
+          <CopyableDescription text={caption} tr={tr} />
+        </div>
+
+        {/* Downloads */}
+        <div className="shrink-0">
+          <DownloadActions c={c} tr={tr} />
+        </div>
       </div>
 
-      {/* Expanded: caption + downloads */}
-      {open && (
-        <div className="px-2.5 pb-2.5 space-y-2" style={{ borderTop: '1px solid var(--divider)', paddingTop: 10 }}>
-          {caption && <p className="text-xs" style={{ color: 'var(--subtle)', whiteSpace: 'pre-wrap' }}>{caption}</p>}
-          {caption && <CopyButton value={caption} label={tr.copyCaption} />}
-          <DownloadChips c={c} />
-        </div>
-      )}
+      {/* Mobile description below */}
+      <div className="md:hidden mt-2">
+        <CopyableDescription text={caption} tr={tr} />
+      </div>
     </div>
   );
 }
