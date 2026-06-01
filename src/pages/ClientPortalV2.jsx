@@ -742,31 +742,7 @@ function TutorialsTab({ tutorials = [], trainingPdfUrl, tr }) {
 const REQUEST_TYPES = [
   { key: 'meeting',  labelEn: 'Meeting request',  labelFi: 'Kokoustoive',   icon: '📅' },
   { key: 'question', labelEn: 'Question',          labelFi: 'Kysymys',       icon: '💬' },
-  { key: 'other',    labelEn: 'Other',              labelFi: 'Muu',           icon: '📝' },
 ];
-
-const SUGGESTIONS = {
-  meeting: [
-    { labelEn: 'Monthly review',      labelFi: 'Kuukausikatsaus',      subject: 'Monthly content review', message: 'I would like to schedule our monthly content review to go over the results and plan ahead.' },
-    { labelEn: 'Strategy session',    labelFi: 'Strategiakokous',      subject: 'Content strategy session', message: 'I would like to discuss our content strategy and upcoming goals for the next period.' },
-    { labelEn: 'Shooting planning',   labelFi: 'Kuvaussuunnittelu',    subject: 'Upcoming shooting planning', message: 'I would like to discuss the upcoming shooting session — themes, locations and content to cover.' },
-    { labelEn: 'Campaign brief',      labelFi: 'Kampanjabriefaus',     subject: 'Campaign briefing', message: 'I have a campaign coming up and would like to brief the team on objectives, timeline and key messages.' },
-    { labelEn: 'Results debrief',     labelFi: 'Tulosanalyysi',        subject: 'Performance debrief', message: 'I would like to review the latest performance data and discuss what is working and what to adjust.' },
-  ],
-  question: [
-    { labelEn: 'Content timeline',    labelFi: 'Sisältöaikataulu',     subject: 'Content timeline question', message: 'Could you update me on the current production timeline and when to expect the next batch of content?' },
-    { labelEn: 'Posting guidelines',  labelFi: 'Julkaisuohjeet',       subject: 'How to post the content', message: 'I have a few questions about best practices for posting the content — timing, hashtags, captions.' },
-    { labelEn: 'Deliverable status',  labelFi: 'Toimituksen tila',     subject: 'Status of pending deliverables', message: 'Could you give me a quick update on where things stand with our pending content deliverables?' },
-    { labelEn: 'Invoice question',    labelFi: 'Laskutuskysymys',      subject: 'Billing question', message: 'I have a question about a recent invoice — could we clarify a few details?' },
-    { labelEn: 'Add a new platform',  labelFi: 'Uusi alusta',          subject: 'Expanding to a new platform', message: 'I would like to explore adding a new social platform to our content plan. Could we discuss what that would look like?' },
-  ],
-  other: [
-    { labelEn: 'Share an idea',       labelFi: 'Jaa idea',             subject: 'Content idea', message: 'I have a content idea I would like to share with the team.' },
-    { labelEn: 'Feedback',            labelFi: 'Palaute',              subject: 'Feedback on recent content', message: 'I wanted to share some feedback on the recent content we have been publishing.' },
-    { labelEn: 'Urgent request',      labelFi: 'Kiireinen pyyntö',     subject: 'Urgent — please respond quickly', message: 'I have an urgent matter that needs attention as soon as possible.' },
-    { labelEn: 'Change of plans',     labelFi: 'Muutos suunnitelmissa',subject: 'Update to our content plan', message: 'There has been a change in our plans that will affect the upcoming content — I would like to inform the team.' },
-  ],
-};
 
 function ContactRequestForm({ token, tr }) {
   const lang = tr === TR.fi ? 'fi' : 'en';
@@ -832,23 +808,6 @@ function ContactRequestForm({ token, tr }) {
                   {t.icon} {lang === 'fi' ? t.labelFi : t.labelEn}
                 </button>
               ))}
-            </div>
-
-            {/* Quick suggestions */}
-            <div>
-              <p className="text-[10px] font-mono uppercase tracking-wider mb-1.5" style={{ color: 'var(--muted)' }}>
-                {lang === 'fi' ? 'Pikavalinta' : 'Quick suggestions'}
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {SUGGESTIONS[type]?.map((s, i) => (
-                  <button type="button" key={i}
-                    onClick={() => { setSubject(s.subject); setMessage(s.message); }}
-                    className="text-[11px] px-2.5 py-1 rounded-lg"
-                    style={{ background: 'var(--bg)', border: '1px solid var(--divider)', color: 'var(--subtle)', cursor: 'pointer' }}>
-                    {lang === 'fi' ? s.labelFi : s.labelEn}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Subject */}
