@@ -909,32 +909,30 @@ function DownloadActions({ c, tr }) {
   if (!files.length) return null;
   const cover = files.find(isCover);
   const main = files.filter(f => !isCover(f));
+  const isCarousel = c.post_type === 'Carousel';
+  const mainLabel = isCarousel ? `${tr.download} .zip` : (main[0]?.label || tr.download);
 
-  const btn = "inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-semibold whitespace-nowrap";
-  const solid = { background: 'var(--brand)', color: '#fff', border: 'none', textDecoration: 'none', cursor: 'pointer' };
-  const ghost = { background: 'var(--brand-muted)', color: 'var(--brand)', border: '1px solid var(--brand)', textDecoration: 'none', cursor: 'pointer' };
+  // Fixed-width stacked buttons for harmony
+  const btn = "flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-lg font-semibold whitespace-nowrap transition-colors";
+  const solid = { background: 'var(--brand)', color: '#fff', border: '1px solid var(--brand)', textDecoration: 'none', cursor: 'pointer', width: '100%' };
+  const ghost = { background: 'transparent', color: 'var(--brand)', border: '1px solid var(--brand)', textDecoration: 'none', cursor: 'pointer', width: '100%' };
+  const spinner = <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', border: '2px solid #fff', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} />;
 
-  if (c.post_type === 'Carousel') {
-    const slides = main.length ? main : files;
-    return (
-      <div className="flex gap-1.5 flex-wrap justify-end" onClick={e => e.stopPropagation()}>
-        <button className={btn} style={solid} disabled={zipping}
-          onClick={async () => { setZipping(true); await downloadZip(slides, (c.title || 'carousel').replace(/[^a-z0-9]/gi, '_')); setZipping(false); }}>
-          {zipping ? <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', border: '2px solid #fff', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} /> : <Download className="w-3.5 h-3.5" />}
-          {tr.download} .zip
-        </button>
-        {cover && <a className={btn} style={ghost} href={cover.url} target="_blank" rel="noopener noreferrer" download><Download className="w-3.5 h-3.5" />Cover</a>}
-      </div>
-    );
-  }
-  // Reel / Story / Post → main file + cover
+  const onZip = async () => { setZipping(true); await downloadZip(main.length ? main : files, (c.title || 'carousel').replace(/[^a-z0-9]/gi, '_')); setZipping(false); };
+
   return (
-    <div className="flex gap-1.5 flex-wrap justify-end" onClick={e => e.stopPropagation()}>
-      {main.map((f, i) => (
-        <a key={i} className={btn} style={solid} href={f.url} target="_blank" rel="noopener noreferrer" download>
-          <Download className="w-3.5 h-3.5" />{f.label}
-        </a>
-      ))}
+    <div className="flex flex-col gap-1.5" style={{ width: 140 }} onClick={e => e.stopPropagation()}>
+      {isCarousel ? (
+        <button className={btn} style={solid} disabled={zipping} onClick={onZip}>
+          {zipping ? spinner : <Download className="w-3.5 h-3.5" />}{mainLabel}
+        </button>
+      ) : (
+        main.slice(0, 1).map((f, i) => (
+          <a key={i} className={btn} style={solid} href={f.url} target="_blank" rel="noopener noreferrer" download>
+            <Download className="w-3.5 h-3.5" />{f.label}
+          </a>
+        ))
+      )}
       {cover && <a className={btn} style={ghost} href={cover.url} target="_blank" rel="noopener noreferrer" download><Download className="w-3.5 h-3.5" />Cover</a>}
     </div>
   );
