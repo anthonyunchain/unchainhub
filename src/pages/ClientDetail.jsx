@@ -57,8 +57,7 @@ const TABS = [
   { id: "dashboard",   label: "Dashboard"  },
   { id: "reports",     label: "Reports"    },
   { id: "socials",     label: "Socials"    },
-  { id: "invoices",    label: "Invoices"   },
-  { id: "contract",    label: "Contract"   },
+  { id: "contract",    label: "Billing"    },
   { id: "calendars",   label: "Calendars"  },
   { id: "staff",       label: "Staff"      },
   { id: "music",       label: "Music"      },
@@ -69,7 +68,7 @@ const TABS = [
 
 // For Portal V2 clients, hide tabs unrelated to the portal (staff/restaurant stuff).
 // Only keep what feeds or manages the V2 portal.
-const PORTAL_V2_TABS = ["dashboard", "invoices", "contract", "calendars", "documents", "credentials", "requests"];
+const PORTAL_V2_TABS = ["dashboard", "contract", "calendars", "documents", "credentials", "requests"];
 function visibleTabs(client) {
   if (client?.portal_v2_enabled) {
     return TABS.filter(t => PORTAL_V2_TABS.includes(t.id));
@@ -496,9 +495,11 @@ export default function ClientDetail() {
                 <Button variant="outline" size="sm" onClick={() => openInvite("client")} className="h-8 gap-1">
                   <UserPlus className="w-3.5 h-3.5 text-blue-500" /> Invite
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => openInvite("staff")} className="h-8 gap-1">
-                  <ChefHat className="w-3.5 h-3.5 text-amber-600" /> Staff
-                </Button>
+                {!client.portal_v2_enabled && (
+                  <Button variant="outline" size="sm" onClick={() => openInvite("staff")} className="h-8 gap-1">
+                    <ChefHat className="w-3.5 h-3.5 text-amber-600" /> Staff
+                  </Button>
+                )}
               </>
             )}
             {client.portal_v2_enabled && client.portal_token && (
@@ -894,8 +895,8 @@ export default function ClientDetail() {
       })()}
 
       {/* INVOICES */}
-      {activeTab === "invoices" && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      {activeTab === "contract" && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-4">
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><Receipt className="w-4 h-4" />Invoices</h3>
             <div className="flex items-center gap-3">
