@@ -740,6 +740,143 @@ function TutorialsTab({ tutorials = [], trainingPdfUrl, tr }) {
 }
 
 // ── Admin tab ─────────────────────────────────────────────────────────────────
+// ── Contact / Meeting Request Form ───────────────────────────────────────────
+const REQUEST_TYPES = [
+  { key: 'meeting',  labelEn: 'Meeting request',  labelFi: 'Kokoustoive',   icon: '📅' },
+  { key: 'question', labelEn: 'Question',          labelFi: 'Kysymys',       icon: '💬' },
+  { key: 'other',    labelEn: 'Other',              labelFi: 'Muu',           icon: '📝' },
+];
+
+function ContactRequestForm({ token, tr }) {
+  const lang = tr === TR.fi ? 'fi' : 'en';
+  const [type, setType]               = useState('meeting');
+  const [subject, setSubject]         = useState('');
+  const [message, setMessage]         = useState('');
+  const [preferredDate, setPreferredDate] = useState('');
+  const [preferredTime, setPreferredTime] = useState('');
+  const [submitting, setSubmitting]   = useState(false);
+  const [submitted, setSubmitted]     = useState(false);
+
+  const reset = () => {
+    setType('meeting'); setSubject(''); setMessage('');
+    setPreferredDate(''); setPreferredTime(''); setSubmitted(false);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+    setSubmitting(true);
+    try {
+      const res = await base44.functions.invoke('submitClientPortalRequest', {
+        token, type, subject, message, preferred_date: preferredDate || undefined, preferred_time: preferredTime || undefined,
+      });
+      if (res?.error) throw new Error(res.error);
+      setSubmitted(true);
+      toast.success(lang === 'fi' ? 'Viesti lähetetty!' : 'Request sent!');
+    } catch (e) {
+      toast.error(e.message || 'Error sending request');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputStyle = { borderColor: 'var(--divider)', background: 'var(--bg)', color: 'var(--ink)', outline: 'none' };
+  const isMeeting = type === 'meeting';
+
+  return (
+    <div className="space-y-2">
+      <p className="text-label-mono">{lang === 'fi' ? 'Lähetä viesti' : 'Send a request'}</p>
+      <div className="rounded-2xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+        {submitted ? (
+          <div className="py-6 text-center space-y-3">
+            <p className="text-3xl">✅</p>
+            <p className="font-semibold text-sm" style={{ color: 'var(--ink)' }}>
+              {lang === 'fi' ? 'Viesti lähetetty!' : 'Request sent!'}
+            </p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>
+              {lang === 'fi' ? 'Otamme sinuun yhteyttä pian.' : "We'll get back to you shortly."}
+            </p>
+            <button onClick={reset} className="text-xs underline" style={{ color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer' }}>
+              {lang === 'fi' ? 'Lähetä uusi viesti' : 'Send another'}
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {/* Type selector */}
+            <div className="flex gap-2 flex-wrap">
+              {REQUEST_TYPES.map(t => (
+                <button type="button" key={t.key} onClick={() => setType(t.key)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
+                  style={{ background: type === t.key ? 'var(--brand)' : 'var(--bg)', color: type === t.key ? '#fff' : 'var(--muted)', border: '1px solid var(--divider)', cursor: 'pointer' }}>
+                  {t.icon} {lang === 'fi' ? t.labelFi : t.labelEn}
+                </button>
+              ))}
+            </div>
+
+            {/* Subject */}
+            <input
+              type="text"
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              placeholder={lang === 'fi' ? 'Aihe (valinnainen)' : 'Subject (optional)'}
+              className="w-full px-3 py-2 text-sm rounded-xl border"
+              style={inputStyle}
+            />
+
+            {/* Meeting date/time */}
+            {isMeeting && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>
+                    {lang === 'fi' ? 'Toivottu päivä' : 'Preferred date'}
+                  </label>
+                  <input type="date" value={preferredDate} onChange={e => setPreferredDate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-xl border" style={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>
+                    {lang === 'fi' ? 'Toivottu aika' : 'Preferred time'}
+                  </label>
+                  <input type="time" value={preferredTime} onChange={e => setPreferredTime(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-xl border" style={inputStyle} />
+                </div>
+              </div>
+            )}
+
+            {/* Message */}
+            <div>
+              <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>
+                {lang === 'fi' ? 'Message *' : 'Message *'}
+              </label>
+              <textarea
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                rows={4}
+                required
+                placeholder={
+                  isMeeting
+                    ? (lang === 'fi' ? 'Mitä haluaisit käsitellä?' : "What would you like to discuss?")
+                    : (lang === 'fi' ? 'Kirjoita viestisi…' : 'Write your message…')
+                }
+                className="w-full px-3 py-2 text-sm rounded-xl border resize-none"
+                style={inputStyle}
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <button type="submit" disabled={submitting || !message.trim()}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+                style={{ background: 'var(--brand)', color: '#fff', border: 'none', cursor: submitting ? 'wait' : 'pointer', opacity: (submitting || !message.trim()) ? 0.6 : 1 }}>
+                {submitting ? '…' : (lang === 'fi' ? 'Lähetä' : 'Send')}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AdminTab({ client = {}, contracts = [], credentials = [], tr, dateLocale, token, onClientUpdate }) {
   const [showPwd, setShowPwd] = useState({});
   const [search, setSearch] = useState('');
@@ -850,6 +987,9 @@ function AdminTab({ client = {}, contracts = [], credentials = [], tr, dateLocal
           </div>
         </div>
       </div>
+      {/* Contact / Meeting request form */}
+      <ContactRequestForm token={token} tr={tr} />
+
       <div className="space-y-2">
         <p className="text-label-mono">{tr.contracts}</p>
         {contracts.length === 0
