@@ -221,7 +221,8 @@ function HomeTab({ client = {}, content = [], shootings = [], pushSubscribed, pu
     contentByDay[k].push(c);
   });
 
-  const greeting = getGreeting(lang, client.company_name || '');
+  const displayName = client.contact_name || client.company_name || '';
+  const greeting = getGreeting(lang, displayName);
 
   return (
     <div className="space-y-3" style={{ paddingTop: 40, maxWidth: 1000, margin: '0 auto' }}>
@@ -747,6 +748,29 @@ const REQUEST_TYPES = [
   { key: 'other',    labelEn: 'Other',              labelFi: 'Muu',           icon: '📝' },
 ];
 
+const SUGGESTIONS = {
+  meeting: [
+    { labelEn: 'Monthly review',      labelFi: 'Kuukausikatsaus',      subject: 'Monthly content review', message: 'I would like to schedule our monthly content review to go over the results and plan ahead.' },
+    { labelEn: 'Strategy session',    labelFi: 'Strategiakokous',      subject: 'Content strategy session', message: 'I'd like to discuss our content strategy and upcoming goals for the next period.' },
+    { labelEn: 'Shooting planning',   labelFi: 'Kuvaussuunnittelu',    subject: 'Upcoming shooting planning', message: 'I'd like to discuss the upcoming shooting session — themes, locations and content to cover.' },
+    { labelEn: 'Campaign brief',      labelFi: 'Kampanjabriefaus',     subject: 'Campaign briefing', message: 'I have a campaign coming up and would like to brief the team on objectives, timeline and key messages.' },
+    { labelEn: 'Results debrief',     labelFi: 'Tulosanalyysi',        subject: 'Performance debrief', message: 'I'd like to review the latest performance data and discuss what's working and what to adjust.' },
+  ],
+  question: [
+    { labelEn: 'Content timeline',    labelFi: 'Sisältöaikataulu',     subject: 'Content timeline question', message: 'Could you update me on the current production timeline and when to expect the next batch of content?' },
+    { labelEn: 'Posting guidelines',  labelFi: 'Julkaisuohjeet',       subject: 'How to post the content', message: 'I have a few questions about best practices for posting the content — timing, hashtags, captions.' },
+    { labelEn: 'Deliverable status',  labelFi: 'Toimituksen tila',     subject: 'Status of pending deliverables', message: 'Could you give me a quick update on where things stand with our pending content deliverables?' },
+    { labelEn: 'Invoice question',    labelFi: 'Laskutuskysymys',      subject: 'Billing question', message: 'I have a question about a recent invoice — could we clarify a few details?' },
+    { labelEn: 'Add a new platform',  labelFi: 'Uusi alusta',          subject: 'Expanding to a new platform', message: 'I'd like to explore adding a new social platform to our content plan. Could we discuss what that would look like?' },
+  ],
+  other: [
+    { labelEn: 'Share an idea',       labelFi: 'Jaa idea',             subject: 'Content idea', message: 'I have a content idea I'd like to share with the team.' },
+    { labelEn: 'Feedback',            labelFi: 'Palaute',              subject: 'Feedback on recent content', message: 'I wanted to share some feedback on the recent content we've been publishing.' },
+    { labelEn: 'Urgent request',      labelFi: 'Kiireinen pyyntö',     subject: 'Urgent — please respond quickly', message: 'I have an urgent matter that needs attention as soon as possible.' },
+    { labelEn: 'Change of plans',     labelFi: 'Muutos suunnitelmissa',subject: 'Update to our content plan', message: 'There's been a change in our plans that will affect the upcoming content — I'd like to inform the team.' },
+  ],
+};
+
 function ContactRequestForm({ token, tr }) {
   const lang = tr === TR.fi ? 'fi' : 'en';
   const [type, setType]               = useState('meeting');
@@ -770,7 +794,7 @@ function ContactRequestForm({ token, tr }) {
       const res = await base44.functions.invoke('submitClientPortalRequest', {
         token, type, subject, message, preferred_date: preferredDate || undefined, preferred_time: preferredTime || undefined,
       });
-      if (res?.error) throw new Error(res.error);
+      if (res?.data?.error) throw new Error(res.data.error);
       setSubmitted(true);
       toast.success(lang === 'fi' ? 'Viesti lähetetty!' : 'Request sent!');
     } catch (e) {
@@ -811,6 +835,23 @@ function ContactRequestForm({ token, tr }) {
                   {t.icon} {lang === 'fi' ? t.labelFi : t.labelEn}
                 </button>
               ))}
+            </div>
+
+            {/* Quick suggestions */}
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-wider mb-1.5" style={{ color: 'var(--muted)' }}>
+                {lang === 'fi' ? 'Pikavalinta' : 'Quick suggestions'}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {SUGGESTIONS[type]?.map((s, i) => (
+                  <button type="button" key={i}
+                    onClick={() => { setSubject(s.subject); setMessage(s.message); }}
+                    className="text-[11px] px-2.5 py-1 rounded-lg"
+                    style={{ background: 'var(--bg)', border: '1px solid var(--divider)', color: 'var(--subtle)', cursor: 'pointer' }}>
+                    {lang === 'fi' ? s.labelFi : s.labelEn}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Subject */}
@@ -895,9 +936,9 @@ function AdminTab({ client = {}, contracts = [], credentials = [], tr, dateLocal
     setSaving(true);
     try {
       const res = await base44.functions.invoke('updateClientPortalProfile', { token, ...profile });
-      if (res?.error) throw new Error(res.error);
+      if (res?.data?.error) throw new Error(res.data.error);
       setSaved(true);
-      onClientUpdate?.(profile);
+      onClientUpdate?.(profile); // update parent data so greeting refreshes
       setTimeout(() => setSaved(false), 3000);
       toast.success(tr.profileSaved || 'Profile saved');
     } catch (e) {
