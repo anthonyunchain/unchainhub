@@ -90,6 +90,192 @@ function SectionLabel({ icon: Icon, label, count }) {
   );
 }
 
+// ─── Project modal ────────────────────────────────────────────────────────────
+
+const PROJECT_STATUS_OPTIONS = Object.keys(PROJECT_STATUS);
+
+function ProjectModal({ project, onClose, onSaved }) {
+  const [title, setTitle] = useState(project.title || "");
+  const [status, setStatus] = useState(project.status || "Unassigned");
+  const [freelancerId, setFreelancerId] = useState(project.freelancer_id || "");
+  const [freelancerName, setFreelancerName] = useState(project.freelancer_name || "");
+  const [endDate, setEndDate] = useState(project.end_date || "");
+  const [notes, setNotes] = useState(project.notes || "");
+  const [deliveryUrl, setDeliveryUrl] = useState(project.delivery_url || "");
+  const [saving, setSaving] = useState(false);
+
+  const { data: freelancers = [] } = useQuery({
+    queryKey: ["freelancers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("freelancers").select("id, name").order("name");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  async function handleSave() {
+    setSaving(true);
+    const { error } = await supabase
+      .from("projects")
+      .update({
+        title,
+        status,
+        freelancer_id: freelancerId || null,
+        freelancer_name: freelancerName || null,
+        end_date: endDate || null,
+        notes: notes || null,
+        delivery_url: deliveryUrl || null,
+      })
+      .eq("id", project.id);
+    setSaving(false);
+    if (!error) onSaved();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col" style={{ maxHeight: '90vh' }}>
+        {/* Header */}
+        <div className="px-5 pt-5 pb-4 border-b border-slate-100 shrink-0">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider font-mono mb-1">{project.client_name}</p>
+              <input
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                className="text-base font-semibold text-slate-800 bg-transparent border-none outline-none w-full"
+                placeholder="Project title"
+              />
+            </div>
+            <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors shrink-0 mt-0.5">
+              <X className="w-4 h-4 text-slate-500" />
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
+          {/* Status */}
+          <div>
+            <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              <Tag className="w-3 h-3" /> Status
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {PROJECT_STATUS_OPTIONS.map(s => {
+                const cfg = PROJECT_STATUS[s];
+                const active = status === s;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setStatus(s)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all text-left"
+                    style={{
+                      borderColor: active ? '#2A69FF' : '#e2e8f0',
+                      background: active ? '#eff4ff' : '#fff',
+                      color: active ? '#2A69FF' : '#64748b',
+                    }}
+                  >
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
+                    {cfg.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Freelancer */}
+          <div>
+            <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              <User className="w-3 h-3" /> Assign freelancer
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() => { setFreelancerId(""); setFreelancerName(""); }}
+                className="px-3 py-2 rounded-xl border text-xs font-medium transition-all text-left"
+                style={{
+                  borderColor: !freelancerId ? '#2A69FF' : '#e2e8f0',
+                  background: !freelancerId ? '#eff4ff' : '#fff',
+                  color: !freelancerId ? '#2A69FF' : '#64748b',
+                }}
+              >
+                Unassigned
+              </button>
+              {freelancers.map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => { setFreelancerId(f.id); setFreelancerName(f.name); }}
+                  className="px-3 py-2 rounded-xl border text-xs font-medium transition-all text-left"
+                  style={{
+                    borderColor: freelancerId === f.id ? '#2A69FF' : '#e2e8f0',
+                    background: freelancerId === f.id ? '#eff4ff' : '#fff',
+                    color: freelancerId === f.id ? '#2A69FF' : '#64748b',
+                  }}
+                >
+                  {f.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Due date */}
+          <div>
+            <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              <Calendar className="w-3 h-3" /> Due date
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              className="w-full h-9 px-3 rounded-xl border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-[#2A69FF]"
+            />
+          </div>
+
+          {/* Delivery URL */}
+          <div>
+            <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              <ArrowUpRight className="w-3 h-3" /> Delivery URL
+            </label>
+            <input
+              type="url"
+              value={deliveryUrl}
+              onChange={e => setDeliveryUrl(e.target.value)}
+              placeholder="https://…"
+              className="w-full h-9 px-3 rounded-xl border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-[#2A69FF]"
+            />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              Notes
+            </label>
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              rows={3}
+              placeholder="Internal notes…"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-700 resize-none focus:outline-none focus:border-[#2A69FF]"
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 pb-5 pt-3 border-t border-slate-100 flex gap-2 shrink-0">
+          <button onClick={onClose} className="flex-1 h-9 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 h-9 rounded-xl text-xs font-medium text-white transition-colors"
+            style={{ background: 'var(--brand)', opacity: saving ? 0.6 : 1 }}
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Content Picker Modal ─────────────────────────────────────────────────────
 
 function ContentPicker({ onClose, currentIds, allContent, onToggle }) {
@@ -337,6 +523,7 @@ export default function Production() {
   const [filterFreelancer, setFilterFreelancer] = useState("all");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedEditorial, setSelectedEditorial] = useState(null);
+  const [selectedProject, setSelectedProject] = useState(null);
   const queryClient = useQueryClient();
 
   // ── Video projects ──────────────────────────────────────────────────────────
@@ -534,36 +721,39 @@ export default function Production() {
               <SectionLabel icon={Film} label="Video projects" count={filteredProjects.length} />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredProjects.map(p => (
-                  <Link key={p.id} to="/FreelancerAdmin" style={{ textDecoration: "none" }}>
-                    <div className="group bg-white rounded-2xl border border-slate-100 hover:border-[#2A69FF]/30 hover:shadow-md p-5 transition-all cursor-pointer h-full flex flex-col">
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 leading-tight group-hover:text-[#2A69FF] transition-colors truncate">{p.title}</p>
-                          <p className="text-[11px] text-slate-400 mt-0.5 font-mono truncate">{p.client_name}</p>
-                        </div>
-                        <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-[#2A69FF] shrink-0 mt-0.5 transition-colors" />
-                      </div>
-                      <div className="flex items-center gap-2 mb-3 flex-wrap">
-                        <StatusPill status={p.status} map={PROJECT_STATUS} />
-                        {p.end_date && (
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            Due {format(new Date(p.end_date), "d MMM", { locale: enUS })}
-                          </span>
-                        )}
-                      </div>
-                      {p.freelancer_name && (
-                        <div className="flex items-center gap-1.5 mb-3">
-                          <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-500 shrink-0">
-                            {p.freelancer_name.charAt(0)}
-                          </div>
-                          <span className="text-[11px] text-slate-500 truncate">{p.freelancer_name}</span>
-                        </div>
-                      )}
-                      <div className="mt-auto">
-                        <StepProgress status={p.status} />
+                  <div
+                    key={p.id}
+                    onClick={() => setSelectedProject(p)}
+                    className="group bg-white rounded-2xl border border-slate-100 hover:border-[#2A69FF]/30 hover:shadow-md p-5 transition-all cursor-pointer flex flex-col"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 leading-tight group-hover:text-[#2A69FF] transition-colors truncate">{p.title}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5 font-mono truncate">{p.client_name}</p>
                       </div>
                     </div>
-                  </Link>
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                      <StatusPill status={p.status} map={PROJECT_STATUS} />
+                      {p.end_date && (
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          Due {format(new Date(p.end_date), "d MMM", { locale: enUS })}
+                        </span>
+                      )}
+                    </div>
+                    {p.freelancer_name ? (
+                      <div className="flex items-center gap-1.5 mb-3">
+                        <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-500 shrink-0">
+                          {p.freelancer_name.charAt(0)}
+                        </div>
+                        <span className="text-[11px] text-slate-500 truncate">{p.freelancer_name}</span>
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-slate-300 font-mono mb-3">No freelancer assigned</p>
+                    )}
+                    <div className="mt-auto">
+                      <StepProgress status={p.status} />
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -619,6 +809,18 @@ export default function Production() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Project detail modal */}
+      {selectedProject && (
+        <ProjectModal
+          project={selectedProject}
+          onClose={() => setSelectedProject(null)}
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ["production-projects"] });
+            setSelectedProject(null);
+          }}
+        />
       )}
 
       {/* Editorial detail modal */}
