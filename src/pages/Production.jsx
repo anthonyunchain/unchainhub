@@ -215,7 +215,7 @@ export default function Production() {
         .from("editorial_content")
         .select("id, title, client_name, post_type, editing_status, assigned_editor_name, scheduled_date, in_production")
         .eq("in_production", true)
-        .neq("status", "Publié")
+        .not("status", "in", '("Publié","Annulé")')
         .or(`scheduled_date.is.null,scheduled_date.gte.${today}`)
         .order("scheduled_date", { ascending: true });
       if (error) throw error;
@@ -231,7 +231,7 @@ export default function Production() {
       const { data, error } = await supabase
         .from("editorial_content")
         .select("id, title, client_name, post_type, editing_status, scheduled_date, in_production")
-        .neq("status", "Publié")
+        .not("status", "in", '("Publié","Annulé")')
         .or(`scheduled_date.is.null,scheduled_date.gte.${today}`)
         .order("scheduled_date", { ascending: true });
       if (error) throw error;
