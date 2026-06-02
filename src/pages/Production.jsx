@@ -210,23 +210,29 @@ export default function Production() {
   const { data: editorialItems = [], isLoading: loadingEditorial } = useQuery({
     queryKey: ["production-editorial"],
     queryFn: async () => {
+      const today = new Date().toISOString().split("T")[0];
       const { data, error } = await supabase
         .from("editorial_content")
         .select("id, title, client_name, post_type, editing_status, assigned_editor_name, scheduled_date, in_production")
         .eq("in_production", true)
+        .neq("status", "Publié")
+        .or(`scheduled_date.is.null,scheduled_date.gte.${today}`)
         .order("scheduled_date", { ascending: true });
       if (error) throw error;
       return data || [];
     },
   });
 
-  // ── All editorial for the picker ────────────────────────────────────────────
+  // ── All editorial for the picker (upcoming & not published only) ────────────
   const { data: allEditorial = [] } = useQuery({
     queryKey: ["all-editorial-picker"],
     queryFn: async () => {
+      const today = new Date().toISOString().split("T")[0];
       const { data, error } = await supabase
         .from("editorial_content")
-        .select("id, title, client_name, post_type, editing_status, in_production")
+        .select("id, title, client_name, post_type, editing_status, scheduled_date, in_production")
+        .neq("status", "Publié")
+        .or(`scheduled_date.is.null,scheduled_date.gte.${today}`)
         .order("scheduled_date", { ascending: true });
       if (error) throw error;
       return data || [];
