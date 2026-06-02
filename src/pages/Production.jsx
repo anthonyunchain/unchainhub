@@ -44,6 +44,7 @@ const EDITING_STATUS = {
   "À faire":                   { label: "To do",           bg: "bg-blue-50",    text: "text-blue-700",   dot: "bg-blue-400"   },
   "En cours de montage":       { label: "Editing",         bg: "bg-indigo-50",  text: "text-indigo-700", dot: "bg-indigo-500" },
   "En attente de retour":      { label: "Awaiting review", bg: "bg-violet-50",  text: "text-violet-700", dot: "bg-violet-500" },
+  "Subtitles":                 { label: "Subtitles",       bg: "bg-teal-50",    text: "text-teal-700",   dot: "bg-teal-500"   },
 };
 
 function StatusPill({ status, map }) {
@@ -397,6 +398,7 @@ const EDITING_STATUS_OPTIONS = [
   "À faire",
   "En cours de montage",
   "En attente de retour",
+  "Subtitles",
   "Terminé",
 ];
 
@@ -406,6 +408,7 @@ const EDITING_STATUS_LABELS = {
   "À faire":                  "To do",
   "En cours de montage":      "Editing",
   "En attente de retour":     "Awaiting review",
+  "Subtitles":                "Subtitles",
   "Terminé":                  "Done",
 };
 
@@ -643,6 +646,10 @@ function OverviewTab() {
     return true;
   });
 
+  // Split editorial into video workflow vs editorial workflow
+  const filteredVideoEditorial = filteredEditorial.filter(e => e.workflow_type === "video");
+  const filteredEditorialOnly  = filteredEditorial.filter(e => e.workflow_type !== "video");
+
   const showProjects = contentTab === "all" || contentTab === "projects";
   const showEditorial = contentTab === "all" || contentTab === "editorial";
 
@@ -705,9 +712,9 @@ function OverviewTab() {
         </div>
       ) : (
         <div className="space-y-6">
-          {showProjects && filteredProjects.length > 0 && (
+          {showProjects && (filteredProjects.length > 0 || filteredVideoEditorial.length > 0) && (
             <div>
-              <SectionLabel icon={Film} label="Video projects" count={filteredProjects.length} />
+              <SectionLabel icon={Film} label="Video projects" count={filteredProjects.length + filteredVideoEditorial.length} />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredProjects.map(p => (
                   <div key={p.id} onClick={() => setSelectedProject(p)}
@@ -729,15 +736,45 @@ function OverviewTab() {
                     <div className="mt-auto"><StepProgress status={p.status} /></div>
                   </div>
                 ))}
+                {/* Video-workflow editorial items merged into Video projects */}
+                {showProjects && filteredVideoEditorial.map(e => (
+                  <div key={e.id} className="relative group">
+                    <div onClick={() => setSelectedEditorial(e)}
+                      className="bg-white rounded-2xl border border-slate-100 hover:border-[#2A69FF]/30 hover:shadow-md p-5 transition-all cursor-pointer flex flex-col">
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 leading-tight group-hover:text-[#2A69FF] transition-colors truncate">{e.title || "Untitled"}</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5 font-mono truncate">{e.client_name}{e.post_type ? ` · ${e.post_type}` : ""}</p>
+                        </div>
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-500 shrink-0 font-mono">VIDEO</span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-3 flex-wrap">
+                        <StatusPill status={e.editing_status} map={EDITING_STATUS} />
+                        {e.scheduled_date && <span className="text-[10px] text-slate-400 font-mono">{format(new Date(e.scheduled_date), "d MMM", { locale: enUS })}</span>}
+                      </div>
+                      {e.assigned_editor_name ? (
+                        <div className="flex items-center gap-1.5 mt-auto">
+                          <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-500 shrink-0">{e.assigned_editor_name.charAt(0)}</div>
+                          <span className="text-[11px] text-slate-500 truncate">{e.assigned_editor_name}</span>
+                        </div>
+                      ) : <p className="text-[10px] text-slate-300 font-mono mt-auto">No editor assigned</p>}
+                    </div>
+                    <button onClick={ev => { ev.stopPropagation(); toggleMutation.mutate({ id: e.id, value: false }); }}
+                      title="Remove from production"
+                      className="absolute top-3 right-3 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 transition-all z-10">
+                      <X className="w-3 h-3 text-slate-400 hover:text-red-500" />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {showEditorial && filteredEditorial.length > 0 && (
+          {showEditorial && filteredEditorialOnly.length > 0 && (
             <div>
-              <SectionLabel icon={Layers} label="Editorial" count={filteredEditorial.length} />
+              <SectionLabel icon={Layers} label="Editorial" count={filteredEditorialOnly.length} />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredEditorial.map(e => (
+                {filteredEditorialOnly.map(e => (
                   <div key={e.id} className="relative group">
                     <div onClick={() => setSelectedEditorial(e)}
                       className="bg-white rounded-2xl border border-slate-100 hover:border-[#2A69FF]/30 hover:shadow-md p-5 transition-all cursor-pointer h-full flex flex-col">

@@ -13,6 +13,7 @@ const EDITING_STATUS_COLORS = {
   "À faire": "bg-amber-100 text-amber-700",
   "En cours de montage": "bg-blue-100 text-blue-700",
   "En attente de retour": "bg-violet-100 text-violet-700",
+  "Subtitles": "bg-teal-100 text-teal-700",
   "Terminé": "bg-emerald-100 text-emerald-700"
 };
 
