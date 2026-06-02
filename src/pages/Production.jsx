@@ -430,9 +430,37 @@ function EditorialModal({ item, onClose, onSaved }) {
 
   async function handleSave() {
     setSaving(true);
+    let linkedProjectId = item.linked_project_id || null;
+
+    // Auto-create a project when switching to video for the first time
+    if (workflowType === "video" && !item.linked_project_id) {
+      const { data: proj, error: projErr } = await supabase
+        .from("projects")
+        .insert({
+          title: item.title || "Untitled",
+          client_name: item.client_name || null,
+          status: "Unassigned",
+          freelancer_id: editorId || null,
+          freelancer_name: editorName || null,
+          end_date: item.scheduled_date || null,
+        })
+        .select()
+        .single();
+      if (!projErr) linkedProjectId = proj.id;
+    }
+
+    // If switching back to editorial, unlink (keep project but detach)
+    if (workflowType === "editorial") linkedProjectId = null;
+
     const { error } = await supabase
       .from("editorial_content")
-      .update({ editing_status: editingStatus, assigned_editor_id: editorId || null, assigned_editor_name: editorName || null, workflow_type: workflowType })
+      .update({
+        editing_status: editingStatus,
+        assigned_editor_id: editorId || null,
+        assigned_editor_name: editorName || null,
+        workflow_type: workflowType,
+        linked_project_id: linkedProjectId,
+      })
       .eq("id", item.id);
     setSaving(false);
     if (!error) onSaved();
@@ -592,7 +620,7 @@ function OverviewTab() {
       const today = new Date().toISOString().split("T")[0];
       const { data, error } = await supabase
         .from("editorial_content")
-        .select("id, title, client_name, post_type, editing_status, assigned_editor_id, assigned_editor_name, scheduled_date, in_production, workflow_type")
+        .select("id, title, client_name, post_type, editing_status, assigned_editor_id, assigned_editor_name, scheduled_date, in_production, workflow_type, linked_project_id")
         .eq("in_production", true)
         .not("status", "in", '("Publié","Annulé")')
         .or(`scheduled_date.is.null,scheduled_date.gte.${today}`)
@@ -617,6 +645,27 @@ function OverviewTab() {
     },
     enabled: pickerOpen,
   });
+
+  // Fetch linked projects for video-workflow editorial items
+  const linkedProjectIds = editorialItems
+    .filter(e => e.workflow_type === "video" && e.linked_project_id)
+    .map(e => e.linked_project_id);
+
+  const { data: linkedProjects = [] } = useQuery({
+    queryKey: ["linked-projects", linkedProjectIds],
+    queryFn: async () => {
+      if (!linkedProjectIds.length) return [];
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .in("id", linkedProjectIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: linkedProjectIds.length > 0,
+  });
+
+  const linkedProjectMap = Object.fromEntries(linkedProjects.map(p => [p.id, p]));
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, value }) => {
@@ -736,36 +785,54 @@ function OverviewTab() {
                     <div className="mt-auto"><StepProgress status={p.status} /></div>
                   </div>
                 ))}
-                {/* Video-workflow editorial items merged into Video projects */}
-                {showProjects && filteredVideoEditorial.map(e => (
-                  <div key={e.id} className="relative group">
-                    <div onClick={() => setSelectedEditorial(e)}
-                      className="bg-white rounded-2xl border border-slate-100 hover:border-[#2A69FF]/30 hover:shadow-md p-5 transition-all cursor-pointer flex flex-col">
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 leading-tight group-hover:text-[#2A69FF] transition-colors truncate">{e.title || "Untitled"}</p>
-                          <p className="text-[11px] text-slate-400 mt-0.5 font-mono truncate">{e.client_name}{e.post_type ? ` · ${e.post_type}` : ""}</p>
+                {/* Video-workflow editorial items — open their linked project */}
+                {showProjects && filteredVideoEditorial.map(e => {
+                  const linkedProj = linkedProjectMap[e.linked_project_id];
+                  return (
+                    <div key={e.id} className="relative group">
+                      <div
+                        onClick={() => linkedProj ? setSelectedProject(linkedProj) : setSelectedEditorial(e)}
+                        className="bg-white rounded-2xl border border-slate-100 hover:border-[#2A69FF]/30 hover:shadow-md p-5 transition-all cursor-pointer flex flex-col"
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 leading-tight group-hover:text-[#2A69FF] transition-colors truncate">{e.title || "Untitled"}</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5 font-mono truncate">{e.client_name}{e.post_type ? ` · ${e.post_type}` : ""}</p>
+                          </div>
+                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-500 shrink-0 font-mono">VIDEO</span>
                         </div>
-                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-500 shrink-0 font-mono">VIDEO</span>
+                        {linkedProj ? (
+                          <>
+                            <div className="flex items-center gap-2 mb-3 flex-wrap">
+                              <StatusPill status={linkedProj.status} map={PROJECT_STATUS} />
+                              {linkedProj.end_date && <span className="text-[10px] text-slate-400 font-mono">Due {format(new Date(linkedProj.end_date), "d MMM", { locale: enUS })}</span>}
+                            </div>
+                            {linkedProj.freelancer_name ? (
+                              <div className="flex items-center gap-1.5 mb-3">
+                                <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-500 shrink-0">{linkedProj.freelancer_name.charAt(0)}</div>
+                                <span className="text-[11px] text-slate-500 truncate">{linkedProj.freelancer_name}</span>
+                              </div>
+                            ) : <p className="text-[10px] text-slate-300 font-mono mb-3">No freelancer assigned</p>}
+                            <div className="mt-auto"><StepProgress status={linkedProj.status} /></div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2 mb-3 flex-wrap">
+                              <StatusPill status={e.editing_status} map={EDITING_STATUS} />
+                              {e.scheduled_date && <span className="text-[10px] text-slate-400 font-mono">{format(new Date(e.scheduled_date), "d MMM", { locale: enUS })}</span>}
+                            </div>
+                            <p className="text-[10px] text-amber-500 font-mono mt-auto">Save to create project →</p>
+                          </>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2 mb-3 flex-wrap">
-                        <StatusPill status={e.editing_status} map={EDITING_STATUS} />
-                        {e.scheduled_date && <span className="text-[10px] text-slate-400 font-mono">{format(new Date(e.scheduled_date), "d MMM", { locale: enUS })}</span>}
-                      </div>
-                      {e.assigned_editor_name ? (
-                        <div className="flex items-center gap-1.5 mt-auto">
-                          <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-500 shrink-0">{e.assigned_editor_name.charAt(0)}</div>
-                          <span className="text-[11px] text-slate-500 truncate">{e.assigned_editor_name}</span>
-                        </div>
-                      ) : <p className="text-[10px] text-slate-300 font-mono mt-auto">No editor assigned</p>}
+                      <button onClick={ev => { ev.stopPropagation(); toggleMutation.mutate({ id: e.id, value: false }); }}
+                        title="Remove from production"
+                        className="absolute top-3 right-3 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 transition-all z-10">
+                        <X className="w-3 h-3 text-slate-400 hover:text-red-500" />
+                      </button>
                     </div>
-                    <button onClick={ev => { ev.stopPropagation(); toggleMutation.mutate({ id: e.id, value: false }); }}
-                      title="Remove from production"
-                      className="absolute top-3 right-3 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 transition-all z-10">
-                      <X className="w-3 h-3 text-slate-400 hover:text-red-500" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -813,7 +880,12 @@ function OverviewTab() {
       )}
       {selectedEditorial && (
         <EditorialModal item={selectedEditorial} onClose={() => setSelectedEditorial(null)}
-          onSaved={() => { queryClient.invalidateQueries({ queryKey: ["production-editorial"] }); setSelectedEditorial(null); }} />
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ["production-editorial"] });
+            queryClient.invalidateQueries({ queryKey: ["production-projects"] });
+            queryClient.invalidateQueries({ queryKey: ["linked-projects"] });
+            setSelectedEditorial(null);
+          }} />
       )}
       {pickerOpen && (
         <ContentPicker onClose={() => setPickerOpen(false)} currentIds={inProductionIds} allContent={allEditorial}
