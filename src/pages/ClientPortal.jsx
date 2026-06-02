@@ -1628,7 +1628,7 @@ function PhotoBankTab({ client = {}, tr }) {
       </div>
       <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))' }}>
         {photos.map((p, i) => (
-          <div key={i} className="relative group rounded-xl overflow-hidden" style={{ aspectRatio: '3 / 4', background: 'var(--card)', border: '1px solid var(--divider)', contentVisibility: 'auto', containIntrinsicSize: 'auto 293px' }}>
+          <div key={i} className="relative group rounded-xl overflow-hidden" style={{ aspectRatio: '3 / 4', background: 'var(--card)', border: '1px solid var(--divider)' }}>
             <a href={p.url} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
               <img src={photoThumb(p.url)} alt={p.name || `photo ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" />
             </a>

@@ -204,7 +204,7 @@ function PhotoBankUploader({ client, save }) {
       ) : (
         <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(200px, 100%), 1fr))" }}>
           {photos.map((p, i) => (
-            <div key={i} className="relative group rounded-lg overflow-hidden" style={{ aspectRatio: "3 / 4", background: "#f1f5f9", contentVisibility: "auto", containIntrinsicSize: "auto 267px" }}>
+            <div key={i} className="relative group rounded-lg overflow-hidden" style={{ aspectRatio: "3 / 4", background: "#f1f5f9" }}>
               <img src={photoThumb(p.url)} alt={p.name || ""} loading="lazy" decoding="async" className="w-full h-full object-contain" />
               <button onClick={() => save({ photo_bank: photos.filter((_, idx) => idx !== i) })}
                 className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
