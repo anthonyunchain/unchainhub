@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clapperboard, Film, Layers, X, Search, Calendar, User, Tag, Users, Wrench, FileText, CalendarDays } from "lucide-react";
+import { Clapperboard, Film, Layers, X, Search, Calendar, User, Tag, Users, Wrench, FileText, CalendarDays, ArrowUpRight } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import AdminProjects from "@/components/admin/AdminProjects";
