@@ -18,8 +18,24 @@ const PROJECT_STATUS = {
   "In progress":        { label: "In progress",         bg: "bg-indigo-50",  text: "text-indigo-700", dot: "bg-indigo-500"  },
   "Delivered":          { label: "Delivered",           bg: "bg-purple-50",  text: "text-purple-700", dot: "bg-purple-500"  },
   "Revision requested": { label: "Revision",            bg: "bg-red-50",     text: "text-red-700",    dot: "bg-red-500"     },
+  "Subtitles":          { label: "Subtitles",           bg: "bg-teal-50",    text: "text-teal-700",   dot: "bg-teal-500"    },
 };
 const ACTIVE_PROJECT_STATUSES = Object.keys(PROJECT_STATUS);
+
+// 5-step production workflow
+const PRODUCTION_STEPS = [
+  { key: "Accepted",    label: "Accept"        },
+  { key: "In progress", label: "Rough cut"     },
+  { key: "Delivered",   label: "Final"         },
+  { key: "Subtitles",   label: "Subtitles"     },
+  { key: "Completed",   label: "Ready to post" },
+];
+
+function stepIndex(status) {
+  if (status === "Completed") return 4;
+  const i = PRODUCTION_STEPS.findIndex(s => s.key === status);
+  return i; // -1 if pre-step (Draft / Unassigned / Pending / Revision)
+}
 
 // ─── Editorial content (editorial_content table) ─────────────────────────────
 
@@ -41,19 +57,22 @@ function StatusPill({ status, map }) {
   );
 }
 
-function ProgressBar({ done, total }) {
-  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+function StepProgress({ status }) {
+  const current = stepIndex(status);
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] text-slate-400 font-mono">{done}/{total} tasks</span>
-        <span className="text-[10px] font-semibold text-slate-600 font-mono">{pct}%</span>
+      <div className="flex items-center gap-1 mb-1.5">
+        {PRODUCTION_STEPS.map((s, i) => (
+          <div key={s.key} className="flex-1 h-1 rounded-full transition-all" style={{
+            background: i < current ? '#22c55e' : i === current ? '#2A69FF' : '#e2e8f0',
+          }} />
+        ))}
       </div>
-      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{
-          width: `${pct}%`,
-          background: pct === 100 ? '#22c55e' : pct > 50 ? '#2A69FF' : '#f59e0b',
-        }} />
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-slate-400 font-mono">
+          {current >= 0 ? `Step ${current + 1}/5 · ${PRODUCTION_STEPS[current]?.label}` : "Not started"}
+        </span>
+        {current === 4 && <span className="text-[10px] text-green-600 font-mono font-semibold">Done</span>}
       </div>
     </div>
   );
@@ -93,16 +112,6 @@ export default function Production() {
     },
   });
 
-  const { data: allTasks = [] } = useQuery({
-    queryKey: ["production-tasks"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("tasks").select("id, status, client_name");
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: projects.length > 0,
-  });
-
   // ── Editorial content to edit ───────────────────────────────────────────────
   const { data: editorialItems = [], isLoading: loadingEditorial } = useQuery({
     queryKey: ["production-editorial"],
@@ -120,26 +129,19 @@ export default function Production() {
 
   const loading = loadingProjects || loadingEditorial;
 
-  // Enrich projects with task counts
-  const enriched = projects.map(p => {
-    const pt = allTasks.filter(t => t.client_name && p.client_name && t.client_name === p.client_name);
-    const done = pt.filter(t => t.status === "Terminé").length;
-    return { ...p, totalTasks: pt.length, doneTasks: done };
-  });
-
   // Derive filter options
   const allClients = [...new Set([
-    ...enriched.map(p => p.client_name),
+    ...projects.map(p => p.client_name),
     ...editorialItems.map(e => e.client_name),
   ].filter(Boolean))].sort();
 
   const allFreelancers = [...new Set([
-    ...enriched.map(p => p.freelancer_name),
+    ...projects.map(p => p.freelancer_name),
     ...editorialItems.map(e => e.assigned_editor_name),
   ].filter(Boolean))].sort();
 
   // Apply filters
-  const filteredProjects = enriched.filter(p => {
+  const filteredProjects = projects.filter(p => {
     if (filterClient !== "all" && p.client_name !== filterClient) return false;
     if (filterFreelancer !== "all" && p.freelancer_name !== filterFreelancer) return false;
     return true;
@@ -154,7 +156,7 @@ export default function Production() {
   const showProjects = tab === "all" || tab === "projects";
   const showEditorial = tab === "all" || tab === "editorial";
 
-  const totalActive = filteredProjects.filter(p => p.status === "In progress").length
+  const totalActive = filteredProjects.filter(p => stepIndex(p.status) >= 0).length
     + filteredEditorial.filter(e => e.editing_status === "En cours de montage").length;
 
   return (
@@ -270,10 +272,7 @@ export default function Production() {
                         </div>
                       )}
                       <div className="mt-auto">
-                        {p.totalTasks > 0
-                          ? <ProgressBar done={p.doneTasks} total={p.totalTasks} />
-                          : <p className="text-[10px] text-slate-300 font-mono">No tasks linked</p>
-                        }
+                        <StepProgress status={p.status} />
                       </div>
                     </div>
                   </Link>

@@ -11,7 +11,15 @@ const STATUS_DOT = {
   "Pending acceptance": "bg-amber-400",
   "Unassigned":         "bg-slate-300",
   "Draft":              "bg-violet-400",
+  "Subtitles":          "bg-teal-500",
 };
+
+const PRODUCTION_STEPS = ["Accepted", "In progress", "Delivered", "Subtitles", "Completed"];
+
+function stepIndex(status) {
+  if (status === "Completed") return 4;
+  return PRODUCTION_STEPS.indexOf(status);
+}
 
 export default function ProductionWidget() {
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
@@ -27,23 +35,7 @@ export default function ProductionWidget() {
     },
   });
 
-  const { data: allTasks = [] } = useQuery({
-    queryKey: ["production-tasks"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("tasks").select("id, status, client_name");
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: projects.length > 0,
-  });
-
-  const enriched = projects.slice(0, 6).map(p => {
-    const projectTasks = allTasks.filter(t => t.client_name && p.client_name && t.client_name === p.client_name);
-    const done = projectTasks.filter(t => t.status === "Terminé").length;
-    const total = projectTasks.length;
-    const pct = total === 0 ? 0 : Math.round((done / total) * 100);
-    return { ...p, done, total, pct };
-  });
+  const enriched = projects.slice(0, 6);
 
   return (
     <div style={{
@@ -111,27 +103,28 @@ export default function ProductionWidget() {
                     {p.client_name}
                   </span>
                 </div>
-                {/* Progress bar */}
-                {p.total > 0 ? (
-                  <div>
-                    <div style={{ height: 4, background: 'var(--divider)', borderRadius: 99, overflow: 'hidden' }}>
-                      <div style={{
-                        height: '100%', borderRadius: 99,
-                        width: `${p.pct}%`,
-                        background: p.pct === 100 ? '#22c55e' : p.pct > 50 ? '#2A69FF' : '#f59e0b',
-                        transition: 'width 0.3s ease',
-                      }} />
+                {/* Step progress */}
+                {(() => {
+                  const si = stepIndex(p.status);
+                  const STEP_LABELS = ["Accept", "Rough cut", "Final", "Subtitles", "Ready to post"];
+                  return (
+                    <div>
+                      <div style={{ display: 'flex', gap: 2, marginBottom: 3 }}>
+                        {STEP_LABELS.map((_, i) => (
+                          <div key={i} style={{
+                            flex: 1, height: 3, borderRadius: 99,
+                            background: i < si ? '#22c55e' : i === si ? '#2A69FF' : 'var(--divider)',
+                            transition: 'background 0.3s ease',
+                          }} />
+                        ))}
+                      </div>
+                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--muted)' }}>
+                        {si >= 0 ? `${STEP_LABELS[si]}` : p.status}
+                        {p.freelancer_name ? ` · ${p.freelancer_name}` : ''}
+                      </p>
                     </div>
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--muted)', marginTop: 3 }}>
-                      {p.done}/{p.total} tasks · {p.pct}%
-                      {p.freelancer_name && ` · ${p.freelancer_name}`}
-                    </p>
-                  </div>
-                ) : (
-                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--muted)' }}>
-                    {p.status}{p.freelancer_name ? ` · ${p.freelancer_name}` : ''}
-                  </p>
-                )}
+                  );
+                })()}
               </div>
             </Link>
           ))}
