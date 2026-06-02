@@ -1626,11 +1626,11 @@ function PhotoBankTab({ client = {}, tr }) {
         <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' }}>{tr.photoBankLabel}</p>
         <span className="text-[11px]" style={{ color: 'var(--muted)' }}>{photos.length} {tr.photos.toLowerCase()}</span>
       </div>
-      <div className="columns-2 sm:columns-3 md:columns-4 gap-2">
+      <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))' }}>
         {photos.map((p, i) => (
-          <div key={i} className="relative group rounded-xl overflow-hidden mb-2 break-inside-avoid" style={{ background: 'var(--card)', border: '1px solid var(--divider)' }}>
+          <div key={i} className="relative group rounded-xl overflow-hidden" style={{ aspectRatio: '1', background: 'var(--card)', border: '1px solid var(--divider)', contentVisibility: 'auto', containIntrinsicSize: 'auto 300px' }}>
             <a href={p.url} target="_blank" rel="noopener noreferrer">
-              <img src={photoThumb(p.url)} alt={p.name || `photo ${i + 1}`} loading="lazy" decoding="async" className="w-full h-auto block transition-transform duration-300 group-hover:scale-105" />
+              <img src={photoThumb(p.url)} alt={p.name || `photo ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
             </a>
             <a href={p.url} download target="_blank" rel="noopener noreferrer"
               className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
