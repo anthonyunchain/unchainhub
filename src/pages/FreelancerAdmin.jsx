@@ -26,7 +26,7 @@ function generateFreelancerPassword() {
   return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-function FreelancerProfiles() {
+export function FreelancerProfiles() {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -508,7 +508,7 @@ export function MeetingsManagement() {
 }
 
 // ─── TOOLS MANAGEMENT ─────────────────────────────────────────────────────
-function ToolsManagement() {
+export function ToolsManagement() {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(null);
   const qc = useQueryClient();
@@ -642,7 +642,7 @@ function ToolsManagement() {
 }
 
 // ─── INVOICES MANAGEMENT ───────────────────────────────────────────────────
-function InvoicesManagement() {
+export function InvoicesManagement() {
   const qc = useQueryClient();
   const [selectedFreelancer, setSelectedFreelancer] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -906,7 +906,7 @@ function InvoicesManagement() {
 }
 
 // ─── CREDENTIALS MANAGEMENT ───────────────────────────────────────────────
-function CredentialsManagement() {
+export function CredentialsManagement() {
   const { data: freelancers = [] } = useQuery({ queryKey: ["freelancers"], queryFn: () => base44.entities.Freelancer.list() });
   const [selectedFreelancer, setSelectedFreelancer] = useState(null);
 

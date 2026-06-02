@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/api/base44Client";
-import { Link } from "react-router-dom";
 import PageHeader from "../components/shared/PageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowUpRight, Clapperboard, Plus, Film, Layers, X, Search, Calendar, User, Tag } from "lucide-react";
+import { Clapperboard, Film, Layers, X, Search, Calendar, User, Tag, Users, Wrench, FileText, CalendarDays } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
+import AdminProjects from "@/components/admin/AdminProjects";
+import { FreelancerProfiles, ToolsManagement, InvoicesManagement, MeetingsManagement } from "./FreelancerAdmin";
 
 // ─── Video projects (projects table) ─────────────────────────────────────────
 
@@ -515,10 +516,10 @@ function EditorialModal({ item, onClose, onSaved }) {
   );
 }
 
-// ─── Main page ────────────────────────────────────────────────────────────────
+// ─── Overview tab ─────────────────────────────────────────────────────────────
 
-export default function Production() {
-  const [tab, setTab] = useState("all");
+function OverviewTab() {
+  const [contentTab, setContentTab] = useState("all");
   const [filterClient, setFilterClient] = useState("all");
   const [filterFreelancer, setFilterFreelancer] = useState("all");
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -526,7 +527,6 @@ export default function Production() {
   const [selectedProject, setSelectedProject] = useState(null);
   const queryClient = useQueryClient();
 
-  // ── Video projects ──────────────────────────────────────────────────────────
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ["production-projects"],
     queryFn: async () => {
@@ -540,7 +540,6 @@ export default function Production() {
     },
   });
 
-  // ── Editorial in production ─────────────────────────────────────────────────
   const { data: editorialItems = [], isLoading: loadingEditorial } = useQuery({
     queryKey: ["production-editorial"],
     queryFn: async () => {
@@ -557,7 +556,6 @@ export default function Production() {
     },
   });
 
-  // ── All editorial for the picker (upcoming & not published only) ────────────
   const { data: allEditorial = [] } = useQuery({
     queryKey: ["all-editorial-picker"],
     queryFn: async () => {
@@ -574,13 +572,9 @@ export default function Production() {
     enabled: pickerOpen,
   });
 
-  // ── Toggle in_production ────────────────────────────────────────────────────
   const toggleMutation = useMutation({
     mutationFn: async ({ id, value }) => {
-      const { error } = await supabase
-        .from("editorial_content")
-        .update({ in_production: value })
-        .eq("id", id);
+      const { error } = await supabase.from("editorial_content").update({ in_production: value }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -592,93 +586,56 @@ export default function Production() {
   const loading = loadingProjects || loadingEditorial;
   const inProductionIds = new Set(editorialItems.map(e => e.id));
 
-  // Derive filter options
-  const allClients = [...new Set([
-    ...projects.map(p => p.client_name),
-    ...editorialItems.map(e => e.client_name),
-  ].filter(Boolean))].sort();
+  const allClients = [...new Set([...projects.map(p => p.client_name), ...editorialItems.map(e => e.client_name)].filter(Boolean))].sort();
+  const allFreelancers = [...new Set([...projects.map(p => p.freelancer_name), ...editorialItems.map(e => e.assigned_editor_name)].filter(Boolean))].sort();
 
-  const allFreelancers = [...new Set([
-    ...projects.map(p => p.freelancer_name),
-    ...editorialItems.map(e => e.assigned_editor_name),
-  ].filter(Boolean))].sort();
-
-  // Apply filters
   const filteredProjects = projects.filter(p => {
     if (filterClient !== "all" && p.client_name !== filterClient) return false;
     if (filterFreelancer !== "all" && p.freelancer_name !== filterFreelancer) return false;
     return true;
   });
-
   const filteredEditorial = editorialItems.filter(e => {
     if (filterClient !== "all" && e.client_name !== filterClient) return false;
     if (filterFreelancer !== "all" && e.assigned_editor_name !== filterFreelancer) return false;
     return true;
   });
 
-  const showProjects = tab === "all" || tab === "projects";
-  const showEditorial = tab === "all" || tab === "editorial";
-
-  const totalActive = filteredProjects.filter(p => stepIndex(p.status) >= 0).length
-    + filteredEditorial.length;
+  const showProjects = contentTab === "all" || contentTab === "projects";
+  const showEditorial = contentTab === "all" || contentTab === "editorial";
 
   return (
-    <div className="mx-auto" style={{ maxWidth: "1400px" }}>
-      <PageHeader title="Production" subtitle="Active projects & editorial">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-mono text-slate-400 hidden sm:block">
-            {totalActive} active
-          </span>
-          <button
-            onClick={() => setPickerOpen(true)}
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 hover:border-[#2A69FF] hover:text-[#2A69FF] transition-colors bg-white"
-          >
-            <Layers className="w-3.5 h-3.5" /> Add editorial
-          </button>
-          <Link
-            to="/FreelancerAdmin"
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-            style={{ background: 'var(--brand)', color: '#fff', textDecoration: 'none' }}
-          >
-            <Plus className="w-3.5 h-3.5" /> New project
-          </Link>
-        </div>
-      </PageHeader>
-
-      {/* Tabs + Filters */}
+    <>
+      {/* Controls */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <div className="flex gap-1 p-1 bg-white border border-slate-100 rounded-xl shadow-sm">
-          {[
-            { key: "all", label: "All" },
-            { key: "projects", label: "Video projects" },
-            { key: "editorial", label: "Editorial" },
-          ].map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
+          {[{ key: "all", label: "All" }, { key: "projects", label: "Video" }, { key: "editorial", label: "Editorial" }].map(t => (
+            <button key={t.key} onClick={() => setContentTab(t.key)}
               className="px-3 py-1 rounded-lg text-xs font-medium transition-all"
-              style={{
-                background: tab === t.key ? 'var(--brand)' : 'transparent',
-                color: tab === t.key ? '#fff' : 'var(--muted)',
-                fontFamily: "'DM Mono', monospace",
-              }}>
+              style={{ background: contentTab === t.key ? 'var(--brand)' : 'transparent', color: contentTab === t.key ? '#fff' : 'var(--muted)', fontFamily: "'DM Mono', monospace" }}>
               {t.label}
             </button>
           ))}
         </div>
-
         <Select value={filterClient} onValueChange={setFilterClient}>
-          <SelectTrigger className="w-44 h-8 text-xs"><SelectValue placeholder="All clients" /></SelectTrigger>
+          <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="All clients" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All clients</SelectItem>
             {allClients.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterFreelancer} onValueChange={setFilterFreelancer}>
-          <SelectTrigger className="w-44 h-8 text-xs"><SelectValue placeholder="All editors" /></SelectTrigger>
+          <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="All editors" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All editors</SelectItem>
             {allFreelancers.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
           </SelectContent>
         </Select>
+        <div className="ml-auto flex items-center gap-2">
+          <button onClick={() => setPickerOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 hover:border-[#2A69FF] hover:text-[#2A69FF] transition-colors bg-white">
+            <Layers className="w-3.5 h-3.5" /> Add editorial
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -691,116 +648,75 @@ export default function Production() {
             </div>
           ))}
         </div>
-      ) : (filteredProjects.length === 0 && filteredEditorial.length === 0) ? (
+      ) : filteredProjects.length === 0 && filteredEditorial.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-100 p-16 text-center">
           <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
             <Clapperboard className="w-6 h-6 text-slate-300" />
           </div>
           <p className="text-sm font-semibold text-slate-700 mb-1">Nothing in production</p>
           <p className="text-xs text-slate-400 mb-4">Add editorial content or create a video project.</p>
-          <div className="flex items-center justify-center gap-2">
-            <button
-              onClick={() => setPickerOpen(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 hover:border-[#2A69FF] hover:text-[#2A69FF] transition-colors"
-            >
-              <Layers className="w-3.5 h-3.5" /> Add editorial
-            </button>
-            <Link to="/FreelancerAdmin"
-              className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg"
-              style={{ background: 'var(--brand)', color: '#fff', textDecoration: 'none' }}>
-              <Plus className="w-3.5 h-3.5" /> New project
-            </Link>
-          </div>
+          <button onClick={() => setPickerOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 hover:border-[#2A69FF] hover:text-[#2A69FF] transition-colors">
+            <Layers className="w-3.5 h-3.5" /> Add editorial
+          </button>
         </div>
       ) : (
         <div className="space-y-6">
-
-          {/* VIDEO PROJECTS */}
           {showProjects && filteredProjects.length > 0 && (
             <div>
               <SectionLabel icon={Film} label="Video projects" count={filteredProjects.length} />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredProjects.map(p => (
-                  <div
-                    key={p.id}
-                    onClick={() => setSelectedProject(p)}
-                    className="group bg-white rounded-2xl border border-slate-100 hover:border-[#2A69FF]/30 hover:shadow-md p-5 transition-all cursor-pointer flex flex-col"
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-800 leading-tight group-hover:text-[#2A69FF] transition-colors truncate">{p.title}</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5 font-mono truncate">{p.client_name}</p>
-                      </div>
+                  <div key={p.id} onClick={() => setSelectedProject(p)}
+                    className="group bg-white rounded-2xl border border-slate-100 hover:border-[#2A69FF]/30 hover:shadow-md p-5 transition-all cursor-pointer flex flex-col">
+                    <div className="mb-3">
+                      <p className="text-sm font-semibold text-slate-800 leading-tight group-hover:text-[#2A69FF] transition-colors truncate">{p.title}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 font-mono truncate">{p.client_name}</p>
                     </div>
                     <div className="flex items-center gap-2 mb-3 flex-wrap">
                       <StatusPill status={p.status} map={PROJECT_STATUS} />
-                      {p.end_date && (
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          Due {format(new Date(p.end_date), "d MMM", { locale: enUS })}
-                        </span>
-                      )}
+                      {p.end_date && <span className="text-[10px] text-slate-400 font-mono">Due {format(new Date(p.end_date), "d MMM", { locale: enUS })}</span>}
                     </div>
                     {p.freelancer_name ? (
                       <div className="flex items-center gap-1.5 mb-3">
-                        <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-500 shrink-0">
-                          {p.freelancer_name.charAt(0)}
-                        </div>
+                        <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-500 shrink-0">{p.freelancer_name.charAt(0)}</div>
                         <span className="text-[11px] text-slate-500 truncate">{p.freelancer_name}</span>
                       </div>
-                    ) : (
-                      <p className="text-[10px] text-slate-300 font-mono mb-3">No freelancer assigned</p>
-                    )}
-                    <div className="mt-auto">
-                      <StepProgress status={p.status} />
-                    </div>
+                    ) : <p className="text-[10px] text-slate-300 font-mono mb-3">No freelancer assigned</p>}
+                    <div className="mt-auto"><StepProgress status={p.status} /></div>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* EDITORIAL CONTENT */}
           {showEditorial && filteredEditorial.length > 0 && (
             <div>
               <SectionLabel icon={Layers} label="Editorial" count={filteredEditorial.length} />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredEditorial.map(e => (
                   <div key={e.id} className="relative group">
-                    <div
-                      onClick={() => setSelectedEditorial(e)}
-                      className="bg-white rounded-2xl border border-slate-100 hover:border-[#2A69FF]/30 hover:shadow-md p-5 transition-all cursor-pointer h-full flex flex-col"
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 leading-tight group-hover:text-[#2A69FF] transition-colors truncate">{e.title || "Untitled"}</p>
-                          <p className="text-[11px] text-slate-400 mt-0.5 font-mono truncate">{e.client_name}{e.post_type ? ` · ${e.post_type}` : ""}</p>
-                        </div>
+                    <div onClick={() => setSelectedEditorial(e)}
+                      className="bg-white rounded-2xl border border-slate-100 hover:border-[#2A69FF]/30 hover:shadow-md p-5 transition-all cursor-pointer h-full flex flex-col">
+                      <div className="mb-3">
+                        <p className="text-sm font-semibold text-slate-800 leading-tight group-hover:text-[#2A69FF] transition-colors truncate">{e.title || "Untitled"}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5 font-mono truncate">{e.client_name}{e.post_type ? ` · ${e.post_type}` : ""}</p>
                       </div>
                       <div className="flex items-center gap-2 mb-3 flex-wrap">
                         <StatusPill status={e.editing_status} map={EDITING_STATUS} />
-                        {e.scheduled_date && (
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            {format(new Date(e.scheduled_date), "d MMM", { locale: enUS })}
-                          </span>
-                        )}
+                        {e.scheduled_date && <span className="text-[10px] text-slate-400 font-mono">{format(new Date(e.scheduled_date), "d MMM", { locale: enUS })}</span>}
                       </div>
                       {e.assigned_editor_name ? (
                         <div className="flex items-center gap-1.5 mt-auto">
-                          <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-500 shrink-0">
-                            {e.assigned_editor_name.charAt(0)}
-                          </div>
+                          <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-500 shrink-0">{e.assigned_editor_name.charAt(0)}</div>
                           <span className="text-[11px] text-slate-500 truncate">{e.assigned_editor_name}</span>
                         </div>
-                      ) : (
-                        <p className="text-[10px] text-slate-300 font-mono mt-auto">No editor assigned</p>
-                      )}
+                      ) : <p className="text-[10px] text-slate-300 font-mono mt-auto">No editor assigned</p>}
                     </div>
-                    {/* Remove button */}
                     <button
                       onClick={ev => { ev.stopPropagation(); toggleMutation.mutate({ id: e.id, value: false }); }}
                       title="Remove from production"
-                      className="absolute top-3 right-3 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 transition-all z-10"
-                    >
+                      className="absolute top-3 right-3 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 transition-all z-10">
                       <X className="w-3 h-3 text-slate-400 hover:text-red-500" />
                     </button>
                   </div>
@@ -811,39 +727,65 @@ export default function Production() {
         </div>
       )}
 
-      {/* Project detail modal */}
       {selectedProject && (
-        <ProjectModal
-          project={selectedProject}
-          onClose={() => setSelectedProject(null)}
-          onSaved={() => {
-            queryClient.invalidateQueries({ queryKey: ["production-projects"] });
-            setSelectedProject(null);
-          }}
-        />
+        <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)}
+          onSaved={() => { queryClient.invalidateQueries({ queryKey: ["production-projects"] }); setSelectedProject(null); }} />
       )}
-
-      {/* Editorial detail modal */}
       {selectedEditorial && (
-        <EditorialModal
-          item={selectedEditorial}
-          onClose={() => setSelectedEditorial(null)}
-          onSaved={() => {
-            queryClient.invalidateQueries({ queryKey: ["production-editorial"] });
-            setSelectedEditorial(null);
-          }}
-        />
+        <EditorialModal item={selectedEditorial} onClose={() => setSelectedEditorial(null)}
+          onSaved={() => { queryClient.invalidateQueries({ queryKey: ["production-editorial"] }); setSelectedEditorial(null); }} />
       )}
-
-      {/* Content picker modal */}
       {pickerOpen && (
-        <ContentPicker
-          onClose={() => setPickerOpen(false)}
-          currentIds={inProductionIds}
-          allContent={allEditorial}
-          onToggle={(id, value) => toggleMutation.mutate({ id, value })}
-        />
+        <ContentPicker onClose={() => setPickerOpen(false)} currentIds={inProductionIds} allContent={allEditorial}
+          onToggle={(id, value) => toggleMutation.mutate({ id, value })} />
       )}
+    </>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+const MAIN_TABS = [
+  { key: "overview",     label: "Overview",     icon: Film          },
+  { key: "projects",     label: "Projects",     icon: Clapperboard  },
+  { key: "freelancers",  label: "Freelancers",  icon: Users         },
+  { key: "tools",        label: "Tools",        icon: Wrench        },
+  { key: "invoices",     label: "Invoices",     icon: FileText      },
+  { key: "meetings",     label: "Meetings",     icon: CalendarDays  },
+];
+
+export default function Production() {
+  const [tab, setTab] = useState("overview");
+
+  return (
+    <div className="mx-auto" style={{ maxWidth: "1400px" }}>
+      <PageHeader title="Production" subtitle="Projects, freelancers & tools" />
+
+      {/* Main tab bar */}
+      <div className="flex gap-1 p-1 bg-white border border-slate-100 rounded-xl shadow-sm mb-6 overflow-x-auto">
+        {MAIN_TABS.map(t => {
+          const Icon = t.icon;
+          return (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap"
+              style={{
+                background: tab === t.key ? 'var(--brand)' : 'transparent',
+                color: tab === t.key ? '#fff' : 'var(--muted)',
+                fontFamily: "'DM Mono', monospace",
+              }}>
+              <Icon className="w-3.5 h-3.5" />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === "overview"    && <OverviewTab />}
+      {tab === "projects"    && <AdminProjects />}
+      {tab === "freelancers" && <FreelancerProfiles />}
+      {tab === "tools"       && <ToolsManagement />}
+      {tab === "invoices"    && <InvoicesManagement />}
+      {tab === "meetings"    && <MeetingsManagement />}
     </div>
   );
 }
