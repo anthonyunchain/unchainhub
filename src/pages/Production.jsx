@@ -291,14 +291,16 @@ function ContentPicker({ onClose, currentIds, allContent, onToggle }) {
     return true;
   });
 
+  const selectedCount = filtered.filter(e => currentIds.has(e.id)).length;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col" style={{ maxHeight: '80vh' }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col" style={{ maxHeight: '85vh' }}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-slate-100 shrink-0">
           <div>
             <p className="text-sm font-semibold text-slate-800">Add editorial content</p>
-            <p className="text-xs text-slate-400 mt-0.5">Pick the pieces to track in production</p>
+            <p className="text-xs text-slate-400 mt-0.5">{selectedCount} selected · click to toggle</p>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors">
             <X className="w-4 h-4 text-slate-500" />
@@ -326,36 +328,53 @@ function ContentPicker({ onClose, currentIds, allContent, onToggle }) {
           </select>
         </div>
 
-        {/* List */}
-        <div className="overflow-y-auto flex-1 px-3 py-3">
+        {/* Grid */}
+        <div className="overflow-y-auto flex-1 p-4">
           {filtered.length === 0 ? (
             <p className="text-xs text-slate-400 text-center py-8">No content found</p>
-          ) : filtered.map(e => {
-            const active = currentIds.has(e.id);
-            const statusCfg = EDITING_STATUS[e.editing_status];
-            return (
-              <button
-                key={e.id}
-                onClick={() => onToggle(e.id, !active)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors text-left"
-              >
-                <div className={`w-4 h-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
-                  active ? 'border-[#2A69FF] bg-[#2A69FF]' : 'border-slate-300'
-                }`}>
-                  {active && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-slate-800 truncate">{e.title || "Untitled"}</p>
-                  <p className="text-[10px] text-slate-400 font-mono truncate">{e.client_name}{e.post_type ? ` · ${e.post_type}` : ""}</p>
-                </div>
-                {statusCfg && (
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${statusCfg.bg} ${statusCfg.text}`}>
-                    {statusCfg.label}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {filtered.map(e => {
+                const active = currentIds.has(e.id);
+                const statusCfg = EDITING_STATUS[e.editing_status];
+                return (
+                  <button
+                    key={e.id}
+                    onClick={() => onToggle(e.id, !active)}
+                    className="relative text-left rounded-xl border-2 p-3 transition-all hover:shadow-md flex flex-col gap-2"
+                    style={{
+                      borderColor: active ? '#2A69FF' : '#e2e8f0',
+                      background: active ? '#f0f5ff' : '#fff',
+                    }}
+                  >
+                    {/* Checkbox badge */}
+                    <div className={`absolute top-2.5 right-2.5 w-4 h-4 rounded-md border-2 flex items-center justify-center transition-all ${
+                      active ? 'border-[#2A69FF] bg-[#2A69FF]' : 'border-slate-300 bg-white'
+                    }`}>
+                      {active && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </div>
+
+                    <div className="pr-5">
+                      <p className="text-xs font-semibold text-slate-800 leading-snug line-clamp-2">{e.title || "Untitled"}</p>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">{e.client_name}</p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1 mt-auto">
+                      {e.post_type && (
+                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500">{e.post_type}</span>
+                      )}
+                      {statusCfg && (
+                        <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-md ${statusCfg.bg} ${statusCfg.text}`}>{statusCfg.label}</span>
+                      )}
+                      {e.scheduled_date && (
+                        <span className="text-[9px] font-mono text-slate-400">{format(new Date(e.scheduled_date), "d MMM", { locale: enUS })}</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="px-5 py-3 border-t border-slate-100 shrink-0">
