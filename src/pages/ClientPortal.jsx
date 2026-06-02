@@ -1608,7 +1608,7 @@ function BriefTab({ clientName, tr, dateLocale }) {
 function photoThumb(url, w = 500) {
   if (typeof url !== 'string' || !url.includes('/storage/v1/object/public/')) return url;
   const base = url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
-  return `${base}${base.includes('?') ? '&' : '?'}width=${w}&quality=60`;
+  return `${base}${base.includes('?') ? '&' : '?'}width=${w}&resize=contain&quality=60`;
 }
 
 function PhotoBankTab({ client = {}, tr }) {

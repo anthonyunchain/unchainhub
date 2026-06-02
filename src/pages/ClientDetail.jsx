@@ -165,7 +165,7 @@ function HubFileList({ label, hint, accept = ".pdf", urls = [], onUpload, onRemo
 function photoThumb(url, w = 400) {
   if (typeof url !== "string" || !url.includes("/storage/v1/object/public/")) return url;
   const base = url.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/");
-  return `${base}${base.includes("?") ? "&" : "?"}width=${w}&quality=60`;
+  return `${base}${base.includes("?") ? "&" : "?"}width=${w}&resize=contain&quality=60`;
 }
 
 function PhotoBankUploader({ client, save }) {
