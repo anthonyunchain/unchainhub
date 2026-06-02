@@ -413,6 +413,7 @@ function EditorialModal({ item, onClose, onSaved }) {
   const [editingStatus, setEditingStatus] = useState(item.editing_status || "Non assigné");
   const [editorId, setEditorId] = useState(item.assigned_editor_id || "");
   const [editorName, setEditorName] = useState(item.assigned_editor_name || "");
+  const [workflowType, setWorkflowType] = useState(item.workflow_type || "editorial");
   const [saving, setSaving] = useState(false);
 
   const { data: freelancers = [] } = useQuery({
@@ -428,7 +429,7 @@ function EditorialModal({ item, onClose, onSaved }) {
     setSaving(true);
     const { error } = await supabase
       .from("editorial_content")
-      .update({ editing_status: editingStatus, assigned_editor_id: editorId || null, assigned_editor_name: editorName || null })
+      .update({ editing_status: editingStatus, assigned_editor_id: editorId || null, assigned_editor_name: editorName || null, workflow_type: workflowType })
       .eq("id", item.id);
     setSaving(false);
     if (!error) onSaved();
@@ -458,6 +459,29 @@ function EditorialModal({ item, onClose, onSaved }) {
 
         {/* Fields */}
         <div className="px-5 py-4 space-y-4">
+          {/* Workflow type toggle */}
+          <div>
+            <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              <Film className="w-3 h-3" /> Workflow
+            </label>
+            <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
+              {[
+                { key: "editorial", label: "Editorial" },
+                { key: "video",     label: "Video editing" },
+              ].map(w => (
+                <button key={w.key} onClick={() => setWorkflowType(w.key)}
+                  className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all"
+                  style={{
+                    background: workflowType === w.key ? '#fff' : 'transparent',
+                    color: workflowType === w.key ? '#1e293b' : '#94a3b8',
+                    boxShadow: workflowType === w.key ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  }}>
+                  {w.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Status */}
           <div>
             <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
@@ -565,7 +589,7 @@ function OverviewTab() {
       const today = new Date().toISOString().split("T")[0];
       const { data, error } = await supabase
         .from("editorial_content")
-        .select("id, title, client_name, post_type, editing_status, assigned_editor_id, assigned_editor_name, scheduled_date, in_production")
+        .select("id, title, client_name, post_type, editing_status, assigned_editor_id, assigned_editor_name, scheduled_date, in_production, workflow_type")
         .eq("in_production", true)
         .not("status", "in", '("Publié","Annulé")')
         .or(`scheduled_date.is.null,scheduled_date.gte.${today}`)

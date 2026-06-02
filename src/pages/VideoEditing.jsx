@@ -38,8 +38,8 @@ export default function VideoEditing() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["editorial"] })
   });
 
-  // Only show content with an assigned editor, hide "Terminé" unless toggled
-  const assigned = content.filter((c) => c.assigned_editor_id && (showDone || c.editing_status !== "Terminé"));
+  // Only show video workflow content, hide "Terminé" unless toggled
+  const assigned = content.filter((c) => c.workflow_type === "video" && (showDone || c.editing_status !== "Terminé"));
 
   const filtered = assigned.filter((c) => {
     const editorMatch = filterEditor === "all" || c.assigned_editor_id === filterEditor;

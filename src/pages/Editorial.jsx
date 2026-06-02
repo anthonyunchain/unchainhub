@@ -104,6 +104,7 @@ export default function Editorial({ onDescriptionsClick } = {}) {
   });
 
   const filtered = content
+    .filter(c => c.workflow_type !== "video")
     .filter(c => filterClient === "all" || c.client_name === filterClient)
     .filter(c => filterTypes.includes(c.post_type))
     .filter(c => !hideCancelled || c.status !== 'Annulé');
