@@ -826,13 +826,50 @@ function OverviewTab() {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 const MAIN_TABS = [
-  { key: "overview",     label: "Overview",     icon: Film          },
-  { key: "projects",     label: "Projects",     icon: Clapperboard  },
-  { key: "freelancers",  label: "Freelancers",  icon: Users         },
-  { key: "tools",        label: "Tools",        icon: Wrench        },
-  { key: "invoices",     label: "Invoices",     icon: FileText      },
-  { key: "meetings",     label: "Meetings",     icon: CalendarDays  },
+  { key: "overview",    label: "Overview",    icon: Film         },
+  { key: "projects",    label: "Projects",    icon: Clapperboard },
+  { key: "freelancers", label: "Freelancers", icon: Users        },
+  { key: "tools",       label: "Tools",       icon: Wrench       },
+  { key: "invoices",    label: "Invoices",    icon: FileText     },
+  { key: "meetings",    label: "Meetings",    icon: CalendarDays },
 ];
+
+function ProductionNav({ tab, setTab }) {
+  return (
+    <>
+      {/* Mobile dropdown */}
+      <div className="md:hidden mb-4">
+        <select
+          value={tab}
+          onChange={e => setTab(e.target.value)}
+          className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 bg-white focus:outline-none focus:border-[#2A69FF]"
+        >
+          {MAIN_TABS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+        </select>
+      </div>
+
+      {/* Desktop vertical sidebar */}
+      <nav className="hidden md:flex flex-col w-48 shrink-0 gap-0.5" style={{ position: 'sticky', top: 16 }}>
+        {MAIN_TABS.map(t => {
+          const Icon = t.icon;
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-xs font-medium transition-all text-left ${
+                active ? 'bg-brand text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Icon className={`w-3.5 h-3.5 shrink-0 ${active ? 'opacity-90' : 'opacity-60'}`} />
+              {t.label}
+            </button>
+          );
+        })}
+      </nav>
+    </>
+  );
+}
 
 export default function Production() {
   const [tab, setTab] = useState("overview");
@@ -841,31 +878,18 @@ export default function Production() {
     <div className="mx-auto" style={{ maxWidth: "1400px" }}>
       <PageHeader title="Production" subtitle="Projects, freelancers & tools" />
 
-      {/* Main tab bar */}
-      <div className="flex gap-1 p-1 bg-white border border-slate-100 rounded-xl shadow-sm mb-6 overflow-x-auto">
-        {MAIN_TABS.map(t => {
-          const Icon = t.icon;
-          return (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap"
-              style={{
-                background: tab === t.key ? 'var(--brand)' : 'transparent',
-                color: tab === t.key ? '#fff' : 'var(--muted)',
-                fontFamily: "'DM Mono', monospace",
-              }}>
-              <Icon className="w-3.5 h-3.5" />
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
+      <div className="flex gap-6 items-start">
+        <ProductionNav tab={tab} setTab={setTab} />
 
-      {tab === "overview"    && <OverviewTab />}
-      {tab === "projects"    && <AdminProjects />}
-      {tab === "freelancers" && <FreelancerProfiles />}
-      {tab === "tools"       && <ToolsManagement />}
-      {tab === "invoices"    && <InvoicesManagement />}
-      {tab === "meetings"    && <MeetingsManagement />}
+        <div className="flex-1 min-w-0">
+          {tab === "overview"    && <OverviewTab />}
+          {tab === "projects"    && <AdminProjects />}
+          {tab === "freelancers" && <FreelancerProfiles />}
+          {tab === "tools"       && <ToolsManagement />}
+          {tab === "invoices"    && <InvoicesManagement />}
+          {tab === "meetings"    && <MeetingsManagement />}
+        </div>
+      </div>
     </div>
   );
 }
