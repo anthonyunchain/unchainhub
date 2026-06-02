@@ -69,7 +69,7 @@ export default function ProductionWidget() {
           fontFamily: "'DM Mono', monospace", fontSize: '10px',
           color: 'var(--brand)', textDecoration: 'none',
         }}>
-          Voir tout <ArrowUpRight style={{ width: 12, height: 12 }} />
+          View all <ArrowUpRight style={{ width: 12, height: 12 }} />
         </Link>
       </div>
 
