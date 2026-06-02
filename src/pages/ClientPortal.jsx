@@ -1628,13 +1628,13 @@ function PhotoBankTab({ client = {}, tr }) {
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
         {photos.map((p, i) => (
-          <div key={i} className="relative group rounded-xl overflow-hidden" style={{ aspectRatio: '1', background: 'var(--card)', border: '1px solid var(--divider)' }}>
+          <div key={i} className="relative group rounded-xl overflow-hidden" style={{ aspectRatio: '1', background: 'var(--card)', border: '1px solid var(--divider)', contentVisibility: 'auto', containIntrinsicSize: 'auto 180px' }}>
             <a href={p.url} target="_blank" rel="noopener noreferrer">
               <img src={photoThumb(p.url)} alt={p.name || `photo ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
             </a>
             <a href={p.url} download target="_blank" rel="noopener noreferrer"
               className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ width: 32, height: 32, background: 'rgba(0,0,0,0.6)', color: '#fff', backdropFilter: 'blur(4px)' }}>
+              style={{ width: 32, height: 32, background: 'rgba(0,0,0,0.72)', color: '#fff' }}>
               <Download className="w-4 h-4" />
             </a>
           </div>

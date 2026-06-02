@@ -161,6 +161,13 @@ function HubFileList({ label, hint, accept = ".pdf", urls = [], onUpload, onRemo
   );
 }
 
+// Light grid previews via Supabase Storage on-the-fly image resizing.
+function photoThumb(url, w = 400) {
+  if (typeof url !== "string" || !url.includes("/storage/v1/object/public/")) return url;
+  const base = url.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/");
+  return `${base}${base.includes("?") ? "&" : "?"}width=${w}&quality=60`;
+}
+
 function PhotoBankUploader({ client, save }) {
   const [busy, setBusy] = useState(false);
   const photos = (Array.isArray(client.photo_bank) ? client.photo_bank : [])
@@ -197,8 +204,8 @@ function PhotoBankUploader({ client, save }) {
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2">
           {photos.map((p, i) => (
-            <div key={i} className="relative group rounded-lg overflow-hidden" style={{ aspectRatio: "1" }}>
-              <img src={p.url} alt={p.name || ""} className="w-full h-full object-cover" />
+            <div key={i} className="relative group rounded-lg overflow-hidden" style={{ aspectRatio: "1", contentVisibility: "auto", containIntrinsicSize: "auto 140px" }}>
+              <img src={photoThumb(p.url)} alt={p.name || ""} loading="lazy" decoding="async" className="w-full h-full object-cover" />
               <button onClick={() => save({ photo_bank: photos.filter((_, idx) => idx !== i) })}
                 className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}>
