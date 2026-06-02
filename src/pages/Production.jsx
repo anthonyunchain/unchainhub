@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clapperboard, Film, Layers, X, Search, Calendar, User, Tag, Users, Wrench, FileText, CalendarDays, ArrowUpRight } from "lucide-react";
+import { Clapperboard, Film, Layers, X, Search, Calendar, User, Tag, Users, Wrench, FileText, CalendarDays, ArrowUpRight, Trash2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import AdminProjects from "@/components/admin/AdminProjects";
@@ -96,7 +97,7 @@ function SectionLabel({ icon: Icon, label, count }) {
 
 const PROJECT_STATUS_OPTIONS = Object.keys(PROJECT_STATUS);
 
-function ProjectModal({ project, onClose, onSaved }) {
+function ProjectModal({ project, onClose, onSaved, onDeleted }) {
   const [title, setTitle] = useState(project.title || "");
   const [status, setStatus] = useState(project.status || "Unassigned");
   const [freelancerId, setFreelancerId] = useState(project.freelancer_id || "");
@@ -105,6 +106,8 @@ function ProjectModal({ project, onClose, onSaved }) {
   const [notes, setNotes] = useState(project.notes || "");
   const [deliveryUrl, setDeliveryUrl] = useState(project.delivery_url || "");
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: freelancers = [] } = useQuery({
     queryKey: ["freelancers"],
@@ -131,6 +134,17 @@ function ProjectModal({ project, onClose, onSaved }) {
       .eq("id", project.id);
     setSaving(false);
     if (!error) onSaved();
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await base44.functions.invoke("deleteProject", { projectId: project.id });
+      onDeleted?.();
+    } catch (e) {
+      console.error("Delete failed:", e);
+    }
+    setDeleting(false);
   }
 
   return (
@@ -261,17 +275,36 @@ function ProjectModal({ project, onClose, onSaved }) {
 
         {/* Footer */}
         <div className="px-5 pb-5 pt-3 border-t border-slate-100 flex gap-2 shrink-0">
-          <button onClick={onClose} className="flex-1 h-9 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex-1 h-9 rounded-xl text-xs font-medium text-white transition-colors"
-            style={{ background: 'var(--brand)', opacity: saving ? 0.6 : 1 }}
-          >
-            {saving ? "Saving…" : "Save changes"}
-          </button>
+          {confirmDelete ? (
+            <>
+              <span className="flex-1 text-xs text-red-600 font-medium self-center">Delete this project?</span>
+              <button onClick={() => setConfirmDelete(false)} className="h-9 px-3 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleDelete} disabled={deleting}
+                className="h-9 px-3 rounded-xl text-xs font-medium text-white bg-red-500 hover:bg-red-600 transition-colors">
+                {deleting ? "Deleting…" : "Confirm delete"}
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setConfirmDelete(true)}
+                className="h-9 w-9 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-red-50 hover:border-red-200 transition-colors shrink-0">
+                <Trash2 className="w-3.5 h-3.5 text-slate-400 hover:text-red-500" />
+              </button>
+              <button onClick={onClose} className="flex-1 h-9 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 h-9 rounded-xl text-xs font-medium text-white transition-colors"
+                style={{ background: 'var(--brand)', opacity: saving ? 0.6 : 1 }}
+              >
+                {saving ? "Saving…" : "Save changes"}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -449,8 +482,11 @@ function EditorialModal({ item, onClose, onSaved }) {
       if (!projErr) linkedProjectId = proj.id;
     }
 
-    // If switching back to editorial, unlink (keep project but detach)
-    if (workflowType === "editorial") linkedProjectId = null;
+    // If switching back to editorial, delete the auto-created project and unlink
+    if (workflowType === "editorial" && item.linked_project_id) {
+      try { await base44.functions.invoke("deleteProject", { projectId: item.linked_project_id }); } catch {}
+      linkedProjectId = null;
+    }
 
     const { error } = await supabase
       .from("editorial_content")
@@ -668,13 +704,19 @@ function OverviewTab() {
   const linkedProjectMap = Object.fromEntries(linkedProjects.map(p => [p.id, p]));
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, value }) => {
+    mutationFn: async ({ id, value, linkedProjectId }) => {
       const { error } = await supabase.from("editorial_content").update({ in_production: value }).eq("id", id);
       if (error) throw error;
+      // If removing a video item from production, also delete the auto-created linked project
+      if (!value && linkedProjectId) {
+        try { await base44.functions.invoke("deleteProject", { projectId: linkedProjectId }); } catch {}
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["production-editorial"] });
       queryClient.invalidateQueries({ queryKey: ["all-editorial-picker"] });
+      queryClient.invalidateQueries({ queryKey: ["production-projects"] });
+      queryClient.invalidateQueries({ queryKey: ["linked-projects"] });
     },
   });
 
@@ -825,7 +867,7 @@ function OverviewTab() {
                           </>
                         )}
                       </div>
-                      <button onClick={ev => { ev.stopPropagation(); toggleMutation.mutate({ id: e.id, value: false }); }}
+                      <button onClick={ev => { ev.stopPropagation(); toggleMutation.mutate({ id: e.id, value: false, linkedProjectId: e.linked_project_id }); }}
                         title="Remove from production"
                         className="absolute top-3 right-3 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 transition-all z-10">
                         <X className="w-3 h-3 text-slate-400 hover:text-red-500" />
@@ -875,8 +917,21 @@ function OverviewTab() {
       )}
 
       {selectedProject && (
-        <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)}
-          onSaved={() => { queryClient.invalidateQueries({ queryKey: ["production-projects"] }); setSelectedProject(null); }} />
+        <ProjectModal
+          project={selectedProject}
+          onClose={() => setSelectedProject(null)}
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ["production-projects"] });
+            queryClient.invalidateQueries({ queryKey: ["linked-projects"] });
+            setSelectedProject(null);
+          }}
+          onDeleted={() => {
+            queryClient.invalidateQueries({ queryKey: ["production-projects"] });
+            queryClient.invalidateQueries({ queryKey: ["linked-projects"] });
+            queryClient.invalidateQueries({ queryKey: ["production-editorial"] });
+            setSelectedProject(null);
+          }}
+        />
       )}
       {selectedEditorial && (
         <EditorialModal item={selectedEditorial} onClose={() => setSelectedEditorial(null)}
