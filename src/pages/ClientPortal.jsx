@@ -11,7 +11,7 @@ import {
   Settings, ChevronLeft, ChevronRight, Eye, Users, TrendingUp,
   Bell, Moon, Sun, ExternalLink, Instagram, Youtube, Facebook,
   Linkedin, Globe, Download, Receipt, ClipboardList, CheckCircle2, Save,
-  GraduationCap, MoreHorizontal, MessageSquare
+  GraduationCap, MoreHorizontal, MessageSquare, Images
 } from "lucide-react";
 import { downloadShootingIcs } from "@/lib/generateShootingIcs";
 import ClientTutorialsTab from "@/components/client/ClientTutorialsTab";
@@ -29,6 +29,10 @@ const TRANSLATIONS = {
     reports: "Reports",
     admin: "Admin",
     shootings: "Shootings",
+    photoBank: "Photo Bank",
+    photoBankLabel: "Photo Bank",
+    photos: "Photos",
+    noPhotos: "No photos yet — they'll appear here once we add them.",
     upcomingShootings: "Upcoming Shootings",
     noUpcomingShootings: "No upcoming shootings",
     noShootingsScheduled: "No shootings scheduled",
@@ -156,6 +160,10 @@ const TRANSLATIONS = {
     reports: "Raportit",
     admin: "Ylläpito",
     shootings: "Kuvaukset",
+    photoBank: "Kuvapankki",
+    photoBankLabel: "Kuvapankki",
+    photos: "Kuvat",
+    noPhotos: "Ei vielä kuvia — ne ilmestyvät tähän kun lisäämme ne.",
     upcomingShootings: "Tulevat kuvaukset",
     noUpcomingShootings: "Ei tulevia kuvauksia",
     noShootingsScheduled: "Ei suunniteltuja kuvauksia",
@@ -1594,6 +1602,40 @@ function BriefTab({ clientName, tr, dateLocale }) {
   );
 }
 
+// ── Photo Bank tab ───────────────────────────────────────────────────────────
+function PhotoBankTab({ client = {}, tr }) {
+  const photos = (Array.isArray(client.photo_bank) ? client.photo_bank : [])
+    .map(p => (typeof p === 'string' ? { url: p } : p))
+    .filter(p => p && p.url);
+
+  if (photos.length === 0) {
+    return <p className="text-center text-sm py-10" style={{ color: 'var(--muted)' }}>{tr.noPhotos}</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' }}>{tr.photoBankLabel}</p>
+        <span className="text-[11px]" style={{ color: 'var(--muted)' }}>{photos.length} {tr.photos.toLowerCase()}</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+        {photos.map((p, i) => (
+          <div key={i} className="relative group rounded-xl overflow-hidden" style={{ aspectRatio: '1', background: 'var(--card)', border: '1px solid var(--divider)' }}>
+            <a href={p.url} target="_blank" rel="noopener noreferrer">
+              <img src={p.url} alt={p.name || `photo ${i + 1}`} loading="lazy" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+            </a>
+            <a href={p.url} download target="_blank" rel="noopener noreferrer"
+              className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ width: 32, height: 32, background: 'rgba(0,0,0,0.6)', color: '#fff', backdropFilter: 'blur(4px)' }}>
+              <Download className="w-4 h-4" />
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main portal ────────────────────────────────────────────────────────────
 export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -1647,14 +1689,14 @@ export default function ClientPortal() {
 
         let { data: clientRows } = await supabase
           .from("clients")
-          .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs, contract_documents, default_language")
+          .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs, contract_documents, default_language, photo_bank")
           .eq("portal_user_id", authUser.id)
           .limit(1);
 
         if (!clientRows?.length) {
           const { data: emailRows } = await supabase
             .from("clients")
-            .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs, contract_documents, default_language")
+            .select("id, company_name, portal_user_id, contact_email, editorial_calendar_pdfs, contract_documents, default_language, photo_bank")
             .eq("contact_email", authUser.email)
             .limit(1);
           clientRows = emailRows;
@@ -1725,9 +1767,13 @@ export default function ClientPortal() {
 
   const initials = clientName?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "CL";
 
+  const hasPhotoBank = Array.isArray(clientRecord?.photo_bank)
+    && clientRecord.photo_bank.some(p => p && (typeof p === 'string' ? p : p.url));
+
   const TABS = [
     { key: "dashboard", label: tr.dashboard,  icon: LayoutDashboard },
     { key: "shootings", label: tr.shootings,   icon: Camera },
+    ...(hasPhotoBank ? [{ key: "photos", label: tr.photoBank, icon: Images }] : []),
     { key: "brief",     label: tr.brief,       icon: ClipboardList },
     { key: "reports",   label: tr.reports,     icon: BarChart2 },
     { key: "tutorials", label: tr.tutorials || "Tutorials", icon: GraduationCap },
@@ -1736,7 +1782,7 @@ export default function ClientPortal() {
     { key: "admin",     label: tr.admin,       icon: Settings },
   ];
   const MOBILE_TABS = TABS.filter(t => ["dashboard", "shootings", "brief"].includes(t.key));
-  const MORE_TABS = TABS.filter(t => ["reports", "tutorials", "documents", "messages", "admin"].includes(t.key));
+  const MORE_TABS = TABS.filter(t => ["photos", "reports", "tutorials", "documents", "messages", "admin"].includes(t.key));
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1 }}>
@@ -1876,6 +1922,7 @@ export default function ClientPortal() {
 
         {activeTab === "dashboard" && <DashboardTab client={clientRecord} stats={stats} content={content} contracts={contracts} invoices={invoices} calendarPdfs={clientRecord?.editorial_calendar_pdfs || []} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "shootings" && <ClientShootingsTab clientName={clientName} tr={tr} />}
+        {activeTab === "photos"    && <PhotoBankTab client={clientRecord} tr={tr} />}
         {activeTab === "brief"     && <BriefTab clientName={clientName} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "reports"   && <ReportsTab stats={stats} content={content} tr={tr} dateLocale={dateLocale} />}
         {activeTab === "tutorials" && <ClientTutorialsTab tr={tr} />}
