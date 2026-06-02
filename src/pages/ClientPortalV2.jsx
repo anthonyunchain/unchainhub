@@ -822,6 +822,14 @@ function ShootingsTab({ shootings = [], client = {}, tr, dateLocale }) {
 
 // ── Photo Bank tab ────────────────────────────────────────────────────────────
 // Permanent photo bank: a flat collection of pictures added by the studio.
+// Light grid previews via Supabase Storage on-the-fly image resizing.
+// Keeps the full-res URL for opening / downloading.
+function photoThumb(url, w = 500) {
+  if (typeof url !== 'string' || !url.includes('/storage/v1/object/public/')) return url;
+  const base = url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+  return `${base}${base.includes('?') ? '&' : '?'}width=${w}&quality=60`;
+}
+
 function PhotoBankTab({ client = {}, tr }) {
   const photos = (Array.isArray(client.photo_bank) ? client.photo_bank : [])
     .map(p => (typeof p === 'string' ? { url: p } : p))
@@ -841,7 +849,7 @@ function PhotoBankTab({ client = {}, tr }) {
         {photos.map((p, i) => (
           <div key={i} className="relative group rounded-xl overflow-hidden" style={{ aspectRatio: '1', background: 'var(--card)', border: '1px solid var(--divider)' }}>
             <a href={p.url} target="_blank" rel="noopener noreferrer">
-              <img src={p.url} alt={p.name || `photo ${i + 1}`} loading="lazy" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+              <img src={photoThumb(p.url)} alt={p.name || `photo ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
             </a>
             <a href={p.url} download target="_blank" rel="noopener noreferrer"
               className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
