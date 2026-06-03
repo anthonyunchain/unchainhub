@@ -657,7 +657,7 @@ export default function Shootings({ onOrganize } = {}) {
               </div>
             </div>
             {/* Row 2 */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div><Label>Date</Label><Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
               <div><Label>Time</Label><Input value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} placeholder="14:00" /></div>
               <div><Label>Status</Label>

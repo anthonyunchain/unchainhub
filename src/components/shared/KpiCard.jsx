@@ -45,7 +45,7 @@ export default function KpiCard({ title, value, subtitle, delta, icon: Icon, tin
             animation: 'pulse 1.5s ease-in-out infinite',
           }} />
         ) : (
-          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '34px', fontWeight: 800, color: t.valueColor, letterSpacing: '-2px', lineHeight: 1.05 }}>{value}</p>
+          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 'clamp(20px, 5vw, 34px)', fontWeight: 800, color: t.valueColor, letterSpacing: '-1px', lineHeight: 1.05, wordBreak: 'break-word' }}>{value}</p>
         )}
         {subtitle && !loading && <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', color: 'var(--muted)', marginTop: 4 }}>{subtitle}</p>}
       </div>

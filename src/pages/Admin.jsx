@@ -335,18 +335,18 @@ function Shareholders() {
       <PageHeader title="Shareholders" subtitle="Governance & operations">
         <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" />Add shareholder</Button>
       </PageHeader>
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <div className="bg-white rounded-xl border border-slate-100 p-4">
           <p className="text-xs text-slate-400 uppercase tracking-wider">Shareholders</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{shareholders.length}</p>
+          <p className="text-lg sm:text-2xl font-bold text-slate-900 mt-1 truncate">{shareholders.length}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-100 p-4">
           <p className="text-xs text-slate-400 uppercase tracking-wider">Total shares</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{totalShares.toLocaleString("en")}</p>
+          <p className="text-lg sm:text-2xl font-bold text-slate-900 mt-1 truncate">{totalShares.toLocaleString("en")}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-100 p-4">
           <p className="text-xs text-slate-400 uppercase tracking-wider">Capital invested</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1"><Sensitive>{totalInvested.toLocaleString("fr-FR")} €</Sensitive></p>
+          <p className="text-lg sm:text-2xl font-bold text-slate-900 mt-1 truncate"><Sensitive>{totalInvested.toLocaleString("fr-FR")} €</Sensitive></p>
         </div>
       </div>
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
@@ -398,7 +398,7 @@ function Shareholders() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div><Label>Parts</Label><Input type="number" value={data.shares || 0} onChange={e => setData({ ...data, shares: Number(e.target.value) })} /></div>
                 <div><Label>% ownership</Label><Input type="number" min={0} max={100} value={data.share_percentage || 0} onChange={e => setData({ ...data, share_percentage: Number(e.target.value) })} /></div>
                 <div><Label>Investment €</Label>
@@ -718,7 +718,7 @@ function ShareholderSalaries() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-slate-100 p-4 md:col-span-2">
           <p className="text-xs text-slate-400 uppercase tracking-wider">Total paid</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1"><Sensitive>{grandTotal.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive></p>
+          <p className="text-lg sm:text-2xl font-bold text-slate-900 mt-1 truncate"><Sensitive>{grandTotal.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</Sensitive></p>
         </div>
         {totalByShareholder.map(s => (
           <div key={s.name} className="bg-white rounded-xl border border-slate-100 p-4">
@@ -1358,18 +1358,18 @@ function Subscriptions() {
       </PageHeader>
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
           <p className="text-xs text-slate-400 uppercase">Monthly total</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1"><Sensitive>{totalMonthly.toLocaleString("fr-FR")} €</Sensitive></p>
+          <p className="text-lg sm:text-2xl font-bold text-slate-900 mt-1 truncate"><Sensitive>{totalMonthly.toLocaleString("fr-FR")} €</Sensitive></p>
         </div>
         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
           <p className="text-xs text-slate-400 uppercase">Annual total</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1"><Sensitive>{totalAnnual.toLocaleString("fr-FR")} €</Sensitive></p>
+          <p className="text-lg sm:text-2xl font-bold text-slate-900 mt-1 truncate"><Sensitive>{totalAnnual.toLocaleString("fr-FR")} €</Sensitive></p>
         </div>
         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
           <p className="text-xs text-slate-400 uppercase">Active subs</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{activeSubs.length}</p>
+          <p className="text-lg sm:text-2xl font-bold text-slate-900 mt-1 truncate">{activeSubs.length}</p>
         </div>
       </div>
 

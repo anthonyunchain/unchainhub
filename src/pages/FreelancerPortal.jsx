@@ -282,7 +282,7 @@ function DashboardTab({ tasks, projects, payments, freelancerName, freelancerFir
             View invoices →
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
             { label: 'Total', value: revenueTotal, color: 'var(--ink)' },
             { label: 'Paid', value: revenuePaid, color: 'var(--success)' },
@@ -830,7 +830,7 @@ function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded, o
 
       <div>
       {/* KPI cards */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <div className="bg-white rounded-xl border border-slate-100 p-3 sm:p-4 shadow-sm">
           <p className="text-[10px] sm:text-xs text-slate-400 uppercase font-medium">Total</p>
           <p className="text-base sm:text-lg font-bold text-slate-900 mt-1">{total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>

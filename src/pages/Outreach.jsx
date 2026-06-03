@@ -210,7 +210,7 @@ export default function Outreach() {
                   <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent>{prospects.map(p => <SelectItem key={p.id} value={p.id}>{p.company_name}</SelectItem>)}</SelectContent>
                 </Select></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Date</Label><Input type="date" value={logData.date} onChange={e => setLogData({ ...logData, date: e.target.value })} /></div>
                 <div><Label>Channel</Label>
                   <Select value={logData.channel} onValueChange={v => setLogData({ ...logData, channel: v })}>
@@ -218,7 +218,7 @@ export default function Outreach() {
                     <SelectContent><SelectItem value="Email">Email</SelectItem><SelectItem value="Téléphone">Phone</SelectItem><SelectItem value="En personne">In person</SelectItem><SelectItem value="LinkedIn">LinkedIn</SelectItem><SelectItem value="Instagram">Instagram</SelectItem></SelectContent>
                   </Select></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Outcome</Label>
                   <Select value={logData.outcome} onValueChange={v => setLogData({ ...logData, outcome: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -243,7 +243,7 @@ export default function Outreach() {
           {templateData && (
             <div className="space-y-4 mt-2">
               <div><Label>Name</Label><Input value={templateData.name} onChange={e => setTemplateData({ ...templateData, name: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Type</Label>
                   <Select value={templateData.type} onValueChange={v => setTemplateData({ ...templateData, type: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>

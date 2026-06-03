@@ -304,7 +304,7 @@ export default function Invoices() {
               </div>
 
               {/* Dates + Status */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div><Label>Issue date</Label><Input type="date" value={editData.issue_date || ""} onChange={e => setEditData({ ...editData, issue_date: e.target.value })} /></div>
                 <div><Label>Due date</Label><Input type="date" value={editData.due_date || ""} onChange={e => setEditData({ ...editData, due_date: e.target.value })} /></div>
                 <div><Label>Status</Label>

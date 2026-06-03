@@ -101,19 +101,19 @@ export default function Finance() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           <div>
             <p className="text-xs text-slate-400 uppercase">Margin rate</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{marginPct}%</p>
+            <p className="text-lg sm:text-2xl font-bold text-slate-900 mt-1 truncate">{marginPct}%</p>
           </div>
           <div>
             <p className="text-xs text-slate-400 uppercase">Avg revenue / invoice</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1"><Sensitive>{paidInvoices.length > 0 ? Math.round(totalRevenue / paidInvoices.length).toLocaleString("en-US") : 0} €</Sensitive></p>
+            <p className="text-lg sm:text-2xl font-bold text-slate-900 mt-1 truncate"><Sensitive>{paidInvoices.length > 0 ? Math.round(totalRevenue / paidInvoices.length).toLocaleString("en-US") : 0} €</Sensitive></p>
           </div>
           <div>
             <p className="text-xs text-slate-400 uppercase">Avg expense / project</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1"><Sensitive>{paidPayments.length > 0 ? Math.round(totalExpenses / paidPayments.length).toLocaleString("en-US") : 0} €</Sensitive></p>
+            <p className="text-lg sm:text-2xl font-bold text-slate-900 mt-1 truncate"><Sensitive>{paidPayments.length > 0 ? Math.round(totalExpenses / paidPayments.length).toLocaleString("en-US") : 0} €</Sensitive></p>
           </div>
           <div>
             <p className="text-xs text-slate-400 uppercase">Overdue invoices</p>
-            <p className="text-2xl font-bold text-red-600 mt-1">{invoices.filter(i => i.status === "En retard").length}</p>
+            <p className="text-lg sm:text-2xl font-bold text-red-600 mt-1">{invoices.filter(i => i.status === "En retard").length}</p>
           </div>
         </div>
       </div>

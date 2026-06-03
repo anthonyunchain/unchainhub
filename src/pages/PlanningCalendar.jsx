@@ -571,8 +571,9 @@ export default function PlanningCalendar() {
         <div style={{ ...CARD, overflow: "hidden" }}>
           <div
             ref={scrollRef}
-            style={{ overflowY: "auto", maxHeight: "calc(100vh - 160px)" }}
+            style={{ overflowX: "auto", overflowY: "auto", maxHeight: "calc(100vh - 160px)", WebkitOverflowScrolling: "touch" }}
           >
+            <div style={{ minWidth: 560 }}>
             {/* sticky day-of-week header */}
             <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--card)", borderBottom: "1px solid var(--divider)", display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
               {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
@@ -602,6 +603,7 @@ export default function PlanningCalendar() {
             <div ref={bottomRef} style={{ height: 40, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Loader2 style={{ width: 16, height: 16, color: "var(--subtle)" }} className="animate-spin" />
             </div>
+            </div>{/* end minWidth wrapper */}
           </div>
         </div>
       )}
@@ -609,6 +611,8 @@ export default function PlanningCalendar() {
       {/* ── WEEK view ──────────────────────────────────────────────────────── */}
       {calView === "week" && (
         <div style={{ ...CARD, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <div style={{ minWidth: 560 }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "1px solid var(--divider)" }}>
             {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
               <div key={d} style={{ padding: "8px 0", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{d}</div>
@@ -668,6 +672,8 @@ export default function PlanningCalendar() {
               );
             })}
           </div>
+          </div>{/* end minWidth wrapper */}
+          </div>{/* end overflow-x: auto */}
         </div>
       )}
 

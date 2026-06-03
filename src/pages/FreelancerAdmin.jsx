@@ -764,7 +764,7 @@ export function InvoicesManagement() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
           <p className="text-xs text-slate-400 uppercase">Total invoices</p>
           <p className="text-2xl font-bold text-slate-900 mt-1">{filtered.length}</p>
