@@ -54,6 +54,7 @@ function MonthBlock({ date, gcalConnected, hiddenCalendars, expandedGcalDay, set
   const [gcalLoading, setGcalLoading] = useState(false);
   const [allCalendars, setAllCalendars] = useState([]);
   const [shootings, setShootings] = useState([]);
+  const [content, setContent] = useState([]);
 
   // fetch shootings
   useEffect(() => {
@@ -62,6 +63,16 @@ function MonthBlock({ date, gcalConnected, hiddenCalendars, expandedGcalDay, set
       .gte("date", format(monthStart, "yyyy-MM-dd"))
       .lte("date", format(monthEnd,   "yyyy-MM-dd"))
       .then(({ data }) => setShootings(data || []));
+  }, [mk]);
+
+  // fetch scheduled editorial content
+  useEffect(() => {
+    supabase.from("editorial_content")
+      .select("id, title, scheduled_date, client_name, post_type, status")
+      .gte("scheduled_date", format(monthStart, "yyyy-MM-dd"))
+      .lte("scheduled_date", format(monthEnd,   "yyyy-MM-dd"))
+      .not("status", "eq", "Annulé")
+      .then(({ data }) => setContent(data || []));
   }, [mk]);
 
   // fetch gcal
@@ -93,6 +104,8 @@ function MonthBlock({ date, gcalConnected, hiddenCalendars, expandedGcalDay, set
   }
   const mShootingsByDay = {};
   for (const s of shootings) { if (s.date) (mShootingsByDay[s.date] ||= []).push(s); }
+  const mContentByDay = {};
+  for (const c of content) { if (c.scheduled_date) (mContentByDay[c.scheduled_date] ||= []).push(c); }
 
   return (
     <div ref={monthRef} data-month={mk} style={{ borderBottom: "1px solid var(--divider)" }}>
@@ -110,6 +123,7 @@ function MonthBlock({ date, gcalConnected, hiddenCalendars, expandedGcalDay, set
           const inMonth  = day.getMonth() === date.getMonth();
           const dayKey   = format(day, "yyyy-MM-dd");
           const dayShootings = mShootingsByDay[dayKey] || [];
+          const dayContent = mContentByDay[dayKey] || [];
           const dayGcal  = gcalByDay[dayKey] || [];
           const isCurrentDay = isToday(day);
           const isWeekend = (i % 7) >= 5;
@@ -177,6 +191,17 @@ function MonthBlock({ date, gcalConnected, hiddenCalendars, expandedGcalDay, set
                   </div>
                 </Link>
               ))}
+
+              {/* Scheduled content */}
+              {dayContent.map(c => (
+                <Link key={c.id} to="/Editorial" style={{ textDecoration: "none" }}>
+                  <div style={{ padding: "3px 7px", borderRadius: 5, background: "rgba(139,92,246,0.12)", borderLeft: "2px solid #8B5CF6", overflow: "hidden" }}>
+                    <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 600, color: "#6D28D9", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {c.post_type === "Reel" ? "🎬" : c.post_type === "Story" ? "📲" : "🖼️"} {c.title || "Untitled"}
+                    </p>
+                  </div>
+                </Link>
+              ))}
             </div>
           );
         })}
@@ -217,6 +242,7 @@ export default function PlanningCalendar() {
   const [weekGcalEvents, setWeekGcalEvents] = useState([]);
   const [weekGcalLoading, setWeekGcalLoading] = useState(false);
   const [weekShootings,   setWeekShootings]   = useState([]);
+  const [weekContent,     setWeekContent]     = useState([]);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -278,6 +304,12 @@ export default function PlanningCalendar() {
       .gte("date", format(weekStart, "yyyy-MM-dd"))
       .lte("date", format(weekEnd,   "yyyy-MM-dd"))
       .then(({ data }) => setWeekShootings(data || []));
+    supabase.from("editorial_content")
+      .select("id, title, scheduled_date, client_name, post_type, status")
+      .gte("scheduled_date", format(weekStart, "yyyy-MM-dd"))
+      .lte("scheduled_date", format(weekEnd,   "yyyy-MM-dd"))
+      .not("status", "eq", "Annulé")
+      .then(({ data }) => setWeekContent(data || []));
   }, [calView, format(weekStart, "yyyy-MM-dd")]);
 
   useEffect(() => {
@@ -293,6 +325,8 @@ export default function PlanningCalendar() {
 
   const weekShootingsByDay = {};
   for (const s of weekShootings) { if (s.date) (weekShootingsByDay[s.date] ||= []).push(s); }
+  const weekContentByDay = {};
+  for (const c of weekContent) { if (c.scheduled_date) (weekContentByDay[c.scheduled_date] ||= []).push(c); }
   const weekGcalByDay = {};
   for (const ev of weekGcalEvents.filter(e => !hiddenCalendars.has(e._calendarName))) {
     const dayStr = ev.start?.date || ev.start?.dateTime?.slice(0, 10);
@@ -584,6 +618,7 @@ export default function PlanningCalendar() {
             {weekDays.map((day, i) => {
               const dayKey = format(day, "yyyy-MM-dd");
               const dayShootings = weekShootingsByDay[dayKey] || [];
+              const dayContent = weekContentByDay[dayKey] || [];
               const dayGcal = weekGcalByDay[dayKey] || [];
               const isCurrentDay = isToday(day);
               const isWeekend = i >= 5;
@@ -617,7 +652,15 @@ export default function PlanningCalendar() {
                         </div>
                       </Link>
                     ))}
-                    {!dayShootings.length && !dayGcal.length && (
+                    {dayContent.map(c => (
+                      <Link key={c.id} to="/Editorial" style={{ textDecoration: "none" }}>
+                        <div style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(139,92,246,0.12)", borderLeft: "3px solid #8B5CF6" }}>
+                          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, fontWeight: 600, color: "#6D28D9", margin: 0, lineHeight: 1.3 }}>{c.post_type === "Reel" ? "🎬" : c.post_type === "Story" ? "📲" : "🖼️"} {c.title || "Untitled"}</p>
+                          {c.client_name && <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#7C3AED", margin: "3px 0 0" }}>{c.client_name}{c.post_type ? ` · ${c.post_type}` : ""}</p>}
+                        </div>
+                      </Link>
+                    ))}
+                    {!dayShootings.length && !dayContent.length && !dayGcal.length && (
                       <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--subtle)", textAlign: "center", marginTop: 16 }}>—</p>
                     )}
                   </div>
@@ -633,6 +676,7 @@ export default function PlanningCalendar() {
         {[
           { color: "#4285F4", bg: "rgba(66,133,244,0.1)", label: "Google Calendar" },
           { color: "#F59E0B", bg: "rgba(245,158,11,0.12)", label: "Shooting" },
+          { color: "#8B5CF6", bg: "rgba(139,92,246,0.12)", label: "Content" },
         ].map(l => (
           <span key={l.label} style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--muted)" }}>
             <span style={{ width: 12, height: 12, borderRadius: 3, background: l.bg, borderLeft: `3px solid ${l.color}`, display: "inline-block" }} />

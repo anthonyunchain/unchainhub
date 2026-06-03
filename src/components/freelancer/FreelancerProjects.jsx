@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import FileDropzone from "@/components/shared/FileDropzone";
 import { openDeliverable, formatBytes } from "@/lib/deliverables";
+import { nextEditingStatus, nextEditingActionLabel } from "@/lib/editorialStatus";
 
 // Pipeline stages in order
 const STAGES = [
@@ -413,6 +414,7 @@ const EDITING_STATUS_LABEL = {
   "À faire": "To do",
   "En cours de montage": "In progress",
   "En attente de retour": "Awaiting feedback",
+  "Subtitles": "Subtitles",
   "Terminé": "Done",
 };
 
@@ -422,14 +424,37 @@ const EDITING_STATUS_COLOR = {
   "À faire":                   "bg-blue-100 text-blue-700",
   "En cours de montage":       "bg-indigo-100 text-indigo-700",
   "En attente de retour":      "bg-violet-100 text-violet-700",
+  "Subtitles":                 "bg-teal-100 text-teal-700",
   "Terminé":                   "bg-emerald-100 text-emerald-700",
 };
 
-function EditorialCard({ item }) {
+function EditorialCard({ item, onAction }) {
+  const [busy, setBusy] = useState(false);
   const isDone = item.editing_status === "Terminé";
   const statusLabel = EDITING_STATUS_LABEL[item.editing_status] || item.editing_status || "—";
   const statusColor = EDITING_STATUS_COLOR[item.editing_status] || "bg-slate-100 text-slate-500";
   const date = item.scheduled_date ? format(new Date(item.scheduled_date), "d MMM yyyy", { locale: enUS }) : null;
+
+  const next = nextEditingStatus(item.editing_status);
+  const nextLabel = nextEditingActionLabel(item.editing_status);
+
+  const advance = async () => {
+    if (!next || busy) return;
+    setBusy(true);
+    try {
+      const { data } = await base44.functions.invoke("updateProjectStatus", {
+        project_id: item.id,
+        editing_status: next,
+      });
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Status updated to "${EDITING_STATUS_LABEL[next] || next}"`);
+      onAction?.();
+    } catch (e) {
+      toast.error(e?.message || "Could not update status");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
@@ -446,11 +471,20 @@ function EditorialCard({ item }) {
           {date && <span className="text-[11px] text-slate-400">{date}</span>}
         </div>
       </div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor}`}>{statusLabel}</span>
-        {item.editing_instructions && (
+        {next ? (
+          <button
+            onClick={advance}
+            disabled={busy}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg text-white transition-colors shrink-0 disabled:opacity-50"
+            style={{ background: 'var(--brand)' }}
+          >
+            {busy ? "…" : nextLabel}
+          </button>
+        ) : item.editing_instructions ? (
           <p className="text-xs text-slate-400 truncate max-w-[200px]">{item.editing_instructions}</p>
-        )}
+        ) : null}
       </div>
       {item.editing_files?.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
@@ -485,7 +519,7 @@ export default function FreelancerProjects({ projects, editorialItems = [], onRe
   return (
     <div className="space-y-3">
       {activeEditorial.map(p => (
-        <EditorialCard key={p.id} item={p} />
+        <EditorialCard key={p.id} item={p} onAction={onRefresh} />
       ))}
 
       {active.map(p => (

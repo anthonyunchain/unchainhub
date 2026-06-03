@@ -21,6 +21,7 @@ import {
   isSameMonth
 } from "date-fns";
 import { enUS } from "date-fns/locale";
+import { EDITING_STATUS_OPTIONS, EDITING_STATUS_LABELS } from "@/lib/editorialStatus";
 
 const TYPE_COLORS = {
   Reel: "bg-pink-100 text-pink-700",
@@ -1132,7 +1133,10 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                       const fl = videoEditors.find(f => f.id === editorId);
                       const isReel = editData.post_type === "Reel";
                       setEditData({ ...editData, assigned_editor_id: editorId, assigned_editor_name: fl?.name || "",
-                        editing_status: editorId ? (isReel ? "En attente d'acceptation" : (editData.editing_status === "Non assigné" ? "À faire" : editData.editing_status)) : "Non assigné"
+                        editing_status: editorId ? (isReel ? "En attente d'acceptation" : (editData.editing_status === "Non assigné" ? "À faire" : editData.editing_status)) : "Non assigné",
+                        // Single source of truth: assigning an editor marks the item as a
+                        // video-editing job and surfaces it in the Production page.
+                        ...(editorId ? { workflow_type: "video", in_production: true } : {}),
                       });
                     }}>
                       <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
@@ -1149,12 +1153,9 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                     <Select value={editData.editing_status || "Non assigné"} onValueChange={v => setEditData({ ...editData, editing_status: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Non assigné">Unassigned</SelectItem>
-                        <SelectItem value="En attente d'acceptation">Pending acceptance</SelectItem>
-                        <SelectItem value="À faire">To do</SelectItem>
-                        <SelectItem value="En cours de montage">In progress</SelectItem>
-                        <SelectItem value="En attente de retour">Awaiting feedback</SelectItem>
-                        <SelectItem value="Terminé">Done</SelectItem>
+                        {EDITING_STATUS_OPTIONS.map(s => (
+                          <SelectItem key={s} value={s}>{EDITING_STATUS_LABELS[s]}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

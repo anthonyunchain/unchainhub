@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import AdminProjects from "@/components/admin/AdminProjects";
 import { FreelancerProfiles, ToolsManagement, InvoicesManagement, MeetingsManagement } from "./FreelancerAdmin";
+import { EDITING_STATUS, EDITING_STATUS_OPTIONS, EDITING_STATUS_LABELS, EDITING_STEPS, editingStepIndex } from "@/lib/editorialStatus";
 
 // ─── Video projects (projects table) ─────────────────────────────────────────
 
@@ -39,15 +40,7 @@ function stepIndex(status) {
 }
 
 // ─── Editorial content (editorial_content table) ─────────────────────────────
-
-const EDITING_STATUS = {
-  "Non assigné":               { label: "Unassigned",      bg: "bg-slate-50",   text: "text-slate-500",  dot: "bg-slate-300"  },
-  "En attente d'acceptation":  { label: "Pending",         bg: "bg-amber-50",   text: "text-amber-700",  dot: "bg-amber-400"  },
-  "À faire":                   { label: "To do",           bg: "bg-blue-50",    text: "text-blue-700",   dot: "bg-blue-400"   },
-  "En cours de montage":       { label: "Editing",         bg: "bg-indigo-50",  text: "text-indigo-700", dot: "bg-indigo-500" },
-  "En attente de retour":      { label: "Awaiting review", bg: "bg-violet-50",  text: "text-violet-700", dot: "bg-violet-500" },
-  "Subtitles":                 { label: "Subtitles",       bg: "bg-teal-50",    text: "text-teal-700",   dot: "bg-teal-500"   },
-};
+// Editing-status taxonomy now lives in @/lib/editorialStatus (single source of truth).
 
 function StatusPill({ status, map }) {
   const cfg = map[status] || map[Object.keys(map)[0]];
@@ -75,6 +68,27 @@ function StepProgress({ status }) {
           {current >= 0 ? `Step ${current + 1}/5 · ${PRODUCTION_STEPS[current]?.label}` : "Not started"}
         </span>
         {current === 4 && <span className="text-[10px] text-green-600 font-mono font-semibold">Done</span>}
+      </div>
+    </div>
+  );
+}
+
+function EditingStepProgress({ status }) {
+  const current = editingStepIndex(status);
+  return (
+    <div>
+      <div className="flex items-center gap-1 mb-1.5">
+        {EDITING_STEPS.map((s, i) => (
+          <div key={s.key} className="flex-1 h-1 rounded-full transition-all" style={{
+            background: i < current ? '#22c55e' : i === current ? '#2A69FF' : '#e2e8f0',
+          }} />
+        ))}
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-slate-400 font-mono">
+          {current >= 0 ? `Step ${current + 1}/${EDITING_STEPS.length} · ${EDITING_STEPS[current]?.label}` : (EDITING_STATUS_LABELS[status] || "Not started")}
+        </span>
+        {status === "Terminé" && <span className="text-[10px] text-green-600 font-mono font-semibold">Done</span>}
       </div>
     </div>
   );
@@ -431,26 +445,6 @@ function ContentPicker({ onClose, currentIds, allContent, onToggle }) {
 
 // ─── Editorial detail modal ───────────────────────────────────────────────────
 
-const EDITING_STATUS_OPTIONS = [
-  "Non assigné",
-  "En attente d'acceptation",
-  "À faire",
-  "En cours de montage",
-  "En attente de retour",
-  "Subtitles",
-  "Terminé",
-];
-
-const EDITING_STATUS_LABELS = {
-  "Non assigné":              "Unassigned",
-  "En attente d'acceptation": "Pending acceptance",
-  "À faire":                  "To do",
-  "En cours de montage":      "Editing",
-  "En attente de retour":     "Awaiting review",
-  "Subtitles":                "Subtitles",
-  "Terminé":                  "Done",
-};
-
 function EditorialModal({ item, onClose, onSaved }) {
   const [editingStatus, setEditingStatus] = useState(item.editing_status || "Non assigné");
   const [editorId, setEditorId] = useState(item.assigned_editor_id || "");
@@ -469,45 +463,21 @@ function EditorialModal({ item, onClose, onSaved }) {
 
   async function handleSave() {
     setSaving(true);
-    let linkedProjectId = item.linked_project_id || null;
 
-    // Auto-create a project when switching to video for the first time
-    if (workflowType === "video" && !item.linked_project_id) {
-      const { data: proj, error: projErr } = await supabase
-        .from("projects")
-        .insert({
-          title: item.title || "Untitled",
-          client_name: item.client_name || null,
-          status: "Unassigned",
-          freelancer_id: editorId || null,
-          freelancer_name: editorName || null,
-          end_date: item.scheduled_date || null,
-        })
-        .select()
-        .single();
-      if (projErr) {
-        setSaving(false);
-        console.error("Linked project creation failed:", projErr);
-        toast.error("Could not create the linked video project: " + (projErr.message || projErr.code || "unknown error"));
-        return;
-      }
-      linkedProjectId = proj.id;
-    }
-
-    // If switching back to editorial, delete the auto-created project and unlink
-    if (workflowType === "editorial" && item.linked_project_id) {
-      try { await base44.functions.invoke("deleteProject", { projectId: item.linked_project_id }); } catch {}
-      linkedProjectId = null;
-    }
+    // Option A: video editing is tracked entirely on editorial_content via
+    // editing_status — no linked projects table row. When an editor is assigned
+    // on a video item, surface it in production and default an open status.
+    const wantsEditing = workflowType === "video";
+    const nextEditingStatus =
+      wantsEditing && editorId && editingStatus === "Non assigné" ? "À faire" : editingStatus;
 
     const { error } = await supabase
       .from("editorial_content")
       .update({
-        editing_status: editingStatus,
+        editing_status: nextEditingStatus,
         assigned_editor_id: editorId || null,
         assigned_editor_name: editorName || null,
         workflow_type: workflowType,
-        linked_project_id: linkedProjectId,
       })
       .eq("id", item.id);
     setSaving(false);
@@ -673,7 +643,7 @@ function OverviewTab() {
       const today = new Date().toISOString().split("T")[0];
       const { data, error } = await supabase
         .from("editorial_content")
-        .select("id, title, client_name, post_type, editing_status, assigned_editor_id, assigned_editor_name, scheduled_date, in_production, workflow_type, linked_project_id")
+        .select("id, title, client_name, post_type, editing_status, assigned_editor_id, assigned_editor_name, scheduled_date, in_production, workflow_type")
         .eq("in_production", true)
         .not("status", "in", '("Publié","Annulé")')
         .or(`scheduled_date.is.null,scheduled_date.gte.${today}`)
@@ -699,41 +669,14 @@ function OverviewTab() {
     enabled: pickerOpen,
   });
 
-  // Fetch linked projects for video-workflow editorial items
-  const linkedProjectIds = editorialItems
-    .filter(e => e.workflow_type === "video" && e.linked_project_id)
-    .map(e => e.linked_project_id);
-
-  const { data: linkedProjects = [] } = useQuery({
-    queryKey: ["linked-projects", linkedProjectIds],
-    queryFn: async () => {
-      if (!linkedProjectIds.length) return [];
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .in("id", linkedProjectIds);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: linkedProjectIds.length > 0,
-  });
-
-  const linkedProjectMap = Object.fromEntries(linkedProjects.map(p => [p.id, p]));
-
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, value, linkedProjectId }) => {
+    mutationFn: async ({ id, value }) => {
       const { error } = await supabase.from("editorial_content").update({ in_production: value }).eq("id", id);
       if (error) throw error;
-      // If removing a video item from production, also delete the auto-created linked project
-      if (!value && linkedProjectId) {
-        try { await base44.functions.invoke("deleteProject", { projectId: linkedProjectId }); } catch {}
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["production-editorial"] });
       queryClient.invalidateQueries({ queryKey: ["all-editorial-picker"] });
-      queryClient.invalidateQueries({ queryKey: ["production-projects"] });
-      queryClient.invalidateQueries({ queryKey: ["linked-projects"] });
     },
   });
 
@@ -844,13 +787,12 @@ function OverviewTab() {
                     <div className="mt-auto"><StepProgress status={p.status} /></div>
                   </div>
                 ))}
-                {/* Video-workflow editorial items — open their linked project */}
+                {/* Video-editing content — tracked on editorial_content via editing_status */}
                 {showProjects && filteredVideoEditorial.map(e => {
-                  const linkedProj = linkedProjectMap[e.linked_project_id];
                   return (
                     <div key={e.id} className="relative group">
                       <div
-                        onClick={() => linkedProj ? setSelectedProject(linkedProj) : setSelectedEditorial(e)}
+                        onClick={() => setSelectedEditorial(e)}
                         className="bg-white rounded-2xl border border-slate-100 hover:border-[#2A69FF]/30 hover:shadow-md p-5 transition-all cursor-pointer flex flex-col"
                       >
                         <div className="flex items-start justify-between gap-2 mb-3">
@@ -860,31 +802,19 @@ function OverviewTab() {
                           </div>
                           <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-500 shrink-0 font-mono">VIDEO</span>
                         </div>
-                        {linkedProj ? (
-                          <>
-                            <div className="flex items-center gap-2 mb-3 flex-wrap">
-                              <StatusPill status={linkedProj.status} map={PROJECT_STATUS} />
-                              {linkedProj.end_date && <span className="text-[10px] text-slate-400 font-mono">Due {format(new Date(linkedProj.end_date), "d MMM", { locale: enUS })}</span>}
-                            </div>
-                            {linkedProj.freelancer_name ? (
-                              <div className="flex items-center gap-1.5 mb-3">
-                                <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-500 shrink-0">{linkedProj.freelancer_name.charAt(0)}</div>
-                                <span className="text-[11px] text-slate-500 truncate">{linkedProj.freelancer_name}</span>
-                              </div>
-                            ) : <p className="text-[10px] text-slate-300 font-mono mb-3">No freelancer assigned</p>}
-                            <div className="mt-auto"><StepProgress status={linkedProj.status} /></div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="flex items-center gap-2 mb-3 flex-wrap">
-                              <StatusPill status={e.editing_status} map={EDITING_STATUS} />
-                              {e.scheduled_date && <span className="text-[10px] text-slate-400 font-mono">{format(new Date(e.scheduled_date), "d MMM", { locale: enUS })}</span>}
-                            </div>
-                            <p className="text-[10px] text-amber-500 font-mono mt-auto">Save to create project →</p>
-                          </>
-                        )}
+                        <div className="flex items-center gap-2 mb-3 flex-wrap">
+                          <StatusPill status={e.editing_status} map={EDITING_STATUS} />
+                          {e.scheduled_date && <span className="text-[10px] text-slate-400 font-mono">Due {format(new Date(e.scheduled_date), "d MMM", { locale: enUS })}</span>}
+                        </div>
+                        {e.assigned_editor_name ? (
+                          <div className="flex items-center gap-1.5 mb-3">
+                            <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-bold text-slate-500 shrink-0">{e.assigned_editor_name.charAt(0)}</div>
+                            <span className="text-[11px] text-slate-500 truncate">{e.assigned_editor_name}</span>
+                          </div>
+                        ) : <p className="text-[10px] text-slate-300 font-mono mb-3">No editor assigned</p>}
+                        <div className="mt-auto"><EditingStepProgress status={e.editing_status} /></div>
                       </div>
-                      <button onClick={ev => { ev.stopPropagation(); toggleMutation.mutate({ id: e.id, value: false, linkedProjectId: e.linked_project_id }); }}
+                      <button onClick={ev => { ev.stopPropagation(); toggleMutation.mutate({ id: e.id, value: false }); }}
                         title="Remove from production"
                         className="absolute top-3 right-3 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 transition-all z-10">
                         <X className="w-3 h-3 text-slate-400 hover:text-red-500" />
@@ -939,12 +869,10 @@ function OverviewTab() {
           onClose={() => setSelectedProject(null)}
           onSaved={() => {
             queryClient.invalidateQueries({ queryKey: ["production-projects"] });
-            queryClient.invalidateQueries({ queryKey: ["linked-projects"] });
             setSelectedProject(null);
           }}
           onDeleted={() => {
             queryClient.invalidateQueries({ queryKey: ["production-projects"] });
-            queryClient.invalidateQueries({ queryKey: ["linked-projects"] });
             queryClient.invalidateQueries({ queryKey: ["production-editorial"] });
             setSelectedProject(null);
           }}
@@ -954,8 +882,6 @@ function OverviewTab() {
         <EditorialModal item={selectedEditorial} onClose={() => setSelectedEditorial(null)}
           onSaved={() => {
             queryClient.invalidateQueries({ queryKey: ["production-editorial"] });
-            queryClient.invalidateQueries({ queryKey: ["production-projects"] });
-            queryClient.invalidateQueries({ queryKey: ["linked-projects"] });
             setSelectedEditorial(null);
           }} />
       )}
