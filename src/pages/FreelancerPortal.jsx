@@ -973,9 +973,74 @@ function InvoicesTab({ payments, freelancerName, freelancerId, onPaymentAdded, o
   );
 }
 
+// ─── ADMIN TAB (groups Invoices · Passwords · Tools · Meetings · Ideas) ────
+function AdminTab({ activeSub, onNavigate, payments, freelancerName, freelancerId, onPaymentAdded, openTrigger, profile, tools, meetings, currentUserId, currentUserName }) {
+  const subTabs = [
+    { id: 'invoices',    label: 'Invoices' },
+    { id: 'credentials', label: 'Passwords' },
+    { id: 'tools',       label: 'Tools' },
+    { id: 'meetings',    label: 'Meetings' },
+    ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas' }] : []),
+  ];
+  // 'contract' is an alias of the invoices sub-tab; anything unknown falls back to invoices
+  const sub = subTabs.some(t => t.id === activeSub) ? activeSub : 'invoices';
+
+  return (
+    <div className="space-y-5">
+      {/* Sub-tab pills */}
+      <div className="flex items-center gap-1 p-1 w-fit max-w-full overflow-x-auto" style={{
+        background: 'var(--card)',
+        borderRadius: 'var(--pill-radius)',
+        boxShadow: 'var(--card-shadow)',
+      }}>
+        {subTabs.map(t => {
+          const isActive = sub === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => onNavigate?.(t.id)}
+              style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: '11px',
+                fontWeight: 500,
+                padding: '6px 14px',
+                borderRadius: 'var(--pill-radius)',
+                background: isActive ? 'var(--brand)' : 'transparent',
+                color: isActive ? '#fff' : 'var(--muted)',
+                border: 'none',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 200ms cubic-bezier(0.4,0,0.2,1)',
+              }}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Sub-tab content */}
+      {sub === 'invoices' && (
+        <InvoicesTab payments={payments} freelancerName={freelancerName} freelancerId={freelancerId} onPaymentAdded={onPaymentAdded} openTrigger={openTrigger} profile={profile} />
+      )}
+      {sub === 'credentials' && (freelancerId
+        ? <FreelancerCredentialsTab freelancerId={freelancerId} freelancerName={freelancerName} canEdit={false} />
+        : null)}
+      {sub === 'tools' && <ToolsTab tools={tools} onNavigate={onNavigate} />}
+      {sub === 'meetings' && <MeetingsTab meetings={meetings} />}
+      {sub === 'ideas' && profile?.ideas_access && (
+        <Ideas currentUserId={currentUserId} currentUserName={currentUserName} isFreelancer={true} />
+      )}
+    </div>
+  );
+}
+
 // ─── Nav config is defined in @/lib/navConfig (imported above) ─────────────
 
 // ─── MAIN PORTAL ──────────────────────────────────────────────────────────
+// Tabs grouped under the single "Admin" nav pill (rendered as sub-tabs by AdminTab)
+const ADMIN_GROUP_TABS = ['invoices', 'contract', 'credentials', 'tools', 'meetings', 'ideas'];
+
 const TAB_TITLES = {
   dashboard: "Dashboard",
   tasks: "My Tasks",
@@ -1212,20 +1277,32 @@ export default function FreelancerPortal() {
       case "projects": return <Editorial onDescriptionsClick={() => handleTabChange('captions')} />;
       case "captions": return <CaptionsTab items={[...editorialProjects, ...visibleCalendars.filter(vc => !editorialProjects.find(ep => ep.id === vc.id))]} />;
       case "calendar": return <CalendarsTab visibleCalendars={visibleCalendars} />;
-      case "ideas": return <Ideas currentUserId={user?.id} currentUserName={profile?.name || user?.email} isFreelancer={true} />;
       case "content_ideas": return <ContentIdeas />;
-      case "tools": return <ToolsTab tools={tools} onNavigate={handleTabChange} />;
       case "music": return <FreelancerMusicTab />;
-      case "meetings": return <MeetingsTab meetings={meetings} />;
       case "shootings": return profile?.can_manage_shootings
         ? <Shootings onOrganize={() => handleTabChange("shootingsorganize")} />
         : <ShootingsTab freelancerId={profile?.id} />;
       case "shootingsorganize": return <ShootingsToOrganize onBack={() => handleTabChange("shootings")} />;
-      case "credentials": return profile?.id
-        ? <FreelancerCredentialsTab freelancerId={profile.id} freelancerName={freelancerName} canEdit={false} />
-        : null;
+      // Admin tab — groups Invoices · Passwords · Tools · Meetings · Ideas as sub-tabs
+      case "ideas":
+      case "tools":
+      case "meetings":
+      case "credentials":
       case "invoices":
-      case "contract": return <InvoicesTab payments={payments} freelancerName={freelancerName} freelancerId={profile?.id} onPaymentAdded={handlePaymentAdded} openTrigger={invoiceOpenTrigger} profile={profile} />;
+      case "contract": return <AdminTab
+        activeSub={activeTab}
+        onNavigate={handleTabChange}
+        payments={payments}
+        freelancerName={freelancerName}
+        freelancerId={profile?.id}
+        onPaymentAdded={handlePaymentAdded}
+        openTrigger={invoiceOpenTrigger}
+        profile={profile}
+        tools={tools}
+        meetings={meetings}
+        currentUserId={user?.id}
+        currentUserName={profile?.name || user?.email}
+      />;
       case "profile": return <ProfileTab user={user} freelancerProfile={profile} onProfileUpdate={(p) => setFreelancerData(d => ({ ...d, profile: p }))} />;
       case "notifications": return <NotificationsPanel
         notifications={notifications}
@@ -1293,18 +1370,17 @@ export default function FreelancerPortal() {
                 { id: 'myprojects', label: 'Production' },
                 { id: 'projects', label: 'Calendar' },
 
-                ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas' }] : []),
                 ...(profile?.content_ideas_access ? [{ id: 'content_ideas', label: 'Content Ideas' }] : []),
                 ...(profile?.can_see_crm ? [{ id: 'crm', label: 'CRM' }] : []),
                 { id: 'messages', label: 'Messages' },
                 { id: 'notes', label: 'Notes' },
-                { id: 'credentials', label: 'Passwords' },
-                { id: 'tools', label: 'Tools' },
-                { id: 'meetings', label: 'Meetings' },
                 ...(profile?.can_manage_shootings ? [{ id: 'shootings', label: 'Shootings' }] : []),
+                // Admin groups Invoices · Passwords · Tools · Meetings · Ideas as sub-tabs
                 { id: 'invoices', label: 'Admin' },
               ].filter(item => !getHiddenNav(profile).includes(item.id)).map(item => {
-                const isActive = activeTab === item.id;
+                const isActive = item.id === 'invoices'
+                  ? ADMIN_GROUP_TABS.includes(activeTab)
+                  : activeTab === item.id;
                 return (
                   <button
                     key={item.id}
@@ -1507,7 +1583,7 @@ export default function FreelancerPortal() {
               ];
             return items.filter(item => !getHiddenNav(profile).includes(item.id));
           })().map(({ id, label, Icon }) => {
-            const isActive = activeTab === id;
+            const isActive = id === 'invoices' ? ADMIN_GROUP_TABS.includes(activeTab) : activeTab === id;
             return (
               <button key={id} onClick={() => { handleTabChange(id); setMoreOpen(false); }}
                 className="flex-1 flex flex-col items-center justify-center gap-1 relative"
@@ -1532,7 +1608,7 @@ export default function FreelancerPortal() {
 
           {/* More button */}
           {(MOBILE_NAV_BY_ID[profile?.id]?.showMore ?? true) && ((() => {
-            const moreActive = moreOpen || ['profile','tasks','todo','captions','ideas','tools','meetings','messages'].includes(activeTab);
+            const moreActive = moreOpen || ['profile','tasks','todo','captions','messages','content_ideas','crm'].includes(activeTab);
             return (
               <button onClick={() => setMoreOpen(v => !v)}
                 className="flex-1 flex flex-col items-center justify-center gap-1 relative"
@@ -1586,18 +1662,15 @@ export default function FreelancerPortal() {
                 {(() => {
                   const mobileIcons = { LayoutDashboard, ListTodo, ClipboardList, Briefcase, FileText, CalendarDays, User, Wrench, AlignLeft, Lightbulb, MessageSquare, KeyRound, Camera };
                   const customMore = MOBILE_NAV_BY_ID[profile?.id]?.moreItems;
+                  // Passwords / Tools / Meetings / Ideas now live under the Admin tab's sub-tabs
                   const defaultMore = [
                     { id: 'messages',    label: 'Messages',  Icon: MessageSquare },
                     { id: 'profile',     label: 'Profile',   Icon: User },
                     { id: 'tasks',       label: 'Tasks',     Icon: ClipboardList },
                     { id: 'todo',        label: 'To-Do',     Icon: ListTodo },
-                    { id: 'credentials', label: 'Passwords', Icon: KeyRound },
                     { id: 'captions',    label: 'Captions',  Icon: AlignLeft },
-                    ...(profile?.ideas_access ? [{ id: 'ideas', label: 'Ideas', Icon: Lightbulb }] : []),
                     ...(profile?.content_ideas_access ? [{ id: 'content_ideas', label: 'Content Ideas', Icon: Lightbulb }] : []),
                     ...(profile?.can_see_crm ? [{ id: 'crm', label: 'CRM', Icon: MoreHorizontal }] : []),
-                    { id: 'tools',       label: 'Tools',     Icon: Wrench },
-                    { id: 'meetings',    label: 'Meetings',  Icon: CalendarDays },
                   ];
                   return (customMore ? customMore(mobileIcons) : defaultMore)
                     .filter(item => !getHiddenNav(profile).includes(item.id));

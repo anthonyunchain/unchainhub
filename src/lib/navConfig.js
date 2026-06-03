@@ -66,16 +66,14 @@ export const MOBILE_NAV_BY_ID = {
       { id: 'invoices',  label: 'Admin',     Icon: icons.FileText },
     ],
     showMore: true,
+    // Passwords / Tools / Meetings now live under the Admin tab's sub-tabs
     moreItems: (icons) => [
       { id: 'shootings',   label: 'Shootings', Icon: icons.Camera },
       { id: 'messages',    label: 'Messages',  Icon: icons.MessageSquare },
       { id: 'profile',     label: 'Profile',   Icon: icons.User },
       { id: 'myprojects',  label: 'Projects',  Icon: icons.Briefcase },
       { id: 'todo',        label: 'To-Do',     Icon: icons.ListTodo },
-      { id: 'credentials', label: 'Passwords', Icon: icons.KeyRound },
       { id: 'captions',    label: 'Captions',  Icon: icons.AlignLeft },
-      { id: 'tools',       label: 'Tools',     Icon: icons.Wrench },
-      { id: 'meetings',    label: 'Meetings',  Icon: icons.CalendarDays },
     ],
   },
 };
