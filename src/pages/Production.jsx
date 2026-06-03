@@ -942,7 +942,7 @@ export default function Production() {
 
   return (
     <div className="mx-auto" style={{ maxWidth: "1400px" }}>
-      <PageHeader title="Production" subtitle="Projects, freelancers & tools" />
+      <div className="hidden md:block"><PageHeader title="Production" subtitle="Projects, freelancers & tools" /></div>
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start">
         <ProductionNav tab={tab} setTab={setTab} />

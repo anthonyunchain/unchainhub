@@ -527,17 +527,20 @@ function AdminTasks() {
           <Button onClick={openNew} className="bg-brand hover:bg-brand/90 text-brand-foreground h-9"><Plus className="w-4 h-4 mr-1" />New task</Button>
         </PageHeader>
       </div>
-      <div className="flex items-center gap-2 mb-3 flex-wrap max-w-2xl mx-auto">
+      <div
+        className="flex items-center gap-2 mb-3 max-w-2xl mx-auto overflow-x-auto pb-1"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
         <button
           onClick={() => setActiveStatus("all")}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeStatus === "all" ? "bg-slate-800 text-white" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"}`}>
+          className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeStatus === "all" ? "bg-slate-800 text-white" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"}`}>
           All <span className="ml-1 text-xs opacity-60">{tasks.length}</span>
         </button>
         {STATUSES.map((s) => (
           <button
             key={s}
             onClick={() => setActiveStatus(s)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${activeStatus === s ? STATUS_COLORS[s] + " ring-1 ring-current" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"}`}>
+            className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${activeStatus === s ? STATUS_COLORS[s] + " ring-1 ring-current" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"}`}>
             <span className={`w-2 h-2 rounded-full ${STATUS_DOT[s]}`} />
             {STATUS_LABEL[s]}
             <span className="text-xs opacity-60">{countByStatus(s)}</span>
@@ -1958,7 +1961,7 @@ export default function Admin() {
 
   return (
     <div className="mx-auto" style={{ maxWidth: '1400px' }}>
-      <PageHeader title="Administration" subtitle="Governance & operations" />
+      <div className="hidden md:block"><PageHeader title="Administration" subtitle="Governance & operations" /></div>
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start">
         {/* ── Sidebar ── */}
