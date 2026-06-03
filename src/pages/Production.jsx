@@ -5,6 +5,7 @@ import PageHeader from "../components/shared/PageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Clapperboard, Film, Layers, X, Search, Calendar, User, Tag, Users, Wrench, FileText, CalendarDays, ArrowUpRight, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import AdminProjects from "@/components/admin/AdminProjects";
@@ -133,7 +134,12 @@ function ProjectModal({ project, onClose, onSaved, onDeleted }) {
       })
       .eq("id", project.id);
     setSaving(false);
-    if (!error) onSaved();
+    if (error) {
+      console.error("Project save failed:", error);
+      toast.error("Could not save the project: " + (error.message || error.code || "unknown error"));
+      return;
+    }
+    onSaved();
   }
 
   async function handleDelete() {
@@ -479,7 +485,13 @@ function EditorialModal({ item, onClose, onSaved }) {
         })
         .select()
         .single();
-      if (!projErr) linkedProjectId = proj.id;
+      if (projErr) {
+        setSaving(false);
+        console.error("Linked project creation failed:", projErr);
+        toast.error("Could not create the linked video project: " + (projErr.message || projErr.code || "unknown error"));
+        return;
+      }
+      linkedProjectId = proj.id;
     }
 
     // If switching back to editorial, delete the auto-created project and unlink
@@ -499,7 +511,12 @@ function EditorialModal({ item, onClose, onSaved }) {
       })
       .eq("id", item.id);
     setSaving(false);
-    if (!error) onSaved();
+    if (error) {
+      console.error("Editorial save failed:", error);
+      toast.error("Could not save: " + (error.message || error.code || "unknown error"));
+      return;
+    }
+    onSaved();
   }
 
   return (
