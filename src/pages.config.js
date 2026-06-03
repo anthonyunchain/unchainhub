@@ -62,7 +62,6 @@ import Pipeline from './pages/Pipeline';
 import Reports from './pages/Reports';
 import Services from './pages/Services';
 import Tasks from './pages/Tasks';
-import VideoEditing from './pages/VideoEditing';
 
 
 export const PAGES = {
@@ -81,7 +80,6 @@ export const PAGES = {
     "Reports": Reports,
     "Services": Services,
     "Tasks": Tasks,
-    "VideoEditing": VideoEditing,
 }
 
 export const pagesConfig = {

@@ -11,33 +11,10 @@ import { enUS } from "date-fns/locale";
 import AdminProjects from "@/components/admin/AdminProjects";
 import { FreelancerProfiles, ToolsManagement, InvoicesManagement, MeetingsManagement } from "./FreelancerAdmin";
 import { EDITING_STATUS, EDITING_STATUS_OPTIONS, EDITING_STATUS_LABELS, EDITING_STEPS, editingStepIndex } from "@/lib/editorialStatus";
+import { PROJECT_STATUS, PRODUCTION_STEPS, productionStepIndex } from "@/lib/projectStatus";
 
 // ─── Video projects (projects table) ─────────────────────────────────────────
-
-const PROJECT_STATUS = {
-  "Draft":              { label: "Draft",               bg: "bg-violet-50",  text: "text-violet-600", dot: "bg-violet-400"  },
-  "Unassigned":         { label: "Unassigned",          bg: "bg-slate-50",   text: "text-slate-500",  dot: "bg-slate-400"   },
-  "Pending acceptance": { label: "Pending",             bg: "bg-amber-50",   text: "text-amber-700",  dot: "bg-amber-400"   },
-  "Accepted":           { label: "Accepted",            bg: "bg-blue-50",    text: "text-blue-700",   dot: "bg-blue-400"    },
-  "In progress":        { label: "In progress",         bg: "bg-indigo-50",  text: "text-indigo-700", dot: "bg-indigo-500"  },
-  "Delivered":          { label: "Delivered",           bg: "bg-purple-50",  text: "text-purple-700", dot: "bg-purple-500"  },
-  "Revision requested": { label: "Revision",            bg: "bg-red-50",     text: "text-red-700",    dot: "bg-red-500"     },
-  "Subtitles":          { label: "Subtitles",           bg: "bg-teal-50",    text: "text-teal-700",   dot: "bg-teal-500"    },
-};
-
-// 5-step production workflow
-const PRODUCTION_STEPS = [
-  { key: "Accepted",    label: "Accept"        },
-  { key: "In progress", label: "Rough cut"     },
-  { key: "Delivered",   label: "Final"         },
-  { key: "Subtitles",   label: "Subtitles"     },
-  { key: "Completed",   label: "Ready to post" },
-];
-
-function stepIndex(status) {
-  if (status === "Completed") return 4;
-  return PRODUCTION_STEPS.findIndex(s => s.key === status);
-}
+// Project status taxonomy + production steps live in @/lib/projectStatus.
 
 // ─── Editorial content (editorial_content table) ─────────────────────────────
 // Editing-status taxonomy now lives in @/lib/editorialStatus (single source of truth).
@@ -53,7 +30,7 @@ function StatusPill({ status, map }) {
 }
 
 function StepProgress({ status }) {
-  const current = stepIndex(status);
+  const current = productionStepIndex(status);
   return (
     <div>
       <div className="flex items-center gap-1 mb-1.5">

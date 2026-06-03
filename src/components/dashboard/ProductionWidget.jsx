@@ -2,24 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Clapperboard } from "lucide-react";
+import { PROJECT_STATUS, productionStepIndex } from "@/lib/projectStatus";
 
-const STATUS_DOT = {
-  "In progress":        "bg-indigo-500",
-  "Delivered":          "bg-purple-500",
-  "Revision requested": "bg-red-500",
-  "Accepted":           "bg-blue-400",
-  "Pending acceptance": "bg-amber-400",
-  "Unassigned":         "bg-slate-300",
-  "Draft":              "bg-violet-400",
-  "Subtitles":          "bg-teal-500",
-};
-
-const PRODUCTION_STEPS = ["Accepted", "In progress", "Delivered", "Subtitles", "Completed"];
-
-function stepIndex(status) {
-  if (status === "Completed") return 4;
-  return PRODUCTION_STEPS.indexOf(status);
-}
+const statusDot = (status) => PROJECT_STATUS[status]?.dot || "bg-slate-300";
 
 export default function ProductionWidget() {
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
@@ -91,7 +76,7 @@ export default function ProductionWidget() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
                   <span
                     style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0 }}
-                    className={STATUS_DOT[p.status] || "bg-slate-300"}
+                    className={statusDot(p.status)}
                   />
                   <p style={{
                     fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -105,7 +90,7 @@ export default function ProductionWidget() {
                 </div>
                 {/* Step progress */}
                 {(() => {
-                  const si = stepIndex(p.status);
+                  const si = productionStepIndex(p.status);
                   const STEP_LABELS = ["Accept", "Rough cut", "Final", "Subtitles", "Ready to post"];
                   return (
                     <div>

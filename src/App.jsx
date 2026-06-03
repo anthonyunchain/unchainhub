@@ -47,7 +47,6 @@ const Freelancers         = lazy(() => import('./pages/Freelancers'));
 const Finance             = lazy(() => import('./pages/Finance'));
 const Editorial           = lazy(() => import('./pages/Editorial'));
 const Reports             = lazy(() => import('./pages/Reports'));
-const VideoEditing        = lazy(() => import('./pages/VideoEditing'));
 const Shootings           = lazy(() => import('./pages/Shootings'));
 const ShootingsToOrganize = lazy(() => import('./pages/ShootingsToOrganize'));
 const Tasks               = lazy(() => import('./pages/Tasks'));
@@ -244,7 +243,6 @@ const AuthenticatedApp = () => {
           <Route path="Finance" element={<AdminRoute><Finance /></AdminRoute>} />
           <Route path="Editorial" element={<AdminRoute><Editorial /></AdminRoute>} />
           <Route path="Reports" element={<AdminRoute><Reports /></AdminRoute>} />
-          <Route path="VideoEditing" element={<AdminRoute><VideoEditing /></AdminRoute>} />
           <Route path="Shootings" element={<AdminRoute><Shootings /></AdminRoute>} />
           <Route path="ShootingsToOrganize" element={<AdminRoute><ShootingsToOrganize /></AdminRoute>} />
           <Route path="Tasks" element={<AdminRoute><Tasks /></AdminRoute>} />

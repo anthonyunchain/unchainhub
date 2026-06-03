@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { base44, supabase } from "@/api/base44Client";
+import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { format, isPast, differenceInHours, differenceInDays } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import FileDropzone from "@/components/shared/FileDropzone";
 import { openDeliverable, formatBytes } from "@/lib/deliverables";
-import { nextEditingStatus, nextEditingActionLabel } from "@/lib/editorialStatus";
+import { EDITING_STATUS, EDITING_STATUS_LABELS, nextEditingStatus, nextEditingActionLabel } from "@/lib/editorialStatus";
 
 // Pipeline stages in order
 const STAGES = [
@@ -408,31 +408,17 @@ function urgencyScore(p) {
   return 6;
 }
 
-const EDITING_STATUS_LABEL = {
-  "Non assigné": "Unassigned",
-  "En attente d'acceptation": "Pending acceptance",
-  "À faire": "To do",
-  "En cours de montage": "In progress",
-  "En attente de retour": "Awaiting feedback",
-  "Subtitles": "Subtitles",
-  "Terminé": "Done",
-};
-
-const EDITING_STATUS_COLOR = {
-  "Non assigné":               "bg-slate-100 text-slate-500",
-  "En attente d'acceptation":  "bg-amber-100 text-amber-700",
-  "À faire":                   "bg-blue-100 text-blue-700",
-  "En cours de montage":       "bg-indigo-100 text-indigo-700",
-  "En attente de retour":      "bg-violet-100 text-violet-700",
-  "Subtitles":                 "bg-teal-100 text-teal-700",
-  "Terminé":                   "bg-emerald-100 text-emerald-700",
+// Editing-status taxonomy lives in @/lib/editorialStatus (single source of truth).
+const editingStatusColor = (s) => {
+  const cfg = EDITING_STATUS[s];
+  return cfg ? `${cfg.bg} ${cfg.text}` : "bg-slate-100 text-slate-500";
 };
 
 function EditorialCard({ item, onAction }) {
   const [busy, setBusy] = useState(false);
   const isDone = item.editing_status === "Terminé";
-  const statusLabel = EDITING_STATUS_LABEL[item.editing_status] || item.editing_status || "—";
-  const statusColor = EDITING_STATUS_COLOR[item.editing_status] || "bg-slate-100 text-slate-500";
+  const statusLabel = EDITING_STATUS_LABELS[item.editing_status] || item.editing_status || "—";
+  const statusColor = editingStatusColor(item.editing_status);
   const date = item.scheduled_date ? format(new Date(item.scheduled_date), "d MMM yyyy", { locale: enUS }) : null;
 
   const next = nextEditingStatus(item.editing_status);
@@ -447,7 +433,7 @@ function EditorialCard({ item, onAction }) {
         editing_status: next,
       });
       if (data?.error) throw new Error(data.error);
-      toast.success(`Status updated to "${EDITING_STATUS_LABEL[next] || next}"`);
+      toast.success(`Status updated to "${EDITING_STATUS_LABELS[next] || next}"`);
       onAction?.();
     } catch (e) {
       toast.error(e?.message || "Could not update status");

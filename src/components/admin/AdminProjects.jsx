@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import FileDropzone from "@/components/shared/FileDropzone";
 import { openDeliverable, formatBytes } from "@/lib/deliverables";
+import { PROJECT_STATUS, projectStatusColor } from "@/lib/projectStatus";
 
 // Split delivery_files into rounds using revision_request timestamps as cutoffs.
 // Files uploaded before the first revision request form round 1, files between
@@ -38,17 +39,7 @@ function groupDeliveriesIntoRounds(files, revisions) {
 // Real columns: id, title, status, client_name, description, notes,
 //               freelancer_id, freelancer_name, created_at, updated_at
 
-const STATUS_CONFIG = {
-  "Draft":              { color: "bg-violet-100 text-violet-600", order: 0 },
-  "Unassigned":         { color: "bg-slate-100 text-slate-500", order: 1 },
-  "Pending acceptance": { color: "bg-amber-100 text-amber-700", order: 2 },
-  "Accepted":           { color: "bg-blue-100 text-blue-700", order: 3 },
-  "In progress":        { color: "bg-indigo-100 text-indigo-700", order: 4 },
-  "Delivered":          { color: "bg-violet-100 text-violet-700", order: 5 },
-  "Revision requested": { color: "bg-red-100 text-red-700", order: 6 },
-  "Completed":          { color: "bg-emerald-100 text-emerald-700", order: 7 },
-};
-
+// Project status taxonomy lives in @/lib/projectStatus (single source of truth).
 const PIPELINE_STATUSES = ["Draft", "Unassigned", "Pending acceptance", "Accepted", "In progress", "Delivered", "Completed"];
 
 const emptyForm = { title: "", client_name: "", description: "", notes: "", freelancer_id: "", freelancer_name: "", url: "", images: [], brief_files: [] };
@@ -120,7 +111,7 @@ export default function AdminProjects() {
     .filter(p => filterStatus === "all" || p.status === filterStatus)
     .filter(p => filterFreelancer === "all" || p.freelancer_id === filterFreelancer)
     .filter(p => filterClient === "all" || p.client_name === filterClient)
-    .sort((a, b) => (STATUS_CONFIG[a.status]?.order ?? 0) - (STATUS_CONFIG[b.status]?.order ?? 0));
+    .sort((a, b) => (PROJECT_STATUS[a.status]?.order ?? 0) - (PROJECT_STATUS[b.status]?.order ?? 0));
 
   const projectClientNames = [...new Set(projects.map(p => p.client_name).filter(Boolean))];
 
@@ -354,7 +345,7 @@ export default function AdminProjects() {
           <SelectTrigger className="h-8 text-xs w-44"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
-            {Object.keys(STATUS_CONFIG).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            {Object.keys(PROJECT_STATUS).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterFreelancer} onValueChange={setFilterFreelancer}>
@@ -378,10 +369,9 @@ export default function AdminProjects() {
         <div className="flex gap-3 overflow-x-auto pb-4">
           {PIPELINE_STATUSES.map(status => {
             const cols = filtered.filter(p => p.status === status);
-            const cfg = STATUS_CONFIG[status];
             return (
               <div key={status} className="shrink-0 w-60">
-                <div className={`text-xs font-semibold px-2 py-1.5 rounded-t-lg mb-2 ${cfg.color}`}>
+                <div className={`text-xs font-semibold px-2 py-1.5 rounded-t-lg mb-2 ${projectStatusColor(status)}`}>
                   {status} <span className="opacity-60">({cols.length})</span>
                 </div>
                 <div className="space-y-2">
@@ -416,7 +406,6 @@ export default function AdminProjects() {
             <tbody>
               {filtered.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-400">No projects found</td></tr>}
               {filtered.map(p => {
-                const cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG["Unassigned"];
                 return (
                   <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50 cursor-pointer" onClick={() => setEditingProject({ ...p })}>
                     <td className="px-4 py-3">
@@ -425,7 +414,7 @@ export default function AdminProjects() {
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{p.client_name || "—"}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{p.freelancer_name || <span className="text-slate-300">Unassigned</span>}</td>
-                    <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.color}`}>{p.status}</span></td>
+                    <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${projectStatusColor(p.status)}`}>{p.status}</span></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
                         {p.status === "Draft" && (
@@ -631,7 +620,7 @@ export default function AdminProjects() {
               </div>
               <div><Label>Status</Label>
                 <div className="mt-1">
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_CONFIG[editingProject.status]?.color || "bg-slate-100 text-slate-600"}`}>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${projectStatusColor(editingProject.status)}`}>
                     {editingProject.status || "Unassigned"}
                   </span>
                   <p className="text-xs text-slate-400 mt-1">Use the action buttons on the project card to change status.</p>

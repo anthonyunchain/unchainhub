@@ -16,7 +16,6 @@ const PAGE_TITLES = {
   '/Finance':             'Finance',
   '/Editorial':           'Editorial',
   '/Reports':             'Reports',
-  '/VideoEditing':        'Video Editing',
   '/Shootings':           'Shootings',
   '/ShootingsToOrganize': 'Shootings to Organize',
   '/Tasks':               'Tasks',
