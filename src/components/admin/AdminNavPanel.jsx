@@ -190,10 +190,10 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
   return (
     <>
       {/* ── Mobile nav: category pills + item grid ── */}
-      <div className="md:hidden mb-4 space-y-3">
+      <div className="md:hidden mb-4 space-y-3 w-full">
         {/* Category scroll row */}
         <div
-          className="flex gap-2 overflow-x-auto pb-1"
+          className="flex gap-2 overflow-x-auto pb-1 w-full"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {sections.map(sec => {
@@ -203,7 +203,7 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
                 key={sec.label}
                 type="button"
                 onClick={() => setMobileCat(sec.label)}
-                className="shrink-0 px-5 rounded-full text-xs font-semibold transition-all active:scale-95"
+                className="shrink-0 px-5 rounded-full text-xs font-semibold"
                 style={{
                   fontFamily: "'DM Mono', monospace",
                   letterSpacing: '0.04em',
@@ -222,7 +222,7 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
 
         {/* Item grid for active category */}
         {activeSec && (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 w-full">
             {activeSec.items.map(item => {
               const Icon = item.icon;
               const isActive = section === item.id;
@@ -232,7 +232,7 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
                   key={item.id}
                   type="button"
                   onClick={() => { if (item.href) navigate(item.href); else onSelect?.(item.id); }}
-                  className="relative flex flex-col items-center gap-1.5 py-3.5 rounded-2xl transition-all active:scale-95"
+                  className="relative flex flex-col items-center gap-1.5 py-3.5 rounded-2xl"
                   style={{
                     background: isActive ? 'var(--brand-gradient, var(--brand))' : 'rgba(30,40,70,0.05)',
                     border: isActive ? 'none' : '1px solid rgba(30,40,70,0.08)',

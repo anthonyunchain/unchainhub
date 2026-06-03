@@ -897,7 +897,7 @@ function ProductionNav({ tab, setTab }) {
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
-              className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all active:scale-95"
+              className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold"
               style={{
                 fontFamily: "'DM Mono', monospace",
                 letterSpacing: '0.04em',
@@ -944,7 +944,7 @@ export default function Production() {
     <div className="mx-auto" style={{ maxWidth: "1400px" }}>
       <div className="hidden md:block"><PageHeader title="Production" subtitle="Projects, freelancers & tools" /></div>
 
-      <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start">
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6 md:items-start">
         <ProductionNav tab={tab} setTab={setTab} />
 
         <div className="flex-1 min-w-0">

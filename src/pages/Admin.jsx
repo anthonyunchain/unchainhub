@@ -533,7 +533,7 @@ function AdminTasks() {
       >
         <button
           onClick={() => setActiveStatus("all")}
-          className={`shrink-0 px-4 rounded-xl text-sm font-medium transition-all active:scale-95 ${activeStatus === "all" ? "bg-slate-800 text-white" : "bg-white text-slate-500 border border-slate-200"}`}
+          className={`shrink-0 px-4 rounded-xl text-sm font-medium transition-all ${activeStatus === "all" ? "bg-slate-800 text-white" : "bg-white text-slate-500 border border-slate-200"}`}
           style={{ minHeight: 44 }}>
           All <span className="ml-1 text-xs opacity-60">{tasks.length}</span>
         </button>
@@ -541,7 +541,7 @@ function AdminTasks() {
           <button
             key={s}
             onClick={() => setActiveStatus(s)}
-            className={`shrink-0 px-4 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 active:scale-95 ${activeStatus === s ? STATUS_COLORS[s] + " ring-1 ring-current" : "bg-white text-slate-500 border border-slate-200"}`}
+            className={`shrink-0 px-4 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${activeStatus === s ? STATUS_COLORS[s] + " ring-1 ring-current" : "bg-white text-slate-500 border border-slate-200"}`}
             style={{ minHeight: 44 }}>
             <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[s]}`} />
             {STATUS_LABEL[s]}
@@ -1973,7 +1973,7 @@ export default function Admin() {
     <div className="mx-auto" style={{ maxWidth: '1400px' }}>
       <div className="hidden md:block"><PageHeader title="Administration" subtitle="Governance & operations" /></div>
 
-      <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start">
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6 md:items-start">
         {/* ── Sidebar ── */}
         <AdminNavPanel section={section} onSelect={setSection} badges={badges} />
 
