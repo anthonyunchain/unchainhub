@@ -30,6 +30,7 @@ export default function ProductionWidget() {
       padding: '24px',
       display: 'flex',
       flexDirection: 'column',
+      height: '100%',
     }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0 }}>

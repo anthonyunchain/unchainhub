@@ -263,7 +263,7 @@ export default function Dashboard() {
         </Link>
 
         {/* Production Tracker */}
-        <div className="h-auto lg:h-[420px]">
+        <div className="h-auto lg:h-[420px] flex flex-col">
           <ProductionWidget />
         </div>
 
