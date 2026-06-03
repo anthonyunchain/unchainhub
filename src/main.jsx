@@ -10,6 +10,10 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+window.addEventListener('vite:preloadError', () => {
+  window.location.reload()
+})
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <App />
 )

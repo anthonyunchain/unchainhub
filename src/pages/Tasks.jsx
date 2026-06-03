@@ -100,7 +100,7 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
           )}
           <button
             onClick={(e) => {e.stopPropagation();onDelete(task.id);}}
-            className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all shrink-0">
+            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all shrink-0">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>

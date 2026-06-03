@@ -793,7 +793,7 @@ function OverviewTab() {
                       </div>
                       <button onClick={ev => { ev.stopPropagation(); toggleMutation.mutate({ id: e.id, value: false }); }}
                         title="Remove from production"
-                        className="absolute top-3 right-3 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 transition-all z-10">
+                        className="absolute top-3 right-3 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 transition-all z-10">
                         <X className="w-3 h-3 text-slate-400 hover:text-red-500" />
                       </button>
                     </div>
@@ -829,7 +829,7 @@ function OverviewTab() {
                     <button
                       onClick={ev => { ev.stopPropagation(); toggleMutation.mutate({ id: e.id, value: false }); }}
                       title="Remove from production"
-                      className="absolute top-3 right-3 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 transition-all z-10">
+                      className="absolute top-3 right-3 w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 transition-all z-10">
                       <X className="w-3 h-3 text-slate-400 hover:text-red-500" />
                     </button>
                   </div>
@@ -884,15 +884,34 @@ const MAIN_TABS = [
 function ProductionNav({ tab, setTab }) {
   return (
     <>
-      {/* Mobile dropdown */}
-      <div className="md:hidden mb-4">
-        <select
-          value={tab}
-          onChange={e => setTab(e.target.value)}
-          className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 bg-white focus:outline-none focus:border-[#2A69FF]"
-        >
-          {MAIN_TABS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
-        </select>
+      {/* Mobile: horizontal scrollable pill row */}
+      <div
+        className="md:hidden flex gap-2 overflow-x-auto pb-1 mb-4"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {MAIN_TABS.map(t => {
+          const Icon = t.icon;
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all active:scale-95"
+              style={{
+                fontFamily: "'DM Mono', monospace",
+                letterSpacing: '0.04em',
+                background: active ? 'var(--brand)' : 'rgba(30,40,70,0.07)',
+                color: active ? '#fff' : 'var(--muted)',
+                border: active ? 'none' : '1px solid rgba(30,40,70,0.1)',
+                boxShadow: active ? 'var(--brand-shadow)' : 'none',
+              }}
+            >
+              <Icon className="w-3.5 h-3.5" style={{ strokeWidth: active ? 2.2 : 1.8 }} />
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Desktop vertical sidebar */}
@@ -925,7 +944,7 @@ export default function Production() {
     <div className="mx-auto" style={{ maxWidth: "1400px" }}>
       <PageHeader title="Production" subtitle="Projects, freelancers & tools" />
 
-      <div className="flex gap-6 items-start">
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start">
         <ProductionNav tab={tab} setTab={setTab} />
 
         <div className="flex-1 min-w-0">

@@ -354,7 +354,7 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                     <p className="text-sm font-medium text-slate-800" style={isCancelled ? { textDecoration: 'line-through' } : undefined}>{c.title || "Untitled"}</p>
                     {c.description && <p className="text-xs text-slate-500 mt-1">{c.description}</p>}
                   </div>
-                  {!isReadOnly && <button onClick={(e) => handleQuickDelete(e, c.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all shrink-0">
+                  {!isReadOnly && <button onClick={(e) => handleQuickDelete(e, c.id)} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all shrink-0">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>}
                 </div>
@@ -515,8 +515,8 @@ export default function Editorial({ onDescriptionsClick } = {}) {
   const ListView = () => {
     const sorted = [...filtered].sort((a, b) => new Date(b.scheduled_date || 0) - new Date(a.scheduled_date || 0));
     return (
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+        <table className="w-full min-w-[640px]">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/50">
               <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Date</th>
@@ -557,7 +557,7 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                 </td>
                 <td className="px-5 py-3">
                   {!isReadOnly && (
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button onClick={() => openEdit(c)} className="text-slate-400 hover:text-[#2A69FF]">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>

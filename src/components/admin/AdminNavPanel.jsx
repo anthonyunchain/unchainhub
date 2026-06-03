@@ -7,7 +7,6 @@ import {
   GripVertical,
 } from "lucide-react";
 import { useState, useRef } from "react";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const DEFAULT_SECTIONS = [
   { label: "Operations", items: [
@@ -97,13 +96,6 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
   const dragSec = useRef(null);
   const dragItem = useRef(null);
 
-  const allItems = sections.flatMap(s => s.items);
-
-  const handleMobileChange = (val) => {
-    const item = allItems.find(i => i.id === val);
-    if (item?.href) navigate(item.href);
-    else onSelect?.(val);
-  };
 
   // ── Section drag (only from header) ────────────────────────────────────────
   const onSecDragStart = (e, label) => {
@@ -189,25 +181,94 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
     dragType.current = null;
   };
 
+  const [mobileCat, setMobileCat] = useState(null);
+
+  // derive active category from current section
+  const activeCat = mobileCat ?? sections.find(s => s.items.some(i => i.id === section))?.label ?? sections[0]?.label;
+  const activeSec = sections.find(s => s.label === activeCat);
+
   return (
     <>
-      {/* Mobile dropdown */}
-      <div className="md:hidden mb-4">
-        <Select value={section || ''} onValueChange={handleMobileChange}>
-          <SelectTrigger className="w-full h-11 text-sm font-semibold bg-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {sections.map(sec => (
-              <SelectGroup key={sec.label}>
-                <SelectLabel className="text-[10px] uppercase tracking-widest text-slate-400 font-medium">{sec.label}</SelectLabel>
-                {sec.items.map(item => (
-                  <SelectItem key={item.id} value={item.id} className="text-sm py-2.5">{item.label}</SelectItem>
-                ))}
-              </SelectGroup>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* ── Mobile nav: category pills + item grid ── */}
+      <div className="md:hidden mb-4 space-y-3">
+        {/* Category scroll row */}
+        <div
+          className="flex gap-2 overflow-x-auto pb-1"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {sections.map(sec => {
+            const isActive = sec.label === activeCat;
+            return (
+              <button
+                key={sec.label}
+                type="button"
+                onClick={() => setMobileCat(sec.label)}
+                className="shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all"
+                style={{
+                  fontFamily: "'DM Mono', monospace",
+                  letterSpacing: '0.04em',
+                  background: isActive ? 'var(--brand)' : 'rgba(30,40,70,0.07)',
+                  color: isActive ? '#fff' : 'var(--muted)',
+                  border: isActive ? 'none' : '1px solid rgba(30,40,70,0.1)',
+                  boxShadow: isActive ? 'var(--brand-shadow)' : 'none',
+                }}
+              >
+                {sec.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Item grid for active category */}
+        {activeSec && (
+          <div className="grid grid-cols-3 gap-2">
+            {activeSec.items.map(item => {
+              const Icon = item.icon;
+              const isActive = section === item.id;
+              const badge = badges[item.id];
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => { if (item.href) navigate(item.href); else onSelect?.(item.id); }}
+                  className="relative flex flex-col items-center gap-1.5 py-3.5 rounded-2xl transition-all active:scale-95"
+                  style={{
+                    background: isActive ? 'var(--brand-gradient, var(--brand))' : 'rgba(30,40,70,0.05)',
+                    border: isActive ? 'none' : '1px solid rgba(30,40,70,0.08)',
+                    boxShadow: isActive ? 'var(--brand-shadow)' : 'none',
+                  }}
+                >
+                  <Icon
+                    className="w-5 h-5"
+                    style={{ color: isActive ? '#fff' : 'var(--muted-55)', strokeWidth: isActive ? 2.2 : 1.8 }}
+                  />
+                  <span style={{
+                    fontSize: '10px',
+                    fontFamily: "'DM Mono', monospace",
+                    fontWeight: 500,
+                    textAlign: 'center',
+                    color: isActive ? '#fff' : 'var(--muted-55)',
+                    lineHeight: 1.3,
+                    paddingLeft: 4,
+                    paddingRight: 4,
+                  }}>
+                    {item.label}
+                  </span>
+                  {badge && (
+                    <span style={{
+                      position: 'absolute', top: 6, right: 6,
+                      minWidth: 17, height: 17, padding: '0 4px',
+                      borderRadius: 9, background: isActive ? 'rgba(255,255,255,0.3)' : '#E8421A',
+                      color: '#fff', fontSize: 9, fontWeight: 700,
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    }}>{badge}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Desktop vertical sidebar */}

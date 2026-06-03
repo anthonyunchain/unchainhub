@@ -3,30 +3,30 @@ import { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard, CheckSquare, Calendar, Lightbulb,
   MoreHorizontal, X, Shield, UserCheck, Users, Layers, NotebookPen,
-  Camera, DollarSign, ShoppingBag, FileText, GitBranch, MessageSquare, Contact
+  Camera, DollarSign, FileText, GitBranch, MessageSquare, CalendarDays
 } from "lucide-react";
 import { supabase } from "@/api/base44Client";
 import { useUnreadCount } from "@/components/messaging/useUnreadCount";
 
 const MAIN_TABS = [
-  { path: "/Dashboard", label: "Home",      icon: LayoutDashboard },
-  { path: "/Tasks",     label: "Tasks",     icon: CheckSquare },
-  { path: "/Editorial", label: "Calendar",  icon: Calendar },
-  { path: "/Shootings", label: "Shootings", icon: Camera },
+  { path: "/Dashboard",  label: "Home",       icon: LayoutDashboard },
+  { path: "/Tasks",      label: "Tasks",      icon: CheckSquare },
+  { path: "/Production", label: "Production", icon: Layers },
+  { path: "/Admin",      label: "Admin",      icon: Shield },
 ];
 
 const MORE_ITEMS = [
-  { path: "/Ideas",          label: "Ideas",       icon: Lightbulb },
-  { path: "/Clients",        label: "Clients",     icon: Users },
-  { path: "/Freelancers",    label: "Freelancers", icon: UserCheck },
-  { path: "/Finance",        label: "Finance",     icon: DollarSign },
-  { path: "/Pipeline",       label: "Pipeline",    icon: GitBranch },
-  { path: "/FreelancerShop", label: "Shop",        icon: ShoppingBag },
-  { path: "/Notes",          label: "Notes",       icon: NotebookPen },
-  { path: "/Messages",       label: "Messages",    icon: MessageSquare },
-  { path: "/Invoices",       label: "Invoices",    icon: FileText },
-  { path: "/Admin",          label: "Admin",       icon: Shield },
-  { path: "/Services",       label: "Services",    icon: Layers },
+  { path: "/Editorial",      label: "Calendar",   icon: Calendar },
+  { path: "/Clients",        label: "Clients",    icon: Users },
+  { path: "/Shootings",      label: "Shootings",  icon: Camera },
+  { path: "/Messages",       label: "Messages",   icon: MessageSquare },
+  { path: "/Pipeline",       label: "Pipeline",   icon: GitBranch },
+  { path: "/Planning",       label: "Planning",   icon: CalendarDays },
+  { path: "/Freelancers",    label: "Freelancers",icon: UserCheck },
+  { path: "/Finance",        label: "Finance",    icon: DollarSign },
+  { path: "/Ideas",          label: "Ideas",      icon: Lightbulb },
+  { path: "/Notes",          label: "Notes",      icon: NotebookPen },
+  { path: "/Invoices",       label: "Invoices",   icon: FileText },
 ];
 
 export default function MobileNav() {
