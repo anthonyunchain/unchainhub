@@ -48,7 +48,7 @@ function SettingsDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Account settings</DialogTitle></DialogHeader>
         <div className="space-y-6 mt-2">
           {/* Change email */}

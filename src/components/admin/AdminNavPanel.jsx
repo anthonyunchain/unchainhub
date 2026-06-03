@@ -203,10 +203,11 @@ export default function AdminNavPanel({ section, onSelect, badges = {} }) {
                 key={sec.label}
                 type="button"
                 onClick={() => setMobileCat(sec.label)}
-                className="shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all"
+                className="shrink-0 px-5 rounded-full text-xs font-semibold transition-all active:scale-95"
                 style={{
                   fontFamily: "'DM Mono', monospace",
                   letterSpacing: '0.04em',
+                  minHeight: 44,
                   background: isActive ? 'var(--brand)' : 'rgba(30,40,70,0.07)',
                   color: isActive ? '#fff' : 'var(--muted)',
                   border: isActive ? 'none' : '1px solid rgba(30,40,70,0.1)',

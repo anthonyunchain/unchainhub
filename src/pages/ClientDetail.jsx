@@ -207,7 +207,7 @@ function PhotoBankUploader({ client, save }) {
             <div key={i} className="relative group rounded-lg overflow-hidden" style={{ aspectRatio: "3 / 4", background: "#f1f5f9" }}>
               <img src={photoThumb(p.url)} alt={p.name || ""} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-contain" />
               <button onClick={() => save({ photo_bank: photos.filter((_, idx) => idx !== i) })}
-                className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1 right-1 w-8 h-8 rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                 style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}>
                 <X className="w-3.5 h-3.5" />
               </button>

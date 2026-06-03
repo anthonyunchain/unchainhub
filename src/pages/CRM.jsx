@@ -110,7 +110,7 @@ function TaskModal({ task, onClose, onSave }) {
 
   return (
     <Dialog open={!!task} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-sm font-semibold">{tpl?.msg_id} — {clientName}</DialogTitle>
         </DialogHeader>
@@ -128,7 +128,7 @@ function TaskModal({ task, onClose, onSave }) {
             <p className="text-xs text-slate-400 italic">{tpl.notes}</p>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Status</Label>
               <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
@@ -204,7 +204,7 @@ function GenerateModal({ open, onClose }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm max-h-[92vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Generate workflow tasks</DialogTitle></DialogHeader>
         <div className="space-y-4 mt-2">
           <div>
@@ -523,7 +523,7 @@ function TemplatesTab() {
                   onChange={e => setForm(f => ({ ...f, trigger_event: e.target.value }))} />
               </div>
               {editing?.default_channel === "email" && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs">Subject EN</Label>
                     <Input value={form.subject_en} className="text-sm" onChange={e => setForm(f => ({ ...f, subject_en: e.target.value }))} />
@@ -633,7 +633,7 @@ function NewTaskModal({ open, onClose }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Scheduled date</Label>
               <Input type="date" value={form.scheduled_date} onChange={e => setForm(f => ({ ...f, scheduled_date: e.target.value }))} className="text-sm" />

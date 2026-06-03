@@ -200,7 +200,7 @@ export default function AdminTutorials() {
               <Label htmlFor="tut-url">YouTube URL * <span className="text-slate-400">(unlisted is fine)</span></Label>
               <Input id="tut-url" type="url" value={form.youtube_url} onChange={e => setForm(f => ({ ...f, youtube_url: e.target.value }))} placeholder="https://youtu.be/…" className="mt-1" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="tut-category">Category</Label>
                 <Input id="tut-category" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="Getting started, Brief, Reports…" className="mt-1" />

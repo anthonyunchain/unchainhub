@@ -293,7 +293,7 @@ export default function Invoices() {
           {editData && (
             <div className="space-y-4 mt-2">
               {/* Client + Invoice No */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Client</Label>
                   <Select value={editData.client_id || ""} onValueChange={v => { const cl = clients.find(c => c.id === v); setEditData({ ...editData, client_id: v, client_name: cl?.company_name || "" }); }}>
                     <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>

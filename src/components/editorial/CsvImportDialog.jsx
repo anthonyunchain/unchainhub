@@ -144,7 +144,7 @@ export default function CsvImportDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Import editorial calendar (CSV)</DialogTitle>
         </DialogHeader>

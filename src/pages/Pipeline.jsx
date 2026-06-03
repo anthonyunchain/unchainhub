@@ -224,8 +224,8 @@ export default function Pipeline() {
                     type="button"
                     onClick={(e) => quickDelete(e, p.id)}
                     aria-label={`Delete prospect ${p.company_name}`}
-                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-slate-300 hover:text-red-400 transition-all inline-flex items-center justify-center"
-                    style={{ minWidth: 32, minHeight: 32 }}
+                    className="opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 text-slate-300 active:text-red-400 transition-all inline-flex items-center justify-center"
+                    style={{ minWidth: 44, minHeight: 44 }}
                   >
                     <X className="w-4 h-4" aria-hidden="true" />
                   </button>

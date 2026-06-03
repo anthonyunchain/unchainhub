@@ -133,7 +133,7 @@ export default function Contracts() {
                   <SelectContent><SelectItem value="Brouillon">Draft</SelectItem><SelectItem value="Envoyé">Sent</SelectItem><SelectItem value="Signé">Signed</SelectItem><SelectItem value="Terminé">Done</SelectItem></SelectContent>
                 </Select></div>
               <div><Label>Monthly amount (€)</Label><Input type="number" value={editData.monthly_amount || 0} onChange={e => setEditData({ ...editData, monthly_amount: Number(e.target.value) })} /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Start date</Label><Input type="date" value={editData.start_date || ""} onChange={e => setEditData({ ...editData, start_date: e.target.value })} /></div>
                 <div><Label>End date</Label><Input type="date" value={editData.end_date || ""} onChange={e => setEditData({ ...editData, end_date: e.target.value })} /></div>
               </div>

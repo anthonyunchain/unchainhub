@@ -176,7 +176,7 @@ export default function AdminNotifications({ adminId }) {
                   <div className="flex items-center gap-1.5 shrink-0">
                     {n.action_required && !n.is_read && <span className="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Action needed</span>}
                     {!n.is_read && <span className="w-2 h-2 bg-blue-500 rounded-full" />}
-                    <button onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all">
+                    <button onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-slate-300 active:text-red-400 transition-all">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -194,7 +194,7 @@ export default function AdminNotifications({ adminId }) {
 
       {/* Send notification dialog */}
       <Dialog open={sendOpen} onOpenChange={setSendOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Send a notification</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
             <div>

@@ -453,7 +453,7 @@ export default function AdminProjects() {
 
       {/* Create project dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center justify-between gap-2 pr-8">
               <DialogTitle>New Project</DialogTitle>
@@ -463,7 +463,7 @@ export default function AdminProjects() {
             </div>
           </DialogHeader>
           <div className="space-y-3 mt-2">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Title *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
               <div><Label>Client *</Label>
                 <Select value={form.client_name || "_none"} onValueChange={v => setForm(f => ({ ...f, client_name: v === "_none" ? "" : v }))}>
@@ -520,7 +520,7 @@ export default function AdminProjects() {
                     <a href={url} target="_blank" rel="noopener noreferrer">
                       <img src={url} alt="" className="w-20 h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90" />
                     </a>
-                    <button type="button" onClick={() => removeImage(setForm, i)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button type="button" onClick={() => removeImage(setForm, i)} className="absolute -top-1.5 -right-1.5 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <X className="w-3 h-3" />
                     </button>
                   </div>
@@ -547,7 +547,7 @@ export default function AdminProjects() {
 
       {/* Reassign dialog */}
       <Dialog open={!!reassignOpen} onOpenChange={() => setReassignOpen(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm max-h-[92vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Assign: {reassignOpen?.title}</DialogTitle></DialogHeader>
           <div className="space-y-2 mt-2">
             {/* Admin self-assign */}
@@ -577,11 +577,11 @@ export default function AdminProjects() {
 
       {/* Edit project dialog */}
       <Dialog open={!!editingProject} onOpenChange={() => setEditingProject(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Project</DialogTitle></DialogHeader>
           {editingProject && (
             <div className="space-y-3 mt-2">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Title</Label><Input value={editingProject.title || ""} onChange={e => setEditingProject(p => ({ ...p, title: e.target.value }))} /></div>
                 <div><Label>Client</Label>
                   <Select value={editingProject.client_name || "_none"} onValueChange={v => setEditingProject(p => ({ ...p, client_name: v === "_none" ? "" : v }))}>
@@ -648,7 +648,7 @@ export default function AdminProjects() {
                       <a href={url} target="_blank" rel="noopener noreferrer">
                         <img src={url} alt="" className="w-20 h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90" />
                       </a>
-                      <button type="button" onClick={() => removeImage(setEditingProject, i)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button type="button" onClick={() => removeImage(setEditingProject, i)} className="absolute -top-1.5 -right-1.5 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <X className="w-3 h-3" />
                       </button>
                     </div>
@@ -748,7 +748,7 @@ export default function AdminProjects() {
 
       {/* Delete confirmation dialog */}
       <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm max-h-[92vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Delete this project?</DialogTitle></DialogHeader>
           <p className="text-sm text-slate-500">This action is irreversible.</p>
           <div className="flex gap-2 justify-end mt-3">
@@ -760,7 +760,7 @@ export default function AdminProjects() {
 
       {/* Revision dialog */}
       <Dialog open={!!revisionOpen} onOpenChange={(v) => { if (!v) { setRevisionOpen(null); setRevisionNotes(""); setRevisionFiles([]); setRevisionLink(""); } }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Request revision: {revisionOpen?.title}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>

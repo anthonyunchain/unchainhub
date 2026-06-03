@@ -385,7 +385,7 @@ export default function Clients() {
 
       {/* Invite dialog — client portal OR staff portal */}
       <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteMsg(""); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {inviteRole === "staff"
@@ -438,7 +438,7 @@ export default function Clients() {
       </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setConfirmDelete(false); }}>
-        <DialogContent className="w-[70vw] max-w-[70vw] sm:max-w-[70vw]">
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:w-[70vw] sm:max-w-[70vw] max-h-[92vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editData?.id ? "Edit client" : "New client"}</DialogTitle></DialogHeader>
           {editData && (
             <div className="mt-2">
@@ -446,7 +446,7 @@ export default function Clients() {
                 {/* Left column */}
                 <div className="space-y-3">
                   <div><Label>Company *</Label><Input value={editData.company_name || ""} onChange={e => setEditData({ ...editData, company_name: e.target.value })} /></div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><Label>Sector</Label>
                       <Select value={editData.sector} onValueChange={v => setEditData({ ...editData, sector: v })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -470,7 +470,7 @@ export default function Clients() {
                       </Select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><Label>Contact name</Label><Input value={editData.contact_name || ""} onChange={e => setEditData({ ...editData, contact_name: e.target.value })} /></div>
                     <div><Label>Status</Label>
                       <Select value={editData.status} onValueChange={v => setEditData({ ...editData, status: v })}>
@@ -483,14 +483,14 @@ export default function Clients() {
                       </Select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><Label>Email</Label><Input value={editData.contact_email || ""} onChange={e => setEditData({ ...editData, contact_email: e.target.value })} /></div>
                     <div><Label>Phone</Label><Input value={editData.contact_phone || ""} onChange={e => setEditData({ ...editData, contact_phone: e.target.value })} /></div>
                   </div>
                 </div>
                 {/* Right column */}
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><Label>Address</Label><Input value={editData.address || ""} onChange={e => setEditData({ ...editData, address: e.target.value })} /></div>
                     <div><Label>Start date</Label><Input type="date" value={editData.start_date || ""} onChange={e => setEditData({ ...editData, start_date: e.target.value })} /></div>
                   </div>

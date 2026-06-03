@@ -72,6 +72,19 @@
   }
 }
 
+/* Eliminate 300ms tap delay on all interactive elements */
+a, button, [role="button"], input, select, textarea, label {
+  touch-action: manipulation;
+}
+
+/* Prevent content from hiding behind bottom nav on mobile */
+@media (max-width: 767px) {
+  /* Smooth active feedback on touch */
+  button:active, [role="button"]:active {
+    opacity: 0.85;
+  }
+}
+
 @layer base {
   :root {
     /* ── UNCHAIN STUDIO — BENTO DESIGN SYSTEM ── */

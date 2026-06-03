@@ -316,7 +316,7 @@ export default function Editorial({ onDescriptionsClick } = {}) {
         {!isReadOnly && (
           <button
             onClick={(e) => handleQuickDelete(e, c.id)}
-            className="absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all"
+            className="absolute top-1 right-1 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 text-slate-300 active:text-red-400 transition-all"
           >
             <X className="w-3 h-3" />
           </button>
@@ -648,7 +648,7 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                     </td>
                     <td className="px-5 py-3">
                       {!isReadOnly && (
-                        <button onClick={() => openEdit(c)} className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-[#2A69FF] transition-opacity">
+                        <button onClick={() => openEdit(c)} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-slate-400 active:text-[#2A69FF] transition-opacity">
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                       )}

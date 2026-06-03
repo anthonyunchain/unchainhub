@@ -430,8 +430,9 @@ export default function Shootings({ onOrganize } = {}) {
                           <p className="text-sm font-semibold text-slate-800">{s.title}</p>
                         </div>
                         <button onClick={e => { e.stopPropagation(); setDeleteConfirm(s.id); }}
-                          className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all shrink-0">
-                          <Trash2 className="w-3.5 h-3.5" />
+                          className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-slate-300 active:text-red-400 transition-all shrink-0 flex items-center justify-center rounded-lg"
+                          style={{ width: 44, height: 44 }}>
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                       <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
@@ -639,11 +640,11 @@ export default function Shootings({ onOrganize } = {}) {
 
       {/* ── CREATE / EDIT DIALOG ── */}
       <Dialog open={dialogOpen} onOpenChange={v => { if (!v) setDialogOpen(false); }}>
-        <DialogContent className="!max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:!max-w-2xl max-h-[92vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editId ? "Edit Shooting" : "New Shooting"}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
             {/* Row 1 */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Title *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Shooting name..." /></div>
               <div><Label>Client</Label>
                 <Select value={form.client_name || "_none"} onValueChange={v => setForm(f => ({ ...f, client_name: v === "_none" ? "" : v, content_ids: [] }))}>
@@ -667,7 +668,7 @@ export default function Shootings({ onOrganize } = {}) {
               </div>
             </div>
             {/* Location + Gear */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><Label>Location</Label><Input value={form.location || ""} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="Studio, outdoor, address..." /></div>
               <div><Label>Gear required</Label><Input value={form.gear || ""} onChange={e => setForm(f => ({ ...f, gear: e.target.value }))} placeholder="Drone, flash, gimbal..." /></div>
             </div>
@@ -735,7 +736,7 @@ export default function Shootings({ onOrganize } = {}) {
                       <img src={url} alt="" className="w-20 h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90" />
                     </a>
                     <button type="button" onClick={() => setForm(f => ({ ...f, images: f.images.filter((_, idx) => idx !== i) }))}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      className="absolute -top-1.5 -right-1.5 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <X className="w-3 h-3" />
                     </button>
                   </div>

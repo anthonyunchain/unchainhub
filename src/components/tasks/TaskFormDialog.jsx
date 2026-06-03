@@ -398,7 +398,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
             />
 
             {/* ── Row 4: Status + Due date + Assigned + Client ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
               <div className="space-y-1.5">
                 <Label>Status</Label>
                 <Select value={data.status} onValueChange={v => set("status", v)}>
@@ -529,7 +529,7 @@ export default function TaskFormDialog({ open, onOpenChange, task, onSave }) {
                       </a>
                     )}
                     <button type="button" onClick={() => removeTaskImage(i)}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      className="absolute -top-1.5 -right-1.5 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <X className="w-3 h-3" />
                     </button>
                   </div>

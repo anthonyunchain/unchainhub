@@ -107,14 +107,14 @@ function BoardMeetings() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{data?.id ? "Edit meeting" : "New meeting"}</DialogTitle></DialogHeader>
           {data && (
             <div className="space-y-4 mt-2">
-              <div><Label>Title *</Label><Input value={data.title} onChange={e => setData({ ...data, title: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Date</Label><Input type="date" value={data.date || ""} onChange={e => setData({ ...data, date: e.target.value })} /></div>
-                <div><Label>Location</Label><Input value={data.location || ""} onChange={e => setData({ ...data, location: e.target.value })} placeholder="e.g. Main office, Zoom..." /></div>
+              <div><Label>Title *</Label><Input value={data.title} onChange={e => setData({ ...data, title: e.target.value })} className="h-11" /></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Date</Label><Input type="date" value={data.date || ""} onChange={e => setData({ ...data, date: e.target.value })} className="h-11" /></div>
+                <div><Label>Location</Label><Input value={data.location || ""} onChange={e => setData({ ...data, location: e.target.value })} placeholder="e.g. Main office, Zoom..." className="h-11" /></div>
               </div>
               <div><Label>Status</Label>
                 <Select value={data.status} onValueChange={v => setData({ ...data, status: v })}>
@@ -250,7 +250,7 @@ function LegalDocuments() {
           {data && (
             <div className="space-y-4 mt-2">
               <div><Label>Title *</Label><Input value={data.title} onChange={e => setData({ ...data, title: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Type</Label>
                   <Select value={data.type} onValueChange={v => setData({ ...data, type: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -267,7 +267,7 @@ function LegalDocuments() {
                 </div>
               </div>
               <div><Label>Description</Label><Textarea value={data.description || ""} onChange={e => setData({ ...data, description: e.target.value })} rows={2} /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Signed date</Label><Input type="date" value={data.signed_date || ""} onChange={e => setData({ ...data, signed_date: e.target.value })} /></div>
                 <div><Label>Expiry date</Label><Input type="date" value={data.expiry_date || ""} onChange={e => setData({ ...data, expiry_date: e.target.value })} /></div>
               </div>
@@ -389,7 +389,7 @@ function Shareholders() {
           {data && (
             <div className="space-y-4 mt-2">
               <div><Label>Name *</Label><Input value={data.name} onChange={e => setData({ ...data, name: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Email</Label><Input value={data.email || ""} onChange={e => setData({ ...data, email: e.target.value })} /></div>
                 <div><Label>Type</Label>
                   <Select value={data.type} onValueChange={v => setData({ ...data, type: v })}>
@@ -404,7 +404,7 @@ function Shareholders() {
                 <div><Label>Investment €</Label>
                 <Input type="number" value={data.investment_amount || 0} onChange={e => setData({ ...data, investment_amount: Number(e.target.value) })} /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Entry date</Label><Input type="date" value={data.entry_date || ""} onChange={e => setData({ ...data, entry_date: e.target.value })} /></div>
                 <div><Label>Share class</Label>
                   <Select value={data.share_class} onValueChange={v => setData({ ...data, share_class: v })}>
@@ -528,20 +528,22 @@ function AdminTasks() {
         </PageHeader>
       </div>
       <div
-        className="flex items-center gap-2 mb-3 max-w-2xl mx-auto overflow-x-auto pb-1"
+        className="flex items-center gap-2 mb-4 max-w-2xl mx-auto overflow-x-auto pb-1"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         <button
           onClick={() => setActiveStatus("all")}
-          className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeStatus === "all" ? "bg-slate-800 text-white" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"}`}>
+          className={`shrink-0 px-4 rounded-xl text-sm font-medium transition-all active:scale-95 ${activeStatus === "all" ? "bg-slate-800 text-white" : "bg-white text-slate-500 border border-slate-200"}`}
+          style={{ minHeight: 44 }}>
           All <span className="ml-1 text-xs opacity-60">{tasks.length}</span>
         </button>
         {STATUSES.map((s) => (
           <button
             key={s}
             onClick={() => setActiveStatus(s)}
-            className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${activeStatus === s ? STATUS_COLORS[s] + " ring-1 ring-current" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"}`}>
-            <span className={`w-2 h-2 rounded-full ${STATUS_DOT[s]}`} />
+            className={`shrink-0 px-4 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 active:scale-95 ${activeStatus === s ? STATUS_COLORS[s] + " ring-1 ring-current" : "bg-white text-slate-500 border border-slate-200"}`}
+            style={{ minHeight: 44 }}>
+            <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[s]}`} />
             {STATUS_LABEL[s]}
             <span className="text-xs opacity-60">{countByStatus(s)}</span>
           </button>
@@ -570,30 +572,37 @@ function AdminTasks() {
       <div className="space-y-2 max-w-2xl mx-auto">
         {pending.length === 0 && done.length === 0 && <p className="text-center text-slate-400 py-10 text-sm">No admin tasks</p>}
         {[...pending, ...done].map((t) => (
-          <div key={t.id} className="bg-white rounded-xl border border-slate-100 px-4 py-3 flex items-center gap-3 hover:shadow-sm transition-all">
+          <div key={t.id} className="bg-white rounded-2xl border border-slate-100 px-3 py-3 flex items-center gap-2 hover:shadow-sm active:bg-slate-50 transition-all">
+            {/* Checkbox — 44×44 touch target */}
             <button
               type="button"
               onClick={() => toggleStatus(t)}
               aria-label={t.status === "Terminé" ? `Mark ${t.title} as pending` : `Mark ${t.title} as done`}
               aria-pressed={t.status === "Terminé"}
-              className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors"
-              style={{
-                background: t.status === "Terminé" ? 'var(--brand)' : 'transparent',
-                borderColor: t.status === "Terminé" ? 'var(--brand)' : 'var(--subtle)',
-              }}
+              className="shrink-0 flex items-center justify-center transition-colors"
+              style={{ width: 44, height: 44, borderRadius: 12 }}
             >
-              {t.status === "Terminé" && <Check className="w-3 h-3 text-white" aria-hidden="true" />}
+              <span
+                className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors"
+                style={{
+                  background: t.status === "Terminé" ? 'var(--brand)' : 'transparent',
+                  borderColor: t.status === "Terminé" ? 'var(--brand)' : 'var(--subtle)',
+                }}
+              >
+                {t.status === "Terminé" && <Check className="w-3 h-3 text-white" aria-hidden="true" />}
+              </span>
             </button>
-            <div className="flex-1 cursor-pointer" onClick={() => openEdit(t)}>
-              <p className={`text-sm font-medium ${t.status === "Terminé" ? "line-through text-slate-400" : "text-slate-800"}`}>{t.title}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className={`text-[10px] px-2 py-0.5 rounded-full ${STATUS_COLORS[t.status]}`}>{STATUS_LABEL[t.status] || t.status}</span>
-                <span className="text-[10px] text-slate-400">{PRIORITY_LABEL[t.priority] || t.priority}</span>
+            <div className="flex-1 min-w-0 cursor-pointer py-1" onClick={() => openEdit(t)}>
+              <p className={`text-sm font-medium leading-snug ${t.status === "Terminé" ? "line-through text-slate-400" : "text-slate-800"}`}>{t.title}</p>
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[t.status]}`}>{STATUS_LABEL[t.status] || t.status}</span>
+                {t.priority && t.priority !== 'Normale' && <span className="text-[10px] text-slate-400">{PRIORITY_LABEL[t.priority] || t.priority}</span>}
                 {t.category && <span className="text-[10px] text-slate-400">{t.category}</span>}
-                {t.due_date && <span className="text-[10px] text-slate-400">· {format(new Date(t.due_date), "d MMM", { locale: enUS })}</span>}
+                {t.due_date && <span className="text-[10px] text-slate-400 font-mono">· {format(new Date(t.due_date), "d MMM", { locale: enUS })}</span>}
                 {t.assigned_to && <span className="text-[10px] text-violet-500 flex items-center gap-0.5"><UserIcon className="w-2.5 h-2.5" />{t.assigned_to}</span>}
               </div>
             </div>
+            {/* Delete — 44×44 touch target */}
             <button
               type="button"
               onMouseDown={(e) => e.stopPropagation()}
@@ -601,14 +610,15 @@ function AdminTasks() {
               disabled={deleteMut.isPending}
               title={confirmDeleteId === t.id ? "Click again to confirm" : "Delete task"}
               aria-label="Delete task"
-              className={`relative z-10 p-2 -m-1 rounded-lg transition-colors shrink-0 disabled:opacity-50 cursor-pointer ${
+              className={`shrink-0 flex items-center justify-center rounded-xl transition-colors disabled:opacity-50 cursor-pointer ${
                 confirmDeleteId === t.id
-                  ? "bg-red-500 text-white hover:bg-red-600"
-                  : "text-slate-400 hover:text-red-500 hover:bg-red-50 active:bg-red-100"
+                  ? "bg-red-500 text-white"
+                  : "text-slate-300 active:bg-red-50 active:text-red-500"
               }`}
+              style={{ width: 44, height: 44 }}
             >
               {confirmDeleteId === t.id
-                ? <span className="text-[11px] font-semibold px-1 pointer-events-none">Confirm?</span>
+                ? <span className="text-[10px] font-bold pointer-events-none leading-tight text-center px-1">OK?</span>
                 : <Trash2 className="w-4 h-4 pointer-events-none" />
               }
             </button>
@@ -618,42 +628,42 @@ function AdminTasks() {
       {mutError && !open && <p className="max-w-2xl mx-auto mt-3 text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{mutError}</p>}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{data?.id ? "Edit task" : "New admin task"}</DialogTitle></DialogHeader>
           {data && (
             <div className="space-y-4 mt-2">
-              <div><Label>Title *</Label><Input value={data.title} onChange={e => setData({ ...data, title: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div><Label>Title *</Label><Input value={data.title} onChange={e => setData({ ...data, title: e.target.value })} className="h-11" /></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Category</Label>
                   <Select value={data.category} onValueChange={v => setData({ ...data, category: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                     <SelectContent>{["Juridique", "Comptabilité", "RH", "Réglementation", "Stratégie", "Autre"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div><Label>Priority</Label>
                   <Select value={data.priority} onValueChange={v => setData({ ...data, priority: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                     <SelectContent>{["Basse", "Normale", "Haute", "Urgente"].map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Status</Label>
                   <Select value={data.status} onValueChange={v => setData({ ...data, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                     <SelectContent>{["À faire", "En cours", "Terminé", "Bloqué"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><Label>Date limite</Label><Input type="date" value={data.due_date || ""} onChange={e => setData({ ...data, due_date: e.target.value })} /></div>
+                <div><Label>Due date</Label><Input type="date" value={data.due_date || ""} onChange={e => setData({ ...data, due_date: e.target.value })} className="h-11" /></div>
               </div>
-              <div><Label>Assigned to</Label><Input value={data.assigned_to || ""} onChange={e => setData({ ...data, assigned_to: e.target.value })} placeholder="Person's name..." /></div>
+              <div><Label>Assigned to</Label><Input value={data.assigned_to || ""} onChange={e => setData({ ...data, assigned_to: e.target.value })} placeholder="Person's name..." className="h-11" /></div>
               <div><Label>Description</Label><Textarea value={data.description || ""} onChange={e => setData({ ...data, description: e.target.value })} rows={3} /></div>
               {mutError && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{mutError}</p>}
-              <div className="flex justify-between items-center pt-2">
-                {data.id ? <Button variant="ghost" className="text-red-500 hover:bg-red-50" onClick={handleDelete}><Trash2 className="w-4 h-4 mr-1" />Delete</Button> : <div />}
+              <div className="flex justify-between items-center pt-2 gap-2">
+                {data.id ? <Button variant="ghost" className="text-red-500 hover:bg-red-50 h-11" onClick={handleDelete}><Trash2 className="w-4 h-4 mr-1" />Delete</Button> : <div />}
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => { setOpen(false); setMutError(null); }}>Cancel</Button>
-                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground" disabled={!data.title || createMut.isPending || updateMut.isPending}>
+                  <Button variant="outline" className="h-11" onClick={() => { setOpen(false); setMutError(null); }}>Cancel</Button>
+                  <Button onClick={handleSave} className="bg-brand hover:bg-brand/90 text-brand-foreground h-11" disabled={!data.title || createMut.isPending || updateMut.isPending}>
                     {createMut.isPending || updateMut.isPending ? "Saving…" : "Save"}
                   </Button>
                 </div>
@@ -749,7 +759,7 @@ function ShareholderSalaries() {
           <DialogHeader><DialogTitle>{data?.id ? "Edit payment" : "New payment"}</DialogTitle></DialogHeader>
           {data && (
             <div className="space-y-4 mt-2">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Recipient *</Label>
                   <Select value={data.shareholder_name} onValueChange={v => setData({ ...data, shareholder_name: v })}>
                     <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
@@ -764,7 +774,7 @@ function ShareholderSalaries() {
                 </div>
                 <div><Label>Role</Label><Input value={data.role || ""} onChange={e => setData({ ...data, role: e.target.value })} placeholder="CEO, Co-Partner..." /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Type</Label>
                   <Select value={data.type} onValueChange={v => setData({ ...data, type: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -777,7 +787,7 @@ function ShareholderSalaries() {
                 </div>
                 <div><Label>Amount (€) *</Label><Input type="number" value={data.amount || ""} onChange={e => setData({ ...data, amount: parseFloat(e.target.value) || 0 })} /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Date</Label><Input type="date" value={data.date || ""} onChange={e => setData({ ...data, date: e.target.value })} /></div>
                 <div><Label>Period</Label><Input value={data.period || ""} onChange={e => setData({ ...data, period: e.target.value })} placeholder="e.g. March 2026" /></div>
               </div>
@@ -1403,11 +1413,11 @@ function Subscriptions() {
           {data && (
             <div className="space-y-3 mt-2">
               <div><Label>Name</Label><Input value={data.name} onChange={e => setData(d => ({ ...d, name: e.target.value }))} placeholder="Notion, Figma..." /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Monthly amount (€)</Label><Input type="number" value={data.amount || ""} onChange={e => setData(d => ({ ...d, amount: Number(e.target.value) }))} /></div>
                 <div><Label>Renewal date</Label><Input type="date" value={data.renewal_date || ""} onChange={e => setData(d => ({ ...d, renewal_date: e.target.value }))} /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Category</Label>
                   <Select value={data.category} onValueChange={v => setData(d => ({ ...d, category: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1849,7 +1859,7 @@ function AdminExpenses() {
           <DialogHeader><DialogTitle>{data?.id ? "Edit expense" : "New expense"}</DialogTitle></DialogHeader>
           {data && (
             <div className="space-y-4 mt-2">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label>Date</Label>
                   <Input type="date" value={data.date || ""} onChange={e => setData({ ...data, date: e.target.value })} />

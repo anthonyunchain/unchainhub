@@ -104,7 +104,7 @@ export default function Templates() {
                         key={t.id}
                         className="group relative bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all p-4"
                       >
-                        <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           <button onClick={() => openEdit(t)} className="p-1 rounded-md text-slate-300 hover:text-slate-600 hover:bg-slate-100"><Pencil className="w-3.5 h-3.5" /></button>
                           <button onClick={() => handleDelete(t.id)} className="p-1 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
@@ -143,7 +143,7 @@ export default function Templates() {
 
       {/* Edit / Create dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editData?.id ? "Edit template" : "New template"}</DialogTitle>
           </DialogHeader>
@@ -157,7 +157,7 @@ export default function Templates() {
                 <Label>Description</Label>
                 <Input value={editData.description} onChange={e => setEditData({ ...editData, description: e.target.value })} placeholder="Short description..." />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label>Category</Label>
                   <Select value={editData.category} onValueChange={v => setEditData({ ...editData, category: v })}>
