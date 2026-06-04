@@ -9,8 +9,9 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import AdminProjects from "@/components/admin/AdminProjects";
+import EditorialVideoFields from "@/components/editorial/EditorialVideoFields";
 import { FreelancerProfiles, ToolsManagement, InvoicesManagement, MeetingsManagement } from "./FreelancerAdmin";
-import { EDITING_STATUS, EDITING_STATUS_OPTIONS, EDITING_STATUS_LABELS, EDITING_STEPS, editingStepIndex } from "@/lib/editorialStatus";
+import { EDITING_STATUS, EDITING_STATUS_LABELS, EDITING_STEPS, editingStepIndex } from "@/lib/editorialStatus";
 import { PROJECT_STATUS, PRODUCTION_STEPS, productionStepIndex } from "@/lib/projectStatus";
 
 // ─── Video projects (projects table) ─────────────────────────────────────────
@@ -423,38 +424,61 @@ function ContentPicker({ onClose, currentIds, allContent, onToggle }) {
 // ─── Editorial detail modal ───────────────────────────────────────────────────
 
 function EditorialModal({ item, onClose, onSaved }) {
-  const [editingStatus, setEditingStatus] = useState(item.editing_status || "Non assigné");
-  const [editorId, setEditorId] = useState(item.assigned_editor_id || "");
-  const [editorName, setEditorName] = useState(item.assigned_editor_name || "");
-  const [workflowType, setWorkflowType] = useState(item.workflow_type || "editorial");
+  const [data, setData] = useState({ ...item, workflow_type: item.workflow_type || "video" });
   const [saving, setSaving] = useState(false);
 
   const { data: freelancers = [] } = useQuery({
     queryKey: ["freelancers"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("freelancers").select("id, name").order("name");
+      const { data, error } = await supabase.from("freelancers").select("id, name, role, tags, status").order("name");
       if (error) throw error;
       return data || [];
     },
   });
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: () => base44.entities.Client.filter({ status: "Actif" }),
+  });
+
+  const videoEditors = freelancers.filter(f =>
+    (f.tags || []).map(t => t.toLowerCase()).includes("video editor") ||
+    f.role?.toLowerCase().includes("monteur") ||
+    f.role?.toLowerCase().includes("video editor")
+  );
 
   async function handleSave() {
     setSaving(true);
 
     // Option A: video editing is tracked entirely on editorial_content via
-    // editing_status — no linked projects table row. When an editor is assigned
-    // on a video item, surface it in production and default an open status.
-    const wantsEditing = workflowType === "video";
+    // editing_status — no linked projects table row.
+    const wantsEditing = data.workflow_type === "video";
     const nextEditingStatus =
-      wantsEditing && editorId && editingStatus === "Non assigné" ? "À faire" : editingStatus;
+      wantsEditing && data.assigned_editor_id && (!data.editing_status || data.editing_status === "Non assigné")
+        ? "À faire"
+        : (data.editing_status || "Non assigné");
 
     const { error } = await supabase
       .from("editorial_content")
       .update({
+        title: data.title,
+        client_id: data.client_id || null,
+        client_name: data.client_name || null,
+        post_type: data.post_type,
+        scheduled_date: data.scheduled_date || null,
         editing_status: nextEditingStatus,
-        assigned_editor_id: editorId || null,
-        assigned_editor_name: editorName || null,
-        workflow_type: workflowType,
+        assigned_editor_id: data.assigned_editor_id || null,
+        assigned_editor_name: data.assigned_editor_name || null,
+        workflow_type: data.workflow_type,
+        in_production: wantsEditing,
+        editing_instructions: data.editing_instructions || null,
+        drive_link: data.drive_link || null,
+        notes: data.notes || null,
+        editing_files: data.editing_files || [],
+        editing_images: data.editing_images || [],
+        drive_url: data.drive_url || null,
+        cover_image_url: data.cover_image_url || null,
+        reel_description: data.reel_description || null,
+        media_files: data.media_files || [],
       })
       .eq("id", item.id);
     setSaving(false);
@@ -468,44 +492,42 @@ function EditorialModal({ item, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl flex flex-col" style={{ maxHeight: '90vh' }}>
         {/* Header */}
-        <div className="px-5 pt-5 pb-4 border-b border-slate-100">
+        <div className="px-5 pt-5 pb-4 border-b border-slate-100 shrink-0">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-slate-800 leading-snug">{item.title || "Untitled"}</p>
-              <p className="text-[11px] text-slate-400 font-mono mt-0.5">{item.client_name}{item.post_type ? ` · ${item.post_type}` : ""}</p>
+              <p className="text-sm font-semibold text-slate-800 leading-snug">{data.title || "Untitled"}</p>
+              <p className="text-[11px] text-slate-400 font-mono mt-0.5">{data.client_name}{data.post_type ? ` · ${data.post_type}` : ""}</p>
             </div>
             <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors shrink-0">
               <X className="w-4 h-4 text-slate-500" />
             </button>
           </div>
-          {item.scheduled_date && (
+          {data.scheduled_date && (
             <div className="flex items-center gap-1.5 mt-3">
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-xs text-slate-500">{format(new Date(item.scheduled_date), "d MMMM yyyy", { locale: enUS })}</span>
+              <span className="text-xs text-slate-500">{format(new Date(data.scheduled_date), "d MMMM yyyy", { locale: enUS })}</span>
             </div>
           )}
         </div>
 
         {/* Fields */}
-        <div className="px-5 py-4 space-y-4">
-          {/* Workflow type toggle */}
-          <div>
-            <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
-              <Film className="w-3 h-3" /> Workflow
-            </label>
-            <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
+        <div className="overflow-y-auto flex-1 px-5 py-4">
+          {/* Workflow toggle */}
+          <div className="flex items-center gap-1.5 mb-4">
+            <Film className="w-3 h-3 text-slate-400" />
+            <div className="flex gap-1 p-1 bg-slate-100 rounded-xl flex-1">
               {[
                 { key: "editorial", label: "Editorial" },
-                { key: "video",     label: "Video editing" },
+                { key: "video",     label: "Video" },
               ].map(w => (
-                <button key={w.key} onClick={() => setWorkflowType(w.key)}
+                <button key={w.key} onClick={() => setData(d => ({ ...d, workflow_type: w.key, ...(w.key === "video" ? { in_production: true } : { in_production: false }) }))}
                   className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all"
                   style={{
-                    background: workflowType === w.key ? '#fff' : 'transparent',
-                    color: workflowType === w.key ? '#1e293b' : '#94a3b8',
-                    boxShadow: workflowType === w.key ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                    background: data.workflow_type === w.key ? '#fff' : 'transparent',
+                    color: data.workflow_type === w.key ? '#1e293b' : '#94a3b8',
+                    boxShadow: data.workflow_type === w.key ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                   }}>
                   {w.label}
                 </button>
@@ -513,66 +535,11 @@ function EditorialModal({ item, onClose, onSaved }) {
             </div>
           </div>
 
-          {/* Status */}
-          <div>
-            <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-              <Tag className="w-3 h-3" /> Editing status
-            </label>
-            <div className="grid grid-cols-2 gap-1.5">
-              {EDITING_STATUS_OPTIONS.map(s => (
-                <button
-                  key={s}
-                  onClick={() => setEditingStatus(s)}
-                  className="text-left px-3 py-2 rounded-xl border text-xs font-medium transition-all"
-                  style={{
-                    borderColor: editingStatus === s ? '#2A69FF' : '#e2e8f0',
-                    background: editingStatus === s ? '#eff4ff' : '#fff',
-                    color: editingStatus === s ? '#2A69FF' : '#64748b',
-                  }}
-                >
-                  {EDITING_STATUS_LABELS[s]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Editor */}
-          <div>
-            <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-              <User className="w-3 h-3" /> Assign editor
-            </label>
-            <div className="grid grid-cols-2 gap-1.5">
-              <button
-                onClick={() => { setEditorId(""); setEditorName(""); }}
-                className="text-left px-3 py-2 rounded-xl border text-xs font-medium transition-all"
-                style={{
-                  borderColor: !editorId ? '#2A69FF' : '#e2e8f0',
-                  background: !editorId ? '#eff4ff' : '#fff',
-                  color: !editorId ? '#2A69FF' : '#64748b',
-                }}
-              >
-                Unassigned
-              </button>
-              {freelancers.map(f => (
-                <button
-                  key={f.id}
-                  onClick={() => { setEditorId(f.id); setEditorName(f.name); }}
-                  className="text-left px-3 py-2 rounded-xl border text-xs font-medium transition-all"
-                  style={{
-                    borderColor: editorId === f.id ? '#2A69FF' : '#e2e8f0',
-                    background: editorId === f.id ? '#eff4ff' : '#fff',
-                    color: editorId === f.id ? '#2A69FF' : '#64748b',
-                  }}
-                >
-                  {f.name}
-                </button>
-              ))}
-            </div>
-          </div>
+          <EditorialVideoFields data={data} setData={setData} clients={clients} videoEditors={videoEditors} />
         </div>
 
         {/* Footer */}
-        <div className="px-5 pb-5 flex gap-2">
+        <div className="px-5 pb-5 pt-3 border-t border-slate-100 flex gap-2 shrink-0">
           <button onClick={onClose} className="flex-1 h-9 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors">
             Cancel
           </button>
@@ -620,7 +587,7 @@ function OverviewTab() {
       const today = new Date().toISOString().split("T")[0];
       const { data, error } = await supabase
         .from("editorial_content")
-        .select("id, title, client_name, post_type, editing_status, assigned_editor_id, assigned_editor_name, scheduled_date, in_production, workflow_type")
+        .select("*")
         .eq("in_production", true)
         .not("status", "in", '("Publié","Annulé")')
         .or(`scheduled_date.is.null,scheduled_date.gte.${today}`)
