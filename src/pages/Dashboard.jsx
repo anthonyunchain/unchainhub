@@ -81,6 +81,7 @@ export default function Dashboard() {
   const { data: content = [], isLoading: loadingContent } = useQuery({ queryKey: ["content-dash"], queryFn: () => base44.entities.EditorialContent.list() });
 
   const currentMonth = format(new Date(), "yyyy-MM");
+  const today = format(new Date(), "yyyy-MM-dd");
 
   const activeClients = clients.filter(c => c.status === "Actif").length;
   const openDeals = prospects.filter(p => !["Signé", "Perdu"].includes(p.stage)).length;
