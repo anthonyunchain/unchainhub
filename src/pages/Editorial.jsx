@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44, supabase } from "@/api/base44Client";
 import PageHeader from "../components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft, ChevronRight, Upload, X, Clapperboard, Link2, Trash2, Pencil, List, Calendar as CalendarIcon, Download, Loader2, FileVideo, Lightbulb, Repeat2, PanelRight, EyeOff } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Upload, X, Clapperboard, Link2, Trash2, Pencil, List, Calendar as CalendarIcon, Download, Loader2, FileVideo, Lightbulb, Repeat2, PanelRight, EyeOff, ImagePlus } from "lucide-react";
 import CsvImportDialog from "../components/editorial/CsvImportDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,8 @@ export default function Editorial({ onDescriptionsClick } = {}) {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadingFinalFile, setUploadingFinalFile] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [dialogTab, setDialogTab] = useState("general");
+  const [uploadingImg, setUploadingImg] = useState(false);
+  const [showDelivery, setShowDelivery] = useState(false);
   const [csvOpen, setCsvOpen] = useState(false);
   const [hideCancelled, setHideCancelled] = useState(false);
   const qc = useQueryClient();
@@ -150,13 +151,13 @@ export default function Editorial({ onDescriptionsClick } = {}) {
 
   const openNew = (date) => {
     if (isReadOnly) return;
-    setEditData({ client_id: "", client_name: "", title: "", post_type: "Reel", scheduled_date: format(date || new Date(), "yyyy-MM-dd"), status: "Planifié", description: "", notes: "", needs_shooting: true, shoot_timing: "in-month" });
-    setDialogTab("general");
+    setEditData({ client_id: "", client_name: "", title: "", post_type: "Reel", scheduled_date: format(date || new Date(), "yyyy-MM-dd"), status: "Planifié", description: "", notes: "", needs_shooting: true, shoot_timing: "in-month", workflow_type: "editorial" });
+    setShowDelivery(false);
     setDialogOpen(true);
   };
   const openEdit = (c) => {
     setEditData({ ...c });
-    setDialogTab("general");
+    setShowDelivery(false);
     setDialogOpen(true);
   };
 
@@ -892,24 +893,41 @@ export default function Editorial({ onDescriptionsClick } = {}) {
           {editData && (
             <div className="mt-1">
 
-              {/* ── Tab bar ── */}
+              {/* ── Workflow toggle (Editorial ↔ Video) ── */}
               <div className="flex gap-1 p-1 bg-slate-100 rounded-xl mb-5">
                 {[
-                  { key: "general", label: "General" },
-                  { key: "editing", label: "Video editing" },
-                ].map(t => (
-                  <button
-                    key={t.key}
-                    onClick={() => setDialogTab(t.key)}
-                    className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-all ${dialogTab === t.key ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+                  { key: "editorial", label: "Editorial" },
+                  { key: "video", label: "Video" },
+                ].map(t => {
+                  const active = (editData.workflow_type === "video" ? "video" : "editorial") === t.key;
+                  return (
+                    <button
+                      key={t.key}
+                      onClick={() => {
+                        if (isReadOnly) return;
+                        if (t.key === "video") {
+                          setEditData(d => ({
+                            ...d,
+                            workflow_type: "video",
+                            in_production: true,
+                            editing_status: d.editing_status && d.editing_status !== "Non assigné"
+                              ? d.editing_status
+                              : (d.assigned_editor_id ? "À faire" : "Non assigné"),
+                          }));
+                        } else {
+                          setEditData(d => ({ ...d, workflow_type: "editorial", in_production: false }));
+                        }
+                      }}
+                      className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-all ${active ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                    >
+                      {t.label}
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* ── Tab: General ── */}
-              {dialogTab === "general" && (
+              {/* ── Editorial workflow ── */}
+              {editData.workflow_type !== "video" && (
                 <div className="space-y-4">
                   {isFreelancer && (
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -1123,20 +1141,40 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                 </div>
               )}
 
-              {/* ── Tab: Video editing ── */}
-              {dialogTab === "editing" && (
+              {/* ── Video workflow: project-style window ── */}
+              {editData.workflow_type === "video" && (
                 <div className="space-y-4">
+                  {/* Title + Client */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Title</Label>
+                      <Input value={editData.title || ""} onChange={e => setEditData({ ...editData, title: e.target.value })} disabled={isReadOnly} />
+                    </div>
+                    <div>
+                      <Label>Client</Label>
+                      {isReadOnly ? (
+                        <div className="p-2 bg-slate-50 rounded border border-slate-200 text-sm text-slate-700">{editData.client_name || "—"}</div>
+                      ) : (
+                        <Select value={editData.client_id || ""} onValueChange={v => { const cl = clients.find(c => c.id === v); setEditData({ ...editData, client_id: v, client_name: cl?.company_name || "" }); }}>
+                          <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                          <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>)}</SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Assign to (video editor) */}
                   <div>
-                    <Label>Assigned editor</Label>
+                    <Label>Assign to</Label>
                     <Select value={editData.assigned_editor_id || "__none__"} onValueChange={v => {
                       const editorId = v === "__none__" ? null : v;
                       const fl = videoEditors.find(f => f.id === editorId);
                       const isReel = editData.post_type === "Reel";
                       setEditData({ ...editData, assigned_editor_id: editorId, assigned_editor_name: fl?.name || "",
-                        editing_status: editorId ? (isReel ? "En attente d'acceptation" : (editData.editing_status === "Non assigné" ? "À faire" : editData.editing_status)) : "Non assigné",
-                        // Single source of truth: assigning an editor marks the item as a
+                        editing_status: editorId ? (isReel ? "En attente d'acceptation" : (editData.editing_status === "Non assigné" || !editData.editing_status ? "À faire" : editData.editing_status)) : "Non assigné",
+                        // Single source of truth: assigning an editor keeps the item a
                         // video-editing job and surfaces it in the Production page.
-                        ...(editorId ? { workflow_type: "video", in_production: true } : {}),
+                        workflow_type: "video", in_production: true,
                       });
                     }}>
                       <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
@@ -1148,8 +1186,9 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                     </Select>
                   </div>
 
+                  {/* Status (editing) */}
                   <div>
-                    <Label>Editing status</Label>
+                    <Label>Status</Label>
                     <Select value={editData.editing_status || "Non assigné"} onValueChange={v => setEditData({ ...editData, editing_status: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -1160,14 +1199,29 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                     </Select>
                   </div>
 
+                  {/* Description → brief for the editor */}
                   <div>
-                    <Label>Editing instructions</Label>
-                    <Textarea value={editData.editing_instructions || ""} onChange={e => setEditData({ ...editData, editing_instructions: e.target.value })} rows={5} placeholder="e.g. Start on wide shot, music from 0:03..." />
+                    <Label>Description</Label>
+                    <Textarea value={editData.editing_instructions || ""} onChange={e => setEditData({ ...editData, editing_instructions: e.target.value })} rows={4} placeholder="Brief for the editor — length, key moments, music, style…" />
                   </div>
 
+                  {/* URL */}
                   <div>
-                    <Label>Reference files</Label>
-                    <div className="mt-1 space-y-1.5">
+                    <Label className="flex items-center gap-1.5"><Link2 className="w-3.5 h-3.5" />URL</Label>
+                    <Input value={editData.drive_link || ""} onChange={e => setEditData({ ...editData, drive_link: e.target.value })} placeholder="https://drive.google.com/..." />
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <Label>Notes</Label>
+                    <Textarea value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} rows={2} placeholder="Internal notes…" />
+                  </div>
+
+                  {/* Brief files */}
+                  <div>
+                    <Label>Brief files</Label>
+                    <p className="text-[11px] text-slate-400 mb-1.5">Reference files for the freelancer (videos, PDFs, audio…)</p>
+                    <div className="space-y-1.5">
                       {(editData.editing_files || []).map((url, i) => {
                         const name = decodeURIComponent(url.split("/").pop().split("?")[0]);
                         return (
@@ -1190,81 +1244,109 @@ export default function Editorial({ onDescriptionsClick } = {}) {
                     </div>
                   </div>
 
-                  {/* Portal V2 fields */}
+                  {/* Images */}
                   <div>
-                    <Label>Drive / content link (Portal V2)</Label>
-                    <input
-                      type="url"
-                      value={editData.drive_url || ""}
-                      onChange={e => setEditData({ ...editData, drive_url: e.target.value })}
-                      placeholder="https://drive.google.com/…"
-                      className="w-full mt-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#2A69FF]"
-                    />
-                  </div>
-                  <div>
-                    <Label>Cover image URL (Portal V2)</Label>
-                    <input
-                      type="url"
-                      value={editData.cover_image_url || ""}
-                      onChange={e => setEditData({ ...editData, cover_image_url: e.target.value })}
-                      placeholder="https://…"
-                      className="w-full mt-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#2A69FF]"
-                    />
-                  </div>
-                  <div>
-                    <Label>Reel caption / description (Portal V2)</Label>
-                    <Textarea value={editData.reel_description || ""} onChange={e => setEditData({ ...editData, reel_description: e.target.value })} rows={3} placeholder="Caption to copy-paste for this reel…" />
-                  </div>
-
-                  {/* Downloadable files (cover, reel video, carousel slides) */}
-                  <div>
-                    <Label>Downloadable files (Portal V2)</Label>
-                    <p className="text-xs text-slate-400 mt-0.5 mb-2">Cover, reel video, or carousel slides — the client downloads each one in the portal.</p>
-                    <div className="space-y-1.5">
-                      {(editData.media_files || []).map((f, i) => (
-                        <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                          <input
-                            value={f.label || ""}
-                            onChange={e => {
-                              const mf = [...(editData.media_files || [])];
-                              mf[i] = { ...mf[i], label: e.target.value };
-                              setEditData({ ...editData, media_files: mf });
-                            }}
-                            placeholder="Label (Cover, Reel, Slide 1…)"
-                            className="text-xs px-2 py-1 rounded border border-slate-200 w-32 shrink-0"
-                          />
-                          <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#2A69FF] hover:underline truncate flex-1">{decodeURIComponent((f.url || "").split("/").pop().split("?")[0]) || f.url}</a>
-                          <button onClick={() => setEditData({ ...editData, media_files: (editData.media_files || []).filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 shrink-0"><X className="w-3.5 h-3.5" /></button>
+                    <Label>Images</Label>
+                    <div className="flex flex-wrap gap-2 mt-1.5">
+                      {(editData.editing_images || []).map((url, i) => (
+                        <div key={i} className="relative group">
+                          <a href={url} target="_blank" rel="noopener noreferrer">
+                            <img src={url} alt="" className="w-20 h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90" />
+                          </a>
+                          <button type="button" onClick={() => setEditData({ ...editData, editing_images: (editData.editing_images || []).filter((_, idx) => idx !== i) })} className="absolute -top-1.5 -right-1.5 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                            <X className="w-3 h-3" />
+                          </button>
                         </div>
                       ))}
-                      <div className="flex items-center gap-3">
-                        <label className={`cursor-pointer inline-flex items-center gap-1.5 text-xs text-[#2A69FF] hover:underline ${uploadingFile ? "opacity-50 pointer-events-none" : ""}`}>
-                          <Upload className="w-3 h-3" />{uploadingFile ? "Uploading..." : "Upload a file"}
-                          <input type="file" className="hidden" onChange={async (e) => {
-                            const file = e.target.files?.[0]; if (!file) return;
-                            setUploadingFile(true);
+                      <label className={`w-20 h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-slate-400 transition-colors ${uploadingImg ? "opacity-50 pointer-events-none" : ""}`}>
+                        {uploadingImg ? <Loader2 className="w-5 h-5 animate-spin text-slate-400" /> : <ImagePlus className="w-5 h-5 text-slate-400" />}
+                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                          const file = e.target.files?.[0]; if (!file) return;
+                          setUploadingImg(true);
+                          try {
                             const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                            const guess = /\.(mp4|mov|webm)$/i.test(file.name) ? "Reel video" : ((editData.media_files || []).length === 0 ? "Cover" : `Slide ${editData.media_files.length}`);
-                            setEditData(d => ({ ...d, media_files: [...(d.media_files || []), { label: guess, url: file_url }] }));
-                            setUploadingFile(false); e.target.value = "";
-                          }} />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setEditData(d => ({ ...d, media_files: [...(d.media_files || []), { label: "", url: "" }] }))}
-                          className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700">
-                          <Plus className="w-3 h-3" /> Add a link
-                        </button>
-                      </div>
-                      {/* allow editing url for manually-added links */}
-                      {(editData.media_files || []).some(f => !f.url) && (
-                        <p className="text-[11px] text-slate-400">Tip: paste a URL below for manual links.</p>
-                      )}
-                      {(editData.media_files || []).map((f, i) => (!f.url ? (
-                        <input key={`u-${i}`} value={f.url || ""} onChange={e => { const mf=[...(editData.media_files||[])]; mf[i]={...mf[i], url:e.target.value}; setEditData({...editData, media_files: mf}); }}
-                          placeholder="https://… (paste link)" className="w-full text-xs px-2 py-1.5 rounded border border-slate-200" />
-                      ) : null))}
+                            setEditData(d => ({ ...d, editing_images: [...(d.editing_images || []), file_url] }));
+                          } finally { setUploadingImg(false); e.target.value = ""; }
+                        }} />
+                      </label>
                     </div>
+                  </div>
+
+                  {/* Scheduling (kept accessible for video items) */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Type</Label>
+                      <Select value={editData.post_type} onValueChange={v => setEditData({ ...editData, post_type: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Reel">Reel</SelectItem>
+                          <SelectItem value="Story">Story</SelectItem>
+                          <SelectItem value="Carousel">Carousel</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Scheduled date</Label>
+                      <Input type="date" value={editData.scheduled_date || ""} onChange={e => setEditData({ ...editData, scheduled_date: e.target.value })} />
+                    </div>
+                  </div>
+
+                  {/* Collapsible: client portal & delivery (Portal V2) */}
+                  <div className="pt-2 border-t border-slate-100">
+                    <button type="button" onClick={() => setShowDelivery(s => !s)} className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700">
+                      <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showDelivery ? "rotate-90" : ""}`} /> Client portal &amp; delivery
+                    </button>
+                    {showDelivery && (
+                      <div className="space-y-4 mt-3">
+                        <div>
+                          <Label>Drive / content link (Portal V2)</Label>
+                          <input type="url" value={editData.drive_url || ""} onChange={e => setEditData({ ...editData, drive_url: e.target.value })} placeholder="https://drive.google.com/…" className="w-full mt-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#2A69FF]" />
+                        </div>
+                        <div>
+                          <Label>Cover image URL (Portal V2)</Label>
+                          <input type="url" value={editData.cover_image_url || ""} onChange={e => setEditData({ ...editData, cover_image_url: e.target.value })} placeholder="https://…" className="w-full mt-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#2A69FF]" />
+                        </div>
+                        <div>
+                          <Label>Reel caption / description (Portal V2)</Label>
+                          <Textarea value={editData.reel_description || ""} onChange={e => setEditData({ ...editData, reel_description: e.target.value })} rows={3} placeholder="Caption to copy-paste for this reel…" />
+                        </div>
+                        <div>
+                          <Label>Downloadable files (Portal V2)</Label>
+                          <p className="text-xs text-slate-400 mt-0.5 mb-2">Cover, reel video, or carousel slides — the client downloads each one in the portal.</p>
+                          <div className="space-y-1.5">
+                            {(editData.media_files || []).map((f, i) => (
+                              <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                                <input value={f.label || ""} onChange={e => { const mf = [...(editData.media_files || [])]; mf[i] = { ...mf[i], label: e.target.value }; setEditData({ ...editData, media_files: mf }); }} placeholder="Label (Cover, Reel, Slide 1…)" className="text-xs px-2 py-1 rounded border border-slate-200 w-32 shrink-0" />
+                                <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#2A69FF] hover:underline truncate flex-1">{decodeURIComponent((f.url || "").split("/").pop().split("?")[0]) || f.url}</a>
+                                <button onClick={() => setEditData({ ...editData, media_files: (editData.media_files || []).filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 shrink-0"><X className="w-3.5 h-3.5" /></button>
+                              </div>
+                            ))}
+                            <div className="flex items-center gap-3">
+                              <label className={`cursor-pointer inline-flex items-center gap-1.5 text-xs text-[#2A69FF] hover:underline ${uploadingFile ? "opacity-50 pointer-events-none" : ""}`}>
+                                <Upload className="w-3 h-3" />{uploadingFile ? "Uploading..." : "Upload a file"}
+                                <input type="file" className="hidden" onChange={async (e) => {
+                                  const file = e.target.files?.[0]; if (!file) return;
+                                  setUploadingFile(true);
+                                  const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                                  const guess = /\.(mp4|mov|webm)$/i.test(file.name) ? "Reel video" : ((editData.media_files || []).length === 0 ? "Cover" : `Slide ${editData.media_files.length}`);
+                                  setEditData(d => ({ ...d, media_files: [...(d.media_files || []), { label: guess, url: file_url }] }));
+                                  setUploadingFile(false); e.target.value = "";
+                                }} />
+                              </label>
+                              <button type="button" onClick={() => setEditData(d => ({ ...d, media_files: [...(d.media_files || []), { label: "", url: "" }] }))} className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700">
+                                <Plus className="w-3 h-3" /> Add a link
+                              </button>
+                            </div>
+                            {(editData.media_files || []).some(f => !f.url) && (
+                              <p className="text-[11px] text-slate-400">Tip: paste a URL below for manual links.</p>
+                            )}
+                            {(editData.media_files || []).map((f, i) => (!f.url ? (
+                              <input key={`u-${i}`} value={f.url || ""} onChange={e => { const mf=[...(editData.media_files||[])]; mf[i]={...mf[i], url:e.target.value}; setEditData({...editData, media_files: mf}); }} placeholder="https://… (paste link)" className="w-full text-xs px-2 py-1.5 rounded border border-slate-200" />
+                            ) : null))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
