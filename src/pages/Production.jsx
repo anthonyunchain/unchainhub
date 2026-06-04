@@ -249,13 +249,26 @@ function ProjectModal({ project, onClose, onSaved, onDeleted }) {
             <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
               <ArrowUpRight className="w-3 h-3" /> Delivery URL
             </label>
-            <input
-              type="url"
-              value={deliveryUrl}
-              onChange={e => setDeliveryUrl(e.target.value)}
-              placeholder="https://…"
-              className="w-full h-9 px-3 rounded-xl border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-[#2A69FF]"
-            />
+            <div className="relative">
+              <input
+                type="url"
+                value={deliveryUrl}
+                onChange={e => setDeliveryUrl(e.target.value)}
+                placeholder="https://…"
+                className="w-full h-9 px-3 pr-8 rounded-xl border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-[#2A69FF]"
+              />
+              {deliveryUrl && (
+                <a
+                  href={deliveryUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#2A69FF] transition-colors"
+                  title="Open URL"
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
           </div>
 
           {/* Notes */}
