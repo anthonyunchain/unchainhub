@@ -105,7 +105,9 @@ function ProjectModal({ project, onClose, onSaved, onDeleted }) {
   const { data: freelancers = [] } = useQuery({
     queryKey: ["freelancers"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("freelancers").select("id, name").order("name");
+      // Select full rows: other consumers of the shared ["freelancers"] key
+      // (AdminProjects workload/reassign, etc.) need role/tags/status.
+      const { data, error } = await supabase.from("freelancers").select("id, name, role, tags, status").order("name");
       if (error) throw error;
       return data || [];
     },
@@ -427,8 +429,11 @@ function EditorialModal({ item, onClose, onSaved }) {
   const [data, setData] = useState({ ...item, workflow_type: item.workflow_type || "video" });
   const [saving, setSaving] = useState(false);
 
+  // Dedicated query key: other ["freelancers"] queries select fewer columns
+  // (e.g. ProjectModal selects only id,name) and would otherwise win the React
+  // Query cache, leaving us without role/tags and showing "No video editors".
   const { data: freelancers = [] } = useQuery({
-    queryKey: ["freelancers"],
+    queryKey: ["freelancers", "with-role"],
     queryFn: async () => {
       const { data, error } = await supabase.from("freelancers").select("id, name, role, tags, status").order("name");
       if (error) throw error;
