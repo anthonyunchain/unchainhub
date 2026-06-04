@@ -93,7 +93,7 @@ export default function Dashboard() {
   const shot = thisMonthContent.filter(c => c.post_type === "Reel" || c.post_type === "Story").length;
 
   const upcomingContent = content
-    .filter(c => c.status === "Planifié" || c.status === "En cours")
+    .filter(c => (c.status === "Planifié" || c.status === "En cours") && c.scheduled_date >= today)
     .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))
     .slice(0, 6);
   const activeClientsList = clients.filter(c => c.status === "Actif");
