@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import * as tus from "tus-js-client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { base44, supabase } from "@/api/base44Client";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link2, Upload, X, Loader2, ImagePlus, ChevronRight, Plus } from "lucide-react";
+import { Link2, Upload, X, Loader2, ImagePlus, ChevronRight, Plus, FileVideo, Download } from "lucide-react";
 import { EDITING_STATUS_OPTIONS, EDITING_STATUS_LABELS } from "@/lib/editorialStatus";
 
 // Shared "video workflow" form for a single editorial_content row.
@@ -14,6 +17,61 @@ export default function EditorialVideoFields({ data, setData, clients = [], vide
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadingImg, setUploadingImg] = useState(false);
   const [showDelivery, setShowDelivery] = useState(false);
+  const [uploadingFinal, setUploadingFinal] = useState(false);
+  const [finalProgress, setFinalProgress] = useState(0);
+  const qc = useQueryClient();
+
+  // Final-file upload (resumable, up to 50 MB). Writes straight to the row so
+  // the deliverable persists immediately — works for any saved content,
+  // including video items that live in Production.
+  async function handleFinalFileUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file || !data.id) return;
+    if (file.size > 50 * 1024 * 1024) { toast.error("File too large — maximum size is 50 MB"); e.target.value = ""; return; }
+    setUploadingFinal(true);
+    setFinalProgress(0);
+    const ext = file.name.split(".").pop();
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const path = `final-files/${filename}`;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const fileUrl = await new Promise((resolve, reject) => {
+        const upload = new tus.Upload(file, {
+          endpoint: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/upload/resumable`,
+          retryDelays: [0, 3000, 5000, 10000],
+          headers: { authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+          uploadDataDuringCreation: true,
+          removeFingerprintOnSuccess: true,
+          metadata: { bucketName: "content", objectName: path, contentType: file.type || "application/octet-stream", cacheControl: "3600" },
+          chunkSize: 6 * 1024 * 1024,
+          onError: reject,
+          onProgress: (u, t) => setFinalProgress(Math.round((u / t) * 100)),
+          onSuccess: () => { const { data: pub } = supabase.storage.from("content").getPublicUrl(path); resolve(pub.publicUrl); },
+        });
+        upload.start();
+      });
+      await supabase.from("editorial_content").update({ final_file_url: fileUrl, final_file_name: file.name }).eq("id", data.id);
+      setData(d => ({ ...d, final_file_url: fileUrl, final_file_name: file.name }));
+      qc.invalidateQueries({ queryKey: ["editorial"] });
+      qc.invalidateQueries({ queryKey: ["production-editorial"] });
+      toast.success("Final file uploaded");
+    } catch (err) {
+      toast.error("Upload failed: " + (err?.message || String(err)));
+    } finally {
+      setUploadingFinal(false);
+      setFinalProgress(0);
+      e.target.value = "";
+    }
+  }
+
+  async function handleRemoveFinalFile() {
+    if (!data.id) return;
+    await supabase.from("editorial_content").update({ final_file_url: null, final_file_name: null }).eq("id", data.id);
+    setData(d => ({ ...d, final_file_url: null, final_file_name: null }));
+    qc.invalidateQueries({ queryKey: ["editorial"] });
+    qc.invalidateQueries({ queryKey: ["production-editorial"] });
+  }
 
   return (
     <div className="space-y-4">
@@ -161,6 +219,64 @@ export default function EditorialVideoFields({ data, setData, clients = [], vide
           <Label>Scheduled date</Label>
           <Input type="date" value={data.scheduled_date || ""} onChange={e => setData({ ...data, scheduled_date: e.target.value })} />
         </div>
+      </div>
+
+      {/* Final file */}
+      <div className="pt-3 border-t border-slate-100">
+        <div className="flex items-center gap-2 mb-3">
+          <FileVideo className="w-4 h-4 text-emerald-600" />
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Final file</p>
+          <span className="text-xs text-slate-400">— max 50 MB</span>
+        </div>
+
+        {!data.id && (
+          <p className="text-xs text-slate-400 italic">Save the content first to attach a final file.</p>
+        )}
+
+        {data.id && data.final_file_url && (
+          <div className="flex items-center justify-between px-4 py-3 bg-emerald-50 rounded-xl border border-emerald-100">
+            <div className="flex items-center gap-2 min-w-0">
+              <FileVideo className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="text-sm text-emerald-800 font-medium truncate">{data.final_file_name || "Final file"}</span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 ml-3">
+              <a href={data.final_file_url} download={data.final_file_name} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 bg-white border border-emerald-200 px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors">
+                <Download className="w-3.5 h-3.5" /> Download
+              </a>
+              <label className={`cursor-pointer flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-slate-50 transition-colors ${uploadingFinal ? "opacity-50 pointer-events-none" : ""}`}>
+                <Upload className="w-3.5 h-3.5" /> Replace
+                <input type="file" className="hidden" onChange={handleFinalFileUpload} disabled={uploadingFinal} />
+              </label>
+              <button onClick={handleRemoveFinalFile} className="text-slate-300 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-50">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {data.id && !data.final_file_url && (
+          <label className={`flex flex-col items-center justify-center gap-2 py-7 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/40 transition-all ${uploadingFinal ? "opacity-60 pointer-events-none" : ""}`}>
+            {uploadingFinal ? (
+              <>
+                <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+                <span className="text-sm text-emerald-700 font-medium">Uploading{finalProgress > 0 ? ` ${finalProgress}%` : "…"}</span>
+                {finalProgress > 0 && (
+                  <div className="w-48 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${finalProgress}%` }} />
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <Upload className="w-6 h-6 text-slate-400" />
+                <span className="text-sm text-slate-500 font-medium">Upload final file</span>
+                <span className="text-xs text-slate-400">MP4, MOV, ZIP, PDF… up to 50 MB</span>
+              </>
+            )}
+            <input type="file" className="hidden" onChange={handleFinalFileUpload} disabled={uploadingFinal} />
+          </label>
+        )}
       </div>
 
       {/* Collapsible: client portal & delivery (Portal V2) */}
