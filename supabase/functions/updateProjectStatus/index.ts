@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized', detail: authError?.message }, { status: 401, headers: corsHeaders(req) });
     }
 
-    const { project_id, editing_status, notes } = await req.json();
+    const { project_id, editing_status, notes, final_file_url, final_file_name } = await req.json();
     if (!project_id) {
       return Response.json({ error: 'Missing project_id' }, { status: 400, headers: corsHeaders(req) });
     }
@@ -85,6 +85,13 @@ Deno.serve(async (req) => {
     if (notes !== undefined) {
       updates.notes = notes;
     }
+    // Final deliverable (edited video). Empty string clears it.
+    if (final_file_url !== undefined) {
+      updates.final_file_url = final_file_url || null;
+    }
+    if (final_file_name !== undefined) {
+      updates.final_file_name = final_file_name || null;
+    }
 
     if (Object.keys(updates).length === 0) {
       return Response.json({ error: 'Nothing to update' }, { status: 400, headers: corsHeaders(req) });
@@ -101,7 +108,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: updateErr.message }, { status: 500, headers: corsHeaders(req) });
     }
 
-    if (updates.editing_status) {
+    if (updates.final_file_url) {
+      pushAdmins(supabaseAdmin, {
+        title: `📦 Final file delivered: ${item.title || 'Video'}`,
+        body: `${freelancer.name} uploaded ${updates.final_file_name || 'a file'}`,
+        url: '/Production',
+      }).catch(() => {});
+    } else if (updates.editing_status) {
       pushAdmins(supabaseAdmin, {
         title: `🎬 Video updated: ${item.title || 'Video'}`,
         body: `${freelancer.name} → "${updates.editing_status}"`,
