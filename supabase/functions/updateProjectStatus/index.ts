@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
     if (updates.final_file_url) {
       pushAdmins(supabaseAdmin, {
         title: `📦 Final file delivered: ${item.title || 'Video'}`,
-        body: `${freelancer.name} uploaded ${updates.final_file_name || 'a file'}`,
+        body: `${freelancer.name} delivered ${updates.final_file_name || 'a file'}`,
         url: '/Production',
       }).catch(() => {});
     } else if (updates.editing_status) {

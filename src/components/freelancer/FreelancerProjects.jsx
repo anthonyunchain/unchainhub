@@ -432,6 +432,13 @@ function EditorialCard({ item, onAction }) {
   const canDeliver = ["À faire", "En cours de montage", "En attente de retour", "Subtitles", "Terminé"]
     .includes(item.editing_status);
 
+  // Delivering from a pre-review state moves the item to "Awaiting review" so
+  // the admin sees it's ready. Already-review/later states are left untouched
+  // (no backward move when simply replacing a file).
+  const deliverStatus = ["À faire", "En cours de montage"].includes(item.editing_status)
+    ? "En attente de retour"
+    : null;
+
   const advance = async () => {
     if (!next || busy) return;
     setBusy(true);
@@ -482,9 +489,10 @@ function EditorialCard({ item, onAction }) {
       });
       const { data } = await base44.functions.invoke("updateProjectStatus", {
         project_id: item.id, final_file_url: fileUrl, final_file_name: file.name,
+        ...(deliverStatus && { editing_status: deliverStatus }),
       });
       if (data?.error) throw new Error(data.error);
-      toast.success("Final file delivered");
+      toast.success(deliverStatus ? "Delivered — sent for review" : "Final file delivered");
       onAction?.();
     } catch (err) {
       toast.error("Upload failed: " + (err?.message || String(err)));
@@ -507,9 +515,10 @@ function EditorialCard({ item, onAction }) {
     try {
       const { data } = await base44.functions.invoke("updateProjectStatus", {
         project_id: item.id, final_file_url: url, final_file_name: label,
+        ...(deliverStatus && { editing_status: deliverStatus }),
       });
       if (data?.error) throw new Error(data.error);
-      toast.success("Delivery link saved");
+      toast.success(deliverStatus ? "Link saved — sent for review" : "Delivery link saved");
       setDeliveryUrl("");
       onAction?.();
     } catch (e) {
