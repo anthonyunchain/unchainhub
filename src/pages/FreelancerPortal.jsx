@@ -79,8 +79,11 @@ function DashboardTab({ tasks, projects, payments, freelancerName, freelancerFir
   const pendingCount = tasks.filter(t => t.status !== "Terminé").length;
   const completedCount = tasks.filter(t => t.status === "Terminé").length;
 
+  // Active = anything assigned and not finished, mirroring the Production tab
+  // (which hides only "Terminé"). The previous narrow filter dropped items in
+  // "En attente d'acceptation", "En attente de retour" and "Subtitles".
   const ongoingProjects = projects.filter(p =>
-    p.editing_status === "En cours de montage" || p.editing_status === "À faire"
+    p.editing_status && !["Terminé", "Non assigné"].includes(p.editing_status)
   );
 
   // Revenues this month
