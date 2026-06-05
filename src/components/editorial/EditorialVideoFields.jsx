@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link2, Upload, X, Loader2, ImagePlus, ChevronRight, Plus, FileVideo, Download } from "lucide-react";
 import { EDITING_STATUS_OPTIONS, EDITING_STATUS_LABELS } from "@/lib/editorialStatus";
+import DeliveryBatches from "@/components/shared/DeliveryBatches";
 
 // Shared "video workflow" form for a single editorial_content row.
 // Used both in the Editorial calendar dialog and the Production page so the two
@@ -220,6 +221,14 @@ export default function EditorialVideoFields({ data, setData, clients = [], vide
           <Input type="date" value={data.scheduled_date || ""} onChange={e => setData({ ...data, scheduled_date: e.target.value })} />
         </div>
       </div>
+
+      {/* Deliveries from the editor — multiple / split batches */}
+      {data.delivery_files?.length > 0 && (
+        <div className="pt-3 border-t border-slate-100">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Editor deliveries</p>
+          <DeliveryBatches files={data.delivery_files} />
+        </div>
+      )}
 
       {/* Final file */}
       <div className="pt-3 border-t border-slate-100">

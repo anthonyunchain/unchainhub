@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized', detail: authError?.message }, { status: 401, headers: corsHeaders(req) });
     }
 
-    const { project_id, editing_status, notes, final_file_url, final_file_name } = await req.json();
+    const { project_id, editing_status, notes, final_file_url, final_file_name, add_delivery, remove_delivery_batch } = await req.json();
     if (!project_id) {
       return Response.json({ error: 'Missing project_id' }, { status: 400, headers: corsHeaders(req) });
     }
@@ -93,6 +93,38 @@ Deno.serve(async (req) => {
       updates.final_file_name = final_file_name || null;
     }
 
+    // Multiple / split deliveries — accumulate into delivery_files. All entries
+    // delivered in one action share a `batch` timestamp so they render as one
+    // "Delivery #N". Files live in the deliverables bucket; links open directly.
+    const existingDeliveries = Array.isArray(item.delivery_files) ? item.delivery_files : [];
+    let deliveryAdded = false;
+    if (add_delivery && typeof add_delivery === 'object') {
+      const batch = new Date().toISOString();
+      const entries: Record<string, unknown>[] = [];
+      for (const f of (Array.isArray(add_delivery.files) ? add_delivery.files : [])) {
+        if (f && typeof f.path === 'string' && typeof f.name === 'string') {
+          entries.push({
+            kind: 'file', path: String(f.path), name: String(f.name).slice(0, 255),
+            size: typeof f.size === 'number' ? f.size : null, uploaded_at: batch, batch,
+          });
+        }
+      }
+      const url = typeof add_delivery.url === 'string' ? add_delivery.url.trim() : '';
+      if (url) {
+        let label = 'Delivery link';
+        try { label = new URL(url).hostname.replace(/^www\./, ''); } catch { /* keep default */ }
+        entries.push({ kind: 'link', url, name: label, uploaded_at: batch, batch });
+      }
+      if (entries.length > 0) {
+        updates.delivery_files = [...existingDeliveries, ...entries];
+        deliveryAdded = true;
+      }
+    }
+    if (typeof remove_delivery_batch === 'string' && remove_delivery_batch) {
+      updates.delivery_files = (updates.delivery_files as any[] || existingDeliveries)
+        .filter((f: any) => (f?.batch || f?.uploaded_at) !== remove_delivery_batch);
+    }
+
     if (Object.keys(updates).length === 0) {
       return Response.json({ error: 'Nothing to update' }, { status: 400, headers: corsHeaders(req) });
     }
@@ -108,10 +140,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: updateErr.message }, { status: 500, headers: corsHeaders(req) });
     }
 
-    if (updates.final_file_url) {
+    if (deliveryAdded || updates.final_file_url) {
       pushAdmins(supabaseAdmin, {
-        title: `📦 Final file delivered: ${item.title || 'Video'}`,
-        body: `${freelancer.name} delivered ${updates.final_file_name || 'a file'}`,
+        title: `📦 Delivery: ${item.title || 'Video'}`,
+        body: `${freelancer.name} delivered a new file/link`,
         url: '/Production',
       }).catch(() => {});
     } else if (updates.editing_status) {

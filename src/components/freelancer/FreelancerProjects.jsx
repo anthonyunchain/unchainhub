@@ -1,18 +1,18 @@
 import { useState } from "react";
-import * as tus from "tus-js-client";
-import { base44, supabase } from "@/api/base44Client";
+import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { format, isPast, differenceInHours, differenceInDays } from "date-fns";
 import { enUS } from "date-fns/locale";
 import {
   CheckCircle2, XCircle, Truck, MessageSquare, ChevronDown,
   Clock, AlertTriangle, FolderOpen, MoreHorizontal, ExternalLink, Clapperboard,
-  Download, Paperclip, Upload, Loader2, FileVideo, X
+  Download, Paperclip, FileVideo
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import FileDropzone from "@/components/shared/FileDropzone";
+import DeliveryBatches from "@/components/shared/DeliveryBatches";
 import { openDeliverable, formatBytes } from "@/lib/deliverables";
 import { EDITING_STATUS, EDITING_STATUS_LABELS, nextEditingStatus, nextEditingActionLabel } from "@/lib/editorialStatus";
 
@@ -417,8 +417,7 @@ const editingStatusColor = (s) => {
 
 function EditorialCard({ item, onAction }) {
   const [busy, setBusy] = useState(false);
-  const [uploadingFinal, setUploadingFinal] = useState(false);
-  const [finalProgress, setFinalProgress] = useState(0);
+  const [deliveryFiles, setDeliveryFiles] = useState([]);
   const [deliveryUrl, setDeliveryUrl] = useState("");
   const isDone = item.editing_status === "Terminé";
   const statusLabel = EDITING_STATUS_LABELS[item.editing_status] || item.editing_status || "—";
@@ -457,72 +456,45 @@ function EditorialCard({ item, onAction }) {
     }
   };
 
-  // Upload the edited video to the public `content` bucket (resumable, ≤50 MB),
-  // then persist final_file_url/name through the edge function — a freelancer
-  // can't UPDATE editorial_content directly (RLS), but the function verifies
-  // they're the assigned editor and writes with the service role.
-  const handleFinalFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !item.id) return;
-    if (file.size > 50 * 1024 * 1024) { toast.error("File too large — maximum size is 50 MB"); e.target.value = ""; return; }
-    setUploadingFinal(true);
-    setFinalProgress(0);
-    const ext = file.name.split(".").pop();
-    const path = `final-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const fileUrl = await new Promise((resolve, reject) => {
-        const upload = new tus.Upload(file, {
-          endpoint: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/upload/resumable`,
-          retryDelays: [0, 3000, 5000, 10000],
-          headers: { authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
-          uploadDataDuringCreation: true,
-          removeFingerprintOnSuccess: true,
-          metadata: { bucketName: "content", objectName: path, contentType: file.type || "application/octet-stream", cacheControl: "3600" },
-          chunkSize: 6 * 1024 * 1024,
-          onError: reject,
-          onProgress: (u, t) => setFinalProgress(Math.round((u / t) * 100)),
-          onSuccess: () => { const { data: pub } = supabase.storage.from("content").getPublicUrl(path); resolve(pub.publicUrl); },
-        });
-        upload.start();
-      });
-      const { data } = await base44.functions.invoke("updateProjectStatus", {
-        project_id: item.id, final_file_url: fileUrl, final_file_name: file.name,
-        ...(deliverStatus && { editing_status: deliverStatus }),
-      });
-      if (data?.error) throw new Error(data.error);
-      toast.success(deliverStatus ? "Delivered — sent for review" : "Final file delivered");
-      onAction?.();
-    } catch (err) {
-      toast.error("Upload failed: " + (err?.message || String(err)));
-    } finally {
-      setUploadingFinal(false);
-      setFinalProgress(0);
-      e.target.value = "";
-    }
-  };
-
-  // Deliver an external link (Drive, Dropbox, WeTransfer…) instead of a file.
-  // Stored in the same final_file_url field so it surfaces in the admin's
-  // Final-file section; the name is a friendly host label.
-  const deliverUrl = async () => {
+  // Add a delivery (files and/or a link) as a new batch. A freelancer can't
+  // UPDATE editorial_content directly (RLS), so the edge function verifies
+  // they're the assigned editor and appends with the service role. Files are
+  // uploaded by FileDropzone to the deliverables bucket beforehand.
+  const deliver = async () => {
+    if (busy) return;
     const url = deliveryUrl.trim();
-    if (!url || busy) return;
-    let label = "Delivery link";
-    try { label = new URL(url).hostname.replace(/^www\./, ""); } catch { /* keep default */ }
+    if (deliveryFiles.length === 0 && !url) { toast.error("Add a file or a link first"); return; }
     setBusy(true);
     try {
       const { data } = await base44.functions.invoke("updateProjectStatus", {
-        project_id: item.id, final_file_url: url, final_file_name: label,
+        project_id: item.id,
+        add_delivery: { files: deliveryFiles, url },
         ...(deliverStatus && { editing_status: deliverStatus }),
       });
       if (data?.error) throw new Error(data.error);
-      toast.success(deliverStatus ? "Link saved — sent for review" : "Delivery link saved");
+      toast.success(deliverStatus ? "Delivered — sent for review" : "Delivery added");
+      setDeliveryFiles([]);
       setDeliveryUrl("");
       onAction?.();
     } catch (e) {
-      toast.error(e?.message || "Could not save link");
+      toast.error(e?.message || "Could not deliver");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeBatch = async (batchKey) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const { data } = await base44.functions.invoke("updateProjectStatus", {
+        project_id: item.id, remove_delivery_batch: batchKey,
+      });
+      if (data?.error) throw new Error(data.error);
+      toast.success("Delivery removed");
+      onAction?.();
+    } catch (e) {
+      toast.error(e?.message || "Could not remove delivery");
     } finally {
       setBusy(false);
     }
@@ -602,71 +574,44 @@ function EditorialCard({ item, onAction }) {
         </div>
       )}
 
-      {/* Deliver final file */}
+      {/* Deliveries — multiple batches, files and/or links */}
       {canDeliver && (
         <div className="mt-4 pt-3 border-t border-slate-100">
           <div className="flex items-center gap-2 mb-2">
-            <FileVideo className="w-4 h-4 text-emerald-600" />
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Final file</p>
-            <span className="text-[10px] text-slate-400">— max 50 MB</span>
+            <FileVideo className="w-4 h-4 text-violet-600" />
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Deliveries</p>
+            <span className="text-[10px] text-slate-400">— files up to 50 MB, or a link</span>
           </div>
 
-          {item.final_file_url ? (
-            <div className="flex items-center justify-between px-3 py-2.5 bg-emerald-50 rounded-xl border border-emerald-100">
-              <div className="flex items-center gap-2 min-w-0">
-                <FileVideo className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="text-xs text-emerald-800 font-medium truncate">{item.final_file_name || "Final file"}</span>
-              </div>
-              <div className="flex items-center gap-2 shrink-0 ml-3">
-                <a href={item.final_file_url} download={item.final_file_name} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[11px] text-emerald-700 bg-white border border-emerald-200 px-2 py-1 rounded-lg hover:bg-emerald-50">
-                  <ExternalLink className="w-3 h-3" /> Open
-                </a>
-                <label className={`cursor-pointer flex items-center gap-1 text-[11px] text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded-lg hover:bg-slate-50 ${uploadingFinal ? "opacity-50 pointer-events-none" : ""}`}>
-                  <Upload className="w-3 h-3" /> Replace
-                  <input type="file" className="hidden" onChange={handleFinalFileUpload} disabled={uploadingFinal} />
-                </label>
-              </div>
+          {/* Existing deliveries, grouped into Delivery #1, #2… */}
+          {item.delivery_files?.length > 0 && (
+            <div className="mb-3">
+              <DeliveryBatches files={item.delivery_files} onRemoveBatch={removeBatch} busy={busy} />
             </div>
-          ) : (
-            <label className={`flex flex-col items-center justify-center gap-1.5 py-5 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/40 transition-all ${uploadingFinal ? "opacity-60 pointer-events-none" : ""}`}>
-              {uploadingFinal ? (
-                <>
-                  <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />
-                  <span className="text-xs text-emerald-700 font-medium">Uploading{finalProgress > 0 ? ` ${finalProgress}%` : "…"}</span>
-                  {finalProgress > 0 && (
-                    <div className="w-40 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${finalProgress}%` }} />
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <Upload className="w-5 h-5 text-slate-400" />
-                  <span className="text-xs text-slate-500 font-medium">Upload final file</span>
-                  <span className="text-[10px] text-slate-400">MP4, MOV, ZIP… up to 50 MB</span>
-                </>
-              )}
-              <input type="file" className="hidden" onChange={handleFinalFileUpload} disabled={uploadingFinal} />
-            </label>
           )}
 
-          {/* Or deliver an external link */}
+          {/* Add a new delivery */}
+          <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">Add a delivery</p>
+          <FileDropzone
+            files={deliveryFiles}
+            onChange={setDeliveryFiles}
+            pathPrefix={`editorial/${item.id}/delivery`}
+          />
           <div className="mt-2 flex items-center gap-2">
             <input
               type="url"
               value={deliveryUrl}
               onChange={e => setDeliveryUrl(e.target.value)}
-              placeholder={item.final_file_url ? "Replace with a link (Drive, WeTransfer…)" : "Or paste a delivery link (Drive, WeTransfer…)"}
+              placeholder="Or paste a link (Drive, WeTransfer…)"
               className="flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-[#2A69FF]"
             />
             <button
-              onClick={deliverUrl}
-              disabled={busy || !deliveryUrl.trim()}
+              onClick={deliver}
+              disabled={busy || (deliveryFiles.length === 0 && !deliveryUrl.trim())}
               className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg text-white disabled:opacity-50"
               style={{ background: 'var(--brand)' }}
             >
-              {busy ? "…" : "Save link"}
+              {busy ? "…" : "Deliver"}
             </button>
           </div>
         </div>
