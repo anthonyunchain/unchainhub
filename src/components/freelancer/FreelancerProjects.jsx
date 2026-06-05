@@ -459,7 +459,7 @@ function EditorialCard({ item, onAction }) {
       </div>
       <div className="flex items-center justify-between gap-2">
         <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor}`}>{statusLabel}</span>
-        {next ? (
+        {next && (
           <button
             onClick={advance}
             disabled={busy}
@@ -468,16 +468,49 @@ function EditorialCard({ item, onAction }) {
           >
             {busy ? "…" : nextLabel}
           </button>
-        ) : item.editing_instructions ? (
-          <p className="text-xs text-slate-400 truncate max-w-[200px]">{item.editing_instructions}</p>
-        ) : null}
+        )}
       </div>
+
+      {/* Brief for the editor — always visible while editing */}
+      {item.editing_instructions && (
+        <div className="mt-3 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+          <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Brief</p>
+          <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{item.editing_instructions}</p>
+        </div>
+      )}
+
+      {/* Concept / description from the calendar */}
+      {item.description && (
+        <p className="text-xs text-slate-500 leading-relaxed mt-3">{item.description}</p>
+      )}
+
+      {/* Reference link */}
+      {(item.drive_link || item.drive_url) && (
+        <a href={item.drive_link || item.drive_url} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs text-[#2A69FF] hover:underline mt-3">
+          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">{item.drive_link || item.drive_url}</span>
+        </a>
+      )}
+
+      {/* Reference files */}
       {item.editing_files?.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {item.editing_files.map((url, i) => (
             <a key={i} href={url} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[11px] text-[#2A69FF] bg-blue-50 px-2 py-1 rounded-lg hover:underline">
-              <ExternalLink className="w-3 h-3" /> Reference file {i + 1}
+              <Paperclip className="w-3 h-3" /> Reference file {i + 1}
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* Reference images */}
+      {item.editing_images?.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {item.editing_images.map((url, i) => (
+            <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+              <img src={url} alt="" className="w-20 h-20 rounded-lg border border-slate-200 object-cover hover:opacity-90 transition-opacity" />
             </a>
           ))}
         </div>
