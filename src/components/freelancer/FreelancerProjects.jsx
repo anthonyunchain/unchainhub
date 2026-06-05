@@ -419,6 +419,7 @@ function EditorialCard({ item, onAction }) {
   const [busy, setBusy] = useState(false);
   const [uploadingFinal, setUploadingFinal] = useState(false);
   const [finalProgress, setFinalProgress] = useState(0);
+  const [deliveryUrl, setDeliveryUrl] = useState("");
   const isDone = item.editing_status === "Terminé";
   const statusLabel = EDITING_STATUS_LABELS[item.editing_status] || item.editing_status || "—";
   const statusColor = editingStatusColor(item.editing_status);
@@ -491,6 +492,30 @@ function EditorialCard({ item, onAction }) {
       setUploadingFinal(false);
       setFinalProgress(0);
       e.target.value = "";
+    }
+  };
+
+  // Deliver an external link (Drive, Dropbox, WeTransfer…) instead of a file.
+  // Stored in the same final_file_url field so it surfaces in the admin's
+  // Final-file section; the name is a friendly host label.
+  const deliverUrl = async () => {
+    const url = deliveryUrl.trim();
+    if (!url || busy) return;
+    let label = "Delivery link";
+    try { label = new URL(url).hostname.replace(/^www\./, ""); } catch { /* keep default */ }
+    setBusy(true);
+    try {
+      const { data } = await base44.functions.invoke("updateProjectStatus", {
+        project_id: item.id, final_file_url: url, final_file_name: label,
+      });
+      if (data?.error) throw new Error(data.error);
+      toast.success("Delivery link saved");
+      setDeliveryUrl("");
+      onAction?.();
+    } catch (e) {
+      toast.error(e?.message || "Could not save link");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -586,7 +611,7 @@ function EditorialCard({ item, onAction }) {
               <div className="flex items-center gap-2 shrink-0 ml-3">
                 <a href={item.final_file_url} download={item.final_file_name} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-1 text-[11px] text-emerald-700 bg-white border border-emerald-200 px-2 py-1 rounded-lg hover:bg-emerald-50">
-                  <Download className="w-3 h-3" /> Download
+                  <ExternalLink className="w-3 h-3" /> Open
                 </a>
                 <label className={`cursor-pointer flex items-center gap-1 text-[11px] text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded-lg hover:bg-slate-50 ${uploadingFinal ? "opacity-50 pointer-events-none" : ""}`}>
                   <Upload className="w-3 h-3" /> Replace
@@ -616,6 +641,25 @@ function EditorialCard({ item, onAction }) {
               <input type="file" className="hidden" onChange={handleFinalFileUpload} disabled={uploadingFinal} />
             </label>
           )}
+
+          {/* Or deliver an external link */}
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type="url"
+              value={deliveryUrl}
+              onChange={e => setDeliveryUrl(e.target.value)}
+              placeholder={item.final_file_url ? "Replace with a link (Drive, WeTransfer…)" : "Or paste a delivery link (Drive, WeTransfer…)"}
+              className="flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-[#2A69FF]"
+            />
+            <button
+              onClick={deliverUrl}
+              disabled={busy || !deliveryUrl.trim()}
+              className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg text-white disabled:opacity-50"
+              style={{ background: 'var(--brand)' }}
+            >
+              {busy ? "…" : "Save link"}
+            </button>
+          </div>
         </div>
       )}
     </div>
