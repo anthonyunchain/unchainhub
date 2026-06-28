@@ -20,6 +20,7 @@ const NAV_LINKS = [
   { path: "/Messages",       label: "Messages"   },
   { path: "/Notes",          label: "Notes"      },
   { path: "/Admin",          label: "Admin"      },
+  { path: "/WeLoveFinlandHub", label: "🇫🇮 WLF"   },
 ];
 
 export default function Topbar() {

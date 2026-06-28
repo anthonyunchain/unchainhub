@@ -30,6 +30,7 @@ const PAGE_TITLES = {
   '/CRM':                 'CRM',
   '/ContentIdeas':        'Content Ideas',
   '/FreelancerShop':      'Freelancer Shop',
+  '/WeLoveFinlandHub':    'We Love Finland Hub',
 };
 
 export default function AppLayout() {

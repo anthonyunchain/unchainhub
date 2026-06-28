@@ -62,6 +62,7 @@ const Production          = lazy(() => import('./pages/Production'));
 const Notes               = lazy(() => import('./pages/Notes'));
 const MeetingNotes        = lazy(() => import('./pages/MeetingNotes'));
 const FreelancerShop      = lazy(() => import('./pages/FreelancerShop'));
+const WeLoveFinlandHub    = lazy(() => import('./pages/WeLoveFinlandHub'));
 const PlanningCalendar    = lazy(() => import('./pages/PlanningCalendar'));
 const MessagesPage        = lazy(() => import('./pages/Messages'));
 const CRM                 = lazy(() => import('./pages/CRM'));
@@ -258,6 +259,7 @@ const AuthenticatedApp = () => {
           <Route path="Messages" element={<AdminRoute><MessagesPage /></AdminRoute>} />
           <Route path="CRM" element={<AdminRoute><CRM /></AdminRoute>} />
           <Route path="ContentIdeas" element={<AdminRoute><ContentIdeas /></AdminRoute>} />
+          <Route path="WeLoveFinlandHub" element={<AdminRoute><WeLoveFinlandHub /></AdminRoute>} />
           <Route path="*" element={<PageNotFound />} />
         </Route>
       </Routes>
