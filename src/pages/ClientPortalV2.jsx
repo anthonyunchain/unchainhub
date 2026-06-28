@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { base44, supabase } from "@/api/base44Client";
 import { useTheme } from "@/lib/useTheme";
+import { resolvePortalBrand, portalBrandStyle } from "@/lib/portalBrand";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay, parseISO } from "date-fns";
 import { enUS, fi as fiFns, fr as frFns, de as deFns, sv as svFns, nb as nbFns } from "date-fns/locale";
 import {
@@ -452,7 +453,7 @@ function HomeTab({ client = {}, content = [], shootings = [], onTabChange, tr, d
     <div className="space-y-3" style={{ paddingTop: 40 }}>
 
       {/* Greeting — bold welcome */}
-      <h1 style={{ fontSize: 30, fontWeight: 800, color: 'var(--ink)', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em', lineHeight: 1.15, padding: '4px 0 8px' }}>
+      <h1 style={{ fontSize: 30, fontWeight: 800, color: 'var(--ink)', fontFamily: "var(--portal-display, 'Plus Jakarta Sans', sans-serif)", letterSpacing: '-0.02em', lineHeight: 1.15, padding: '4px 0 8px' }}>
         {greeting}
       </h1>
 
@@ -495,7 +496,7 @@ function HomeTab({ client = {}, content = [], shootings = [], onTabChange, tr, d
         style={{ background: 'var(--card)', border: '1px solid var(--divider)', boxShadow: 'var(--card-shadow)', minHeight: 120 }}
         onClick={() => onTabChange('calendar')}>
         <p className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{tr.postsThisMonth}</p>
-        <p style={{ fontSize: 40, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--ink)', lineHeight: 1 }}>{monthPosts.length}</p>
+        <p style={{ fontSize: 40, fontWeight: 800, fontFamily: "var(--portal-display, 'Plus Jakarta Sans', sans-serif)", color: 'var(--ink)', lineHeight: 1 }}>{monthPosts.length}</p>
         <div className="flex gap-1 flex-wrap">
           {['Reel','Story','Carousel','Post'].map(t => {
             const n = monthPosts.filter(c => c.post_type === t).length;
@@ -611,7 +612,7 @@ function CalendarTab({ content = [], calendarPdfs = [], tr, dateLocale }) {
           style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--divider)', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <ChevronLeft style={{ width: 16, height: 16, color: 'var(--muted)' }} />
         </button>
-        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', flex: 1, textAlign: 'center', textTransform: 'capitalize' }}>
+        <span style={{ fontFamily: "var(--portal-display, 'Plus Jakarta Sans', sans-serif)", fontSize: 15, fontWeight: 700, color: 'var(--ink)', flex: 1, textAlign: 'center', textTransform: 'capitalize' }}>
           {fmtDate(currentDate, 'MMMM yyyy', dateLocale)}
         </span>
         <button onClick={() => setCurrentDate(d => addMonths(d, 1))}
@@ -724,7 +725,7 @@ function ShootingsTab({ shootings = [], client = {}, tr, dateLocale }) {
               <Camera className="w-5 h-5" style={{ color: 'var(--brand)' }} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-bold text-lg leading-tight" style={{ color: 'var(--ink)', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}>{s.title}</p>
+              <p className="font-bold text-lg leading-tight" style={{ color: 'var(--ink)', fontFamily: "var(--portal-display, 'Plus Jakarta Sans', sans-serif)", letterSpacing: '-0.01em' }}>{s.title}</p>
               {s.description && <p className="text-sm mt-1 leading-snug" style={{ color: 'var(--muted)' }}>{s.description}</p>}
             </div>
             {countdown && (
@@ -1815,6 +1816,10 @@ export default function ClientPortalV2() {
 
   const portalUrl = `${window.location.origin}/portal/${token}`;
 
+  // Per-client visual brand (e.g. We Love Finland). null => default Unchain look.
+  const brand = resolvePortalBrand(client);
+  const brandStyle = portalBrandStyle(brand, dark);
+
   const handleToggleCategory = async (category) => {
     if (!client?.id || pushLoading) return;
     setPushLoading(category);
@@ -1878,16 +1883,27 @@ export default function ClientPortalV2() {
   const moreActive  = MORE_TABS.some(t => t.key === activeTab);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1 }}>
+    <div
+      data-portal-brand={brand?.slug}
+      style={{ minHeight: '100vh', backgroundColor: 'var(--bg)', position: 'relative', zIndex: 1, ...brandStyle }}>
       <Toaster richColors position="top-center" />
       {/* Topbar */}
       <div style={{ paddingTop: 'max(20px, env(safe-area-inset-top))', paddingBottom: 16 }}>
         <div className="mx-auto flex items-center justify-between gap-4 px-5" style={{ maxWidth: 1400 }}>
           <div className="flex items-center gap-2.5 shrink-0">
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>U</span>
-            </div>
-            <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.2px' }}>Unchain Studio</span>
+            {brand ? (
+              <img
+                src={dark ? brand.logoDark : brand.logo}
+                alt={brand.name}
+                style={{ height: 30, width: 'auto', display: 'block' }} />
+            ) : (
+              <>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>U</span>
+                </div>
+                <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', fontFamily: "var(--portal-display, 'Plus Jakarta Sans', sans-serif)", letterSpacing: '-0.2px' }}>Unchain Studio</span>
+              </>
+            )}
           </div>
 
           {/* Desktop tabs */}
@@ -1897,7 +1913,7 @@ export default function ClientPortalV2() {
               const active = activeTab === t.key;
               return (
                 <button key={t.key} onClick={() => setActiveTab(t.key)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600, transition: 'all 150ms', background: active ? 'var(--brand)' : 'transparent', color: active ? '#fff' : 'var(--muted)' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: "var(--portal-display, 'Plus Jakarta Sans', sans-serif)", fontSize: 13, fontWeight: 600, transition: 'all 150ms', background: active ? 'var(--brand)' : 'transparent', color: active ? '#fff' : 'var(--muted)' }}>
                   <Icon size={14} />{t.label}
                 </button>
               );
@@ -1917,7 +1933,7 @@ export default function ClientPortalV2() {
           {(() => { const t = TABS.find(x => x.key === activeTab); if (!t) return null; const Icon = t.icon; return (
             <div className="flex items-center gap-2">
               <Icon size={18} style={{ color: 'var(--brand)' }} />
-              <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 18, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>{t.label}</h1>
+              <h1 style={{ fontFamily: "var(--portal-display, 'Plus Jakarta Sans', sans-serif)", fontSize: 18, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>{t.label}</h1>
             </div>
           ); })()}
         </div>

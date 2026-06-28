@@ -1,8 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+/* Inter — body/UI face for branded client portals (e.g. We Love Finland) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+/* Chelsea Market — display face for the We Love Finland portal brand */
+@font-face {
+  font-family: 'Chelsea Market';
+  src: url('/portal-brands/welovefinland/ChelseaMarket-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Branded client portals: override the global Plus Jakarta default so the
+   whole portal subtree inherits the brand's body font (--portal-sans).
+   Display elements opt into --portal-display via inline style. The attribute
+   selector outranks the global `* { font-family }` set in index.html. */
+[data-portal-brand] { font-family: var(--portal-sans, 'Plus Jakarta Sans', sans-serif); }
+[data-portal-brand] *:not(svg):not(svg *) { font-family: inherit; }
 
 @layer utilities {
   .scrollbar-none {
